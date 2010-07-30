@@ -1,0 +1,213 @@
+Synopsis of XML files stored in the archives supported by OpenTBS.
+Version 2010-01-18
+
+Extensions:  odt, odg, ods, odf, odp, docx, xlsx and pptx
+
+This file is incomplete, feel free to send your own comments to:
+  http://www.tinybutstrong.com/onlyyou.html
+
+=================================
+OpenOffice Documents (.ODT, .ODS, .ODG, .ODF, .ODP, .ODM)
+=================================
+
+All simple quotes "'" in texts are coded with "&apos;" but they are automatically replaced by the OpenTBS plugin.
+
+The main information is stored in the file 'content.xml'.
+The pictures are stored in the directory 'Pictures' and should be registered into the file 'META-INF/manifest.xml'. (OpenTBS does it automatically for you when you use parameter "addpic")
+Since OpenOffice 3.2, if a picture is not registered in the Manifest file, then it can produce a message error when opening the document.
+Video and sound cannot be stored in OpenOffice documents.
+
+Main file: 'content.xml':
+-------------------------
+
+Synopsis:
+---------
+<office:document-content>
+	...
+  <office:body>
+  	<office:text>
+  		<text:section text:style-name="Sect1" text:name="Section1">
+  			<text:p text:style-name="Standard">
+  				Normal new lines are made with a new paragraphs <text:p>...</text:p>
+  				Simple new lines are made with <text:line-break/>
+  				Page breaks are made with a new paragraphe having a style which has the attribute {fo:break-before="page"}. 
+  				Local styles (bold, color,...) are made with <text:span text:style-name="T1">...</text:span>
+  				Images:
+					<draw:frame draw:style-name="fr1" draw:name="images1" text:anchor-type="paragraph" svg:width="0.847cm" svg:height="0.847cm" draw:z-index="0">
+						<draw:image xlink:href="Pictures/100000000000002000000020A0D29467.jpg" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
+					</draw:frame>
+  			</text:p>
+  		</text:section>
+  	</office:text>
+  </office:body>
+</office:document-content>
+
+Table in a document:
+--------------------
+<table:table>
+	<table:table-column ... />
+	<table:table-row>
+		<table:table-cell> ... </table:table-cell>
+		<table:table-cell> ... </table:table-cell>
+		...
+	</table:table-row>
+</table:table>
+
+Spécial to .ODF (OpenOffice Math Formula):
+------------------------------------------
+Any comment in the formula must be entered between text delimiters which are the double quotes (").
+Newlines are made with the keyword 'newline' outside the text delimiter. 
+
+
+
+
+
+=================================
+Ms Office Document (.DOCX, .XLSX, .PPTX)
+=================================
+
+Pictures are stored into the directory 'word/media/', 'ppt/media/' or 'xl/media' depending to the type of document. (OpenTBS does it automatically for you when you use parameter "addpic")
+Pictures also need to be registred into the Relationshio file 'word/_rels/document.xml.rels' in order to be usable in a document. (OpenTBS does it automatically for you when you use parameter "addpic")
+
+Picture synopsis in a Word document:
+-------------------------------------
+<w:pict>
+	<v:shapetype id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t" path="m@4@5l@4@11@9@11@9@5xe" filled="f" stroked="f">
+		<v:stroke joinstyle="miter"/>
+		<v:formulas>
+			<v:f eqn="if lineDrawn pixelLineWidth 0"/>
+			...
+		</v:formulas>
+		<v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/>
+		<o:lock v:ext="edit" aspectratio="t"/>
+	</v:shapetype>
+	<v:shape id="_x0000_i1025" type="#_x0000_t75" alt="text for replacement" style="width:150pt;height:165pt">
+		<v:imagedata r:id="rId6" o:title=""/>
+	</v:shape>
+</w:pict>
+
+************************
+Ms Word Document (.DOCX)
+************************
+
+Synopsis of the main file 'word/document.xml':
+----------------------------------------------
+<w:document>
+	<w:body>
+
+		<w:p> New paragraph
+      <w:pPr> Parameters of the paragraph
+        <w:rPr> Set of parameters for a Run
+        </w:rPr>
+      </w:pPr>
+			<w:r> New run item. A run item is a set of content having common layout properties.
+        <w:rPr> Set of parameters for a Run. Examples: <w:i/> is italic, <w:b/> is bold.
+        </w:rPr>
+				<w:t>Your text is here</w:t>
+				Simple new lines are made with <w:br/>
+				Page breaks are made with <w:br w:type="page"/>
+			</w:r>
+		</w:p> 
+
+	</w:body>
+</w:document>
+
+What are attributes "w:rsidR" and "w:rsidRPr" for?
+--------------------------------------------------
+"w:rsidR" is a Revision ID. Each new user on a doc has a new id, 
+and each of its modification is marked with its RsID.
+ More info: http://blogs.msdn.com/brian_jones/archive/2006/12/11/what-s-up-with-all-those-rsids.aspx
+
+Synopsis of a table inserted in a Word document:
+------------------------------------------------
+<w:p>...</w:p>
+
+	<w:tbl>
+		<w:tblPr></w:tblPr>
+		<w:tblGrid></w:tblGrid>
+		<w:tr>
+			<w:tc> ... </w:tc>
+			<w:tc> ... </w:tc>
+			...
+		</w:tr>
+	</w:tbl>
+
+<w:p>...</w:p> 
+
+****************************
+Ms Excel SpreadSheet (.XLSX)
+****************************
+
+An Excel workbook can have one or several worksheets. The contents of cells are saved in worksheets.
+Worksheets files are named 'xl/worksheets/sheet1.xml', and also sheet2.xml, sheet3.xml...
+The file names are not the names defined in Excel by the user, they are internal names. But it seems
+that there is always at least a worksheet named 'sheet1.xml'.
+
+All string values of cells are stored in the file 'xl/sharedStrings.xml'. The cells contains
+in fact the index of the string in the sharedStrings.xml file. This separation will probably
+make difficulties  to merge an Excel sheet. 
+
+All sheets of the workbook are listed in the file 'xl/workbook.xml'.
+
+Synopsis of a sheet file like 'xl/worksheets/sheet1.xml':
+---------------------------------------------------------
+<worksheet>
+	...
+	<sheetData>
+		<row r="2" spans="2:2" ht="90">
+			A range of one row in wich several cells are defined
+			<c r="B2" s="1" t="s">
+				
+				Definition of a cell:
+				Attribute r is the address if the cell in the sheet
+				Attribute s is the style of the cell (the format). Styles are saved into the file 'xl/styles.xml' but I have not found the link yet.
+				Attribute t is the type of data, by default it is numerical
+				t="s" means that the displayed value is a string, the saved value is the index if the string taken in file sharedStrings.xml.
+				<f>B13+B14</f> the formula. If there is no formula, this tag is absent.
+				<v>0</v> the inner value without formatting. If t="s" then the value is in fact the index of the string.
+			</c>
+		</row>
+	</sheetData>
+</worksheet>
+
+Synopsis of the Shared String file 'xl/sharedStrings.xml':
+----------------------------------------------------------
+<sst>
+	<si>
+		<t>value or text</t>
+	</si>
+</sst>
+
+**********************************
+Ms PowerPoint Presentation (.PPTX)
+**********************************
+
+Think to set all texts to "Tools\Language\No check" when you edit the PowerPoint presentation, otherwise some TBS fields
+can be split by XML tags about the language and spell checking.
+
+Slides are listed in the file 'ppt/_rels/presentation.xml.rels', where an internal id is affacted to them.
+
+The first slide is quite always corresponding to the file 'ppt/slides/slide1.xml'.
+
+Synopsis of a slide file like 'ppt/slides/slide1.xml':
+------------------------------------------------------
+
+<p:sld>
+	<p:cSld>
+		<p:spTree>
+			<p:sp>
+
+				<p:txBody>
+					<a:p>
+						<a:pPr eaLnBrk="1" hangingPunct="1"/>
+						<a:r>
+							<a:t>Some text here</a:t>
+						</a:r>
+					</a:p>
+				</p:txBody>
+
+			</p:sp>
+		</p:spTree>
+	</p:cSld>
+</p:sld>
+
