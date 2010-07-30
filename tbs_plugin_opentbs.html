@@ -1,0 +1,246 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>OpenTBS plugin</title>
+<style type="text/css">
+<!--
+body, td, th {
+	font-family: Arial, sans-serif;
+	font-size: 13px;
+}
+.code {
+	font-family: "Courier New", Courier, monospace;
+	font-size: 12px;
+	color: #036;
+	background-color: #E1EBFF;
+	padding: 3px;
+	margin-left: 10px;
+}
+.note {
+	margin-left: 10px;
+	padding: 3px;
+}
+.template {
+	font-family: "Courier New", Courier, monospace;
+	font-size: 12px;
+	margin-left: 10px;
+	color: #030;
+	background-color: #E1FFEB;
+	padding: 3px;
+}
+.versioning {
+	font-style: italic;
+	color: #060;
+}
+.smallcode {
+	font-family: "Courier New", Courier, monospace;
+	font-size: 12px;
+	color: #036;
+}
+-->
+</style>
+</head>
+
+<body>
+<h1>OpenTBS</h1>
+<div>version 1.3.2, 2010-07-22, by Skrol29<br />
+  help file modified on 2010-07-26</div>
+<ol>
+  <li><a href="#intro">Introduction</a></li>
+  <li><a href="#install">Installing</a></li>
+  <li><a href="#principles">Understanding principles</a></li>
+  <li><a href="#coding">Synopsis and code examples</a></li>
+  <li><a href="#demo">Demo</a><a href="#synopsis"></a></li>
+  <li><a href="#debug">Debugging your template</a></li>
+  <li><a href="#zlib">What to do if Zlib extension is not enabled with PHP?</a></li>
+  <li><a href="#changelog">Changelog</a></li>
+  <li><a href="#license">License</a></li>
+</ol>
+<h2><a name="intro" id="intro"></a>Introduction</h2>
+<p>OpenTBS is a plug-in for the <a href="http://www.tinybutstrong.com">TinyButStrong</a> Template Engine. <br />
+  <br />
+  TinyButStrong is a  PHP Template Engine which has  special template syntax and allows you to design templates in their natural editing tools. But it normally works only for  Text files, including XML and HTML. <br />
+  <br />
+  With TinyButStrong and its plug-in OpenTBS, you can use the template engine to  merge <strong>OpenOffice</strong> documents and <strong>Ms Office </strong> documents with lot of facilities.   All <strong>OpenDocument Format</strong> (ODF) and <strong> Office Open XML</strong> (OOXML) can be merged with OpenTBS, and also XPS files (XPS is a PDF competitor provided by Microsoft). In fact, all zip archives containing Xml/Html/Text files can be merged with OpenTBS.</p>
+<p><u>What is special to OpenTBS:</u><br />
+  &bull; Design your templates directly with OpenOffice or MS Office.<br />
+  &bull; No exe file needed to merge documents.<br />
+  &bull; No temporary files needed to merge documents.<br />
+  &bull; Output directly as an http download,   a new file on the disk, or as a string (for file attachment  for example).<br />
+  &bull; Works with both PHP 4 and PHP 5.<br />
+  &bull; No PHP extension is required (If the Zlib extension is enabled it becomes  easier to use  templates, see more detail below)<br />
+  <br />
+  You should know Template Engines and more specifically <a href="http://www.tinybutstrong.com">TinyButStrong</a> to use 
+  OpenTBS.<br />
+</p>
+<h2><a name="install" id="install"></a>Installing</h2>
+<p><u>Requirements:</u><br />
+  - TinyButStrong version 3.5.0 or higher (&quot;tbs_class.php&quot; or &quot;tbs_class_php5.php&quot;).<br />
+  - PHP 4.3 or higher, PHP 5<br />
+  - It is better to have the <a href="http://www.php.net/manual/en/book.zlib.php">Zlib</a> extension enabled on your PHP installation. If it's not, <a href="#zlib">here is what to do</a>.<br />
+  <br />
+  <u>Installation:</u><br />
+  Just put the file &quot;tbs_plugin_opentbs.php&quot; with your PHP scripts.
+<h2><a name="principles" id="principles"></a>Understanding principles</h2>
+<p>It is important to figure out that OpenOffice and Ms Office (since version 2007) documents are technically zip archives containing XML files, even if the extension of the document is not &quot;.zip&quot;. Those zip archives can contain other file types like pictures or sounds, but the document structure and the text contents are saved as  XML files.
+<p>TinyButStrong can merge XML files, but cannot read zip archives by itself. The plug-in OpenTBS extends the TinyButStrong methods <a href="http://www.tinybutstrong.com/manual.php#php_loadtemplate">LoadTemplate()</a> and <a href="http://www.tinybutstrong.com/manual.php#php_show">Show()</a> to make them working with zip archives. <span id="result_box"><span title="">But you   do not have to bother with it because OpenTBS is managing archives  in a way that is invisible for you.</span></span>
+<p> When the OpenTBS plugin is installed, the LoadTemplate() method becomes able to first load a zip archive (an OpenOffice or Ms Office document), and then to load the contents of any XML or Text files stored in the archive. You can then merge the contents of XML or Text files with all features of the TinyButStrong template engine. At the end, the Show() method does output the entire zip archive including  modified stored files. The output can be done as an HTTP download, a news file on the server's disk, or in a PHP string.
+<p>Since OpenTBS version 1.3, you can also add and delete files in the archive. Before this version you could only modify existing files in the archive.<br />
+<p> <a name="extension" id="principles3"></a>OpenTBS has <strong>automatic extension recognition</strong>. When you load a document (an archive) which has one of the following extensions { odt, odg, ods, odf, odp, odm, docx, xlsx and pptx }, then the main XML file of the archive are automatically  loaded, and some special character conversion are preset. For example, for all OpenDocument  files, the stored file  &quot;content.xml&quot; is automatically loaded.
+<h2><a name="coding" id="principles2"></a>Synopsis and code examples</h2>
+<h3>- Prepare the TinyButStrong Template Engine with the OpenTBS plug-in</h3>
+<div class="code">include_once('tbs_class.php');<br />
+  include_once('tbs_plugin_opentbs.php');<br />
+  <br />
+  $TBS = new clsTinyButStrong;<br />
+  $TBS-&gt;Plugin(TBS_INSTALL, OPENTBS_PLUGIN);</div>
+<br />
+<h3>- Method LoadTemplate()</h3>
+&bull; Load an archive with the automatic extension recognition (<a href="#extension">explained above</a>):
+<div class="code">$TBS-&gt;LoadTemplate('document.odt'); // Load the archive 'document.odt'.</div>
+<br />
+&bull; Load an archive without the automatic extension recognition: <span class="versioning">(supported since OpenTBS version 1.1)</span>
+<div class="code">$TBS-&gt;LoadTemplate('document.odt#');</div>
+<br />
+&bull; Load an archive and one file stored in this archive:<br />
+<div class="code">$TBS-&gt;LoadTemplate('document.odt#content.xml');</div>
+<br />
+&bull; Load an archive and several files stored in this archive:<br />
+<div class="code">$TBS-&gt;LoadTemplate('document.odt#content.xml;settings.xml');</div>
+<br />
+&bull; Load a stored file from the current archive:<br />
+<div class="code">$TBS-&gt;LoadTemplate('#content.xml'); // Load the stored file 'content.xml' from the current archive.</div>
+<div class="note"> The archive must be previously loaded.<br />
+  If the file is stored in a subfolder, then indicate the full path. For example: 'word/document.xml'.</div>
+<br />
+&bull; Load an archive with special data conversion: <span class="versioning">(supported since OpenTBS version 1.3.2)</span><br />
+<div class="code">$TBS-&gt;LoadTemplate('document.odt', OPENTBS_ALREADY_UTF8);</div>
+<div class="note"> OpenTBS manages XML files that are UTF8 encoded. But by default, it  assumes that all the data to merge (which can come from PHP or SQL) is Ascii encoded, and thus it performs conversions. If you want to define the data conversion, then you can use one of the following constants:<br />
+  - <span class="smallcode">OPENTBS_DEFAULT</span>: OpenTBS assumes that all data is ASCII encoded,<br />
+  - <span class="smallcode">OPENTBS_ALREADY_UTF8</span>: OpenTBS assumes that all data is already UTF8 encoded,<br />
+  - <span class="smallcode">OPENTBS_ALREADY_XML</span>: OpenTBS assumes that all data is already XML encoded, and thus it won't convert data at all. Take care of that option.<br />
+  Please note that if 
+  you need to change the data conversion for one or few fields only in your template, then you can use parameter &quot;<span class="smallcode">htmlconv</span>&quot; (see the TBS documentation for more details).</div>
+<h3>- Method Show()</h3>
+&bull;Output the merged archive as an HTTP donwload: ($file_name is optional)<br />
+<div class="code">$TBS-&gt;Show(OPENTBS_DOWNLOAD, $file_name);</div>
+<br />
+&bull; Output the merged archive as an HTTP output with your customized HTTP headers:<br />
+<div class="code">header(...); // your custom headers here<br />
+  $TBS-&gt;Show(OPENTBS_NOHEADER); // output the binary file without header</div>
+<br />
+&bull; Output the merged archive as a new file saved on the server's disk:<br />
+<div class="code">$TBS-&gt;Show(OPENTBS_FILE, $file_name);</div>
+<br />
+&bull; Output the merged archive as a PHP string:<span class="versioning"> (supported since OpenTBS version 1.1)</span><br />
+<div class="code">$TBS-&gt;Show(OPENTBS_STRING);<br />
+  $string = $TBS-&gt;Source; </div>
+<div class="note">When you use <span class="smallcode">OPENTBS_STRING</span> then there is no output for the client. But instead, the binary source of the archive is placed into property $TBS-&gt;Source. This feature can be useful, for example, when you want to place the merged document into an email as an attached file.</div>
+<br />
+<h3>- Other</h3>
+&bull; Automatically add an external picture file in the archive: <span class="versioning">(supported since OpenTBS version 1.3, for OpenOffice and MsOffice documents only)</span><br />
+<div class="template">Example: [onshow.x;ope=addpic;from='../pic/[val].gif';as='[val].gif';att=draw:image#xlink:href]<br />
+</div>
+<div class="note">You can automatically add a new picture file in the archive by coding a TBS field directly in the template. When you define parameter &quot;<span class="smallcode">ope=addpic</span>&quot; for a TBS field in your template, then TBS will use the value of the  field to insert the corresponding picture file inside the archive.<br />
+  - Parameter &quot;<span class="smallcode">from</span>&quot; can be used to define the path of the picture to insert. The value can contain [val] or [var] fields. Parameter &quot;from&quot; is optional ;  the default value is the field's value.<br />
+  - Parameter &quot;<span class="smallcode">as</span>&quot; can be used to give a different internal   name to  picture file  when copied in archive (the external picture file is not renamed, and the internal   name must be without path).
+  The value can contain [val] or [var] fields. Parameter &quot;as&quot;  is optional ;  the default value is the file name, without folder, of the field's value.<br />
+  OpenTBS will found the correct folder in the archive where to place the picture according to the extension of the opened document.<br />
+  The <a href="http://www.tinybutstrong.com/plugins/opentbs/demo">demo</a> provides other examples of the usage of parameter &quot;<span class="smallcode">ope=addpic</span>&quot;.<br />
+  Note:<br />
+  If you add a new picture inside the archive, you probably also need to display the picture in the document. For this, the TBS field you are using to insert the picture has its final value modified to be the internal   name of the picture. Use it to change the proper attribute of the picture  tag in the template.<br />
+  In an OpenDocument, the following parameter can move the TBS field in the previous image tag: &quot;<span class="smallcode">att=draw:image#xlink:href</span>&quot;<br />
+  In an OpenXML, the following parameter can move the TBS field in the previous image tag:&quot;<span class="smallcode">att=v:imagedata#r:id</span>&quot;</div>
+<br />
+&bull; Add any new file in the archive: <span class="versioning">(supported since OpenTBS version 1.3)</span><br />
+<div class="code">$TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_ADDFILE, $Name, $Data, $DataType=TBSZIP_STRING, $Compress=true);<br />
+</div>
+<div class="note">Add a new file in the archive. If $Data is false then the previously add file with the given name is canceled if any. $DataType accepts <span class="smallcode">TBSZIP_STRING</span> and <span class="smallcode">TBSZIP_FILE</span> ($Data must then be the path of the external file to insert). $Compress can be true, false or an array with keys ('meth','len_u','crc32') which means that the data is already previously compressed.</div>
+<br />
+&bull; Delete an existing file in the archive: <span class="versioning">(supported since OpenTBS version 1.3)</span><br />
+<div class="code">$TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_DELETEFILE, $Name);<br />
+</div>
+<div class="note">Delete the existing file in the archive, or a file previously   added using the <span class="smallcode">OPENTBS_ADDFILE</span> command.</div>
+<br />
+&bull; Reset all modifications in the  archive: <span class="versioning">(supported since OpenTBS version 1.1)</span><br />
+<div class="code">$TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);<br />
+</div>
+<div class="note">The automatic extension recognition is also applied as it was applied for the first load of the archive.</div>
+<br />
+&bull; Display debugging information:<a name="debugmode" id="demo5"></a><br />
+<div class="code">$TBS-&gt;Show(OPENTBS_DEBUG_XML);</div>
+<div class="note">This will activate the debug mode and display the listing of added files, modified files and deleted files in the archive. It also display the contents merged with OpenTBS.<br />
+  Note that this option overrides the others <span class="versioning">(since version 1.3.2)</span>. Thus it simplifies the debugging because you can add it to your existing call.<br />
+  For example: <span class="smallcode">$TBS-&gt;Show(OPENTBS_DOWNLOAD + OPENTBS_DEBUG_XML, $file_name);</span> this will do only the debugging.</div>
+<br />
+&bull; Property <span class="code">$TBS-&gt;tbsCurrFile</span> indicates the name of the current file loaded from the archive. The value is false if no file is loaded yet from the archive.<br />
+<br />
+Other TinyButStrong methods and properties stay unchanged and are available for merging your template.
+</p>
+<h2><a name="demo" id="demo"></a>Demo</h2>
+<p>The OpenTBS package includes a full set of runnable templates. Some templates can contains useful complementary information for designing.<br />
+  Run the following demo under PHP: <a href="http://www.tinybutstrong.com/plugins/opentbs/demo">OpenTBS demo</a></p>
+<h2><a name="debug" id="principles4"></a>Debugging your template</h2>
+<p>Here is some indications that may help for the issues you can met with merging.</p>
+<h3>a) The merged document is producing error messages when opened with its application (OpenOffice or Ms Office)</h3>
+<p> The most likely causes are:<br />
+  &bull; You've chosen the <span class="smallcode">OPENTBS_DOWNLOAD</span> option but a php error message or any other unexpected content has been output before by PHP.<br />
+  <span class="note">Active the <a href="#debugmode">debug mode</a> using the option <span class="smallcode">OPENTBS_DEBUG_XML</span>, it helps to check PHP error message and other unexpected content.</span><br />
+  or:<br />
+  &bull; The merging has produced an invalid XML content in an XML file  of the document.<br />
+  <span class="note">Active the <a href="#debugmode">debug mode</a> using the option <span class="smallcode">OPENTBS_DEBUG_XML</span>, it helps to check the XML contents of merged files.</span>See section (b) below for more information in the XML structure of the files.</p>
+<h3>b) The merged document is well opened by its application (OpenOffice or Ms Office) but the content is not designed as expected</h3>
+<p>First, you can have a look the <a href="#demo">demo templates</a>, they contain examples and advices for each type of document.<br />
+  And to go further: even if you can edit your template using directly OpenOffice or Ms Office, you will probably need to understand the XML tags and attributes to complete your merge. The file <a href="xml_synopsis.txt">xml_synopsis.txt</a> is a small synopsis of the XML structure you can found in the inner source of those documents. Have a look to it if you feel lost. </p>
+<h3>c) Go deeper in the debugging</h3>
+<p>You can view the inner source of a document using a zip software like <a href="http://www.7-zip.org/">7-Zip</a>. It allows you to open an archive even if the extension is not &quot;.zip&quot;.<br />
+</p>
+<ul>
+  <li>Open the merged document with 7-Zip (or your other zip software),</li>
+  <li> extract the main XML file (or another file that you've merged),</li>
+  <li> then open the XML file in an Text Editor software.</li>
+  <li>those XML files are usually saved with no line breaks, which make them hard to be read. Some Text Editors can reformat them. You can also use the  option <span class="smallcode">OPENTBS_DEBUG_XML</span> of the <a href="#debugmode">debug mode</a> to see the formatted XML.</li>
+  <li>check the structure of the XMK, try some fix and arrangements, deleted suspicious parts, ...</li>
+  <li>put the modified XML file back to the archive, and test if it's correctly opened with its application (OpenOffice, Ms Office)</li>
+</ul>
+<h2><a name="zlib" id="demo4"></a>What to do if Zlib extension is not enabled with PHP?</h2>
+<p>OpenTBS uses  Zlib functions in order to automatically uncompress and recompress files stored in the zip archive. If Zlib is not enabled, then you have to use your own uncompress/compress tool, or to prepare the template to have files uncompressed in the zip archive.</p>
+<p><u>Example to uncompress the &quot;content.xml&quot; file in an ODT document using 7-Zip:</u><br />
+  1) open the ODT file with 7-Zip<br />
+  2) extract the &quot;content.xml&quot; file from the ODT file in the same folder than the ODT file<br />
+  3) 
+  close 7-Zip<br />
+  4) 
+  open 7-Zip, and change current directory to be the same as the ODT file<br />
+  5) select the 
+  &quot;content.xml&quot; file and click on button [Add], or menu [File][7-Zip][Add to archive...]<br />
+  6) A new  window named &quot;Add to archive&quot; is opened,<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;- replace the archive name with the ODT file name,<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;- set the Compression level to &quot;None&quot;.<br />
+  7) Click on [Ok]<br />
+  If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
+  If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
+<h2><a name="changelog" id="demo3"></a>Changelog</h2>
+<p>version 1.3.2, on 2010-07-23<br />
+  - possibility to change de default data conversion using the new constants <span class="smallcode">OPENTBS_DEFAULT</span>, <span class="smallcode">OPENTBS_ALREADY_XML</span> or <span class="smallcode">OPENTBS_ALREADY_UTF8</span><br />
+  - enhanced debug mode: listing of added, deleted and modified files ; and show XML formated contents of files merged with OpenTBS.</p>
+<p> version 1.3.1, on 2010-07-01<br />
+  - based on TbsZip version 2.1: fixes a bug that saved a bad time of modification file  was added, and saved time modification when a file content is replaced.<br />
+  - the addpic operator now automatically   updates the <span class="smallcode">&quot;fanifest.xml&quot;</span> file on OpenOffice document. Without this fix, an ODP merged document could be open with an error message with OpenOffice &gt;= 3.2 </p>
+<p> version 1.3, on 2010-06-01<br />
+  - a new plugin command that add a new file in the archive<br />
+  - a new plugin command that delete a new file in the archive<br />
+  - a parameter '<span class="smallcode">ope=addpic</span>' that add a new picture in the archive directly from the template<br />
+  - based on a TbsZip v2 (modify/delete/add files in a zip archive, )</p>
+<p>version 1.1, on 2009-11-19<br />
+  - New output mode : <span class="smallcode">OPENTBS_STRING</span><br />
+  - New feature: can reset changes in the current archive using <span class="smallcode">$TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</span><br />
+  - New behavior: extension of the archive is ignored by <span class="smallcode">LoadTemplate()</span> if the name is ended with '<span class="smallcode">#</span>'<br />
+  - Bug fixed: in case of several files to take from the archive in one shot, then only the last one had [onload] fields merged.</p>
+<h2><a name="license" id="demo2"></a>License</h2>
+<p>OpenTBS is under <a href="http://www.gnu.org/licenses/lgpl.html">LGPL</a> (Lesser General Public License)</p>
+<p></p>
+<p>&nbsp;</p>
+</body>
+</html>

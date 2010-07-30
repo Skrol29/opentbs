@@ -1,0 +1,164 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>TbsZip class</title>
+<style type="text/css">
+<!--
+body,td,th {
+	font-family: Arial, sans-serif;
+	font-size: 13px;
+}
+.special {
+	background-color: #E6E6FF;
+	border: 1px solid #036;
+	padding: 3px;
+	margin-left: 10px;
+}
+.code {
+	font-family: "Courier New", Courier, monospace;
+	font-size: 12px;
+	margin-left: 10px;
+	color: #036;
+	background-color: #E1EBFF;
+	padding: 3px;
+}
+.versioning {
+	font-style: italic;
+	color: #060;
+}
+.note {
+	margin-left: 10px;
+	padding: 3px;
+}
+-->
+</style></head>
+
+<body>
+<h1>ZipTBS</h1>
+<div>version 2.1, 2010-07-01, by Skrol29<br />
+</div>
+<ol>
+  <li><a href="#intro">Introduction</a></li>
+  <li><a href="#features">Features</a></li>
+  <li><a href="#limitations">Limitations</a></li>
+  <li><a href="#synopsis">Synopsis</a></li>
+  <li><a href="#change">Change-log</a></li>
+  <li><a href="#misc">Contact and license</a></li>
+</ol>
+<h2><a name="intro" id="intro"></a>1. Introduction</h2>
+<p><strong>TbsZip</strong> can read a zip archives, virtually modify the archive and create a new one without any temporary file.  While this class is independent from other libraries, it has been first created for   the <a href="http://www.tinybutstrong.com/plugins/opentbs/demo/demo.html">OpenTBS</a> project which is a plugin for the <a href="http://www.tinybutstrong.com/">TinyButStrong</a> Template Engine.  OpenTBS  makes TinyButStrong able to build OpenOffice and Ms Office documents with the technique of templates.</p>
+<p>  See the <a href="http://www.tinybutstrong.com/plugins/opentbs/demo/demo.html">OpenTBS demo</a>.<br />
+See other <a href="http://www.tinybutstrong.com/plugins.php">TinyButStrong plugins</a>.<br />
+</p>
+<h2><a name="features" id="intro2"></a>2. Features</h2>
+<ul>
+  <li> can read a common zip archive, or start with an empty archive</li>
+  <li> can modify the content of files in the archive (replace, delete or add new file)</li>
+  <li> the new file content can come from a PHP string, or an external physical file</li>
+  <li> the modified archive can be released as a new physical file, an HTTP download, or a PHP string</li>
+  <li> the original archive is not modified</li>
+  <li> the class does not use temporary files: when the new archive is flushed, unmodified parts of the archives are directly streamed from the original archive, modified parts are streamed form their sources (external physical files, or PHP string) </li>
+</ul>
+<h2><a name="limitations" id="intro3"></a>3. Limitations</h2>
+<ul>
+  <li>doesn't support Zip64 archives</li>
+  <li> doesn't support zip file comments (very rarely used, not editable in 7-Zip yet)</li>
+  <li> needs the <a href="http://www.php.net/manual/en/book.zlib.php">Zlib extension</a> only to compress or uncompress files in the archive (Zlib is commonly available in most of PHP installations)</li>
+</ul>
+<h2><a name="synopsis" id="intro4"></a>4. Synopsis</h2>
+<table border="0" cellspacing="2" cellpadding="3">
+  <tr>
+    <td valign="top"><strong>Method or Property</strong></td>
+    <td valign="top"><strong>Description</strong></td>
+  </tr>
+  <tr>
+    <td valign="top" class="code">Open($ArchFile)</td>
+    <td valign="top"> Open an original Zip archive (it can be an Open Office document, an MS Office document or any other Zip archive).</td>
+  </tr>
+  <tr>
+    <td valign="top" class="code">CreateNew()</td>
+    <td valign="top"> Create a new empty Zip archive. The new archive is virtually prepared in the PHP memory, nothing is written at this point. Methods FileExists(), FileRead() and FileReplace() cannot be used when you work on an new archive created by CreateNew(), simply  because the archive is empty.<br />
+    <span class="versioning">Versioning: method CreateNew() is supported since TbsZip version 2.1 </span><br /></td>
+  </tr>
+  <tr>
+    <td valign="top" class="code">FileExists($NameOrIdx)</td>
+    <td valign="top">Return true if the file exists in the original archive. $NameOrIdx must be the full name (including  folder name inside the archive) or the index of an existing file in the archive.</td>
+  </tr>
+  <tr>
+    <td valign="top" class="code">FileRead($NameOrIdx, $Uncompress=true)</td>
+    <td valign="top"> Return the contents of the file stored in the original archive. If $Uncompress is true, then TbsZip try to uncompressed the contents if needed. If the file is compressed but TbsZip cannot uncompress it then an error message is set to property Error. You can check if the result is compressed using property LastReadComp.</td>
+  </tr>
+  <tr>
+    <td valign="top" class="code">FileReplace($NameOrIdx, $Data, $DataType=TBSZIP_STRING, $Compress=true)</td>
+    <td valign="top">  <p>Replace or delete an existing file in the archive. Set $Data=false in order to delete the file. $DataType accepts TBSZIP_STRING and TBSZIP_FILE ($Data must then be the path of the external file to insert). $Compress can be true, false or an array with keys ('meth','len_u','crc32') which means that the data is already previously compressed. <em>Note that the original archive is not modified, modifications will be provided as a new archive when you call the method Flush().</em></p>
+      <p>        Return false if the file has not been replaced or deleted.<br />
+        Return true if the file has  been successfully deleted.<br />
+        Return -1 if the file could not be compressed and has been stored uncompressed.<br />
+        Return 0 if the file has been stored uncompressed as expected.<br />
+        Return 1 if the file has been stored compressed has expected.<br />
+      Return 2 if the file has been stored as is with pre-compression as defined in the array $Compress.</p></td>
+  </tr>
+  <tr>
+    <td valign="top" class="code">FileAdd($Name, $Data, $DataType=TBSZIP_STRING, $Compress=true)</td>
+    <td valign="top"> Add a new file in the archive, works like FileReplace(). <em>Note that the original archive is not modified, modifications will be provided as a new archive when you call the method Flush().</em><br />
+      If $Data is false then the previously add file with the given name is canceled if any.</td>
+  </tr>
+  <tr>
+    <td valign="top" class="code">FileCancelModif($NameOrIdx)</td>
+    <td valign="top"> Cancel  add, delete and replacements in the archive for the given file name. Return the number of cancels.</td>
+  </tr>
+  <tr>
+    <td valign="top" class="code">Flush($Render=TBSZIP_DOWNLOAD, $File='', $ContentType='')</td>
+    <td valign="top">Create the new archive with all modifications.<br />
+<ul>
+  <li>        $Render=TBSZIP_DOWNLOAD will provide the new archive as a  download with HTTP headers. Use $File to customize the name of the downloaded file. Use $ContentType to customize the ContentType header.</li>
+      <li>        $Render=TBSZIP_DOWNLOAD + TBSZIP_NOHEADER will provide the new archive as a  download without HTTP.</li>
+      <li>$Render=TBSZIP_FILE will provide the new archive as a  physical file on the server. Use $File to define the path of the physical file.</li>
+      <li>$Render=TBSZIP_STRING will make method Flush() to return the new archive as a binary string.</li>
+  </ul></td>
+  </tr>
+  <tr>
+    <td valign="top" class="code">Debug()</td>
+    <td valign="top">Display information about the original archive.</td>
+  </tr>
+  <tr>
+    <td valign="top" class="code">Close()</td>
+    <td valign="top"> Close the opened original archive.</td>
+  </tr>
+  <tr>
+    <td valign="top" class="code">ArchFile</td>
+    <td valign="top">Full path of  the opened original archive.</td>
+  </tr>
+  <tr>
+    <td valign="top" class="code">CdFileLst</td>
+    <td valign="top"> An array listing all existing files in the original archive with some technical information.</td>
+  </tr>
+  <tr>
+    <td valign="top" class="code">LastReadIdx</td>
+    <td valign="top"><p>Index of the last file read by FileRead().<br />
+    false means the file was not found in the archive,</p></td>
+  </tr>
+  <tr>
+    <td valign="top" class="code">LastReadComp</td>
+    <td valign="top">Compression information about  of the last file read by FileRead().<br />
+      false means the file was not found in the archive,<br />
+      -1 means the file was compressed and has been successfully uncompressed,<br />
+      0 means the file was not compressed,<br />
+      1 means the file was compressed but TbsZip was unable to uncompress.</td>
+  </tr>
+  <tr>
+    <td valign="top" class="code">Error</td>
+    <td valign="top">Last error message, or false if no error. Errors are not prompted; use this property in order to check errors.</td>
+  </tr>
+</table>
+<h2><a name="change" id="intro6"></a>5. Change log</h2>
+<p>Version 2.1, 2010-07-01<br />
+  - bug fixed: when adding a new file in the archive, the time of the file was wrong (date was ok)<br />
+  - TbsZip now changes the date and time of a file in the archive when the file content is replaced<br />
+  - new method CreateNew()</p>
+<h2><a name="misc" id="intro5"></a>6. Contact and license</h2>
+<p>Author: <a href="http://www.tinybutstrong.com/onlyyou.html">Skrol29</a></p>
+<p>License: <a href="http://www.gnu.org/licenses/lgpl.html">LGLP</a></p>
+</body>
+</html>
