@@ -3,8 +3,8 @@
 ********************************************************
 TinyButStrong - Template Engine for Pro and Beginners
 ------------------------
-Version  : 3.5.2 for PHP 4
-Date     : 2010-04-08
+Version  : 3.5.3 for PHP 4
+Date     : 2010-04-12
 Web site : http://www.tinybutstrong.com
 Author   : http://www.tinybutstrong.com/onlyyou.html
 ********************************************************
@@ -493,7 +493,7 @@ var $ObjectRef = false;
 var $NoErr = false;
 var $Assigned = array();
 // Undocumented (can change at any version)
-var $Version = '3.5.2';
+var $Version = '3.5.3';
 var $Charset = '';
 var $TurboBlock = true;
 var $VarPrefix = '';
@@ -3595,6 +3595,7 @@ To ignore encapsulation and opengin/closing just set $LevelStop=false.
 		$Loc = &new clsTbsLocator;
 		$Loc->PosBeg = ($Forward) ? $PosBeg : $p;
 		$Loc->PosEnd = ($Forward) ? $p : $PosBeg;
+		$Loc->RightLevel = 0;
 		return $Loc;
 	}
 

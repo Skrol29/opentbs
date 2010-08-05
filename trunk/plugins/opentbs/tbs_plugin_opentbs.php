@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.3.2, on 2010-07-22
+/* OpenTBS version 1.3.3, on 2010-08-05
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -29,7 +29,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsAutoLoad)) $TBS->OtbsAutoLoad = true; // TBS will load the subfile regarding to the extension of the archive
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
-		$this->Version = '1.3.1'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
+		$this->Version = '1.3.3'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation');
 	}
 
