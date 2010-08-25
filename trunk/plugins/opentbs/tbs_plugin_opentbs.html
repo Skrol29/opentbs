@@ -51,7 +51,7 @@ body, td, th {
   <li><a href="#install">Installing</a></li>
   <li><a href="#principles">Understanding principles</a></li>
   <li><a href="#coding">Synopsis and code examples</a></li>
-  <li><a href="#demo">Demo</a><a href="#synopsis"></a></li>
+  <li><a href="#demo">Demo</a></li>
   <li><a href="#debug">Debugging your template</a></li>
   <li><a href="#zlib">What to do if Zlib extension is not enabled with PHP?</a></li>
   <li><a href="#changelog">Changelog</a></li>
@@ -81,13 +81,14 @@ body, td, th {
   - It is better to have the <a href="http://www.php.net/manual/en/book.zlib.php">Zlib</a> extension enabled on your PHP installation. If it's not, <a href="#zlib">here is what to do</a>.<br />
   <br />
   <u>Installation:</u><br />
-  Just put the file &quot;tbs_plugin_opentbs.php&quot; with your PHP scripts.
+  Just put the file &quot;tbs_plugin_opentbs.php&quot; with your PHP scripts.</p>
 <h2><a name="principles" id="principles"></a>Understanding principles</h2>
-<p>It is important to figure out that OpenOffice and Ms Office (since version 2007) documents are technically zip archives containing XML files, even if the extension of the document is not &quot;.zip&quot;. Those zip archives can contain other file types like pictures or sounds, but the document structure and the text contents are saved as  XML files.
-<p>TinyButStrong can merge XML files, but cannot read zip archives by itself. The plug-in OpenTBS extends the TinyButStrong methods <a href="http://www.tinybutstrong.com/manual.php#php_loadtemplate">LoadTemplate()</a> and <a href="http://www.tinybutstrong.com/manual.php#php_show">Show()</a> to make them working with zip archives. <span id="result_box"><span title="">But you   do not have to bother with it because OpenTBS is managing archives  in a way that is invisible for you.</span></span>
-<p> When the OpenTBS plugin is installed, the LoadTemplate() method becomes able to first load a zip archive (an OpenOffice or Ms Office document), and then to load the contents of any XML or Text files stored in the archive. You can then merge the contents of XML or Text files with all features of the TinyButStrong template engine. At the end, the Show() method does output the entire zip archive including  modified stored files. The output can be done as an HTTP download, a news file on the server's disk, or in a PHP string.
+<p>It is important to figure out that OpenOffice and Ms Office (since version 2007) documents are technically zip archives containing XML files, even if the extension of the document is not &quot;.zip&quot;. Those zip archives can contain other file types like pictures or sounds, but the document structure and the text contents are saved as  XML files.</p>
+<p>TinyButStrong can merge XML files, but cannot read zip archives by itself. The plug-in OpenTBS extends the TinyButStrong methods <a href="http://www.tinybutstrong.com/manual.php#php_loadtemplate">LoadTemplate()</a> and <a href="http://www.tinybutstrong.com/manual.php#php_show">Show()</a> to make them working with zip archives. <span id="result_box"><span title="">But you   do not have to bother with it because OpenTBS is managing archives  in a way that is invisible for you.</span></span></p>
+<p> When the OpenTBS plugin is installed, the LoadTemplate() method becomes able to first load a zip archive (an OpenOffice or Ms Office document), and then to load the contents of any XML or Text files stored in the archive. You can then merge the contents of XML or Text files with all features of the TinyButStrong template engine. At the end, the Show() method does output the entire zip archive including  modified stored files. The output can be done as an HTTP download, a news file on the server's disk, or in a PHP string.</p>
 <p>Since OpenTBS version 1.3, you can also add and delete files in the archive. Before this version you could only modify existing files in the archive.<br />
-<p> <a name="extension" id="principles3"></a>OpenTBS has <strong>automatic extension recognition</strong>. When you load a document (an archive) which has one of the following extensions { odt, odg, ods, odf, odp, odm, docx, xlsx and pptx }, then the main XML file of the archive are automatically  loaded, and some special character conversion are preset. For example, for all OpenDocument  files, the stored file  &quot;content.xml&quot; is automatically loaded.
+</p>
+<p> <a name="extension" id="principles3"></a>OpenTBS has <strong>automatic extension recognition</strong>. When you load a document (an archive) which has one of the following extensions { odt, odg, ods, odf, odp, odm, docx, xlsx and pptx }, then the main XML file of the archive are automatically  loaded, and some special character conversion are preset. For example, for all OpenDocument  files, the stored file  &quot;content.xml&quot; is automatically loaded.</p>
 <h2><a name="coding" id="principles2"></a>Synopsis and code examples</h2>
 <h3>- Prepare the TinyButStrong Template Engine with the OpenTBS plug-in</h3>
 <div class="code">include_once('tbs_class.php');<br />
@@ -142,16 +143,21 @@ body, td, th {
 &bull; Automatically add an external picture file in the archive: <span class="versioning">(supported since OpenTBS version 1.3, for OpenOffice and MsOffice documents only)</span><br />
 <div class="template">Example: [onshow.x;ope=addpic;from='../pic/[val].gif';as='[val].gif';att=draw:image#xlink:href]<br />
 </div>
-<div class="note">You can automatically add a new picture file in the archive by coding a TBS field directly in the template. When you define parameter &quot;<span class="smallcode">ope=addpic</span>&quot; for a TBS field in your template, then TBS will use the value of the  field to insert the corresponding picture file inside the archive.<br />
-  - Parameter &quot;<span class="smallcode">from</span>&quot; can be used to define the path of the picture to insert. The value can contain [val] or [var] fields. Parameter &quot;from&quot; is optional ;  the default value is the field's value.<br />
-  - Parameter &quot;<span class="smallcode">as</span>&quot; can be used to give a different internal   name to  picture file  when copied in archive (the external picture file is not renamed, and the internal   name must be without path).
-  The value can contain [val] or [var] fields. Parameter &quot;as&quot;  is optional ;  the default value is the file name, without folder, of the field's value.<br />
-  OpenTBS will found the correct folder in the archive where to place the picture according to the extension of the opened document.<br />
-  The <a href="http://www.tinybutstrong.com/plugins/opentbs/demo">demo</a> provides other examples of the usage of parameter &quot;<span class="smallcode">ope=addpic</span>&quot;.<br />
-  Note:<br />
-  If you add a new picture inside the archive, you probably also need to display the picture in the document. For this, the TBS field you are using to insert the picture has its final value modified to be the internal   name of the picture. Use it to change the proper attribute of the picture  tag in the template.<br />
-  In an OpenDocument, the following parameter can move the TBS field in the previous image tag: &quot;<span class="smallcode">att=draw:image#xlink:href</span>&quot;<br />
-  In an OpenXML, the following parameter can move the TBS field in the previous image tag:&quot;<span class="smallcode">att=v:imagedata#r:id</span>&quot;</div>
+<div class="note">
+  <p>Parameter &quot;ope=addpic&quot; helps you to  automatically add a new picture file in the archive using a TBS field directly in the template. When you define parameter &quot;<span class="smallcode">ope=addpic</span>&quot; for a TBS field in your template, then TBS will use the value of the  field to insert the corresponding picture file inside the archive.<br />
+    - Parameter &quot;<span class="smallcode">from</span>&quot; can be used to define the path of the picture to  insert into the archive. The parameter's value can contain [val] or [var] fields. Parameter &quot;from&quot; is optional ;  it's default value is the value of the field.<br />
+    - Parameter &quot;<span class="smallcode">as</span>&quot; can be used to define the   name to the picture file  for its copy into the archive. Note that the external picture file is not renamed ;  the internal   name must be defined without path.
+    The parameter's value can contain [val] or [var] fields. Parameter &quot;as&quot;  is optional ; its default value is the value of parameter &quot;<span class="smallcode">from</span>&quot; without the path.</p>
+  
+      <strong>Notes:</strong><br /><ul>
+    <li> OpenTBS will found the correct folder in the archive where to place the picture according to the extension of the opened document.<br /> 
+      The <a href="http://www.tinybutstrong.com/plugins/opentbs/demo">demo</a> provides other examples of the usage of parameter &quot;ope=addpic&quot;.</li>
+    <li> If you add a new picture inside the archive, you probably also need to display the picture in the document. For this, the TBS field you are using to insert the picture has its final value modified to be the internal   name of the picture. Use it to change the proper attribute of the picture  tag in the template.<br />
+      In an OpenDocument, the following parameter can move the TBS field in the previous image tag: &quot;<span class="smallcode">att=draw:image#xlink:href</span>&quot;<br />
+      In an OpenXML, the following parameter can move the TBS field in the previous image tag:&quot;<span class="smallcode">att=v:imagedata#r:id</span>&quot;</li>
+    <li>Replace extension &quot;.jpg&quot; with extension &quot;.jpeg&quot; for internal name of pictures in Ms Office 2007 documents (and probably higher). It seems that &quot;jpg&quot; makes the document to looks like corrupted and Ms Office will ask you to fix it.</li>
+      </ul>
+</div>
 <br />
 &bull; Add any new file in the archive: <span class="versioning">(supported since OpenTBS version 1.3)</span><br />
 <div class="code">$TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_ADDFILE, $Name, $Data, $DataType=TBSZIP_STRING, $Compress=true);<br />
@@ -243,7 +249,6 @@ version 1.3.2, on 2010-07-23<br />
   - Bug fixed: in case of several files to take from the archive in one shot, then only the last one had [onload] fields merged.</p>
 <h2><a name="license" id="demo2"></a>License</h2>
 <p>OpenTBS is under <a href="http://www.gnu.org/licenses/lgpl.html">LGPL</a> (Lesser General Public License)</p>
-<p></p>
 <p>&nbsp;</p>
 </body>
 </html>
