@@ -154,8 +154,9 @@ body, td, th {
       The <a href="http://www.tinybutstrong.com/plugins/opentbs/demo">demo</a> provides other examples of the usage of parameter &quot;ope=addpic&quot;.</li>
     <li> If you add a new picture inside the archive, you probably also need to display the picture in the document. For this, the TBS field you are using to insert the picture has its final value modified to be the internal   name of the picture. Use it to change the proper attribute of the picture  tag in the template.<br />
       In an OpenDocument, the following parameter can move the TBS field in the previous image tag: &quot;<span class="smallcode">att=draw:image#xlink:href</span>&quot;<br />
-      In an OpenXML, the following parameter can move the TBS field in the previous image tag:&quot;<span class="smallcode">att=v:imagedata#r:id</span>&quot;</li>
-    <li>Replace extension &quot;.jpg&quot; with extension &quot;.jpeg&quot; for internal name of pictures in Ms Office 2007 documents (and probably higher). It seems that &quot;jpg&quot; makes the document to looks like corrupted and Ms Office will ask you to fix it.</li>
+      In an OpenXML document created with Ms Office 2007, the following parameter can move the TBS field in the previous image tag:&quot;<span class="smallcode">att=v:imagedata#r:id</span>&quot;<br />
+      In an OpenXML document created with Ms Office 2010, the following parameter can move the TBS field in the previous image tag:&quot;<span class="smallcode">att=a:blip#r:embed</span>&quot;    </li>
+    <li>With a document created with Ms Office 2007, the picture file should have an internal name with the extension &quot;.jpeg&quot; instead of &quot;.jpg&quot;, while with a document created with Ms Office 2010 it is the opposite: the picture file should have an internal name with the extension &quot;.jpg&quot; instead of &quot;.jpeg&quot;. Otherwise Ms Office consider that the document is corrupted and will propose you to fix it.</li>
       </ul>
 </div>
 <br />
