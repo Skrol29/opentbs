@@ -45,7 +45,7 @@ body, td, th {
 <body>
 <h1>OpenTBS</h1>
 <div>version 1.3.3, 2010-08-05, by Skrol29<br />
-  help file modified on 2010-08-26</div>
+  help file modified on 2010-09-03</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -140,23 +140,26 @@ body, td, th {
 <div class="note">When you use <span class="smallcode">OPENTBS_STRING</span> then there is no output for the client. But instead, the binary source of the archive is placed into property $TBS-&gt;Source. This feature can be useful, for example, when you want to place the merged document into an email as an attached file.</div>
 <br />
 <h3>- Other</h3>
-&bull; Automatically add an external picture file in the archive: <span class="versioning">(supported since OpenTBS version 1.3, for OpenOffice and MsOffice documents only)</span><br />
+&bull; Change an internal picture with a new one coming from a picture file: <span class="versioning">(supported since OpenTBS version 1.3, for OpenOffice and MsOffice documents only)</span><br />
 <div class="template">Example: [onshow.x;ope=addpic;from='../pic/[val].gif';as='[val].gif';att=draw:image#xlink:href]<br />
 </div>
 <div class="note">
-  <p>Parameter &quot;ope=addpic&quot; helps you to  automatically add a new picture file in the archive using a TBS field directly in the template. When you define parameter &quot;<span class="smallcode">ope=addpic</span>&quot; for a TBS field in your template, then TBS will use the value of the  field to insert the corresponding picture file inside the archive.<br />
-    - Parameter &quot;<span class="smallcode">from</span>&quot; can be used to define the path of the picture to  insert into the archive. The parameter's value can contain [val] or [var] fields. Parameter &quot;from&quot; is optional ;  it's default value is the value of the field.<br />
+  <p>You can change a picture wich is already placed in the document by using parameters &quot;<span class="smallcode">ope=addpic</span>&quot; and &quot;<span class="smallcode">att=...</span>&quot; together. The TBS field with those two parameters must always be placed nearby after the picture.</p>
+  <p>Parameter &quot;<span class="smallcode">ope=addpic</span>&quot; is a special parameter given by OpenTBS. Its function is to load the picture file into the current document and make it available to be used in the document (it means it will update some statement files inside the document). Paremeter &quot;<span class="smallcode">ope=addpic</span>&quot; can be used with some complementary parameters &quot;<span class="smallcode">from</span>&quot; and &quot;<span class="smallcode">as</span>&quot;:<br />
+    - Parameter &quot;<span class="smallcode">from</span>&quot; can be used to define the path of the picture to  insert into the archive. The parameter's value can contain [val] or [var] fields. Parameter &quot;<span class="smallcode">from</span>&quot; is optional ;  it's default value is the value of the field.<br />
     - Parameter &quot;<span class="smallcode">as</span>&quot; can be used to define the   name to the picture file  for its copy into the archive. Note that the external picture file is not renamed ;  the internal   name must be defined without path.
-    The parameter's value can contain [val] or [var] fields. Parameter &quot;as&quot;  is optional ; its default value is the value of parameter &quot;<span class="smallcode">from</span>&quot; without the path.</p>
-  
-      <strong>Notes:</strong><br /><ul>
-    <li> OpenTBS will found the correct folder in the archive where to place the picture according to the extension of the opened document.<br /> 
-      The <a href="http://www.tinybutstrong.com/plugins/opentbs/demo">demo</a> provides other examples of the usage of parameter &quot;ope=addpic&quot;.</li>
-    <li> If you add a new picture inside the archive, you probably also need to display the picture in the document. For this, the TBS field you are using to insert the picture has its final value modified to be the internal   name of the picture. Use it to change the proper attribute of the picture  tag in the template.<br />
-      In an OpenDocument, the following parameter can move the TBS field in the previous image tag: &quot;<span class="smallcode">att=draw:image#xlink:href</span>&quot;<br />
-      In an OpenXML document created with Ms Office 2007, the following parameter can move the TBS field in the previous image tag:&quot;<span class="smallcode">att=v:imagedata#r:id</span>&quot;<br />
-      In an OpenXML document created with Ms Office 2010, the following parameter can move the TBS field in the previous image tag:&quot;<span class="smallcode">att=a:blip#r:embed</span>&quot;    </li>
-    <li>With a document created with Ms Office 2007, the picture file should have an internal name with the extension &quot;.jpeg&quot; instead of &quot;.jpg&quot;, while with a document created with Ms Office 2010 it is the opposite: the picture file should have an internal name with the extension &quot;.jpg&quot; instead of &quot;.jpeg&quot;. Otherwise Ms Office consider that the document is corrupted and will propose you to fix it.</li>
+    The parameter's value can contain [val] or [var] fields. Parameter &quot;<span class="smallcode">as</span>&quot;  is optional ; its default value is the value of parameter &quot;<span class="smallcode">from</span>&quot; without the path.</p>
+  <p>Now that the picture is loaded and available in the current template, you have to tell the image's frame to display this new file. This is done with parameter &quot;<span class="smallcode">att</span>&quot;.</p>
+  <p>Parameter &quot;<span class="smallcode">att=..</span>&quot; is a native TBS parameter. Its basic use is to make the TBS fields to be move inside an AXML attribute. You have to put this parameter with the correct value depending to your template type.<br />
+  </p>
+  <ul>
+    <li>If your template is an OpenOffice document, put &quot;<span class="smallcode">att=draw:image#xlink:href</span>&quot;.</li>
+    <li> If your template is an Ms Office document, they are two cases:<br />
+      - if you picture is a VML object (the  Format Picture window has horizontal tabs &quot;color and lines&quot;, &quot;size&quot;, &quot;layout&quot;, ...) then put &quot;<span class="smallcode">att=v:imagedata#r:id</span>&quot;.<br />
+      - 
+
+if you picture is a DrawingML object (the  Format Picture window has vertical tabs &quot;Fill&quot;, &quot;Line color&quot;, &quot;Line style&quot;, ...) then put &quot;<span class="smallcode">att=a:blip#r:embed</span>&quot;.</li>
+    <li>      With an Ms Office document, any picture you will insert must have the same extension than a picture which is already embedded in the document. Otherwise Ms Office will display an error message when you open the merged document. For example, you can add   &quot;.jpeg&quot; file with &quot;<span class="smallcode">ope=addpic</span>&quot; only if a &quot;.jpeg&quot; file is already existing in the template.</li>
       </ul>
 </div>
 <br />
