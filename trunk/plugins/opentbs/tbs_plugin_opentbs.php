@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.3.3, on 2010-08-05
+/* OpenTBS version 1.4.0, on 2010-09-28
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -29,8 +29,8 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsAutoLoad)) $TBS->OtbsAutoLoad = true; // TBS will load the subfile regarding to the extension of the archive
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
-		$this->Version = '1.3.3'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
-		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation');
+		$this->Version = '1.4.0'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
+		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
 	}
 
 	function BeforeLoadTemplate(&$File,&$Charset) {
@@ -157,8 +157,9 @@ class clsOpenTBS extends clsTbsZip {
 		}
 		$TBS->Plugin(-10); // reactivate other plugins
 
-		if (isset($this->OpenXmlRid))   $this->OpenXML_RidCommit($Debug);      // Commit special OpenXML features if any
-		if (isset($this->OpenDocManif)) $this->OpenDoc_ManifestCommit($Debug); // Commit special OpenDocument features if any
+		if (isset($this->OpenXmlRid))    $this->OpenXML_RidCommit($Debug);      // Commit special OpenXML features if any
+		if (isset($this->OpenXmlCTypes)) $this->OpenXML_CTypesCommit($Debug);   // Commit special OpenXML features if any
+		if (isset($this->OpenDocManif))  $this->OpenDoc_ManifestCommit($Debug); // Commit special OpenDocument features if any
 
 		if ( ($TBS->ErrCount>0) && (!$TBS->NoErr) ) {
 			$TBS->meth_Misc_Alert('Show() Method', 'The output is cancelled by the OpenTBS plugin because at least one error has occured.');
@@ -192,34 +193,27 @@ class clsOpenTBS extends clsTbsZip {
 
 	}
 
-	function OnOperation($FieldName,&$Value,&$PrmLst,&$Txt,$PosBeg,$PosEnd,&$Loc) {
-		if ($PrmLst['ope']==='addpic') {
-			$TBS = &$this->TBS;
-			if (isset($PrmLst['from'])) {
-				if (!isset($PrmLst['pic_ok'])) $TBS->meth_Merge_AutoVar($PrmLst['from'],true); // merge automatic TBS fields in the path
-				$FullPath = str_replace($TBS->_ChrVal,$Value,$PrmLst['from']); // merge [val] fields in the path
-			} else {
-				$FullPath = $Value;
-			}
-			if (isset($PrmLst['as'])) {
-				if (!isset($PrmLst['pic_ok'])) $TBS->meth_Merge_AutoVar($PrmLst['as'],true); // merge automatic TBS fields in the path
-				$Value = str_replace($TBS->_ChrVal,$Value,$PrmLst['as']); // merge [val] fields in the path
-			} else {
-				$Value = basename($FullPath);
-			}
-			if (isset($this->ArchExtInfo['pic_path'])) $Value = $this->ArchExtInfo['pic_path'].$Value;
-			if ($this->FileGetIdxAdd($Value)===false) $this->FileAdd($Value, $FullPath, TBSZIP_FILE, true);
-			// Unfortunately parameter 'att' cannot be pre-set because this specific parameter is processed before the mergin when used in fields merged with MergeBlock().
-			if ($this->ArchExtInfo!==false) {
-				if ($this->ArchExtInfo['frm']==='odf') {
-					$this->OpenDoc_ManifestChange($Value,'');
-				} elseif ($this->ArchExtInfo['frm']==='openxml') {
-					$Rid = $this->OpenXml_RidPrepare($TBS->OtbsCurrFile, basename($Value));
-					if ($Rid!==false) $Value = $Rid;
-				}
-			}
-			$PrmLst['pic_ok'] = true; // mark the locator as Picture prepared
+	function OnCacheField($BlockName,&$Loc,&$Txt,$PrmProc) {
+		
+		if (isset($Loc->PrmLst['chgpic'])) return;
+			
+		if ($this->ArchExtInfo['frm']==='odf') {
+			$this->OpenDoc_ManifestChange($Value,'');
+		} elseif ($this->ArchExtInfo['frm']==='openxml') {
+			$Rid = $this->OpenXml_RidPrepare($TBS->OtbsCurrFile, basename($Value));
+			if ($Rid!==false) $Value = $Rid;
 		}
+
+	}
+
+	function OnOperation($FieldName,&$Value,&$PrmLst,&$Txt,$PosBeg,$PosEnd,&$Loc) {
+
+		if ($PrmLst['ope']==='addpic') {
+			$this->TbsAddPicture($Value, $PrmLst);
+		}
+	
+		$PrmLst['pic_ok'] = true; // mark the locator as Picture prepared
+
 	}
 
 	function OnCommand($Cmd, $Name, $Data=false, $DataType=TBSZIP_STRING, $Compress=true) {
@@ -397,6 +391,57 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return false;
 	}
 
+	function TbsAddPicture(&$Value, &$PrmLst) {
+	// add a picture inside the archive
+
+		$TBS = &$this->TBS;
+
+		// set the path where files should be taken
+		if (isset($PrmLst['from'])) {
+			if (!isset($PrmLst['pic_ok'])) $TBS->meth_Merge_AutoVar($PrmLst['from'],true); // merge automatic TBS fields in the path
+			$FullPath = str_replace($TBS->_ChrVal,$Value,$PrmLst['from']); // merge [val] fields in the path
+		} else {
+			$FullPath = $Value;
+		}
+		
+		// set the name of the new files
+		if (isset($PrmLst['as'])) {
+			if (!isset($PrmLst['pic_ok'])) $TBS->meth_Merge_AutoVar($PrmLst['as'],true); // merge automatic TBS fields in the path
+			$InternalPath = str_replace($TBS->_ChrVal,$Value,$PrmLst['as']); // merge [val] fields in the path
+		} else {
+			$InternalPath = basename($FullPath);
+		}
+
+		// the value of the current TBS fields becomes the full path
+		if (isset($this->ArchExtInfo['pic_path'])) $InternalPath = $this->ArchExtInfo['pic_path'].$InternalPath;
+		
+		// actually add the picture inside the archive
+		if ($this->FileGetIdxAdd($InternalPath)===false) $this->FileAdd($InternalPath, $FullPath, TBSZIP_FILE, true);
+
+		// preparation for others file in the archive
+		$Rid = false;
+		if ($this->ArchExtInfo!==false) {
+			if ($this->ArchExtInfo['frm']==='odf') {
+				// OpenOffice document
+				$this->OpenDoc_ManifestChange($InternalPath,'');
+			} elseif ($this->ArchExtInfo['frm']==='openxml') {
+				// Microsoft Office document
+				$this->OpenXML_CTypesPrepare($InternalPath, '');
+				$Rid = $this->OpenXml_RidPrepare($TBS->OtbsCurrFile, basename($InternalPath));
+			}
+		}
+
+		// change the value of the fields for the merging process
+		if ($Rid===false) {
+			$Value = $InternalPath;
+		} else {
+			$Value = $Rid; // the Rid is used instead of the file name for the merging
+		}
+
+		$PrmLst['pic_ok'] = true; // mark the locator as Picture prepared
+
+	}
+
 	function PrepareExtInfo() {
 /* Extension Info must be an array with keys 'load', 'br', 'ctype' and 'pic'. Keys 'rpl_what' and 'rpl_with' are optional.
  load:     files in the archive to be automatically loaded by OpenTBS when the archive is loaded. Separate files with comma ';'.
@@ -441,7 +486,7 @@ User can define his own Extension Information, they are taken in acount if saved
 
 	function OpenXML_RidPrepare($DocPath, $ImageName) {
 /* Return the RelationId if the image if it's already referenced in the Relation file in the archive.
-Otherwise, OpenXML prepare info to add this information at the end of the merging.
+Otherwise, OpenTBS prepares info to add this information at the end of the merging.
 $ImageName must be the name of the image, wihtout path. This is because OpenXML needs links to be relatif to the active document. In our case, image files are always stored into subfolder 'media'.
 */		
 		
@@ -524,6 +569,117 @@ $ImageName must be the name of the image, wihtout path. This is because OpenXML 
 			}
 			// debug mode
 			if ($Debug) $this->DebugLst[$o->FicPath] = $o->FicTxt; 
+		}
+		
+	}
+
+	function OpenXML_CTypesPrepare($FileOrExt, $ct='') {
+/* this function prepare information for editing the '[Content_Types].xml' file. 
+It needs to be completed when a new picture file extension is added in the document.
+*/	
+
+		$p = strrpos($FileOrExt, '.');
+		$ext = ($p===false) ? $FileOrExt : substr($FileOrExt, $p+1);
+		$ext = strtolower($ext);
+
+		if (isset($this->OpenXmlCTypes[$ext]) && ($this->OpenXmlCTypes[$ext]!=='') ) return;
+	
+		if ($ct==='') {
+			switch ($ext) {
+			case 'png':  $ct = 'image/png'; break;
+			case 'jpg':  $ct = 'image/jpeg'; break;
+			case 'jpe':  $ct = 'image/jpeg'; break;
+			case 'jpeg': $ct = 'image/jpeg'; break;
+			case 'bmp':  $ct = 'image/bmp'; break;
+			case 'gif':  $ct = 'image/gif'; break;
+			case 'tif':  $ct = 'image/tiff'; break;
+			case 'tiff': $ct = 'image/tiff'; break;
+			case 'ico':  $ct = 'image/x-icon'; break;
+			case 'svg':  $ct = 'image/svg+xml'; break;
+			}
+		}
+		
+		$this->OpenXmlCTypes[$ext] = $ct;
+		
+	}
+
+	function OpenXML_CTypesCommit($Debug) {
+		
+		$file = '[Content_Types].xml';
+		$idx = $this->FileGetIdx($file);
+		if ($idx===false) {
+			$Txt = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"></Types>';
+		} else {
+			$Txt = $this->FileRead($idx, true);
+		}
+		
+		$x = '';
+		foreach ($this->OpenXmlCTypes as $ext=>$ct) {
+			$p = strpos($Txt, ' Extension="'+$ext+'"');
+			if ($p===false) {
+				if ($ct==='') {
+					$this->RaiseError("(OpenXML) '"+$ext+"' is not an picture's extension recognize by OpenTBS.");
+				} else {
+					$x .= '<Default Extension="'.$ext.'" ContentType="'.$ct.'"/>';
+				}
+			}
+		}
+
+		if ($x!=='') {
+
+			$p = strpos($Txt, '</Types>'); // search position for insertion
+			if ($p===false) return $this->RaiseError("(OpenXML) closing tag </Types> not found in subfile ".$file);
+			$Txt = substr_replace($Txt, $p, $x ,0);
+
+			// debug mode
+			if ($Debug) $this->DebugLst[$file] = $Txt; 
+
+			if ($idx===false) {
+				$this->FileAdd($file, $Txt);
+			} else {
+				$this->FileReplace($idx, $Txt);
+			}
+
+		}
+
+	}
+
+	function OpenXML_FirstPictureAtt($Txt, $Pos, $Backward) {
+
+		$TypeVml = '<v:imagedata ';
+		$TypeDml = '<a:blip ';
+
+		if ($Backward) {
+			// search the last image position this code is compatible with PHP 4
+			$p = -1;
+			$pMax = -1;
+			$t = $TypeVml;
+			$tMax = '';
+			do {
+				$p = strpos($Txt, $t, $p+1);
+				if ( ($p===false) || ($p>=$Pos) ) {
+					if ($t===$TypeVml) {
+						$t = $TypeDml;
+						$p = -1;
+					}
+					$p = false;
+				} ($p>$pMax) {
+					$pMax = $p;
+					$tMax = $t;
+				}
+			} while ($p!==false); 
+		} else {
+			$p1 = strpos($Txt, $TypeVml, $Pos);
+			$p2 = strpos($Txt, $TypeDml, $Pos);
+			// to be coded
+		}
+
+		if ($t===$TypeVml) {
+			return 'v:imagedata#r:id';
+		} elseif ($t===$TypeDml) {
+			return 'a:blip#r:embed';
+		} else {
+			return false;
 		}
 		
 	}
