@@ -79,15 +79,15 @@ class clsOpenTBS extends clsTbsZip {
 
 		// Load the subfile(s)
 		if (($SubFileLst!=='') && ($SubFileLst!==false)) {
-			
+
 			if (is_string($SubFileLst)) $SubFileLst = explode(';',$SubFileLst);
-			
-			$ModeSave = $TBS->_Mode; 
+
+			$ModeSave = $TBS->_Mode;
 			$TBS->_Mode++;    // deactivate TplVars[] reset and Charset reset.
-			$TBS->Plugin(-4); // deactivate other plugins 
-			
+			$TBS->Plugin(-4); // deactivate other plugins
+
 			foreach ($SubFileLst as $SubFile) {
-				
+
 				$idx = $this->FileGetIdx($SubFile);
 				if ($idx===false) {
 					$this->RaiseError('The file "'.$SubFile.'" is not found in the archive "'.$this->ArchFile.'".');
@@ -107,7 +107,7 @@ class clsOpenTBS extends clsTbsZip {
 						}
 					}
 
-					// apply default TBS behaviors on the uncompressed content: other plug-ins + [onload] fields  
+					// apply default TBS behaviors on the uncompressed content: other plug-ins + [onload] fields
 					if ($ok) $TBS->LoadTemplate(null,'+');
 
 					$TBS->OtbsCurrFile = $SubFile;
@@ -116,28 +116,28 @@ class clsOpenTBS extends clsTbsZip {
 				}
 
 			}
-			
+
 			// Reactivate default configuration
 			$TBS->_Mode = $ModeSave;
 			$TBS->Plugin(-10); // reactivate other plugins
-			
+
 		}
-		
+
 		if ($FilePath!=='') $TBS->_LastFile = $FilePath;
-		
+
 		return false; // default LoadTemplate() process is not executed
-		
+
 	}
 
 	function BeforeShow(&$Render, $File='') {
-		
+
 		$TBS =& $this->TBS;
 
 		if ($TBS->_Mode!=0) return; // If we are in subtemplate mode, the we use the TBS default process
-		
+
 		$this->TbsSrcPark(); // Save the current loaded subfile if any
 
-		$TBS->Plugin(-4); // deactivate other plugins 
+		$TBS->Plugin(-4); // deactivate other plugins
 
 		if (($Render & OPENTBS_DEBUG_XML)==OPENTBS_DEBUG_XML) {
 			$Debug = true;
@@ -194,30 +194,36 @@ class clsOpenTBS extends clsTbsZip {
 	}
 
 	function OnCacheField($BlockName,&$Loc,&$Txt,$PrmProc) {
-		
-		if (isset($Loc->PrmLst['chgpic'])) return;
-			
-		if ($this->ArchExtInfo['frm']==='odf') {
-			$this->OpenDoc_ManifestChange($Value,'');
-		} elseif ($this->ArchExtInfo['frm']==='openxml') {
-			$Rid = $this->OpenXml_RidPrepare($TBS->OtbsCurrFile, basename($Value));
-			if ($Rid!==false) $Value = $Rid;
+
+		if (isset($Loc->PrmLst['ope'])) {
+		  // in this event, ope is not exploded
+			$ope = explode(',', $Loc->PrmLst['ope']);
+			if (in_array('changepic', $ope)) {
+				$this->TbsPicChg($Txt, $Loc); // add parameter "att" which will be processed just after this event, when the field is cached
+				$PrmLst['pic_change'] = true;
+			}
 		}
 
 	}
 
 	function OnOperation($FieldName,&$Value,&$PrmLst,&$Txt,$PosBeg,$PosEnd,&$Loc) {
 
+    // in this event, ope is exploded, there is one function call for each ope command
+
 		if ($PrmLst['ope']==='addpic') {
-			$this->TbsAddPicture($Value, $PrmLst);
+			$this->TbsPicAdd($Value, $PrmLst);
+		} elseif ($PrmLst['ope']==='changepic') {
+     if (!isset($PrmLst['pic_change'])) {
+        $this->TbsPicChg($Txt, $Loc);
+  			$PrmLst['pic_change'] = true;
+      }
+      $this->TbsPicAdd($Value, $PrmLst); // add parameter "att" which will be processed just before the value is merged
 		}
-	
-		$PrmLst['pic_ok'] = true; // mark the locator as Picture prepared
 
 	}
 
 	function OnCommand($Cmd, $Name, $Data=false, $DataType=TBSZIP_STRING, $Compress=true) {
-		
+
 		if ($Cmd==OPENTBS_INFO) {
 			// Display debug information
 			echo "<strong>OpenTBS plugin Information</strong><br>\r\n";
@@ -242,11 +248,11 @@ class clsOpenTBS extends clsTbsZip {
 			// Delete an existing file in the archive
 			$this->FileCancelModif($Name, false);    // cancel added files
 			return $this->FileReplace($Name, false); // mark the file as to be deleted
-			
+
 		}
-		
+
 	}
-	
+
 	function TbsSrcPark() {
 		// save the last opened subfile
 		if ($this->TbsCurrIdx!==false) {
@@ -294,7 +300,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$name = $this->AddInfo[$idx]['name'];
 			$add_lst .= $bull.$name;
 		}
-		
+
 		if ($mod_lst==='')  $mod_lst = ' none';
 		if ($del_lst==='')  $del_lst = ' none';
 		if ($add_lst==='')  $add_lst = ' none';
@@ -308,7 +314,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		foreach ($this->DebugLst as $name=>$src) {
 			$x = trim($src);
 			$info = '';
-			$xml = ((strlen($x)>0) && $x[0]==='<'); 
+			$xml = ((strlen($x)>0) && $x[0]==='<');
 			if ($XmlFormat && $xml) {
 				$info = ' (XML reformated for debuging only)';
 				$src = $this->XmlFormat($src);
@@ -343,17 +349,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	function XmlFormat($Txt) {
-	// format an XML source the be nicely aligned 
-		
+	// format an XML source the be nicely aligned
+
 		// delete line breaks
 		$Txt = str_replace("\r",'',$Txt);
 		$Txt = str_replace("\n",'',$Txt);
-		
+
 		// init values
 		$p = 0;
 		$lev = 0;
 		$Res = '';
-	
+
 		$to = true;
 		while ($to!==false) {
 			$to = strpos($Txt,'<',$p);
@@ -369,19 +375,19 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					$x = substr($Txt, $to, $tc-$to+1);
 					if ($Txt[$to+1]==='/') $lev--;
 					$Res .= "\n".str_repeat(' ',$lev).$x;
-					// change the level 				
+					// change the level
 					if (($Txt[$to+1]!=='?') && ($Txt[$to+1]!=='/') && ($Txt[$tc-1]!=='/')) $lev++;
 					// next position
 					$p = $tc + 1;
 				}
 			}
 		}
-		
+
 		$Res = substr($Res, 1); // delete the first line break
 		if ($p<strlen($Txt)) $Res .= trim(substr($Txt, $p), ' '); // complete the end
-		
+
 		return $Res;
-		
+
 	}
 
 	function RaiseError($Msg) {
@@ -391,22 +397,48 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return false;
 	}
 
-	function TbsAddPicture(&$Value, &$PrmLst) {
-	// add a picture inside the archive
+	function TbsPicChg($Txt, &$Loc) {
+
+		$att = false;
+		if (isset($this->ArchExtInfo['frm'])) {
+			if ($this->ArchExtInfo['frm']==='odf') {
+				$att = 'draw:image#xlink:href';
+			} elseif ($this->ArchExtInfo['frm']==='openxml') {
+				$att = $this->OpenXML_FirstPicAtt($Txt, $Loc->PosBeg, true);
+				if ($att===false) return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] has failed to found the picture.');
+			}
+		} else {
+			return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] is not supported with the current document type.');
+		}
+
+		if ($att!==false) {
+			if (isset($Loc->PrmLst['att'])) {
+				return $this->RaiseError('Parameter att is used with parameter ope=changepic in the field ['.$Loc->FullName.']. changepic will be ignored');
+			} else {
+				$Loc->PrmLst['att'] = $att;
+			}
+		}
+
+		return true;
+
+	}
+
+	function TbsPicAdd(&$Value, &$PrmLst) {
+	// add a picture inside the archive, use parameters 'from' and 'as'
 
 		$TBS = &$this->TBS;
 
 		// set the path where files should be taken
 		if (isset($PrmLst['from'])) {
-			if (!isset($PrmLst['pic_ok'])) $TBS->meth_Merge_AutoVar($PrmLst['from'],true); // merge automatic TBS fields in the path
+			if (!isset($PrmLst['pic_prepared'])) $TBS->meth_Merge_AutoVar($PrmLst['from'],true); // merge automatic TBS fields in the path
 			$FullPath = str_replace($TBS->_ChrVal,$Value,$PrmLst['from']); // merge [val] fields in the path
 		} else {
 			$FullPath = $Value;
 		}
-		
+
 		// set the name of the new files
 		if (isset($PrmLst['as'])) {
-			if (!isset($PrmLst['pic_ok'])) $TBS->meth_Merge_AutoVar($PrmLst['as'],true); // merge automatic TBS fields in the path
+			if (!isset($PrmLst['pic_prepared'])) $TBS->meth_Merge_AutoVar($PrmLst['as'],true); // merge automatic TBS fields in the path
 			$InternalPath = str_replace($TBS->_ChrVal,$Value,$PrmLst['as']); // merge [val] fields in the path
 		} else {
 			$InternalPath = basename($FullPath);
@@ -414,7 +446,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		// the value of the current TBS fields becomes the full path
 		if (isset($this->ArchExtInfo['pic_path'])) $InternalPath = $this->ArchExtInfo['pic_path'].$InternalPath;
-		
+
 		// actually add the picture inside the archive
 		if ($this->FileGetIdxAdd($InternalPath)===false) $this->FileAdd($InternalPath, $FullPath, TBSZIP_FILE, true);
 
@@ -438,7 +470,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$Value = $Rid; // the Rid is used instead of the file name for the merging
 		}
 
-		$PrmLst['pic_ok'] = true; // mark the locator as Picture prepared
+		$PrmLst['pic_prepared'] = true; // mark the locator as Picture prepared
 
 	}
 
@@ -458,7 +490,7 @@ User can define his own Extension Information, they are taken in acount if saved
 		$Ext = basename($this->ArchFile);
 		$p = strrpos($Ext, '.');
 		$Ext = ($p===false) ? ''  : strtolower(substr($Ext,$p+1));
-		
+
 		$i = false;
 		if (isset($GLOBAL['_OPENTBS_AutoExt'][$Ext])) {
 			$i = $GLOBAL['_OPENTBS_AutoExt'][$Ext];
@@ -466,7 +498,7 @@ User can define his own Extension Information, they are taken in acount if saved
 			$i = array('load'=>'content.xml', 'br'=>'<text:line-break/>', 'frm'=>'odf', 'ctype'=>'application/vnd.oasis.opendocument.', 'pic_path'=>'Pictures/', 'rpl_what'=>'&apos;', 'rpl_with'=>'\'');
 			if ($Ext==='odf') $i['br'] = false;
 			$ctype = array('t'=>'text', 's'=>'spreadsheet', 'g'=>'graphics', 'f'=>'formula', 'p'=>'presentation', 'm'=>'text-master');
-			$i['ctype'] .= $ctype[($Ext[2])]; 
+			$i['ctype'] .= $ctype[($Ext[2])];
 		} elseif (strpos(',docx,xlsx,pptx,', ','.$Ext.',')!==false) {
 			$x = array(chr(226).chr(128).chr(152) , chr(226).chr(128).chr(153));
 			$ctype = 'application/vnd.openxmlformats-officedocument.';
@@ -488,15 +520,15 @@ User can define his own Extension Information, they are taken in acount if saved
 /* Return the RelationId if the image if it's already referenced in the Relation file in the archive.
 Otherwise, OpenTBS prepares info to add this information at the end of the merging.
 $ImageName must be the name of the image, wihtout path. This is because OpenXML needs links to be relatif to the active document. In our case, image files are always stored into subfolder 'media'.
-*/		
-		
+*/
+
 		if (!isset($this->OpenXmlRid[$DocPath])) {
 			$o = (object) null;
 			$o->RidLst = array();
 			$o->RidNew = array();
 			$DocName = basename($DocPath);
 			$o->FicPath = str_replace($DocName,'_rels/'.$DocName.'.rels',$DocPath);
-			$o->FicType = false; // false = to check, 0 = exist in the archive, 1 = to add in the archive 
+			$o->FicType = false; // false = to check, 0 = exist in the archive, 1 = to add in the archive
 			$o->FicIdx = false; // in case of FicType=0
 			$this->OpenXmlRid[$DocPath] = &$o;
 		} else {
@@ -507,7 +539,7 @@ $ImageName must be the name of the image, wihtout path. This is because OpenXML 
 			$FicIdx = $this->FileGetIdx($o->FicPath);
 			if ($FicIdx===false) {
 				$o->FicType = 1;
-				$o->FicTxt = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?></Relationships>';
+				$o->FicTxt = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>';
 			} else {
 				$o->FicIdx = $FicIdx;
 				$o->FicType = 0;
@@ -532,12 +564,12 @@ $ImageName must be the name of the image, wihtout path. This is because OpenXML 
 						$p2 = strpos($Txt, '"', $p1);
 						if ($p2===false) return $this->RaiseError("(OpenXML) end of attribute Id not found in position ".$p1." of subfile ".$o->FicPath);
 						$Rid = substr($Txt, $p1, $p2 -$p1 -1);
-						$o->RidLst[$Img] = $Rid; 
+						$o->RidLst[$Img] = $Rid;
 					}
 				}
 			}
 		}
-		
+
 		if (isset($o->RidLst[$ImageName])) return $o->RidLst[$ImageName];
 
 		// Add the Rid in the information
@@ -546,11 +578,11 @@ $ImageName must be the name of the image, wihtout path. This is because OpenXML 
 		$o->RidNew[$ImageName] = $NewRid;
 
 		return $NewRid;
-		
+
 	}
-	
+
 	function OpenXML_RidCommit ($Debug) {
-		
+
 		foreach ($this->OpenXmlRid as $o) {
 			// search position for insertion
 			$p = strpos($o->FicTxt, '</Relationships>');
@@ -561,30 +593,32 @@ $ImageName must be the name of the image, wihtout path. This is because OpenXML 
 				$x .= '<Relationship Id="'.$rid.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/'.$img.'"/>';
 			}
 			// insert
-			$o->FicTxt = substr_replace($o->FicTxt, $x, $p, 0);	
+			$o->FicTxt = substr_replace($o->FicTxt, $x, $p, 0);
 			if ($o->FicType==1) {
 				$this->FileAdd($o->FicPath, $o->FicTxt);
 			} else {
 				$this->FileReplace($o->FicIdx, $o->FicTxt);
 			}
 			// debug mode
-			if ($Debug) $this->DebugLst[$o->FicPath] = $o->FicTxt; 
+			if ($Debug) $this->DebugLst[$o->FicPath] = $o->FicTxt;
 		}
-		
+
 	}
 
 	function OpenXML_CTypesPrepare($FileOrExt, $ct='') {
-/* this function prepare information for editing the '[Content_Types].xml' file. 
+/* this function prepare information for editing the '[Content_Types].xml' file.
 It needs to be completed when a new picture file extension is added in the document.
-*/	
+*/
 
 		$p = strrpos($FileOrExt, '.');
 		$ext = ($p===false) ? $FileOrExt : substr($FileOrExt, $p+1);
 		$ext = strtolower($ext);
 
 		if (isset($this->OpenXmlCTypes[$ext]) && ($this->OpenXmlCTypes[$ext]!=='') ) return;
-	
+
 		if ($ct==='') {
+			//$ext_lst = array('png'=>'png', 'bmp'=>'bmp', 'jpg'=>'jpeg', 'jpeg'=>'jpeg', 'jpe'=>'jpeg', 'jfif'=>'jpeg', 'tif'=>'tiff', 'tiff'=>'tiff');
+			//if (isset($ext_lst[$ext])) $Type = 'image/'.$ext_lst[$ext];
 			switch ($ext) {
 			case 'png':  $ct = 'image/png'; break;
 			case 'jpg':  $ct = 'image/jpeg'; break;
@@ -598,13 +632,13 @@ It needs to be completed when a new picture file extension is added in the docum
 			case 'svg':  $ct = 'image/svg+xml'; break;
 			}
 		}
-		
+
 		$this->OpenXmlCTypes[$ext] = $ct;
-		
+
 	}
 
 	function OpenXML_CTypesCommit($Debug) {
-		
+
 		$file = '[Content_Types].xml';
 		$idx = $this->FileGetIdx($file);
 		if ($idx===false) {
@@ -612,10 +646,10 @@ It needs to be completed when a new picture file extension is added in the docum
 		} else {
 			$Txt = $this->FileRead($idx, true);
 		}
-		
+
 		$x = '';
 		foreach ($this->OpenXmlCTypes as $ext=>$ct) {
-			$p = strpos($Txt, ' Extension="'+$ext+'"');
+			$p = strpos($Txt, ' Extension="'.$ext.'"');
 			if ($p===false) {
 				if ($ct==='') {
 					$this->RaiseError("(OpenXML) '"+$ext+"' is not an picture's extension recognize by OpenTBS.");
@@ -625,14 +659,17 @@ It needs to be completed when a new picture file extension is added in the docum
 			}
 		}
 
+
 		if ($x!=='') {
 
 			$p = strpos($Txt, '</Types>'); // search position for insertion
 			if ($p===false) return $this->RaiseError("(OpenXML) closing tag </Types> not found in subfile ".$file);
-			$Txt = substr_replace($Txt, $p, $x ,0);
+			$Txt = substr_replace($Txt, $x, $p ,0);
+
+		echo $Txt; exit;
 
 			// debug mode
-			if ($Debug) $this->DebugLst[$file] = $Txt; 
+			if ($Debug) $this->DebugLst[$file] = $Txt;
 
 			if ($idx===false) {
 				$this->FileAdd($file, $Txt);
@@ -644,7 +681,7 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 
-	function OpenXML_FirstPictureAtt($Txt, $Pos, $Backward) {
+	function OpenXML_FirstPicAtt($Txt, $Pos, $Backward) {
 
 		$TypeVml = '<v:imagedata ';
 		$TypeDml = '<a:blip ';
@@ -653,25 +690,33 @@ It needs to be completed when a new picture file extension is added in the docum
 			// search the last image position this code is compatible with PHP 4
 			$p = -1;
 			$pMax = -1;
-			$t = $TypeVml;
-			$tMax = '';
+			$t_curr = $TypeVml;
+			$t = '';
 			do {
-				$p = strpos($Txt, $t, $p+1);
+				$p = strpos($Txt, $t_curr, $p+1);
 				if ( ($p===false) || ($p>=$Pos) ) {
 					if ($t===$TypeVml) {
-						$t = $TypeDml;
+						$t_curr = $TypeDml;
 						$p = -1;
 					}
 					$p = false;
-				} ($p>$pMax) {
+				} elseif ($p>$pMax) {
 					$pMax = $p;
-					$tMax = $t;
+					$t = $t_curr;
 				}
-			} while ($p!==false); 
+			} while ($p!==false);
 		} else {
 			$p1 = strpos($Txt, $TypeVml, $Pos);
 			$p2 = strpos($Txt, $TypeDml, $Pos);
-			// to be coded
+			if (($p1===false) && ($p2===false)) {
+				$t = '';
+			} elseif ($p1===false) {
+				$t = $TypeDml;
+			} elseif ($p2===false) {
+				$t = $TypeVml;
+			} else {
+				$t = ($p1<$p2) ? $TypeVml : $TypeDml;
+			}
 		}
 
 		if ($t===$TypeVml) {
@@ -681,14 +726,14 @@ It needs to be completed when a new picture file extension is added in the docum
 		} else {
 			return false;
 		}
-		
+
 	}
 
 	function OpenDoc_ManifestChange($Path, $Type) {
 	// Set $Type=false in order to mark the the manifest entry to be deleted
 	// video and sound files are not registered in the manifest since they are not saved in the document
 
-		// Initialization	
+		// Initialization
 		if (!isset($this->OpenDocManif)) $this->OpenDocManif = array();
 
 		// We try to found the type of image
@@ -705,14 +750,14 @@ It needs to be completed when a new picture file extension is added in the docum
 		$this->OpenDocManif[$Path] = $Type;
 
 	}
-		
+
 	function OpenDoc_ManifestCommit($Debug) {
 
 		// Retrieve the content of the manifest
 		$name = 'META-INF/manifest.xml';
 		$idx = $this->FileGetIdx($name);
 		if ($idx===false) return;
-		
+
 		if (isset($this->TbsSrcParking[$idx])) {
 			$Txt = $this->TbsSrcParking[$idx];
 		} else {
@@ -745,11 +790,11 @@ It needs to be completed when a new picture file extension is added in the docum
 
 		// Save changes
 		$this->FileReplace($idx, $Txt);
-		
+
 		if ($Debug) $this->DebugLst[$name] = $Txt;
 
 	}
-	
+
 
 }
 
@@ -811,7 +856,7 @@ class clsTbsZip {
 		$this->CdFileByName = array();
 		$this->VisFileLst = array();
 		$this->ArchCancelModif();
-	}	
+	}
 
 	function ArchCancelModif() {
 		$this->LastReadComp = false; // compression of the last read file (1=compressed, 0=stored not compressed, -1= stored compressed but read uncompressed)
@@ -919,7 +964,7 @@ class clsTbsZip {
 	function Debug($FileHeaders=false) {
 
 		$this->DisplayError = true;
-		
+
 		echo "<br />\r\n";
 		echo "------------------<br/>\r\n";
 		echo "Central Directory:<br/>\r\n";
@@ -930,8 +975,8 @@ class clsTbsZip {
 		echo "-----------------------------------<br/>\r\n";
 		echo "File List in the Central Directory:<br/>\r\n";
 		echo "-----------------------------------<br/>\r\n";
-		print_r($this->CdFileLst);			
-		
+		print_r($this->CdFileLst);
+
 		if ($FileHeaders) {
 			echo "<br/>\r\n";
 			echo "------------------------------<br/>\r\n";
@@ -947,13 +992,13 @@ class clsTbsZip {
 			}
 			print_r($this->VisFileLst);
 		}
-		
+
 	}
 
 	function FileExists($NameOrIdx) {
 		return ($this->FileGetIdx($NameOrIdx)!==false);
 	}
-	
+
 	function FileGetIdx($NameOrIdx) {
 	// Check if a file name, or a file index exists in the Central Directory, and return its index
 		if (is_string($NameOrIdx)) {
@@ -980,9 +1025,9 @@ class clsTbsZip {
 		}
 		return false;
 	}
-	
+
 	function FileRead($NameOrIdx, $Uncompress=true) {
-		
+
 		$this->LastReadComp = false; // means the file is not found
 		$this->LastReadIdx - false;
 
@@ -1021,9 +1066,9 @@ class clsTbsZip {
 
 	function _ReadFile($idx, $ReadData) {
 	// read the file header (and maybe the data ) in the archive, assuming the cursor in at a new file position
-	
+
 		$b = $this->_ReadData(30);
-		
+
 		$x = $this->_GetHex($b,0,4);
 		if ($x!=='h:04034b50') return $this->RaiseError('Signature of file information not found in the Data Section in position '.(ftell($this->ArchHnd)-30).' for file #'.$idx.'.');
 
@@ -1060,7 +1105,7 @@ class clsTbsZip {
 		} else {
 			$this->_MoveTo($len, SEEK_CUR);
 		}
-		
+
 		// Description information
 		$desc_ok = ($x['purp'][2+3]=='1');
 		if ($desc_ok) {
@@ -1081,7 +1126,7 @@ class clsTbsZip {
 		} else {
 			return true;
 		}
-		
+
 	}
 
 	function FileReplace($NameOrIdx, $Data, $DataType=TBSZIP_STRING, $Compress=true) {
@@ -1114,7 +1159,7 @@ class clsTbsZip {
 	function FileCancelModif($NameOrIdx, $ReplacedAndDeleted=true) {
 	// cancel added, modified or deleted modifications on a file in the archive
 	// return the number of cancels
-	
+
 		$nbr = 0;
 
 		if ($ReplacedAndDeleted) {
@@ -1129,16 +1174,16 @@ class clsTbsZip {
 				}
 			}
 		}
-		
-		// added files		
+
+		// added files
 		$idx = $this->FileGetIdxAdd($NameOrIdx);
 		if ($idx!==false) {
 			unset($this->InfoAdd[$idx]);
 			$nbr++;
 		}
-		
+
 		return $nbr;
-		
+
 	}
 
 	function Flush($Render=TBSZIP_DOWNLOAD, $File='', $ContentType='') {
@@ -1154,7 +1199,7 @@ class clsTbsZip {
 		$time  = $this->_MsDos_Time($now);
 
 		$this->OutputOpen($Render, $File, $ContentType);
-		
+
 		// output modified zipped files and unmodified zipped files that are beetween them
 		ksort($this->ReplByPos);
 		foreach ($this->ReplByPos as $ReplPos => $ReplIdx) {
@@ -1205,7 +1250,7 @@ class clsTbsZip {
 			// Update the current pos in the archive
 			$ArchPos = $ReplPos + $info_old_len;
 		}
-		
+
 		// Ouput all the zipped files that remain before the Central Directory listing
 		if ($this->ArchHnd!==false) $this->OutputFromArch($ArchPos, $this->CdPos); // ArchHnd is false if CreateNew() has been called
 		$ArchPos = $this->CdPos;
@@ -1222,7 +1267,7 @@ class clsTbsZip {
 				$AddDataLen += $n;
 			}
 		}
-				
+
 		// Modifiy file information in the Central Directory for replaced files
 		$b2 = '';
 		$old_cd_len = 0;
@@ -1246,7 +1291,7 @@ class clsTbsZip {
 		$this->OutputFromString($b2);
 		$ArchPos += $old_cd_len;
  		$DeltaCdLen =  $DeltaCdLen + strlen($b2) - $old_cd_len;
- 		
+
 		// Output until Central Directory footer
 		if ($this->ArchHnd!==false) $this->OutputFromArch($ArchPos, $this->CdEndPos); // ArchHnd is false if CreateNew() has been called
 
@@ -1259,7 +1304,7 @@ class clsTbsZip {
 			$this->OutputFromString($b2);
 			$DeltaCdLen += strlen($b2);
 		}
-		
+
 		// Output Central Directory footer
 		$b2 = $this->CdInfo['bin'];
 		$DelNbr = count($DelLst);
@@ -1277,7 +1322,7 @@ class clsTbsZip {
 		}
 		$this->_PutDec($b2, $this->CdPos+$Delta , 16, 4); // p_cd  (offset of start of central directory with respect to the starting disk number)
 		$this->OutputFromString($b2);
-		
+
 	}
 
 	// ----------------
@@ -1305,10 +1350,10 @@ class clsTbsZip {
 				header('Expires: 0');
 				header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
 				header('Cache-Control: public');
-				header('Content-Description: File Transfer'); 
+				header('Content-Description: File Transfer');
 				header('Content-Transfer-Encoding: binary');
 				$Len = $this->_EstimateNewArchSize();
-				if ($Len!==false) header('Content-Length: '.$Len); 
+				if ($Len!==false) header('Content-Length: '.$Len);
 			}
 		}
 	}
@@ -1416,7 +1461,7 @@ class clsTbsZip {
 		}
 		$txt = substr_replace($txt, $x, $pos, $len);
 	}
-	
+
 	function _MsDos_Date($Timestamp = false) {
 		// convert a date-time timstamp into the MS-Dos format
 		$d = ($Timestamp===false) ? getdate() : getdate($Timestamp);
@@ -1439,7 +1484,7 @@ class clsTbsZip {
 		$s = ($time & 31) * 2; // seconds have been rounded to an even number in order to save 1 bit
 		return $y.'-'.str_pad($m,2,'0',STR_PAD_LEFT).'-'.str_pad($d,2,'0',STR_PAD_LEFT).' '.str_pad($h,2,'0',STR_PAD_LEFT).':'.str_pad($i,2,'0',STR_PAD_LEFT).':'.str_pad($s,2,'0',STR_PAD_LEFT);
 	}
-	
+
 	function _DataOuputAddedFile($Idx, $PosLoc) {
 
 		$Ref =& $this->AddInfo[$Idx];
@@ -1450,9 +1495,9 @@ class clsTbsZip {
 		$date  = $this->_MsDos_Date($now);
 		$time  = $this->_MsDos_Time($now);
 		$len_n = strlen($Ref['name']);
-		$purp  = 2048 ; // purpose // +8 to indicates that there is an extended local header 
+		$purp  = 2048 ; // purpose // +8 to indicates that there is an extended local header
 
-		// Header for file in the data section 
+		// Header for file in the data section
 		$b = 'PK'.chr(03).chr(04).str_repeat(' ',26); // signature
 		$this->_PutDec($b,20,4,2); //vers = 20
 		$this->_PutDec($b,$purp,6,2); // purp
@@ -1471,7 +1516,7 @@ class clsTbsZip {
 		$this->OutputFromString($b.$Ref['data']);
 		$OutputLen = strlen($b) + $Ref['len_c']; // new position of the cursor
 		unset($Ref['data']); // save PHP memory
-		
+
 		// Information for file in the Central Directory
 		$b = 'PK'.chr(01).chr(02).str_repeat(' ',42); // signature
 		$this->_PutDec($b,20,4,2);  // vers_used = 20
@@ -1592,7 +1637,7 @@ class clsTbsZip {
 				$Len += $Ref['len_c'] + $Ref['diff'];
 			}
 		}
-		
+
 		// files to add
 		$i_lst = array_keys($this->AddInfo);
 		foreach ($i_lst as $i) {
@@ -1603,9 +1648,9 @@ class clsTbsZip {
 				$Len += $Ref['len_c'] + $Ref['diff'];
 			}
 		}
-		
+
 		return $Len;
-		
+
 	}
-	
+
 }
