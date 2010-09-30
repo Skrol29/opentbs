@@ -1,0 +1,48 @@
+ODF:
+pic_path=Pictures/
+pic_att=draw:image#xlink:href
+magnet=draw:image (par défaut), draw:frame, draw:text
+
+<text:p text:style-name="P3">
+	<draw:frame draw:style-name="fr1" draw:name="Cadre1" text:anchor-type="paragraph" svg:width="5.292cm" draw:z-index="0">
+		<draw:text-box fo:min-height="5.821cm">
+			<text:p text:style-name="Drawing">
+				<draw:a xlink:type="simple" xlink:href="" office:name="images1 (toto nom url)">
+					<draw:frame draw:style-name="fr2" draw:name="images1 (toto nom)" text:anchor-type="paragraph" svg:x="0cm" svg:y="0cm" svg:width="5.292cm" style:rel-width="100%" svg:height="5.821cm" style:rel-height="scale" draw:z-index="1">
+						<draw:image xlink:href="Pictures/1000000000000096000000A5773AC4DD.png" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
+						<svg:title>images1 (toto alternative)</svg:title>
+					</draw:frame>
+				</draw:a>Dessin <text:sequence text:ref-name="refDrawing0" text:name="Drawing" text:formula="ooow:Drawing+1" style:num-format="1">1</text:sequence>: toto <text:s/>lÃ©gende</text:p>
+			</draw:text-box>
+		</draw:frame>
+	</text:p>
+
+
+http://www.w3schools.com/media/media_mimeref.asp
+
+Word :
+pic_path=word/media/
+pic_att=v:imagedata#r:id
+       image link saved into "word/_rels/document.xml.rels"
+
+<Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.png"/>
+
+<w:pict>
+	<v:shapetype id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t" path="m@4@5l@4@11@9@11@9@5xe" filled="f" stroked="f">
+		<v:stroke joinstyle="miter"/>
+		<v:formulas>
+			<v:f eqn="if lineDrawn pixelLineWidth 0"/>
+			...
+		</v:formulas>
+		<v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/>
+		<o:lock v:ext="edit" aspectratio="t"/>
+	</v:shapetype>
+	<v:shape id="_x0000_i1025" type="#_x0000_t75" alt="toto texte de remplacement" style="width:150pt;height:165pt">
+		<v:imagedata r:id="rId6" o:title=""/>
+	</v:shape>
+</w:pict>
+
+
+
+Ppt  : ppt/media/
+Excel: xl/media/

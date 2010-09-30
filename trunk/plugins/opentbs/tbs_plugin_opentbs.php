@@ -211,13 +211,13 @@ class clsOpenTBS extends clsTbsZip {
     // in this event, ope is exploded, there is one function call for each ope command
 
 		if ($PrmLst['ope']==='addpic') {
-			$this->TbsPicAdd($Value, $PrmLst);
+			$this->TbsPicAdd($Value, $PrmLst, $Loc, 'ope=addpic');
 		} elseif ($PrmLst['ope']==='changepic') {
      if (!isset($PrmLst['pic_change'])) {
         $this->TbsPicChg($Txt, $Loc);
   			$PrmLst['pic_change'] = true;
       }
-      $this->TbsPicAdd($Value, $PrmLst); // add parameter "att" which will be processed just before the value is merged
+      $this->TbsPicAdd($Value, $PrmLst, $Loc, 'ope=changepic'); // add parameter "att" which will be processed just before the value is merged
 		}
 
 	}
@@ -390,9 +390,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	function RaiseError($Msg) {
+	function RaiseError($Msg, $NoErrMsg=false) {
 		// Overwrite the parent RaiseError() method.
-		$this->TBS->meth_Misc_Alert('OpenTBS Plugin', $Msg);
+		$this->TBS->meth_Misc_Alert('OpenTBS Plugin', $Msg, $NoErrMsg);
 		if (!$this->TBS->NoErr) exit;
 		return false;
 	}
@@ -423,8 +423,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	function TbsPicAdd(&$Value, &$PrmLst) {
-	// add a picture inside the archive, use parameters 'from' and 'as'
+	function TbsPicAdd(&$Value, &$PrmLst, $Loc, $Prm) {
+	// add a picture inside the archive, use parameters 'from' and 'as'.
+	// Arguments $Loc and $Prm are only used for error messages.
 
 		$TBS = &$this->TBS;
 
@@ -436,6 +437,26 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$FullPath = $Value;
 		}
 
+    if ( (!isset($PrmLst['pic_prepared'])) && isset($PrmLst['default']) ) $TBS->meth_Merge_AutoVar($PrmLst['default'],true); // merge automatic TBS fields in the path
+
+		$ok = true; // true if the picture file is actually inserted and ready to be changed
+		
+		// check if the picture exists, and eventually use the default picture
+    if (!file_exists($FullPath)) {
+    	if (isset($PrmLst['default'])) {
+    		$x = $PrmLst['default'];
+    		if ($x==='current') {
+    			$ok = false;
+    		} elseif (file_exists($x)) {
+    			$FullPath = $x;
+    		} else {
+    			$ok = $this->RaiseError('The default picture "'.$x.'" defined by parameter "default" of the field ['.$Loc->FullName.'] is not found.');
+    		}
+    	} else {
+   			$ok = $this->RaiseError('The picture "'.$FullPath.'" that is supposed to be added because of parameter "'.$Prm.'" of the field ['.$Loc->FullName.'] is not found. You can use parameter default=current to cancel this message');
+    	}
+    }
+
 		// set the name of the new files
 		if (isset($PrmLst['as'])) {
 			if (!isset($PrmLst['pic_prepared'])) $TBS->meth_Merge_AutoVar($PrmLst['as'],true); // merge automatic TBS fields in the path
@@ -444,38 +465,48 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$InternalPath = basename($FullPath);
 		}
 
-		// the value of the current TBS fields becomes the full path
-		if (isset($this->ArchExtInfo['pic_path'])) $InternalPath = $this->ArchExtInfo['pic_path'].$InternalPath;
+		if ($ok) {
 
-		// actually add the picture inside the archive
-		if ($this->FileGetIdxAdd($InternalPath)===false) $this->FileAdd($InternalPath, $FullPath, TBSZIP_FILE, true);
-
-		// preparation for others file in the archive
-		$Rid = false;
-		if ($this->ArchExtInfo!==false) {
-			if ($this->ArchExtInfo['frm']==='odf') {
-				// OpenOffice document
-				$this->OpenDoc_ManifestChange($InternalPath,'');
-			} elseif ($this->ArchExtInfo['frm']==='openxml') {
-				// Microsoft Office document
-				$this->OpenXML_CTypesPrepare($InternalPath, '');
-				$Rid = $this->OpenXml_RidPrepare($TBS->OtbsCurrFile, basename($InternalPath));
+			// the value of the current TBS fields becomes the full path
+			if (isset($this->ArchExtInfo['pic_path'])) $InternalPath = $this->ArchExtInfo['pic_path'].$InternalPath;
+	
+			// actually add the picture inside the archive
+			if ($this->FileGetIdxAdd($InternalPath)===false) $this->FileAdd($InternalPath, $FullPath, TBSZIP_FILE, true);
+	
+			// preparation for others file in the archive
+			$Rid = false;
+			if ($this->ArchExtInfo!==false) {
+				if ($this->ArchExtInfo['frm']==='odf') {
+					// OpenOffice document
+					$this->OpenDoc_ManifestChange($InternalPath,'');
+				} elseif ($this->ArchExtInfo['frm']==='openxml') {
+					// Microsoft Office document
+					$this->OpenXML_CTypesPrepare($InternalPath, '');
+					$Rid = $this->OpenXml_RidPrepare($TBS->OtbsCurrFile, basename($InternalPath));
+				}
 			}
-		}
+	
+			// change the value of the fields for the merging process
+			if ($Rid===false) {
+				$Value = $InternalPath;
+			} else {
+				$Value = $Rid; // the Rid is used instead of the file name for the merging
+			}
 
-		// change the value of the fields for the merging process
-		if ($Rid===false) {
-			$Value = $InternalPath;
 		} else {
-			$Value = $Rid; // the Rid is used instead of the file name for the merging
+			
+			$Value = '';
+			
 		}
 
 		$PrmLst['pic_prepared'] = true; // mark the locator as Picture prepared
 
+		return $ok;
+
 	}
 
 	function PrepareExtInfo() {
-/* Extension Info must be an array with keys 'load', 'br', 'ctype' and 'pic'. Keys 'rpl_what' and 'rpl_with' are optional.
+/* Extension Info must be an array with keys 'load', 'br', 'ctype' and 'pic_path'. Keys 'rpl_what' and 'rpl_with' are optional.
  load:     files in the archive to be automatically loaded by OpenTBS when the archive is loaded. Separate files with comma ';'.
  br:       string that replace break-lines in the values merged by TBS, set to false if no conversion.
  frm:      format of the file ('odf' or 'openxml'), for now it is used only to activate a special feature for openxml files
@@ -495,11 +526,14 @@ User can define his own Extension Information, they are taken in acount if saved
 		if (isset($GLOBAL['_OPENTBS_AutoExt'][$Ext])) {
 			$i = $GLOBAL['_OPENTBS_AutoExt'][$Ext];
 		} elseif (strpos(',odt,ods,odg,odf,odp,odm,ott,ots,otg,otp,', ','.$Ext.',')!==false) {
+			// OpenOffice documents
 			$i = array('load'=>'content.xml', 'br'=>'<text:line-break/>', 'frm'=>'odf', 'ctype'=>'application/vnd.oasis.opendocument.', 'pic_path'=>'Pictures/', 'rpl_what'=>'&apos;', 'rpl_with'=>'\'');
 			if ($Ext==='odf') $i['br'] = false;
 			$ctype = array('t'=>'text', 's'=>'spreadsheet', 'g'=>'graphics', 'f'=>'formula', 'p'=>'presentation', 'm'=>'text-master');
 			$i['ctype'] .= $ctype[($Ext[2])];
+			$i['pic_ext'] = array('png'=>'png', 'bmp'=>'bmp', 'gif'=>'gif', 'jpg'=>'jpeg', 'jpeg'=>'jpeg', 'jpe'=>'jpeg', 'jfif'=>'jpeg', 'tif'=>'tiff', 'tiff'=>'tiff');
 		} elseif (strpos(',docx,xlsx,pptx,', ','.$Ext.',')!==false) {
+			// Microsoft Office documents
 			$x = array(chr(226).chr(128).chr(152) , chr(226).chr(128).chr(153));
 			$ctype = 'application/vnd.openxmlformats-officedocument.';
 			if ($Ext==='docx') {
@@ -509,6 +543,7 @@ User can define his own Extension Information, they are taken in acount if saved
 			} elseif($Ext==='pptx') {
 				$i = array('load'=>'ppt/slides/slide1.xml', 'br'=>false, 'frm'=>'openxml', 'ctype'=>$ctype.'presentationml.presentation', 'pic_path'=>'ppt/media/' ,'rpl_what'=>$x,'rpl_with'=>'\'');
 			}
+			$i['pic_ext'] = array('png'=>'png', 'bmp'=>'bmp', 'gif'=>'gif', 'jpg'=>'jpeg', 'jpeg'=>'jpeg', 'jpe'=>'jpeg', 'tif'=>'tiff', 'tiff'=>'tiff', 'ico'=>'x-icon', 'svg'=>'svg+xml');
 		}
 
 		$this->ArchExt = $Ext;
@@ -616,22 +651,7 @@ It needs to be completed when a new picture file extension is added in the docum
 
 		if (isset($this->OpenXmlCTypes[$ext]) && ($this->OpenXmlCTypes[$ext]!=='') ) return;
 
-		if ($ct==='') {
-			//$ext_lst = array('png'=>'png', 'bmp'=>'bmp', 'jpg'=>'jpeg', 'jpeg'=>'jpeg', 'jpe'=>'jpeg', 'jfif'=>'jpeg', 'tif'=>'tiff', 'tiff'=>'tiff');
-			//if (isset($ext_lst[$ext])) $Type = 'image/'.$ext_lst[$ext];
-			switch ($ext) {
-			case 'png':  $ct = 'image/png'; break;
-			case 'jpg':  $ct = 'image/jpeg'; break;
-			case 'jpe':  $ct = 'image/jpeg'; break;
-			case 'jpeg': $ct = 'image/jpeg'; break;
-			case 'bmp':  $ct = 'image/bmp'; break;
-			case 'gif':  $ct = 'image/gif'; break;
-			case 'tif':  $ct = 'image/tiff'; break;
-			case 'tiff': $ct = 'image/tiff'; break;
-			case 'ico':  $ct = 'image/x-icon'; break;
-			case 'svg':  $ct = 'image/svg+xml'; break;
-			}
-		}
+		if (($ct==='') && isset($this->ArchExtInfo['pic_ext'][$ext])) $ct = 'image/'.$this->ArchExtInfo['pic_ext'][$ext];
 
 		$this->OpenXmlCTypes[$ext] = $ct;
 
@@ -730,8 +750,8 @@ It needs to be completed when a new picture file extension is added in the docum
 	}
 
 	function OpenDoc_ManifestChange($Path, $Type) {
-	// Set $Type=false in order to mark the the manifest entry to be deleted
-	// video and sound files are not registered in the manifest since they are not saved in the document
+	// Set $Type=false in order to mark the the manifest entry to be deleted.
+	// Video and sound files are not to be registered in the manifest since the contents is not saved in the document.
 
 		// Initialization
 		if (!isset($this->OpenDocManif)) $this->OpenDocManif = array();
@@ -742,8 +762,7 @@ It needs to be completed when a new picture file extension is added in the docum
 			$p = strrpos($ext, '.');
 			if ($p!==false) {
 				$ext = strtolower(substr($ext,$p+1));
-				$ext_lst = array('png'=>'png', 'bmp'=>'bmp', 'jpg'=>'jpeg', 'jpeg'=>'jpeg', 'jpe'=>'jpeg', 'jfif'=>'jpeg', 'tif'=>'tiff', 'tiff'=>'tiff');
-				if (isset($ext_lst[$ext])) $Type = 'image/'.$ext_lst[$ext];
+				if (isset($this->ArchExtInfo['pic_ext'][$ext])) $Type = 'image/'.$this->ArchExtInfo['pic_ext'][$ext];
 			}
 		}
 
