@@ -21,8 +21,8 @@ body,td,th {
   OpenTBS is a PHP tool that produce any OpenOffice and Ms Office documents with the technic of template<br />
   <br />
 </p>
-<p>OpenTBS can merge any OpenDocument and Open XML  files. It autommatically reconize extensions: odt, ods, odg, odf, odm, odp, ott, ots, otg, otp, docx, xlsx, pptx.<br />
-In fact it can merge any XML or Text file saved in a zip container (which is the case for OpenDocuments Open XML documents).</p>
+<p>OpenTBS can merge any OpenDocument and Open XML  files. It autommatically reconize extensions: <strong>odt</strong>, <strong>ods</strong>, <strong>odg</strong>, <strong>odf</strong>, <strong>odm</strong>, <strong>odp</strong>, <strong>ott</strong>, <strong>ots</strong>, <strong>otg</strong>, <strong>otp</strong>, <strong>docx</strong>, <strong>xlsx</strong>, <strong>pptx</strong>.<br />
+In fact it can merge any XML or Text file saved in a zip container (which is the case for both OpenDocuments and OpenXML documents).</p>
 <p>- No temporary files needed.<br />
   - Creates a new document directly as a download, a physical file, or a binary PHP string.<br />
   - Works with both PHP 4 and PHP 5.<br />
@@ -30,8 +30,8 @@ In fact it can merge any XML or Text file saved in a zip container (which is the
 Help file : <a href="http://www.tinybutstrong.com/plugins/opentbs/tbs_plugin_opentbs.html">tbs_plugin_opentbs.html</a></p>
 <form id="form1" name="form1" method="post" action="demo_merge.php">
   Enter your name:
-    <input type="text" name="yourname" id="yourname" />
-  , choose a template :
+    <input name="yourname" type="text" id="yourname" size="10" />
+  , choose a template:
   <select name="tpl" id="tpl">
     <option value="demo_oo_text.odt">OpenOffice Writer Document (.odt)</option>
     <option value="demo_oo_spreadsheet.ods">OpenOffice Calc Spreadsheet (.ods)</option>
@@ -43,6 +43,11 @@ Help file : <a href="http://www.tinybutstrong.com/plugins/opentbs/tbs_plugin_ope
     <option value="demo_ms_excel.xlsx">Ms Excel SpreadSheet (.xlsx)</option>
     <option value="demo_ms_powerpoint.pptx">Ms PowerPoint Presentation (.pptx)</option>
   </select>
+  , enable debug mode: 
+  <input name="debug" type="checkbox" id="debug" value="1" />
+  <div id="save_as_file" style="display:none;">, save as file with suffix: 
+  <input name="suffix" type="text" id="suffix" size="10" />
+  (let empty for download),</div>
   <input type="submit" name="btn_go" id="btn_go" value="and go" />
 </form>
 <p><br />
@@ -52,4 +57,8 @@ Help file : <a href="http://www.tinybutstrong.com/plugins/opentbs/tbs_plugin_ope
   -&gt; Discover the <a href="http://www.tinybutstrong.com">TinyButStrong</a> template engine for PHP<br />
 -&gt; Go to <a href="http://www.tinybutstrong.com/plugins.php">OpenTBS download</a> page </p>
 </body>
+<script type="text/javascript">
+	// enable the option for savegin as a file, the PHP script will test if it is running on localhost anyway.
+	if (window.location.hostname=='localhost') document.getElementById('save_as_file').style.display='inline';
+</script>
 </html>
