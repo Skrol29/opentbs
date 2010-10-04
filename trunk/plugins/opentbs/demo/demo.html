@@ -3,6 +3,11 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>OpenTBS Demo</title>
+<script type="text/javascript">
+	function download_template() {
+		window.location.href=document.getElementById('tpl').value;
+	}
+</script>
 <style type="text/css">
 <!--
 body,td,th {
@@ -29,9 +34,8 @@ In fact it can merge any XML or Text file saved in a zip container (which is the
 - No PHP extension required (but easier to use if <a href="http://www.php.net/manual/en/book.zlib.php">ZLib</a> is enabled) <br />
 Help file : <a href="http://www.tinybutstrong.com/plugins/opentbs/tbs_plugin_opentbs.html">tbs_plugin_opentbs.html</a></p>
 <form id="form1" name="form1" method="post" action="demo_merge.php">
-  Enter your name:
-    <input name="yourname" type="text" id="yourname" size="10" />
-  , choose a template:
+  Enter a name:
+    <input name="yourname" type="text" id="yourname" size="10" />, choose a template:
   <select name="tpl" id="tpl">
     <option value="demo_oo_text.odt">OpenOffice Writer Document (.odt)</option>
     <option value="demo_oo_spreadsheet.ods">OpenOffice Calc Spreadsheet (.ods)</option>
@@ -42,15 +46,14 @@ Help file : <a href="http://www.tinybutstrong.com/plugins/opentbs/tbs_plugin_ope
     <option value="demo_ms_word.docx">Ms Word Document (.docx)</option>
     <option value="demo_ms_excel.xlsx">Ms Excel SpreadSheet (.xlsx)</option>
     <option value="demo_ms_powerpoint.pptx">Ms PowerPoint Presentation (.pptx)</option>
-  </select>
-  , enable debug mode: 
-  <input name="debug" type="checkbox" id="debug" value="1" />
+  </select>, enable debug mode:
+<input name="debug" type="checkbox" id="debug" value="1" />
   <div id="save_as_file" style="display:none;">, save as file with suffix: 
   <input name="suffix" type="text" id="suffix" size="10" />
   (let empty for download),</div>
   <input type="submit" name="btn_go" id="btn_go" value="and go" />
 </form>
-<p><br />
+<p>-&gt; See the selected <a href="javascript:download_template()">template</a><br />
   <br />
   -&gt; 
   See the <a href="demo_merge.php?source">source code of the PHP script.</a><br />
