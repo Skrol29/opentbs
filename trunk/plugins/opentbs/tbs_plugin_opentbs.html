@@ -44,20 +44,29 @@ body, td, th {
 
 <body>
 <h1>OpenTBS</h1>
-<div>version 1.3.3, 2010-08-05, by Skrol29<br />
-  help file modified on 2010-09-03</div>
+<div>version 1.4.0, 2010-10-04, by Skrol29<br />
+  help file modified on 2010-10-04</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
   <li><a href="#principles">Understanding principles</a></li>
-  <li><a href="#coding">Synopsis and code examples</a></li>
+  <li><a href="#coding">Synopsis and code examples</a>
+    <ul>
+      <li>4.1. <a href="#preparation">Preparation of TinyButStrong Template Engine with the OpenTBS plug-in</a></li>
+      <li>4.2. <a href="#loadtemplate">Method LoadTemplate()</a></li>
+      <li>4.3. <a href="#show">Method Show()</a></li>
+      <li>4.4. <a href="#pic">Change pictures in the document</a></li>
+      <li>4.5. <a href="#modify">Manual modification of files in the archive</a></li>
+      <li>4.6. <a href="#misc">Miscellaneous</a></li>
+    </ul>
+  </li>
   <li><a href="#demo">Demo</a></li>
   <li><a href="#debug">Debugging your template</a></li>
   <li><a href="#zlib">What to do if Zlib extension is not enabled with PHP?</a></li>
   <li><a href="#changelog">Changelog</a></li>
   <li><a href="#license">License</a></li>
 </ol>
-<h2><a name="intro" id="intro"></a>Introduction</h2>
+<h2><a name="intro" id="intro"></a>1. Introduction</h2>
 <p>OpenTBS is a plug-in for the <a href="http://www.tinybutstrong.com">TinyButStrong</a> Template Engine. <br />
   <br />
   TinyButStrong is a  PHP Template Engine which has  special template syntax and allows you to design templates in their natural editing tools. But it normally works only for  Text files, including XML and HTML. <br />
@@ -74,7 +83,7 @@ body, td, th {
   You should know Template Engines and more specifically <a href="http://www.tinybutstrong.com">TinyButStrong</a> to use 
   OpenTBS.<br />
 </p>
-<h2><a name="install" id="install"></a>Installing</h2>
+<h2><a name="install" id="install"></a>2. Installing</h2>
 <p><u>Requirements:</u><br />
   - TinyButStrong version 3.5.0 or higher (&quot;tbs_class.php&quot; or &quot;tbs_class_php5.php&quot;).<br />
   - PHP 4.3 or higher, PHP 5<br />
@@ -82,22 +91,22 @@ body, td, th {
   <br />
   <u>Installation:</u><br />
   Just put the file &quot;tbs_plugin_opentbs.php&quot; with your PHP scripts.</p>
-<h2><a name="principles" id="principles"></a>Understanding principles</h2>
+<h2><a name="principles" id="principles"></a>3. Understanding principles</h2>
 <p>It is important to figure out that OpenOffice and Ms Office (since version 2007) documents are technically zip archives containing XML files, even if the extension of the document is not &quot;.zip&quot;. Those zip archives can contain other file types like pictures or sounds, but the document structure and the text contents are saved as  XML files.</p>
 <p>TinyButStrong can merge XML files, but cannot read zip archives by itself. The plug-in OpenTBS extends the TinyButStrong methods <a href="http://www.tinybutstrong.com/manual.php#php_loadtemplate">LoadTemplate()</a> and <a href="http://www.tinybutstrong.com/manual.php#php_show">Show()</a> to make them working with zip archives. <span id="result_box"><span title="">But you   do not have to bother with it because OpenTBS is managing archives  in a way that is invisible for you.</span></span></p>
 <p> When the OpenTBS plugin is installed, the LoadTemplate() method becomes able to first load a zip archive (an OpenOffice or Ms Office document), and then to load the contents of any XML or Text files stored in the archive. You can then merge the contents of XML or Text files with all features of the TinyButStrong template engine. At the end, the Show() method does output the entire zip archive including  modified stored files. The output can be done as an HTTP download, a news file on the server's disk, or in a PHP string.</p>
 <p>Since OpenTBS version 1.3, you can also add and delete files in the archive. Before this version you could only modify existing files in the archive.<br />
 </p>
 <p> <a name="extension" id="principles3"></a>OpenTBS has <strong>automatic extension recognition</strong>. When you load a document (an archive) which has one of the following extensions { odt, odg, ods, odf, odp, odm, docx, xlsx and pptx }, then the main XML file of the archive are automatically  loaded, and some special character conversion are preset. For example, for all OpenDocument  files, the stored file  &quot;content.xml&quot; is automatically loaded.</p>
-<h2><a name="coding" id="principles2"></a>Synopsis and code examples</h2>
-<h3>- Prepare the TinyButStrong Template Engine with the OpenTBS plug-in</h3>
+<h2><a name="coding" id="principles2"></a>4. Synopsis and code examples</h2>
+<h3><a name="preparation" id="principles5"></a>4.1. Preparation of TinyButStrong Template Engine with the OpenTBS plug-in</h3>
 <div class="code">include_once('tbs_class.php');<br />
   include_once('tbs_plugin_opentbs.php');<br />
   <br />
   $TBS = new clsTinyButStrong;<br />
   $TBS-&gt;Plugin(TBS_INSTALL, OPENTBS_PLUGIN);</div>
 <br />
-<h3>- Method LoadTemplate()</h3>
+<h3><a name="loadtemplate" id="principles6"></a>4.2. Method LoadTemplate()</h3>
 &bull; Load an archive with the automatic extension recognition (<a href="#extension">explained above</a>):
 <div class="code">$TBS-&gt;LoadTemplate('document.odt'); // Load the archive 'document.odt'.</div>
 <br />
@@ -123,7 +132,7 @@ body, td, th {
   - <span class="smallcode">OPENTBS_ALREADY_XML</span>: OpenTBS assumes that all data is already XML encoded, and thus it won't convert data at all. Take care of that option.<br />
   Please note that if 
   you need to change the data conversion for one or few fields only in your template, then you can use parameter &quot;<span class="smallcode">htmlconv</span>&quot; (see the TBS documentation for more details).</div>
-<h3>- Method Show()</h3>
+<h3><a name="show" id="principles7"></a>4.3. Method Show()</h3>
 &bull;Output the merged archive as an HTTP donwload: ($file_name is optional)<br />
 <div class="code">$TBS-&gt;Show(OPENTBS_DOWNLOAD, $file_name);</div>
 <br />
@@ -138,31 +147,27 @@ body, td, th {
 <div class="code">$TBS-&gt;Show(OPENTBS_STRING);<br />
   $string = $TBS-&gt;Source; </div>
 <div class="note">When you use <span class="smallcode">OPENTBS_STRING</span> then there is no output for the client. But instead, the binary source of the archive is placed into property $TBS-&gt;Source. This feature can be useful, for example, when you want to place the merged document into an email as an attached file.</div>
-<br />
-<h3>- Other</h3>
-&bull; Change an internal picture with a new one coming from a picture file: <span class="versioning">(supported since OpenTBS version 1.3, for OpenOffice and MsOffice documents only)</span><br />
-<div class="template">Example: [onshow.x;ope=addpic;from='../pic/[val].gif';as='[val].gif';att=draw:image#xlink:href]<br />
+
+<h3><a name="pic" id="principles8"></a>4.4. Change pictures in the document</h3>
+&bull; Change an internal picture with a new one: <span class="versioning">(supported since OpenTBS version 1.4.0, for OpenOffice and MsOffice documents only)</span><br />
+<div class="template">Example: [onshow.x;ope=changepic;from='../pic/[val].gif';as='[val].gif';default=current]<br />
 </div>
 <div class="note">
-  <p>You can change a picture wich is already placed in the document by using parameters &quot;<span class="smallcode">ope=addpic</span>&quot; and &quot;<span class="smallcode">att=...</span>&quot; together. The TBS field with those two parameters must always be placed nearby after the picture.</p>
-  <p>Parameter &quot;<span class="smallcode">ope=addpic</span>&quot; is a special parameter given by OpenTBS. Its function is to load the picture file into the current document and make it available to be used in the document (it means it will update some statement files inside the document). Paremeter &quot;<span class="smallcode">ope=addpic</span>&quot; can be used with some complementary parameters &quot;<span class="smallcode">from</span>&quot; and &quot;<span class="smallcode">as</span>&quot;:<br />
-    - Parameter &quot;<span class="smallcode">from</span>&quot; can be used to define the path of the picture to  insert into the archive. The parameter's value can contain [val] or [var] fields. Parameter &quot;<span class="smallcode">from</span>&quot; is optional ;  it's default value is the value of the field.<br />
-    - Parameter &quot;<span class="smallcode">as</span>&quot; can be used to define the   name to the picture file  for its copy into the archive. Note that the external picture file is not renamed ;  the internal   name must be defined without path.
-    The parameter's value can contain [val] or [var] fields. Parameter &quot;<span class="smallcode">as</span>&quot;  is optional ; its default value is the value of parameter &quot;<span class="smallcode">from</span>&quot; without the path.</p>
-  <p>Now that the picture is loaded and available in the current template, you have to tell the image's frame to display this new file. This is done with parameter &quot;<span class="smallcode">att</span>&quot;.</p>
-  <p>Parameter &quot;<span class="smallcode">att=..</span>&quot; is a native TBS parameter. Its basic use is to make the TBS fields to be move inside an AXML attribute. You have to put this parameter with the correct value depending to your template type.<br />
-  </p>
-  <ul>
-    <li>If your template is an OpenOffice document, put &quot;<span class="smallcode">att=draw:image#xlink:href</span>&quot;.</li>
-    <li> If your template is an Ms Office document, they are two cases:<br />
-      - if your picture is a VML object (the  Format Picture window has horizontal tabs &quot;color and lines&quot;, &quot;size&quot;, &quot;layout&quot;, ...) then put &quot;<span class="smallcode">att=v:imagedata#r:id</span>&quot;.<br />
-      - 
-
-if your picture is a DrawingML object (the  Format Picture window has vertical tabs &quot;Fill&quot;, &quot;Line color&quot;, &quot;Line style&quot;, ...) then put &quot;<span class="smallcode">att=a:blip#r:embed</span>&quot;.</li>
-    <li>      With an Ms Office document, any picture you will insert must have the same extension than a picture which is already embedded in the document. Otherwise Ms Office will display an error message when you open the merged document. For example, you can add   &quot;.jpeg&quot; file with &quot;<span class="smallcode">ope=addpic</span>&quot; only if a &quot;.jpeg&quot; file is already existing in the template.</li>
-      </ul>
-</div>
+  <p>Parameter <span class="smallcode">&quot;ope=changepic&quot;</span> is  a feature provided by the OpenTBS plug-in, which extends the &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_ope">ope</a>&quot; parameter natively present with TBS.<br />
+    When a TBS field having <span class="smallcode">&quot;ope=changepic&quot;</span> is placed in the template and merged, then OpenTBS will search the first picture located before the field (to be more precise, the TBS field must be located somewhere inside or after the opening tag of the picture in the template source code), and then it will change the picture assuming that the value of the field is the path for a picture file on the server. You don't have to care about loading the picture file in the document, OpenTBS will manage this for you.<br />
+    <br />
+    In order to 
+    simplify your coding, they are other complementary parameters that are provided:
+<ul>
+    <li> Parameter &quot;<span class="smallcode">from&quot;</span> enables you to reformulate the path of the picture to insert. The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file">file</a>&quot;. Parameter &quot;<span class="smallcode">from</span>&quot; is optional.</li>
+    <li> Parameter <span class="smallcode">&quot;as&quot;</span> enables you to reformulate name of the picture that it will take inside the document. It is rare to need it, but it can help in some cases. Note that the external picture file is not renamed. The new   name must be defined without path.
+  The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file">file</a>&quot;. Parameter <span class="smallcode">&quot;as&quot;</span> is optional.</li>
+    <li> Parameter <span class="smallcode">&quot;default&quot;</span> enables you to define the picture that should be used when the expected one is not found. The parameter's value must be the path of a file on the server, or the keyword &quot;<span class="smallcode">current&quot;</span>. If you've set <span class="smallcode">&quot;default=current&quot;</span> then OpenTBS will let the picture of the template if the expected one is not found.</li></ul></div>
 <br />
+&bull; Parameter "<span class="smallcode">addpic</span>" has appeared with OpenTBS version 1.3.0 and become deprecated since version 1.4.0. Parameter <span class="smallcode">addpic</span> works the same way as <span class="smallcode">changepic</span> but it cannot found the picture in the document by itself. Thus it has to be used together with parameter "<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_att">att</a>". <br />
+<div class="template">Example: [onshow.x;ope=addpic;from='../pic/[val].gif';as='[val].gif';att=draw:image#xlink:href]<br />
+</div>
+<h3><a name="modify" id="principles9"></a>4.5. Manual modification of files in the archive</h3>
 &bull; Add any new file in the archive: <span class="versioning">(supported since OpenTBS version 1.3)</span><br />
 <div class="code">$TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_ADDFILE, $Name, $Data, $DataType=TBSZIP_STRING, $Compress=true);<br />
 </div>
@@ -177,29 +182,32 @@ if your picture is a DrawingML object (the  Format Picture window has vertical t
 <div class="code">$TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);<br />
 </div>
 <div class="note">The automatic extension recognition is also applied as it was applied for the first load of the archive.</div>
-<br />
-&bull; Display debugging information:<a name="debugmode" id="demo5"></a><br />
-<div class="code">$TBS-&gt;Show(OPENTBS_DEBUG_XML);</div>
-<div class="note">This will activate the debug mode and display the listing of added files, modified files and deleted files in the archive. It also display the contents merged with OpenTBS.<br />
-  Note that this option overrides the others <span class="versioning">(since version 1.3.2)</span>. Thus it simplifies the debugging because you can add it to your existing call.<br />
-  For example: <span class="smallcode">$TBS-&gt;Show(OPENTBS_DOWNLOAD + OPENTBS_DEBUG_XML, $file_name);</span> this will do only the debugging.</div>
-<br />
+<h3><a name="misc" id="principles10"></a>4.6. Miscellaneous</h3>
 &bull; Property <span class="code">$TBS-&gt;tbsCurrFile</span> indicates the name of the current file loaded from the archive. The value is false if no file is loaded yet from the archive.<br />
 <br />
 Other TinyButStrong methods and properties stay unchanged and are available for merging your template.
 </p>
-<h2><a name="demo" id="demo"></a>Demo</h2>
-<p>The OpenTBS package includes a full set of runnable templates. Some templates can contains useful complementary information for designing.<br />
+<h2><a name="demo" id="demo"></a>5. Demo</h2>
+<p>The OpenTBS package includes a full set of runnable templates. Some templates can contain useful complementary information for designing.<br />
   Run the following demo under PHP: <a href="http://www.tinybutstrong.com/plugins/opentbs/demo">OpenTBS demo</a></p>
-<h2><a name="debug" id="principles4"></a>Debugging your template</h2>
-<p>Here is some indications that may help for the issues you can met with merging.</p>
+<h2><a name="debug" id="principles4"></a>6. Debugging your template</h2>
+<p>Since OpenTBS version 1.3.2, there is a debug mode which displays information instead of producing the final result</p>
+<form id="form1" name="form1" method="post" action="">
+</form>
+<p>:<a name="debugmode" id="demo5"></a><br />
+</p>
+<div class="code">$TBS-&gt;Show(OPENTBS_DEBUG_XML);</div>
+<div class="note">This will activate the debug mode and display the listing of added files, modified files and deleted files in the archive. It also display the contents merged with OpenTBS.<br />
+  Note that this option overrides the others <span class="versioning">(since version 1.3.2)</span>. Thus it simplifies the debugging because you can add it to your existing call.<br />
+  For example: <span class="smallcode">$TBS-&gt;Show(OPENTBS_DOWNLOAD + OPENTBS_DEBUG_XML, $file_name);</span> this will do only the debugging.</div>
+<p>Otherwise, here are some indications that may help for the issues you can met with merging.</p>
 <h3>a) The merged document is producing error messages when opened with its application (OpenOffice or Ms Office)</h3>
 <p> The most likely causes are:<br />
   &bull; You've chosen the <span class="smallcode">OPENTBS_DOWNLOAD</span> option but a php error message or any other unexpected content has been output before by PHP.<br />
   <span class="note">Active the <a href="#debugmode">debug mode</a> using the option <span class="smallcode">OPENTBS_DEBUG_XML</span>, it helps to check PHP error message and other unexpected content.</span><br />
   or:<br />
   &bull; The merging has produced an invalid XML content in an XML file  of the document.<br />
-  <span class="note">Active the <a href="#debugmode">debug mode</a> using the option <span class="smallcode">OPENTBS_DEBUG_XML</span>, it helps to check the XML contents of merged files.</span>See section (b) below for more information in the XML structure of the files.</p>
+  <span class="note">Active the <a href="#debugmode">debug mode</a> using the option <span class="smallcode">OPENTBS_DEBUG_XML</span>, it helps to check the XML contents of merged files.</span> See section (b) below for more information in the XML structure of the files.</p>
 <h3>b) The merged document is well opened by its application (OpenOffice or Ms Office) but the content is not designed as expected</h3>
 <p>First, you can have a look the <a href="#demo">demo templates</a>, they contain examples and advices for each type of document.<br />
   And to go further: even if you can edit your template using directly OpenOffice or Ms Office, you will probably need to understand the XML tags and attributes to complete your merge. The file <a href="xml_synopsis.txt">xml_synopsis.txt</a> is a small synopsis of the XML structure you can found in the inner source of those documents. Have a look to it if you feel lost. </p>
@@ -214,7 +222,7 @@ Other TinyButStrong methods and properties stay unchanged and are available for 
   <li>check the structure of the XMK, try some fix and arrangements, deleted suspicious parts, ...</li>
   <li>put the modified XML file back to the archive, and test if it's correctly opened with its application (OpenOffice, Ms Office)</li>
 </ul>
-<h2><a name="zlib" id="demo4"></a>What to do if Zlib extension is not enabled with PHP?</h2>
+<h2><a name="zlib" id="demo4"></a>7. What to do if Zlib extension is not enabled with PHP?</h2>
 <p>OpenTBS uses  Zlib functions in order to automatically uncompress and recompress files stored in the zip archive. If Zlib is not enabled, then you have to use your own uncompress/compress tool, or to prepare the template to have files uncompressed in the zip archive.</p>
 <p><u>Example to uncompress the &quot;content.xml&quot; file in an ODT document using 7-Zip:</u><br />
   1) open the ODT file with 7-Zip<br />
@@ -231,8 +239,11 @@ Other TinyButStrong methods and properties stay unchanged and are available for 
   7) Click on [Ok]<br />
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
-<h2><a name="changelog" id="demo3"></a>Changelog</h2>
-<p>version 1.3.3, on 2010-08-05<br />
+<h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
+<p>version 1.4.0, on 2010-08-05<br />
+- new parameters &quot;<span class="smallcode">changepic</span>&quot; and &quot;<span class="smallcode">default</span>&quot;<br />
+<br />
+version 1.3.3, on 2010-08-05<br />
 - property Version of OpenTBS version 1.3.2 was saying 1.3.1<br />
 <br />
 version 1.3.2, on 2010-07-23<br />
@@ -251,7 +262,7 @@ version 1.3.2, on 2010-07-23<br />
   - New feature: can reset changes in the current archive using <span class="smallcode">$TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</span><br />
   - New behavior: extension of the archive is ignored by <span class="smallcode">LoadTemplate()</span> if the name is ended with '<span class="smallcode">#</span>'<br />
   - Bug fixed: in case of several files to take from the archive in one shot, then only the last one had [onload] fields merged.</p>
-<h2><a name="license" id="demo2"></a>License</h2>
+<h2><a name="license" id="demo2"></a>9. License</h2>
 <p>OpenTBS is under <a href="http://www.gnu.org/licenses/lgpl.html">LGPL</a> (Lesser General Public License)</p>
 <p>&nbsp;</p>
 </body>
