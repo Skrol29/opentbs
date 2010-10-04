@@ -2,33 +2,31 @@
 OpenOffice
 -------
 
-ODF:
-pic_path=Pictures/
-pic_att=draw:image#xlink:href
-magnet=draw:image (par défaut), draw:frame, draw:text
+Picture files saved in "Pictures/"
 
-<text:p text:style-name="P3">
-	<draw:frame draw:style-name="fr1" draw:name="Cadre1" text:anchor-type="paragraph" svg:width="5.292cm" draw:z-index="0">
-		<draw:text-box fo:min-height="5.821cm">
-			<text:p text:style-name="Drawing">
-				<draw:a xlink:type="simple" xlink:href="" office:name="images1 (toto nom url)">
-					<draw:frame draw:style-name="fr2" draw:name="images1 (toto nom)" text:anchor-type="paragraph" svg:x="0cm" svg:y="0cm" svg:width="5.292cm" style:rel-width="100%" svg:height="5.821cm" style:rel-height="scale" draw:z-index="1">
+(short synopsis)
+<text:p ...>
+	<draw:frame ...>
+		<draw:text-box ...>
+			<text:p ...>
+				<draw:a ...>
+					<draw:frame ...>
 						<draw:image xlink:href="Pictures/1000000000000096000000A5773AC4DD.png" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
-						<svg:title>images1 (toto alternative)</svg:title>
 					</draw:frame>
-				</draw:a>Dessin <text:sequence text:ref-name="refDrawing0" text:name="Drawing" text:formula="ooow:Drawing+1" style:num-format="1">1</text:sequence>: toto <text:s/>lÃ©gende</text:p>
-			</draw:text-box>
-		</draw:frame>
-	</text:p>
-
+				</draw:a>
+			</text:p>
+		</draw:text-box>
+	</draw:frame>
+</text:p>
 
 -------
 OpenXML
 -------
 
+Picture files saved in "word/media/" , "ppt/media/" , "xl/media/"
+
 Word :
-pic_path=word/media/
-pic_att=v:imagedata#r:id
+======
 image link saved into "word/_rels/document.xml.rels":
   <Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.png"/>
 
@@ -36,17 +34,9 @@ They are two ways to insert a picture.
 
 1) VML: (old classic way)
 -------------------------
+(short synopsis)
 <w:pict>
-	<v:shapetype id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t" path="m@4@5l@4@11@9@11@9@5xe" filled="f" stroked="f">
-		<v:stroke joinstyle="miter"/>
-		<v:formulas>
-			<v:f eqn="if lineDrawn pixelLineWidth 0"/>
-			...
-		</v:formulas>
-		<v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/>
-		<o:lock v:ext="edit" aspectratio="t"/>
-	</v:shapetype>
-	<v:shape id="_x0000_i1025" type="#_x0000_t75" alt="toto texte de remplacement" style="width:150pt;height:165pt">
+	<v:shape ...>
 		<v:imagedata r:id="rId6" o:title=""/>
 	</v:shape>
 </w:pict>
@@ -54,38 +44,53 @@ They are two ways to insert a picture.
 
 2) DrawingML: (the new way that includes 2D/3D effects)
 -------------------------------------------------------
-<w:drawing>
-  <wp:inline distT="0" distB="0" distL="0" distR="0">
-      <wp:extent cx="5760720" cy="4608830" />
-      <wp:docPr id="1" name="Picture 0" descr="2007-7-21_13-36-50-786.BMP" />
-      <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
-          <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
-              <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
-                  <pic:nvPicPr>
-                      <pic:cNvPr id="0" name="2007-7-21_13-36-50-786.BMP" />
-                      <pic:cNvPicPr />
-                  </pic:nvPicPr>
+(short synopsis)
+<w:drawing> 
+  <wp:inline ...>
+      <a:graphic ...>
+          <a:graphicData ...>
+              <pic:pic ...>
                   <pic:blipFill>
                       <a:blip r:embed="rId4" />
-                      <a:stretch>
-                          <a:fillRect />
-                      </a:stretch>
                   </pic:blipFill>
-                  <pic:spPr>
-                      <a:xfrm>
-                          <a:off x="0" y="0" />
-                          <a:ext cx="5760720" cy="4608830" />
-                      </a:xfrm>
-                      <a:prstGeom prst="rect">
-                          <a:avLst />
-                      </a:prstGeom>
-                  </pic:spPr>
               </pic:pic>
           </a:graphicData>
       </a:graphic>
   </wp:inline>
 </w:drawing>
 
+Powerpoint:
+===========
 
-Ppt  : ppt/media/
-Excel: xl/media/
+(short synopsis)
+<p:pic>
+	<p:blipFill>
+		<a:blip r:embed="rId2">
+		</a:blip>
+	</p:blipFill>
+</p:pic>
+
+Excel:
+===========
+
+
+* File "xl\worksheets\sheet1.xml"
+<worksheet ...>
+	...
+	<drawing r:id="rId2"/> (only one entity for all pictures in the sheet)
+</worksheet>	
+
+* File "xl\worksheets\_rels\sheet1.xml.rels"
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/> (only one entity for all pictures in the sheet)
+
+* File "xl\drawings\drawing1.xml"
+(short synopsis, one entity per picture in the sheet)
+<xdr:twoCellAnchor ...>
+	<xdr:pic>
+		<xdr:blipFill>
+			<a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="rId1">
+			</a:blip>
+		</xdr:blipFill>
+	</xdr:pic>
+</xdr:twoCellAnchor>
+
