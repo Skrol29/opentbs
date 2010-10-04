@@ -1,3 +1,7 @@
+-------
+OpenOffice
+-------
+
 ODF:
 pic_path=Pictures/
 pic_att=draw:image#xlink:href
@@ -18,15 +22,20 @@ magnet=draw:image (par défaut), draw:frame, draw:text
 	</text:p>
 
 
-http://www.w3schools.com/media/media_mimeref.asp
+-------
+OpenXML
+-------
 
 Word :
 pic_path=word/media/
 pic_att=v:imagedata#r:id
-       image link saved into "word/_rels/document.xml.rels"
+image link saved into "word/_rels/document.xml.rels":
+  <Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.png"/>
 
-<Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.png"/>
+They are two ways to insert a picture.
 
+1) VML: (old classic way)
+-------------------------
 <w:pict>
 	<v:shapetype id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t" path="m@4@5l@4@11@9@11@9@5xe" filled="f" stroked="f">
 		<v:stroke joinstyle="miter"/>
@@ -42,6 +51,40 @@ pic_att=v:imagedata#r:id
 	</v:shape>
 </w:pict>
 
+
+2) DrawingML: (the new way that includes 2D/3D effects)
+-------------------------------------------------------
+<w:drawing>
+  <wp:inline distT="0" distB="0" distL="0" distR="0">
+      <wp:extent cx="5760720" cy="4608830" />
+      <wp:docPr id="1" name="Picture 0" descr="2007-7-21_13-36-50-786.BMP" />
+      <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+          <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+              <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                  <pic:nvPicPr>
+                      <pic:cNvPr id="0" name="2007-7-21_13-36-50-786.BMP" />
+                      <pic:cNvPicPr />
+                  </pic:nvPicPr>
+                  <pic:blipFill>
+                      <a:blip r:embed="rId4" />
+                      <a:stretch>
+                          <a:fillRect />
+                      </a:stretch>
+                  </pic:blipFill>
+                  <pic:spPr>
+                      <a:xfrm>
+                          <a:off x="0" y="0" />
+                          <a:ext cx="5760720" cy="4608830" />
+                      </a:xfrm>
+                      <a:prstGeom prst="rect">
+                          <a:avLst />
+                      </a:prstGeom>
+                  </pic:spPr>
+              </pic:pic>
+          </a:graphicData>
+      </a:graphic>
+  </wp:inline>
+</w:drawing>
 
 
 Ppt  : ppt/media/
