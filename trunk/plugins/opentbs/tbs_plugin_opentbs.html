@@ -240,13 +240,13 @@ Other TinyButStrong methods and properties stay unchanged and are available for 
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
-<p>version 1.4.0, on 2010-08-05<br />
-- new parameters &quot;<span class="smallcode">changepic</span>&quot; and &quot;<span class="smallcode">default</span>&quot;<br />
-<br />
-version 1.3.3, on 2010-08-05<br />
-- property Version of OpenTBS version 1.3.2 was saying 1.3.1<br />
-<br />
-version 1.3.2, on 2010-07-23<br />
+<p>version 1.4.1, on 2010-10-28<br />
+-  major bug fixed: due to TbsZip, some added or modified files can be saved the document with a wrong CRC control code. This could make  softwares to consider the document as corrupted, but were often easily   fixed by OpenOffice and Ms Office. Only few CRC codes are wrongly saved, thus the bug is rare and can seem to appear randomly on few documents.</p>
+<p> version 1.4.0, on 2010-10-05<br />
+  - new parameters &quot;<span class="smallcode">changepic</span>&quot; and &quot;<span class="smallcode">default</span>&quot;</p>
+<p>  version 1.3.3, on 2010-08-05<br />
+  - property Version of OpenTBS version 1.3.2 was saying 1.3.1</p>
+<p>  version 1.3.2, on 2010-07-23<br />
   - possibility to change de default data conversion using the new constants <span class="smallcode">OPENTBS_DEFAULT</span>, <span class="smallcode">OPENTBS_ALREADY_XML</span> or <span class="smallcode">OPENTBS_ALREADY_UTF8</span><br />
   - enhanced debug mode: listing of added, deleted and modified files ; and show XML formated contents of files merged with OpenTBS.</p>
 <p> version 1.3.1, on 2010-07-01<br />
