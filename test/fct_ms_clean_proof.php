@@ -29,11 +29,63 @@ Proof tags can be (not exaustive):
 
 include('tbs_class_php5.php');
 
+/*
 $z = 'haha<w:r><w:rPr><w:b/></w:rPr><w:t> I am [ </w:t></w:r><w:proofErr w:type="spellStart"/><w:r><w:rPr><w:b/></w:rPr><w:t> b.nom;block=table] ok. </w:t></w:r>hihi';
 f_CleanProof($z);
 echo $z;
+exit;
+*/
 
-function f_CleanProof($Txt) {
+$z = '<w:r><w:t xml:space="preserve">Ok, les </w:t></w:r><w:r w:rsidR="005B104D"><w:t>(je corrige ici</w:t></w:r><w:r w:rsidR="005B104D"><w:t xml:space="preserve">) </w:t></w:r>';
+f_CleanRsID($z);
+echo $z;
+
+function f_CleanRsID(&$Txt) {
+/*  <w:r><w:t xml:space="preserve">Ok, les </w:t></w:r><w:r w:rsidR="005B104D"><w:t>(je corrige ici</w:t></w:r><w:r w:rsidR="005B104D"><w:t xml:space="preserve">) </w:t></w:r>
+*/
+/*
+ <w:p>      paragraph
+   <w:r>    common layout
+     <w:t>  text part
+*/
+
+	$rs_lst = array('w:rsidR', 'w:rsidRPr');
+
+	$nbr_del = 0;
+	foreach ($rs_lst as $rs) {
+	
+		$rs_att = ' '.$rs.'="';
+		$rs_len = strlen($rs_att);
+
+		$p = 0;
+		while ($p!==false) {
+			$ok = false;
+			$p = strpos($Txt, $rs_att, $p);
+			if ($p!==false) {
+				$po = strpos($Txt, '<', $p);
+				$pc = strpos($Txt, '>', $p);
+				if ( ($pc!==false) && ($po!==false) && ($pc<$po) ) { // means that the attribute is actually inside a tag
+					$p2 = strpos($Txt, '"', $p+$rs_len); // position of the delimiter that closes the attribute's value
+					if ( ($p2!==false) && ($p2<$pc) ) {
+						$Txt = substr_replace($Txt, '', $p, $p2 -$p +1);
+						$ok = true;
+						$nbr_del++;
+					}
+				}
+				if (!$ok) $p = $p + $rs_len;
+			}
+		}
+
+	}
+		
+	$Txt = str_replace('</w:t></w:r><w:r><w:t>', '', $Txt);
+	$Txt = str_replace('</w:t></w:r><w:r><w:t xml:space="preserve">', '', $Txt); // may change the aspect a bit
+
+	return $nbr_del;
+	
+}
+
+function f_CleanProof(&$Txt) {
 /*                                         xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     <w:r><w:rPr><w:b/></w:rPr><w:t> I am [ </w:t></w:r><w:proofErr w:type="spellStart"/><w:r><w:rPr><w:b/></w:rPr><w:t> b.nom;block=table] ok. </w:t></w:r>
 0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
@@ -45,6 +97,7 @@ function f_CleanProof($Txt) {
 	$proof_tag = '<w:proofErr ';
 	$proof_len = strlen($proof_tag);
 	
+	$nbr_del = 0;
 	$p = 0;
 	while ($p!==false) {
 
@@ -74,33 +127,37 @@ function f_CleanProof($Txt) {
 				if ($loc!==false) {
 					$pi = $loc->PosBeg;
 					$ptb = $pi;
-					do {
+					do { // this loop passes all tags that are collapsed, which means there is no text contents
 						$x = strpos($TxtCut, '>', $ptb);
 						if ($x!==false) {
-							$x++; 
-							if ( ($x<$pte) && ($Txt[$x]==='<') ) $ptb = $x;
+							$ptb = $x+1;
+							if ( ($ptb>=$pte) || ($Txt[$ptb]!=='<') ) $x = false;
 						}
-					} while ($ptb===$x);
+					} while ($x!==false);
 					$len = ($ptb - $pi);
 					if ( ($len>0) && (substr($Txt,$pi,$len)===substr($Txt,$pe+1,$len)) ) {
-						// if the layout has been repeated after the proof element, then we can deleted the block (closing layout + proof + layout)
-						$Txt = substr_replace($Txt, '', $pte, $pe - $pte + 1 + $len);
+						// if the layout has been repeated after the proof element, then we can deleted the block {closing layout + proof + opening layout}
+						$Txt = substr_replace($Txt, '', $pte, $pe + 1 + $len- $pte);
+						$ok = true;
+						$nbr_del++;
 					}
 				}
 			}
-			
+
 			if ($ok) {
 				$p = $pte;
 			} else {
 				// delete only the proof element
 				$Txt = substr_replace($Txt, '', $p, $proof_len);
+				$nbr_del++;
 			}
-			
+
 		}
 
 	} 
-	
 
+	return $nbr_del;
+	
 }
 
 function f_debug($nom, $txt,$pos,$len=10) {
