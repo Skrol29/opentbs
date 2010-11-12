@@ -53,7 +53,7 @@ function f_CleanRsID(&$Txt) {
 
 	$nbr_del = 0;
 	foreach ($rs_lst as $rs) {
-	
+
 		$rs_att = ' '.$rs.'="';
 		$rs_len = strlen($rs_att);
 
