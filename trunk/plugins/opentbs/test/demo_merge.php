@@ -20,6 +20,7 @@ if (file_exists('tbs_plugin_opentbs.php')) {
 $TBS = new clsTinyButStrong; // new instance of TBS
 $TBS->Plugin(TBS_INSTALL, OPENTBS_PLUGIN); // load OpenTBS plugin
 
+
 // Read parameters
 if (!isset($_POST['btn_go'])) exit("You must use demo.html");
 $suffix = (isset($_POST['suffix']) && (trim($_POST['suffix'])!=='') && ($_SERVER['SERVER_NAME']=='localhost')) ? trim($_POST['suffix']) : '';
@@ -44,6 +45,17 @@ $data[] = array('firstname'=>'William', 'name'=>'Mac Dowell', 'number'=>'5491y' 
 
 // Load the template
 $TBS->LoadTemplate($template);
+
+// TEST du nettoyage du code XML
+include('fct_ms_clean_proof.php');
+//$TBS->Source = '<coucou><w:r><w:rPr><w:color w:val="800000"/><w:lang w:val="en-US"/></w:rPr><w:t>2)</w:t></w:r><w:r><w:rPr><w:color w:val="800000"/><w:lang w:val="en-US"/></w:rPr><w:tab/><w:t>Each time you enter a new TBS tag, select it and click on the Review ribbon, in the Proofi</w:t></w:r><w:r><w:rPr><w:color w:val="800000"/><w:lang w:val="en-US"/></w:rPr><w:t xml:space="preserve">ng group, click the Set Language button. In the dialog, make sure the "Do not check</w:t></w:r><w:r><w:rPr><w:color w:val="800000"/><w:lang w:val="en-US"/></w:rPr><w:br/><w:t>spelling or grammar" box is checked.</w:t></w:r></coucou>';
+f_CleanRsID($TBS->Source);
+f_CleanProof($TBS->Source);
+f_CleanMisc($TBS->Source);
+f_CleanDuplicatedLayout($TBS->Source);
+//$TBS->Source = $TBS->_PlugIns[OPENTBS_PLUGIN]->XmlFormat($TBS->Source);
+//echo $TBS->Source; exit;
+
 $TBS->MergeBlock('a,b', $data);
 
 // Define the name of the output file
