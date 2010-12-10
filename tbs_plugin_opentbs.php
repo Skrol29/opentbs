@@ -8,7 +8,8 @@ Site: http://www.tinybutstrong.com/plugins.php
 */
 
 /* Changelog
-2010-12-10: fix bug in debugmode: warning function.str-repeat: Second argument has to be greater than or equal to 0 
+2010-12-10: fix bug in debugmode: warning function.str-repeat: Second argument has to be greater than or equal to 0
+2010-12-10: add functions for MsWord cleanup (not activated yet)
 */
 
 // Constants to drive the plugin.
@@ -444,7 +445,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
     if ( (!isset($PrmLst['pic_prepared'])) && isset($PrmLst['default']) ) $TBS->meth_Merge_AutoVar($PrmLst['default'],true); // merge automatic TBS fields in the path
 
 		$ok = true; // true if the picture file is actually inserted and ready to be changed
-		
+
 		// check if the picture exists, and eventually use the default picture
     if (!file_exists($FullPath)) {
     	if (isset($PrmLst['default'])) {
@@ -473,10 +474,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 			// the value of the current TBS fields becomes the full path
 			if (isset($this->ArchExtInfo['pic_path'])) $InternalPath = $this->ArchExtInfo['pic_path'].$InternalPath;
-	
+
 			// actually add the picture inside the archive
 			if ($this->FileGetIdxAdd($InternalPath)===false) $this->FileAdd($InternalPath, $FullPath, TBSZIP_FILE, true);
-	
+
 			// preparation for others file in the archive
 			$Rid = false;
 			if ($this->ArchExtInfo!==false) {
@@ -489,7 +490,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					$Rid = $this->OpenXml_RidPrepare($TBS->OtbsCurrFile, basename($InternalPath));
 				}
 			}
-	
+
 			// change the value of the fields for the merging process
 			if ($Rid===false) {
 				$Value = $InternalPath;
@@ -498,9 +499,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			}
 
 		} else {
-			
+
 			$Value = '';
-			
+
 		}
 
 		$PrmLst['pic_prepared'] = true; // mark the locator as Picture prepared
@@ -753,6 +754,144 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 
+	// Cleaning tags in MsWord
+
+	function MsWord_Clean(&$Txt) {
+		$this->MsWord_CleanTag($Txt, array('<w:proofErr', '<w:noProof', '<w:lang'));
+		$this->MsWord_CleanRsID($Txt);
+		$this->MsWord_CleanDuplicatedLayout($Txt);
+	}
+
+	function MsWord_FoundTag($Txt, $Tag, $PosBeg) {
+	// Found the next tag of the asked type. (Not specific to MsWord, works for any XML)
+		$len = strlen($Tag);
+		$p = $PosBeg;
+		while ($p!==false) {
+			$p = strpos($Txt, $Tag, $p);
+			if ($p===false) return false;
+			$x = substr($Txt, $p+$len, 1);
+			if (($x===' ') || ($x==='/') || ($x==='>') ) {
+				return $p;
+			} else {
+				$p = $p+$len;
+			}
+		}
+		return false;
+	}
+
+	function MsWord_CleanTag(&$Txt, $TagLst) {
+	// Delete all tags of the types listed in the list. (Not specific to MsWord, works for any XML)
+		$nbr_del = 0;
+		foreach ($TagLst as $tag) {
+			$p = 0;
+			while (($p=$this->MsWord_FoundTag($Txt, $tag, $p))!==false) {
+				// get the end of the tag
+				$pe = strpos($Txt, '>', $p);
+				if ($pe===false) return false; // arror in the XML formating
+				// delete the tag
+				$Txt = substr_replace($Txt, '', $p, $pe-$p+1);
+			} 
+		}
+		return $nbr_del;
+	}
+
+	function MsWord_CleanRsID(&$Txt) {
+	/* Delete XML attributes relative to log of user modifications. Returns the number of deleted attributes.
+	In order to insert such information, MsWord do split TBS tags with XML elements.
+	After such attributes are deleted, we can concatenate duplicated XML elements. */
+
+		$rs_lst = array('w:rsidR', 'w:rsidRPr');
+
+		$nbr_del = 0;
+		foreach ($rs_lst as $rs) {
+
+			$rs_att = ' '.$rs.'="';
+			$rs_len = strlen($rs_att);
+
+			$p = 0;
+			while ($p!==false) {
+				// search the attribute
+				$ok = false;
+				$p = strpos($Txt, $rs_att, $p);
+				if ($p!==false) {
+					// attribute found, now seach tag bounds
+					$po = strpos($Txt, '<', $p);
+					$pc = strpos($Txt, '>', $p);
+					if ( ($pc!==false) && ($po!==false) && ($pc<$po) ) { // means that the attribute is actually inside a tag
+						$p2 = strpos($Txt, '"', $p+$rs_len); // position of the delimiter that closes the attribute's value
+						if ( ($p2!==false) && ($p2<$pc) ) {
+							// delete the attribute
+							$Txt = substr_replace($Txt, '', $p, $p2 -$p +1);
+							$ok = true;
+							$nbr_del++;
+						}
+					}
+					if (!$ok) $p = $p + $rs_len;
+				}
+			}
+
+		}
+
+		// delete empty tags
+		$Txt = str_replace('<w:rPr></w:rPr>', '', $Txt);
+		$Txt = str_replace('<w:pPr></w:pPr>', '', $Txt);
+
+		return $nbr_del;
+
+	}
+
+	function MsWord_CleanDuplicatedLayout(&$Txt) {
+	// Return the number of deleted dublicates
+	
+		$wro = '<w:r';
+		$wro_len = strlen($wro);
+
+		$wrc = '</w:r';
+		$wrc_len = strlen($wrc);
+
+		$wto = '<w:t';
+		$wto_len = strlen($wto);
+
+		$wtc = '</w:t';
+		$wtc_len = strlen($wtc);
+
+		$nbr = 0;
+		$wro_p = 0;
+		while ( ($wro_p=$this->MsWord_FoundTag($Txt, $wro, $wro_p))!==false ) {
+			$wto_p = $this->MsWord_FoundTag($Txt,$wto,$wro_p); if ($wto_p===false) return false; // error in the structure of the <w:r> element
+			$first = true;
+			do {
+				$ok = false;
+				$wtc_p = $this->MsWord_FoundTag($Txt,$wtc,$wto_p); if ($wtc_p===false) return false; // error in the structure of the <w:r> element
+				$wrc_p = $this->MsWord_FoundTag($Txt,$wrc,$wro_p); if ($wrc_p===false) return false; // error in the structure of the <w:r> element
+				if ( ($wto_p<$wrc_p) && ($wtc_p<$wrc_p) ) { // if the found <w:t> is actually included in the <w:r> element
+					if ($first) {
+						$superflous = '</w:t></w:r>'.substr($Txt, $wro_p, ($wto_p+$wto_len)-$wro_p); // should be like: '</w:t></w:r><w:r>....<w:t'
+						$superflous_len = strlen($superflous);
+						$first = false;
+					}
+					$x = substr($Txt, $wtc_p+$superflous_len,1);
+					if ( (substr($Txt, $wtc_p, $superflous_len)===$superflous) && (($x===' ') || ($x==='>')) ) {
+						// if the <w:r> layout is the same same the next <w:r>, then we join it
+						$p_end = strpos($Txt, '>', $wtc_p+$superflous_len); //
+						if ($p_end===false) return false; // error in the structure of the <w:t> tag
+						$Txt = substr_replace($Txt, '', $wtc_p, $p_end-$wtc_p+1);
+						$nbr++;
+						$ok = true;
+					}
+				}
+			} while ($ok);
+
+			$wro_p = $wro_p + $wro_len;
+
+		}
+
+		return $nbr; // number of replacements
+
+	}
+
+	// OpenOffice documents
+
 	function OpenDoc_ManifestChange($Path, $Type) {
 	// Set $Type=false in order to mark the the manifest entry to be deleted.
 	// Video and sound files are not to be registered in the manifest since the contents is not saved in the document.
@@ -879,7 +1018,7 @@ class clsTbsZip {
 		$this->CdFileByName = array();
 		$this->VisFileLst = array();
 		$this->ArchCancelModif();
-	}	
+	}
 
 	function ArchCancelModif() {
 		$this->LastReadComp = false; // compression of the last read file (1=compressed, 0=stored not compressed, -1= stored compressed but read uncompressed)
@@ -987,7 +1126,7 @@ class clsTbsZip {
 	function Debug($FileHeaders=false) {
 
 		$this->DisplayError = true;
-		
+
 		echo "<br />\r\n";
 		echo "------------------<br/>\r\n";
 		echo "Central Directory:<br/>\r\n";
@@ -998,8 +1137,8 @@ class clsTbsZip {
 		echo "-----------------------------------<br/>\r\n";
 		echo "File List in the Central Directory:<br/>\r\n";
 		echo "-----------------------------------<br/>\r\n";
-		print_r($this->CdFileLst);			
-		
+		print_r($this->CdFileLst);
+
 		if ($FileHeaders) {
 			echo "<br/>\r\n";
 			echo "------------------------------<br/>\r\n";
@@ -1015,13 +1154,13 @@ class clsTbsZip {
 			}
 			print_r($this->VisFileLst);
 		}
-		
+
 	}
 
 	function FileExists($NameOrIdx) {
 		return ($this->FileGetIdx($NameOrIdx)!==false);
 	}
-	
+
 	function FileGetIdx($NameOrIdx) {
 	// Check if a file name, or a file index exists in the Central Directory, and return its index
 		if (is_string($NameOrIdx)) {
@@ -1048,9 +1187,9 @@ class clsTbsZip {
 		}
 		return false;
 	}
-	
+
 	function FileRead($NameOrIdx, $Uncompress=true) {
-		
+
 		$this->LastReadComp = false; // means the file is not found
 		$this->LastReadIdx - false;
 
@@ -1089,9 +1228,9 @@ class clsTbsZip {
 
 	function _ReadFile($idx, $ReadData) {
 	// read the file header (and maybe the data ) in the archive, assuming the cursor in at a new file position
-	
+
 		$b = $this->_ReadData(30);
-		
+
 		$x = $this->_GetHex($b,0,4);
 		if ($x!=='h:04034b50') return $this->RaiseError('Signature of file information not found in the Data Section in position '.(ftell($this->ArchHnd)-30).' for file #'.$idx.'.');
 
@@ -1128,7 +1267,7 @@ class clsTbsZip {
 		} else {
 			$this->_MoveTo($len, SEEK_CUR);
 		}
-		
+
 		// Description information
 		$desc_ok = ($x['purp'][2+3]=='1');
 		if ($desc_ok) {
@@ -1149,7 +1288,7 @@ class clsTbsZip {
 		} else {
 			return true;
 		}
-		
+
 	}
 
 	function FileReplace($NameOrIdx, $Data, $DataType=TBSZIP_STRING, $Compress=true) {
@@ -1182,7 +1321,7 @@ class clsTbsZip {
 	function FileCancelModif($NameOrIdx, $ReplacedAndDeleted=true) {
 	// cancel added, modified or deleted modifications on a file in the archive
 	// return the number of cancels
-	
+
 		$nbr = 0;
 
 		if ($ReplacedAndDeleted) {
@@ -1197,16 +1336,16 @@ class clsTbsZip {
 				}
 			}
 		}
-		
-		// added files		
+
+		// added files
 		$idx = $this->FileGetIdxAdd($NameOrIdx);
 		if ($idx!==false) {
 			unset($this->InfoAdd[$idx]);
 			$nbr++;
 		}
-		
+
 		return $nbr;
-		
+
 	}
 
 	function Flush($Render=TBSZIP_DOWNLOAD, $File='', $ContentType='') {
@@ -1222,7 +1361,7 @@ class clsTbsZip {
 		$time  = $this->_MsDos_Time($now);
 
 		$this->OutputOpen($Render, $File, $ContentType);
-		
+
 		// output modified zipped files and unmodified zipped files that are beetween them
 		ksort($this->ReplByPos);
 		foreach ($this->ReplByPos as $ReplPos => $ReplIdx) {
@@ -1273,7 +1412,7 @@ class clsTbsZip {
 			// Update the current pos in the archive
 			$ArchPos = $ReplPos + $info_old_len;
 		}
-		
+
 		// Ouput all the zipped files that remain before the Central Directory listing
 		if ($this->ArchHnd!==false) $this->OutputFromArch($ArchPos, $this->CdPos); // ArchHnd is false if CreateNew() has been called
 		$ArchPos = $this->CdPos;
@@ -1290,7 +1429,7 @@ class clsTbsZip {
 				$AddDataLen += $n;
 			}
 		}
-				
+
 		// Modifiy file information in the Central Directory for replaced files
 		$b2 = '';
 		$old_cd_len = 0;
@@ -1314,7 +1453,7 @@ class clsTbsZip {
 		$this->OutputFromString($b2);
 		$ArchPos += $old_cd_len;
  		$DeltaCdLen =  $DeltaCdLen + strlen($b2) - $old_cd_len;
- 		
+ 
 		// Output until Central Directory footer
 		if ($this->ArchHnd!==false) $this->OutputFromArch($ArchPos, $this->CdEndPos); // ArchHnd is false if CreateNew() has been called
 
@@ -1327,7 +1466,7 @@ class clsTbsZip {
 			$this->OutputFromString($b2);
 			$DeltaCdLen += strlen($b2);
 		}
-		
+
 		// Output Central Directory footer
 		$b2 = $this->CdInfo['bin'];
 		$DelNbr = count($DelLst);
@@ -1345,7 +1484,7 @@ class clsTbsZip {
 		}
 		$this->_PutDec($b2, $this->CdPos+$Delta , 16, 4); // p_cd  (offset of start of central directory with respect to the starting disk number)
 		$this->OutputFromString($b2);
-		
+
 	}
 
 	// ----------------
@@ -1484,7 +1623,7 @@ class clsTbsZip {
 		}
 		$txt = substr_replace($txt, $x, $pos, $len);
 	}
-	
+
 	function _MsDos_Date($Timestamp = false) {
 		// convert a date-time timstamp into the MS-Dos format
 		$d = ($Timestamp===false) ? getdate() : getdate($Timestamp);
@@ -1507,7 +1646,7 @@ class clsTbsZip {
 		$s = ($time & 31) * 2; // seconds have been rounded to an even number in order to save 1 bit
 		return $y.'-'.str_pad($m,2,'0',STR_PAD_LEFT).'-'.str_pad($d,2,'0',STR_PAD_LEFT).' '.str_pad($h,2,'0',STR_PAD_LEFT).':'.str_pad($i,2,'0',STR_PAD_LEFT).':'.str_pad($s,2,'0',STR_PAD_LEFT);
 	}
-	
+
 	function _DataOuputAddedFile($Idx, $PosLoc) {
 
 		$Ref =& $this->AddInfo[$Idx];
@@ -1539,7 +1678,7 @@ class clsTbsZip {
 		$this->OutputFromString($b.$Ref['data']);
 		$OutputLen = strlen($b) + $Ref['len_c']; // new position of the cursor
 		unset($Ref['data']); // save PHP memory
-		
+
 		// Information for file in the Central Directory
 		$b = 'PK'.chr(01).chr(02).str_repeat(' ',42); // signature
 		$this->_PutDec($b,20,4,2);  // vers_used = 20
@@ -1660,7 +1799,7 @@ class clsTbsZip {
 				$Len += $Ref['len_c'] + $Ref['diff'];
 			}
 		}
-		
+
 		// files to add
 		$i_lst = array_keys($this->AddInfo);
 		foreach ($i_lst as $i) {
@@ -1671,9 +1810,9 @@ class clsTbsZip {
 				$Len += $Ref['len_c'] + $Ref['diff'];
 			}
 		}
-		
+
 		return $Len;
-		
+
 	}
-	
+
 }
