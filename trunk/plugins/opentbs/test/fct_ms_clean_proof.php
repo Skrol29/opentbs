@@ -93,21 +93,7 @@ function f_CleanDuplicatedLayout(&$Txt) {
 	
 }
 
-function f_FoundTag($Txt, $Tag, $PosBeg) {
-	$len = strlen($Tag);
-	$p = $PosBeg;
-	while ($p!==false) {
-		$p = strpos($Txt, $Tag, $p);
-		if ($p===false) return false;
-		$x = substr($Txt, $p+$len, 1);
-		if (($x===' ') || ($x==='/') || ($x==='>') ) {
-			return $p;
-		} else {
-			$p = $p+$len;
-		}
-	}
-	return false;
-}
+
 
 function f_CleanRsID(&$Txt) {
 // delete attributes relative to log of user modifications, because they split the text
@@ -159,7 +145,25 @@ function f_CleanRsID(&$Txt) {
 	
 }
 
+function f_FoundTag($Txt, $Tag, $PosBeg) {
+// found the next tag of the asked type.
+	$len = strlen($Tag);
+	$p = $PosBeg;
+	while ($p!==false) {
+		$p = strpos($Txt, $Tag, $p);
+		if ($p===false) return false;
+		$x = substr($Txt, $p+$len, 1);
+		if (($x===' ') || ($x==='/') || ($x==='>') ) {
+			return $p;
+		} else {
+			$p = $p+$len;
+		}
+	}
+	return false;
+}
+
 function f_CleanTag(&$Txt, $TagLst) {
+// delete all tags of the types listed in the list.
 	$nbr_del = 0;
 	foreach ($TagLst as $tag) {
 		$p = 0;
