@@ -1,10 +1,14 @@
 <?php
 
-/* OpenTBS version 1.4.1, on 2010-10-28
+/* OpenTBS version 1.4.2b, on 2010-12-10
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
 Site: http://www.tinybutstrong.com/plugins.php
+*/
+
+/* Changelog
+2010-12-10: fix bug in debugmode: warning function.str-repeat: Second argument has to be greater than or equal to 0 
 */
 
 // Constants to drive the plugin.
@@ -29,7 +33,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsAutoLoad)) $TBS->OtbsAutoLoad = true; // TBS will load the subfile regarding to the extension of the archive
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
-		$this->Version = '1.4.1'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
+		$this->Version = '1.4.2b'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
 	}
 
@@ -370,11 +374,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				} else {
 					// get text between the tags
 					$x = trim(substr($Txt, $p, $to-$p),' ');
-					if ($x!=='') $Res .= "\n".str_repeat(' ',$lev).$x;
+					if ($x!=='') $Res .= "\n".str_repeat(' ',max($lev,0)).$x;
 					// get the tag
 					$x = substr($Txt, $to, $tc-$to+1);
 					if ($Txt[$to+1]==='/') $lev--;
-					$Res .= "\n".str_repeat(' ',$lev).$x;
+					$Res .= "\n".str_repeat(' ',max($lev,0)).$x;
 					// change the level
 					if (($Txt[$to+1]!=='?') && ($Txt[$to+1]!=='/') && ($Txt[$tc-1]!=='/')) $lev++;
 					// next position
