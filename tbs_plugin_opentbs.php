@@ -10,6 +10,7 @@ Site: http://www.tinybutstrong.com/plugins.php
 /* Changelog
 2010-12-10: fix bug in debugmode: warning function.str-repeat: Second argument has to be greater than or equal to 0
 2010-12-10: add functions for MsWord cleanup (not activated yet)
+2011-01-11: fix a bug when using OPENTBS_RESET: "Warning: Missing argument 2 for clsOpenTBS::OnCommand() in ... on line 225"
 */
 
 // Constants to drive the plugin.
@@ -227,7 +228,7 @@ class clsOpenTBS extends clsTbsZip {
 
 	}
 
-	function OnCommand($Cmd, $Name, $Data=false, $DataType=TBSZIP_STRING, $Compress=true) {
+	function OnCommand($Cmd, $Name=false, $Data=false, $DataType=TBSZIP_STRING, $Compress=true) {
 
 		if ($Cmd==OPENTBS_INFO) {
 			// Display debug information
@@ -253,7 +254,6 @@ class clsOpenTBS extends clsTbsZip {
 			// Delete an existing file in the archive
 			$this->FileCancelModif($Name, false);    // cancel added files
 			return $this->FileReplace($Name, false); // mark the file as to be deleted
-
 		}
 
 	}
