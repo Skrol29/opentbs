@@ -30,7 +30,7 @@ Synopsis:
   			<text:p text:style-name="Standard">
   				Normal new lines are made with a new paragraphs <text:p>...</text:p>
   				Simple new lines are made with <text:line-break/>
-  				Page breaks are made with a new paragraphe having a style which has the attribute {fo:break-before="page"}. 
+  				Page breaks are made with a new paragraph having a style which has the attribute {fo:break-before="page"}. 
   				Local styles (bold, color,...) are made with <text:span text:style-name="T1">...</text:span>
   				Images:
 					<draw:frame draw:style-name="fr1" draw:name="images1" text:anchor-type="paragraph" svg:width="0.847cm" svg:height="0.847cm" draw:z-index="0">
@@ -91,14 +91,15 @@ Synopsis of the main file 'word/document.xml':
 	<w:body>
 
 		<w:p> New paragraph
-      <w:pPr> Parameters of the paragraph
-        <w:rPr> Set of parameters for a Run
-        </w:rPr>
-      </w:pPr>
-			<w:r> New run item. A run item is a set of content having common layout properties.
-        <w:rPr> Set of parameters for a Run. Examples: <w:i/> is italic, <w:b/> is bold.
-        </w:rPr>
-				<w:t>Your text is here</w:t>
+			<w:pPr>
+				Parameters of the paragraph
+				<w:rPr>    Set of parameters for a Run </w:rPr>
+				<w:sectPr> Sart a new section. Section are a set of page layout (margin, columns, ...)available until the next section. </w:sectPr>
+			</w:pPr>
+			<w:r>
+				New run item. A run item is a set of content having common layout properties.
+				<w:rPr> Set of parameters for a Run. Examples: <w:i/> is italic, <w:b/> is bold. </w:rPr>
+				<w:t> Your text is here</w:t>
 				Simple new lines are made with <w:br/>
 				Page breaks are made with <w:br w:type="page"/>
 			</w:r>
