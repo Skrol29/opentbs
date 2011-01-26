@@ -20,7 +20,6 @@ if (file_exists('tbs_plugin_opentbs.php')) {
 $TBS = new clsTinyButStrong; // new instance of TBS
 $TBS->Plugin(TBS_INSTALL, OPENTBS_PLUGIN); // load OpenTBS plugin
 
-
 // Read parameters
 if (!isset($_POST['btn_go'])) exit("You must use demo.html");
 $suffix = (isset($_POST['suffix']) && (trim($_POST['suffix'])!=='') && ($_SERVER['SERVER_NAME']=='localhost')) ? trim($_POST['suffix']) : '';
@@ -43,6 +42,9 @@ $data[] = array('firstname'=>'Sandra', 'name'=>'Hill', 'number'=>'1523d' );
 $data[] = array('firstname'=>'Roger', 'name'=>'Smith', 'number'=>'1234f' );
 $data[] = array('firstname'=>'William', 'name'=>'Mac Dowell', 'number'=>'5491y' );
 
+// debug
+$OpenTBS =& $TBS->_PlugIns[OPENTBS_PLUGIN];
+
 // Load the template
 $TBS->LoadTemplate($template);
 
@@ -53,8 +55,12 @@ f_CleanRsID($TBS->Source);
 f_CleanProof($TBS->Source);
 f_CleanMisc($TBS->Source);
 f_CleanDuplicatedLayout($TBS->Source);
-//$TBS->Source = $TBS->_PlugIns[OPENTBS_PLUGIN]->XmlFormat($TBS->Source);
+//$TBS->Source = $OpenTBS->XmlFormat($TBS->Source);
 //echo $TBS->Source; exit;
+
+//$OpenTBS->OpenXML_InitMap();
+//echo var_export($OpenTBS->OpenXmlMap,true); exit;
+
 
 $TBS->MergeBlock('a,b', $data);
 

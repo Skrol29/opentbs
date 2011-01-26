@@ -11,6 +11,9 @@ Site: http://www.tinybutstrong.com/plugins.php
 2010-12-10: fix bug in debugmode: warning function.str-repeat: Second argument has to be greater than or equal to 0
 2010-12-10: add functions for MsWord cleanup (not activated yet)
 2011-01-11: fix a bug when using OPENTBS_RESET: "Warning: Missing argument 2 for clsOpenTBS::OnCommand() in ... on line 225"
+2011-01-26: OpenXml: takes acount of the doc map in order to load default files that may have human contents (main, header, footer, shettes, ...). Uses new property OpenXmlMap
+            [tocheck] i have deleted a surpsizing lost snippet "echo $Txt; exit;" in OpenXML_CTypesCommit() juste before the debug mode comment
+			OpenOffice & OpenXML: header and footers are automatically loaded
 */
 
 // Constants to drive the plugin.
@@ -532,21 +535,25 @@ User can define his own Extension Information, they are taken in acount if saved
 			$i = $GLOBAL['_OPENTBS_AutoExt'][$Ext];
 		} elseif (strpos(',odt,ods,odg,odf,odp,odm,ott,ots,otg,otp,', ','.$Ext.',')!==false) {
 			// OpenOffice documents
-			$i = array('load'=>'content.xml', 'br'=>'<text:line-break/>', 'frm'=>'odf', 'ctype'=>'application/vnd.oasis.opendocument.', 'pic_path'=>'Pictures/', 'rpl_what'=>'&apos;', 'rpl_with'=>'\'');
+			$i = array('load'=>'styles.xml;content.xml', 'br'=>'<text:line-break/>', 'frm'=>'odf', 'ctype'=>'application/vnd.oasis.opendocument.', 'pic_path'=>'Pictures/', 'rpl_what'=>'&apos;', 'rpl_with'=>'\''); // styles.xml may contain header/footer contents
 			if ($Ext==='odf') $i['br'] = false;
 			$ctype = array('t'=>'text', 's'=>'spreadsheet', 'g'=>'graphics', 'f'=>'formula', 'p'=>'presentation', 'm'=>'text-master');
 			$i['ctype'] .= $ctype[($Ext[2])];
 			$i['pic_ext'] = array('png'=>'png', 'bmp'=>'bmp', 'gif'=>'gif', 'jpg'=>'jpeg', 'jpeg'=>'jpeg', 'jpe'=>'jpeg', 'jfif'=>'jpeg', 'tif'=>'tiff', 'tiff'=>'tiff');
 		} elseif (strpos(',docx,xlsx,pptx,', ','.$Ext.',')!==false) {
 			// Microsoft Office documents
+			$this->OpenXML_MapInit();
 			$x = array(chr(226).chr(128).chr(152) , chr(226).chr(128).chr(153));
 			$ctype = 'application/vnd.openxmlformats-officedocument.';
 			if ($Ext==='docx') {
 				$i = array('load'=>'word/document.xml', 'br'=>'<w:br/>', 'frm'=>'openxml', 'ctype'=>$ctype.'wordprocessingml.document', 'pic_path'=>'word/media/','rpl_what'=>$x,'rpl_with'=>'\'');
+				$i['load'] = $this->OpenXML_MapGetVal(array('wordprocessingml.header+xml', 'wordprocessingml.footer+xml', 'wordprocessingml.document.main+xml'), $i['load'], ';', true); // footnotes and endnotes omitted for perf
 			} elseif ($Ext==='xlsx') {
 				$i = array('load'=>'xl/worksheets/sheet1.xml;xl/sharedStrings.xml', 'br'=>false, 'frm'=>'openxml', 'ctype'=>$ctype.'spreadsheetml.sheet', 'pic_path'=>'xl/media/');
+				$i['load'] = $this->OpenXML_MapGetVal(array('spreadsheetml.worksheet+xml', 'spreadsheetml.sharedStrings+xml'), $i['load'], ';', true);
 			} elseif($Ext==='pptx') {
 				$i = array('load'=>'ppt/slides/slide1.xml', 'br'=>false, 'frm'=>'openxml', 'ctype'=>$ctype.'presentationml.presentation', 'pic_path'=>'ppt/media/' ,'rpl_what'=>$x,'rpl_with'=>'\'');
+				$i['load'] = $this->OpenXML_MapGetVal(array('presentationml.notesSlide+xml'), $i['load'], ';', true); // masternotes and slidenotes omitted for perf 
 			}
 			$i['pic_ext'] = array('png'=>'png', 'bmp'=>'bmp', 'gif'=>'gif', 'jpg'=>'jpeg', 'jpeg'=>'jpeg', 'jpe'=>'jpeg', 'tif'=>'tiff', 'tiff'=>'tiff', 'ico'=>'x-icon', 'svg'=>'svg+xml');
 		}
@@ -691,8 +698,6 @@ It needs to be completed when a new picture file extension is added in the docum
 			if ($p===false) return $this->RaiseError("(OpenXML) closing tag </Types> not found in subfile ".$file);
 			$Txt = substr_replace($Txt, $x, $p ,0);
 
-		echo $Txt; exit;
-
 			// debug mode
 			if ($Debug) $this->DebugLst[$file] = $Txt;
 
@@ -754,6 +759,78 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 
+	function OpenXML_MapInit() {
+	// read the Content_Type XML file and save a sumup in the OpenXmlMap property.
+
+		$this->OpenXmlMap = array();
+		$Map =& $this->OpenXmlMap;
+
+		$file = '[Content_Types].xml';
+		$idx = $this->FileGetIdx($file);
+		if ($idx===false) return;
+
+		$Txt = $this->FileRead($idx, true);
+
+		$type = ' ContentType="application/vnd.openxmlformats-officedocument.';
+		$type_l = strlen($type);
+		$name = ' PartName="';
+		$name_l = strlen($name);
+
+		$p = -1;
+		while ( ($p=strpos($Txt, '<', $p+1))!==false) {
+			$pe = strpos($Txt, '>', $p);
+			if ($pe===false) return; // syntax error in the XML
+			$x = substr($Txt, $p+1, $pe-$p-1);
+			$pi = strpos($x, $type);
+			if ($pi!==false) {
+				$pi = $pi + $type_l;
+				$pc = strpos($x, '"', $pi);
+				if ($pc===false) return; // syntax error in the XML
+				$ShortType = substr($x, $pi, $pc-$pi); // content type's short value
+				$pi = strpos($x, $name);
+				if ($pi!==false) {
+					$pi = $pi + $name_l;
+					$pc = strpos($x, '"', $pi);
+					if ($pc===false) return; // syntax error in the XML
+					$Name = substr($x, $pi, $pc-$pi); // name
+					if (!isset($Map[$ShortType])) $Map[$ShortType] = array();
+					$Map[$ShortType][] = $Name;
+				}
+			}
+			$p = $pe;
+		}
+
+	}
+
+	function OpenXML_MapGetVal($ShortType, $Default, $Glue=false, $CheckFiles=false) {
+	// Return all values for a given type (or array of types) in the map. If $CheckFiles=true, then fix pathes and return only files that do exist in the archive.
+
+		if (is_string($ShortType)) $ShortType = array($ShortType);
+
+		$res = array();
+		foreach ($ShortType as $type) {
+			if (isset($this->OpenXmlMap[$type])) {
+				$val = $this->OpenXmlMap[$type];
+				if ($CheckFiles) {
+					foreach ($val as $file) {
+						if ($file[0]=='/') $file = substr($file,1); // fix the file path
+						if ($this->FileExists($file)) $res[] = $file;
+					}
+				} else {
+					$res = array_merge($res, $val);
+				}
+			}
+		}
+		
+		if (count($res)==0) {
+			$res = $Default;
+		} elseif ($Glue!==false) {
+			$res = implode($Glue, $res);
+		}
+
+		return $res;
+	}
+	
 	// Cleaning tags in MsWord
 
 	function MsWord_Clean(&$Txt) {
