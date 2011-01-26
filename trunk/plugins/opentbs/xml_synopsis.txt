@@ -17,29 +17,29 @@ The pictures are stored in the directory 'Pictures' and should be registered int
 Since OpenOffice 3.2, if a picture is not registered in the Manifest file, then it can produce a message error when opening the document.
 Video and sound cannot be stored in OpenOffice documents.
 
-Main file: 'content.xml':
+Main file: "content.xml":
 -------------------------
 
 Synopsis:
 ---------
 <office:document-content>
 	...
-  <office:body>
-  	<office:text>
-  		<text:section text:style-name="Sect1" text:name="Section1">
-  			<text:p text:style-name="Standard">
-  				Normal new lines are made with a new paragraphs <text:p>...</text:p>
-  				Simple new lines are made with <text:line-break/>
-  				Page breaks are made with a new paragraph having a style which has the attribute {fo:break-before="page"}. 
-  				Local styles (bold, color,...) are made with <text:span text:style-name="T1">...</text:span>
-  				Images:
-					<draw:frame draw:style-name="fr1" draw:name="images1" text:anchor-type="paragraph" svg:width="0.847cm" svg:height="0.847cm" draw:z-index="0">
-						<draw:image xlink:href="Pictures/100000000000002000000020A0D29467.jpg" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
-					</draw:frame>
-  			</text:p>
-  		</text:section>
-  	</office:text>
-  </office:body>
+	<office:body>
+		<office:text>
+			<text:section text:style-name="Sect1" text:name="Section1">
+				<text:p text:style-name="Standard">
+					Normal new lines are made with a new paragraphs <text:p>...</text:p>
+					Simple new lines are made with <text:line-break/>
+					Page breaks are made with a new paragraph having a style which has the attribute {fo:break-before="page"}. 
+					Local styles (bold, color,...) are made with <text:span text:style-name="T1">...</text:span>
+					Images:
+						<draw:frame draw:style-name="fr1" draw:name="images1" text:anchor-type="paragraph" svg:width="0.847cm" svg:height="0.847cm" draw:z-index="0">
+							<draw:image xlink:href="Pictures/100000000000002000000020A0D29467.jpg" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
+						</draw:frame>
+				</text:p>
+			</text:section>
+		</office:text>
+	</office:body>
 </office:document-content>
 
 Table in a document:
@@ -52,6 +52,25 @@ Table in a document:
 		...
 	</table:table-row>
 </table:table>
+
+Headers and footers in a document:
+----------------------------------
+Header's and footer's contents are saved in the "sytles.xml" file:
+You can choose for each page to hide or display the header and footer. Nevertheless, the contents is always the same for each page.
+
+<office:document-styles ...>
+	<office:master-styles>
+		<style:master-page ...>
+			<style:header>
+				<text:p text:style-name="Header">here is the header</text:p>
+			</style:header>
+			<style:footer>
+				<text:p text:style-name="Footer">here is the footer</text:p>
+			</style:footer>	  
+		</style:master-page>
+	</office:master-styles>
+</office:document-styles>
+
 
 Special to .ODF (OpenOffice Math Formula):
 ------------------------------------------
@@ -85,7 +104,10 @@ Ms Office Document (.DOCX, .XLSX, .PPTX)
 Ms Word Document (.DOCX)
 ************************
 
-Synopsis of the main file 'word/document.xml':
+The main file is usually "word/document.xml", but its actual location is defined in the file "[Content_Types].xml", in the element:
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+
+Synopsis of the main file "word/document.xml":
 ----------------------------------------------
 <w:document>
 	<w:body>
@@ -130,6 +152,31 @@ Synopsis of a table inserted in a Word document:
 
 <w:p>...</w:p> 
 
+Headers and footers :
+---------------------
+
+The headers and footers files are usually "/word/header1.xml" and "/word/footer1.xml".
+They exists only if header/footer is defined.
+There alos may have an optional couple of XML files for odd numbered pages (usually "/word/header2.xml" and "/word/footer2.xml").
+And an optional couple of files for the first page (usually "/word/header3.xml" and "/word/footer3.xml").
+
+But the actual locations are defined in the file "[Content_Types].xml", in the elements like:
+	<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>
+and
+	<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>
+Some referenced header/footers may have no actual files because of no data.
+
+Example of header source:
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:hdr ...>
+	<w:p>
+		<w:pPr><w:pStyle w:val="my_header"/></w:pPr>
+		<w:r>
+			<w:t>here is the text of the header</w:t>
+		</w:r>
+	</w:p>
+</w:hdr>
+
 ****************************
 Ms Excel SpreadSheet (.XLSX)
 ****************************
@@ -143,9 +190,9 @@ All string values of cells are stored in the file 'xl/sharedStrings.xml'. The ce
 in fact the index of the string in the sharedStrings.xml file. This separation will probably
 make difficulties  to merge an Excel sheet. 
 
-All sheets of the workbook are listed in the file 'xl/workbook.xml'.
+All sheets of the workbook are listed in the file "xl/workbook.xml".
 
-Synopsis of a sheet file like 'xl/worksheets/sheet1.xml':
+Synopsis of a sheet file like "xl/worksheets/sheet1.xml":
 ---------------------------------------------------------
 <worksheet>
 	...
@@ -166,7 +213,7 @@ Synopsis of a sheet file like 'xl/worksheets/sheet1.xml':
 	</sheetData>
 </worksheet>
 
-Synopsis of the Shared String file 'xl/sharedStrings.xml':
+Synopsis of the Shared String file "xl/sharedStrings.xml":
 ----------------------------------------------------------
 <sst>
 	<si>
@@ -185,7 +232,7 @@ Slides are listed in the file 'ppt/_rels/presentation.xml.rels', where an intern
 
 The first slide is quite always corresponding to the file 'ppt/slides/slide1.xml'.
 
-Synopsis of a slide file like 'ppt/slides/slide1.xml':
+Synopsis of a slide file like "ppt/slides/slide1.xml":
 ------------------------------------------------------
 
 <p:sld>
