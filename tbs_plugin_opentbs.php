@@ -9,11 +9,13 @@ Site: http://www.tinybutstrong.com/plugins.php
 
 /* Changelog
 2010-12-10: fix bug in debugmode: warning function.str-repeat: Second argument has to be greater than or equal to 0
-2010-12-10: add functions for MsWord cleanup (not activated yet)
-2011-01-11: fix a bug when using OPENTBS_RESET: "Warning: Missing argument 2 for clsOpenTBS::OnCommand() in ... on line 225"
-2011-01-26: OpenXml: takes acount of the doc map in order to load default files that may have human contents (main, header, footer, shettes, ...). Uses new property OpenXmlMap
-            [tocheck] i have deleted a surpsizing lost snippet "echo $Txt; exit;" in OpenXML_CTypesCommit() juste before the debug mode comment
-			OpenOffice & OpenXML: header and footers are automatically loaded
+2011-01-11: Fixed bug: when using OPENTBS_RESET: "Warning: Missing argument 2 for clsOpenTBS::OnCommand() in ... on line 225"
+2011-01-26: New Feature: header and footers are automatically loaded for OpenOffice & OpenXML.
+			New Feature: clear MsWord entities for revision and spelling. Property $TBS->OtbsClearMsWord.
+            Fixed bug: deleted a surpsizing lost snippet "echo $Txt; exit;" in OpenXML_CTypesCommit() juste before the debug mode comment
+			Fixed bug: Dml images were not found backward.
+			Debug mode is not stopped if an OpenTBS alert occurs.
+			The OpenTBS Alert message tells if the proccess will stop.
 */
 
 // Constants to drive the plugin.
@@ -35,17 +37,18 @@ class clsOpenTBS extends clsTbsZip {
 
 	function OnInstall() {
 		$TBS =& $this->TBS;
+
 		if (!isset($TBS->OtbsAutoLoad)) $TBS->OtbsAutoLoad = true; // TBS will load the subfile regarding to the extension of the archive
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
 		$this->Version = '1.4.2b'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
+		$this->DebugLst = false; // deactivate the debug mode
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
 	}
 
 	function BeforeLoadTemplate(&$File,&$Charset) {
 
 		$TBS =& $this->TBS;
-
 		if ($TBS->_Mode!=0) return; // If we are in subtemplate mode, the we use the TBS default process
 
 		// Decompose the file path. The syntaxe is 'Archive.ext#subfile', or 'Archive.ext', or '#subfile'
@@ -110,9 +113,9 @@ class clsOpenTBS extends clsTbsZip {
 					} else {
 						$TBS->Source = $this->FileRead($idx, $TBS->OtbsAutoUncompress); // Load from the archive
 						$ok = ($this->LastReadComp<=0); // the contents is not compressed
-						if ($ok && ($this->ArchExtInfo!==false) && isset($this->ArchExtInfo['rpl_what'])) {
-							// auto replace strings in the loaded file
-							$TBS->Source = str_replace($this->ArchExtInfo['rpl_what'],$this->ArchExtInfo['rpl_with'],$TBS->Source);
+						if ($ok && ($this->ArchExtInfo!==false)) {
+							if (isset($this->ArchExtInfo['rpl_what'])) $TBS->Source = str_replace($this->ArchExtInfo['rpl_what'],$this->ArchExtInfo['rpl_with'],$TBS->Source); // auto replace strings in the loaded file
+							if (($this->ArchExt==='docx') && isset($TBS->OtbsClearMsWord) && $TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
 						}
 					}
 
@@ -148,24 +151,22 @@ class clsOpenTBS extends clsTbsZip {
 
 		$TBS->Plugin(-4); // deactivate other plugins
 
-		if (($Render & OPENTBS_DEBUG_XML)==OPENTBS_DEBUG_XML) {
-			$Debug = true;
-			$this->DebugLst = array();
-		} else {
-			$Debug = false;
-		}
+		$Debug = (($Render & OPENTBS_DEBUG_XML)==OPENTBS_DEBUG_XML);
+		if ($Debug) $this->DebugLst = array();
 
 		// Merges all modified subfiles
 		$idx_lst = array_keys($this->TbsSrcParking);
 		foreach ($idx_lst as $idx) {
 			$TBS->Source = $this->TbsSrcParking[$idx];
 			unset($this->TbsSrcParking[$idx]); // save memory space
+			$this->TbsCurrIdx = $idx; // usefull for debug mode
 			$TBS->Show(TBS_NOTHING);
 			if ($Debug) $this->DebugLst[$this->CdFileLst[$idx]['v_name']] = $TBS->Source;
 			$this->FileReplace($idx, $TBS->Source, TBSZIP_STRING, $TBS->OtbsAutoUncompress);
 		}
 		$TBS->Plugin(-10); // reactivate other plugins
-
+		$this->TbsCurrIdx = false;
+		
 		if (isset($this->OpenXmlRid))    $this->OpenXML_RidCommit($Debug);      // Commit special OpenXML features if any
 		if (isset($this->OpenXmlCTypes)) $this->OpenXML_CTypesCommit($Debug);   // Commit special OpenXML features if any
 		if (isset($this->OpenDocManif))  $this->OpenDoc_ManifestCommit($Debug); // Commit special OpenDocument features if any
@@ -216,19 +217,16 @@ class clsOpenTBS extends clsTbsZip {
 	}
 
 	function OnOperation($FieldName,&$Value,&$PrmLst,&$Txt,$PosBeg,$PosEnd,&$Loc) {
-
     // in this event, ope is exploded, there is one function call for each ope command
-
 		if ($PrmLst['ope']==='addpic') {
 			$this->TbsPicAdd($Value, $PrmLst, $Loc, 'ope=addpic');
 		} elseif ($PrmLst['ope']==='changepic') {
-     if (!isset($PrmLst['pic_change'])) {
-        $this->TbsPicChg($Txt, $Loc);
-  			$PrmLst['pic_change'] = true;
-      }
-      $this->TbsPicAdd($Value, $PrmLst, $Loc, 'ope=changepic'); // add parameter "att" which will be processed just before the value is merged
+			if (!isset($PrmLst['pic_change'])) {
+				$this->TbsPicChg($Txt, $Loc);
+				$PrmLst['pic_change'] = true;
+			}
+			$this->TbsPicAdd($Value, $PrmLst, $Loc, 'ope=changepic'); // add parameter "att" which will be processed just before the value is merged
 		}
-
 	}
 
 	function OnCommand($Cmd, $Name=false, $Data=false, $DataType=TBSZIP_STRING, $Compress=true) {
@@ -400,8 +398,16 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	function RaiseError($Msg, $NoErrMsg=false) {
 		// Overwrite the parent RaiseError() method.
+		$exit = (!$this->TBS->NoErr);
+		if ($exit) $Msg .= ' The process is ending, unless you set NoErr property to true.';
 		$this->TBS->meth_Misc_Alert('OpenTBS Plugin', $Msg, $NoErrMsg);
-		if (!$this->TBS->NoErr) exit;
+		if ($exit) {
+			if ($this->DebugLst!==false) {
+				if ($this->TbsCurrIdx!==false) $this->DebugLst[$this->CdFileLst[$this->TbsCurrIdx]['v_name']] = $this->TBS->Source;
+				$this->TbsDebug(true);
+			}
+			exit;
+		}
 		return false;
 	}
 
@@ -542,6 +548,7 @@ User can define his own Extension Information, they are taken in acount if saved
 			$i['pic_ext'] = array('png'=>'png', 'bmp'=>'bmp', 'gif'=>'gif', 'jpg'=>'jpeg', 'jpeg'=>'jpeg', 'jpe'=>'jpeg', 'jfif'=>'jpeg', 'tif'=>'tiff', 'tiff'=>'tiff');
 		} elseif (strpos(',docx,xlsx,pptx,', ','.$Ext.',')!==false) {
 			// Microsoft Office documents
+			if (!isset($this->TBS->OtbsClearMsWord)) $this->TBS->OtbsClearMsWord = true;
 			$this->OpenXML_MapInit();
 			$x = array(chr(226).chr(128).chr(152) , chr(226).chr(128).chr(153));
 			$ctype = 'application/vnd.openxmlformats-officedocument.';
@@ -712,7 +719,7 @@ It needs to be completed when a new picture file extension is added in the docum
 	}
 
 	function OpenXML_FirstPicAtt($Txt, $Pos, $Backward) {
-
+	// search the first image element in the given direction. Two types of igame can be found. Return the value required for "att" parameter.
 		$TypeVml = '<v:imagedata ';
 		$TypeDml = '<a:blip ';
 
@@ -725,11 +732,13 @@ It needs to be completed when a new picture file extension is added in the docum
 			do {
 				$p = strpos($Txt, $t_curr, $p+1);
 				if ( ($p===false) || ($p>=$Pos) ) {
-					if ($t===$TypeVml) {
+					if ($t_curr===$TypeVml) {
+						// we take a new search for the next type of image
 						$t_curr = $TypeDml;
 						$p = -1;
+					} else {
+						$p = false;
 					}
-					$p = false;
 				} elseif ($p>$pMax) {
 					$pMax = $p;
 					$t = $t_curr;
