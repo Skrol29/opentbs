@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.4.2b, on 2010-12-10
+/* OpenTBS version 1.5.0-beta, on 2010-12-10
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -41,7 +41,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsAutoLoad)) $TBS->OtbsAutoLoad = true; // TBS will load the subfile regarding to the extension of the archive
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
-		$this->Version = '1.4.2b'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
+		$this->Version = '1.5.0-beta'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
 		$this->DebugLst = false; // deactivate the debug mode
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
 	}
@@ -540,8 +540,9 @@ User can define his own Extension Information, they are taken in acount if saved
 		if (isset($GLOBAL['_OPENTBS_AutoExt'][$Ext])) {
 			$i = $GLOBAL['_OPENTBS_AutoExt'][$Ext];
 		} elseif (strpos(',odt,ods,odg,odf,odp,odm,ott,ots,otg,otp,', ','.$Ext.',')!==false) {
-			// OpenOffice documents
-			$i = array('load'=>'styles.xml;content.xml', 'br'=>'<text:line-break/>', 'frm'=>'odf', 'ctype'=>'application/vnd.oasis.opendocument.', 'pic_path'=>'Pictures/', 'rpl_what'=>'&apos;', 'rpl_with'=>'\''); // styles.xml may contain header/footer contents
+			// OpenOffice & LibreOffice documents
+			$i = array('load'=>'content.xml', 'br'=>'<text:line-break/>', 'frm'=>'odf', 'ctype'=>'application/vnd.oasis.opendocument.', 'pic_path'=>'Pictures/', 'rpl_what'=>'&apos;', 'rpl_with'=>'\'');
+			if ($this->FileExists('styles.xml')) $i['load'] = 'styles.xml;'.$i['load']; // styles.xml may contain header/footer contents
 			if ($Ext==='odf') $i['br'] = false;
 			$ctype = array('t'=>'text', 's'=>'spreadsheet', 'g'=>'graphics', 'f'=>'formula', 'p'=>'presentation', 'm'=>'text-master');
 			$i['ctype'] .= $ctype[($Ext[2])];
