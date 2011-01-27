@@ -107,6 +107,9 @@ Ms Word Document (.DOCX)
 The main file is usually "word/document.xml", but its actual location is defined in the file "[Content_Types].xml", in the element:
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
 
+Note: I've test to change the "word/document.xml" name in both the "[Content_Types].xml" file and the archive, but this makes 
+  Word 2010 to be unable to open the document, saying it is corrupted.
+
 Synopsis of the main file "word/document.xml":
 ----------------------------------------------
 <w:document>
@@ -176,6 +179,10 @@ Example of header source:
 		</w:r>
 	</w:p>
 </w:hdr>
+
+Comments, footnotes and headernotes:
+------------------------------------
+They are aslo saved in a separate XML file.
 
 ****************************
 Ms Excel SpreadSheet (.XLSX)
