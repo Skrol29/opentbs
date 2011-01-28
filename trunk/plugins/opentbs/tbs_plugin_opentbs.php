@@ -1,21 +1,10 @@
 <?php
 
-/* OpenTBS version 1.5.0-beta, on 2010-12-10
+/* OpenTBS version 1.5.0-beta-2011-01-28
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
 Site: http://www.tinybutstrong.com/plugins.php
-*/
-
-/* Changelog
-2010-12-10: fix bug in debugmode: warning function.str-repeat: Second argument has to be greater than or equal to 0
-2011-01-11: Fixed bug: when using OPENTBS_RESET: "Warning: Missing argument 2 for clsOpenTBS::OnCommand() in ... on line 225"
-2011-01-26: New Feature: header and footers are automatically loaded for OpenOffice & OpenXML.
-			New Feature: clear MsWord entities for revision and spelling. Property $TBS->OtbsClearMsWord.
-            Fixed bug: deleted a surpsizing lost snippet "echo $Txt; exit;" in OpenXML_CTypesCommit() juste before the debug mode comment
-			Fixed bug: Dml images were not found backward.
-			Debug mode is not stopped if an OpenTBS alert occurs.
-			The OpenTBS Alert message tells if the proccess will stop.
 */
 
 // Constants to drive the plugin.
@@ -41,7 +30,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsAutoLoad)) $TBS->OtbsAutoLoad = true; // TBS will load the subfile regarding to the extension of the archive
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
-		$this->Version = '1.5.0-beta'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
+		$this->Version = '1.5.0-beta-2011-01-28'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
 		$this->DebugLst = false; // deactivate the debug mode
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
 	}

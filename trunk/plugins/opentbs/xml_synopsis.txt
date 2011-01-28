@@ -155,8 +155,8 @@ Synopsis of a table inserted in a Word document:
 
 <w:p>...</w:p> 
 
-Headers and footers :
----------------------
+Headers and footers:
+--------------------
 
 The headers and footers files are usually "/word/header1.xml" and "/word/footer1.xml".
 They exists only if header/footer is defined.
@@ -180,9 +180,50 @@ Example of header source:
 	</w:p>
 </w:hdr>
 
-Comments, footnotes and headernotes:
+Comments, footnotes and endnotes:
 ------------------------------------
-They are aslo saved in a separate XML file.
+Like headers and footers, they are aslo saved in separated XML files.
+
+Bookmarks:
+----------
+<w:p>
+	<w:r><w:t xml:space="preserve">Here is a </w:t></w:r>
+	<w:bookmarkStart w:id="0" w:name="mybookmark"/>
+	<w:r><w:t>bookmark</w:t></w:r>
+	<w:bookmarkEnd w:id="0"/>
+	<w:r><w:t>.</w:t></w:r>
+</w:p>
+
+Textboxes:
+----------
+
+<w:p>
+	<w:r>
+		<mc:AlternateContent>
+			<mc:Choice Requires="wps">
+				<w:drawing>
+					<wp:anchor ...>
+						...
+					</wp:anchor>
+				</w:drawing>
+			</mc:Choice>
+			<mc:Fallback>
+				<w:pict>
+					<v:shapetype ...>
+						...
+					</v:shapetype>
+					<v:shape ...>
+						<v:textbox ...>
+							<w:txbxContent>
+								<w:p> <w:r> <w:t>Here s a text box.</w:t>	</w:r> </w:p>
+							</w:txbxContent>
+						</v:textbox>
+					</v:shape>
+				</w:pict>
+			</mc:Fallback>
+		</mc:AlternateContent>
+	</w:r>
+</w:p>
 
 ****************************
 Ms Excel SpreadSheet (.XLSX)
