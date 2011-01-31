@@ -1,7 +1,7 @@
 <?php
 
 // Display this code source is asked.
-if (isset($_GET['source'])) exit(highlight_file(__FILE__,true));
+if (isset($_GET['source'])) exit('<!DOCTYPE HTML><html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>OpenTBS plug-in for TinyButStrong - demo source</title></head><body>'.highlight_file(__FILE__,true).'</body></html>');
 
 // load the TinyButStrong libraries
 if (version_compare(PHP_VERSION,'5')<0) {
