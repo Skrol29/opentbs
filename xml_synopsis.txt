@@ -1,5 +1,5 @@
 Synopsis of XML files stored in the archives supported by OpenTBS.
-Version 2010-01-18
+Version 2011-02-02
 
 Extensions:  odt, odg, ods, odf, odp, docx, xlsx and pptx
 
@@ -8,6 +8,8 @@ This file is incomplete, feel free to send your own comments to:
 
 =================================
 OpenOffice Documents (.ODT, .ODS, .ODG, .ODF, .ODP, .ODM)
+  and 
+LibreOffice Documents
 =================================
 
 All simple quotes "'" in texts are coded with "&apos;" but they are automatically replaced by the OpenTBS plugin.
@@ -52,6 +54,37 @@ Table in a document:
 		...
 	</table:table-row>
 </table:table>
+
+Comments:
+---------
+
+Comments in ODS workbooks (OpenOffice Calc):
+
+<table:table-row table:style-name="ro2">
+	<table:table-cell ...> ... </table:table-cell>
+	<table:table-cell office:value-type="float" office:value="3.6">
+		<office:annotation draw:style-name="gr1" draw:text-style-name="P1" svg:width="2.899cm" svg:height="0.991cm" svg:x="9.632cm" svg:y="2.786cm" draw:caption-point-x="-0.61cm" draw:caption-point-y="1.511cm">
+			<dc:date>2011-02-02T00:00:00</dc:date>
+			<text:p text:style-name="P1">Here is my comment.</text:p>
+		</office:annotation>
+		<text:p>3,60</text:p>
+	</table:table-cell>
+	<table:table-cell ...> ... </table:table-cell>
+</table:table-row>
+
+Comments in ODT documents (OpenOffice Write):
+
+<text:p text:style-name="Standard">
+	Here is the start of the text and now 
+	<office:annotation>
+		<dc:creator>Skrol29</dc:creator>
+		<dc:date>2011-02-02T16:13:58.42</dc:date>
+		<text:p text:style-name="P1">
+			<text:span text:style-name="T1">Here is my comment.</text:span>
+		</text:p>
+	</office:annotation>
+	comment is just inserted there.
+</text:p>
 
 Headers and footers in a document:
 ----------------------------------

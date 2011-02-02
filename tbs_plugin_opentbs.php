@@ -7,6 +7,16 @@ This class can open a zip file, read the central directory, and retrieve the con
 Site: http://www.tinybutstrong.com/plugins.php
 */
 
+/* add ODS formating cell feature:
+office:value-type="string"
+office:value-type="float"      office:value="2.55"
+office:value-type="percentage" office:value="0.55"
+office:value-type="currency"   office:value="3000" office:currency="EUR"
+office:value-type="boolean"    office:boolean-value="true"
+office:value-type="date"       office:date-value="2005-12-31T12:00:00"
+office:value-type="time"       office:time-value="PT00H12M00S"
+*/
+
 // Constants to drive the plugin.
 define('OPENTBS_PLUGIN','clsOpenTBS');
 define('OPENTBS_DOWNLOAD',1);   // download (default) = TBS_OUTPUT
