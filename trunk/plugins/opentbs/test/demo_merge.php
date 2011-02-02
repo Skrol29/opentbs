@@ -36,7 +36,9 @@ $yourname = (isset($_POST['yourname'])) ? $_POST['yourname'] : '';
 $yourname = trim(''.$yourname);
 if ($yourname=='') $yourname = "(no name)";
 
+
 // Prepare some data for the demo
+$x = -350.499;
 $data = array();
 $data[] = array('firstname'=>'Sandra', 'name'=>'Hill', 'number'=>'1523d' );
 $data[] = array('firstname'=>'Roger', 'name'=>'Smith', 'number'=>'1234f' );
