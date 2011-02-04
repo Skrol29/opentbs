@@ -44,8 +44,8 @@ body, td, th {
 
 <body>
 <h1>OpenTBS</h1>
-<div>version 1.5.0, 2011-01-27, by Skrol29<br />
-  help file modified on 2011-01-27</div>
+<div>version 1.5.0, 2011-02-04, by Skrol29<br />
+  help file modified on 2011-02-04</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -94,7 +94,7 @@ body, td, th {
 <h2><a name="principles" id="principles"></a>3. Understanding principles</h2>
 <p>It is important to figure out that OpenOffice and Ms Office (since version 2007) documents are technically zip archives containing XML files, even if the extension of the document is not &quot;.zip&quot;. Those zip archives can contain other file types like pictures or sounds, but the document structure and the text contents are saved as  XML files.</p>
 <p>TinyButStrong can merge XML files, but cannot read zip archives by itself. The plug-in OpenTBS extends the TinyButStrong methods <a href="http://www.tinybutstrong.com/manual.php#php_loadtemplate">LoadTemplate()</a> and <a href="http://www.tinybutstrong.com/manual.php#php_show">Show()</a> to make them working with zip archives. <span id="result_box"><span title="">But you   do not have to bother with it because OpenTBS is managing archives  in a way that is invisible for you.</span></span></p>
-<p> When the OpenTBS plugin is installed, the LoadTemplate() method becomes able to first load a zip archive (an OpenOffice or Ms Office document), and then to load the contents of any XML or Text files stored in the archive. You can then merge the contents of XML or Text files with all features of the TinyButStrong template engine. At the end, the Show() method does output the entire zip archive including  modified stored files. The output can be done as an HTTP download, a news file on the server's disk, or in a PHP string.</p>
+<p> When the OpenTBS plugin is installed, the LoadTemplate() method becomes able to first load a zip archive (an OpenOffice or Ms Office document), and then to load the contents of any XML or Text files stored in the archive. You can then merge the contents of XML or Text files with all features of the TinyButStrong template engine. At the end, the Show() method does render the entire zip archive including  modified stored files. The render can be done as an HTTP download, a news file on the server's disk, or in a PHP string.</p>
 <p>Since OpenTBS version 1.3, you can also add and delete files in the archive. Before this version you could only modify existing files in the archive.<br />
 </p>
 <p> <a name="extension" id="extension"></a>OpenTBS has <strong>automatic extension recognition</strong>. When you load a document (an archive) which has one of the following extensions { odt, odg, ods, odf, odp, odm, docx, xlsx and pptx }, then the main XML file of the archive are automatically  loaded, and some special character conversion are preset. For example, for all OpenDocument  files, the stored file  &quot;content.xml&quot; is automatically loaded.</p>
@@ -133,17 +133,18 @@ body, td, th {
   Please note that if 
   you need to change the data conversion for one or few fields only in your template, then you can use parameter &quot;<span class="smallcode">htmlconv</span>&quot; (see the TBS documentation for more details).</div>
 <h3><a name="show" id="show"></a>4.3. Method Show()</h3>
-&bull;Output the merged archive as an HTTP donwload: ($file_name is optional)<br />
+<p>Render options for OpenTBS:</p>
+&bull; Render the merged archive as an HTTP donwload: ($file_name is optional)<br />
 <div class="code">$TBS-&gt;Show(OPENTBS_DOWNLOAD, $file_name);</div>
 <br />
-&bull; Output the merged archive as an HTTP output with your customized HTTP headers:<br />
+&bull; Render the merged archive as an HTTP output with your customized HTTP headers:<br />
 <div class="code">header(...); // your custom headers here<br />
   $TBS-&gt;Show(OPENTBS_NOHEADER); // output the binary file without header</div>
 <br />
-&bull; Output the merged archive as a new file saved on the server's disk:<br />
+&bull; Render the merged archive as a new file saved on the server's disk:<br />
 <div class="code">$TBS-&gt;Show(OPENTBS_FILE, $file_name);</div>
 <br />
-&bull; Output the merged archive as a PHP string:<span class="versioning"> (supported since OpenTBS version 1.1)</span><br />
+&bull; Render the merged archive as a PHP string:<span class="versioning"> (supported since OpenTBS version 1.1)</span><br />
 <div class="code">$TBS-&gt;Show(OPENTBS_STRING);<br />
   $string = $TBS-&gt;Source; </div>
 <div class="note">When you use <span class="smallcode">OPENTBS_STRING</span> then there is no output for the client. But instead, the binary source of the archive is placed into property $TBS-&gt;Source. This feature can be useful, for example, when you want to place the merged document into an email as an attached file.</div>
@@ -191,19 +192,27 @@ body, td, th {
 <p>The OpenTBS package includes a full set of runnable templates. Some templates can contain useful complementary information for designing.<br />
   Run the following demo under PHP: <a href="http://www.tinybutstrong.com/plugins/opentbs/demo">OpenTBS demo</a></p>
 <h2><a name="debug" id="debug"></a>6. Debugging your template</h2>
-<p><a name="debugmode" id="debugmode"></a>Since OpenTBS version 1.3.2, there is a debug mode which displays information instead of producing the final result:</p>
+<p><a name="debugmode" id="debugmode"></a>Since OpenTBS version 1.3.2, there is a debug render option which displays information instead of producing the final result:</p>
 <div class="code">$TBS-&gt;Show(OPENTBS_DEBUG_XML);</div>
-<div class="note">This will activate the debug mode and display the listing of added files, modified files and deleted files in the archive. It also display the contents merged with OpenTBS.<br />
-  Note that this option overrides the others <span class="versioning">(since version 1.3.2)</span>. Thus it simplifies the debugging because you can add it to your existing call.<br />
-  For example: <span class="smallcode">$TBS-&gt;Show(OPENTBS_DOWNLOAD + OPENTBS_DEBUG_XML, $file_name);</span> this will do only the debugging.</div>
+<p>This command will render the result as  debug information. I.e. OpenTBS will display the listing of added files, modified files and deleted files in the archive. And it also displays the XML contents it has merged.<br />
+If you combine the render option with other render options, then the debug will be done instead of any other render.<br />
+For example: <span class="smallcode">$TBS-&gt;Show(OPENTBS_DOWNLOAD + OPENTBS_DEBUG_XML, $file_name);</span> this will do only the debug.</p>
+<p>You can also use the <span class="smallcode">OPENTBS_DEBUG_AVOIDAUTOFIELDS</span> render option in order to avoid automatic fields (like [onshow] and [var]) to be merged.<br />
+For example: <span class="smallcode">$TBS-&gt;Show(OPENTBS_DEBUG_XML + OPENTBS_DEBUG_AVOIDAUTOFIELDS);</span></p>
+<p>If you want to avoid [onload] fields to be merged, then use the <span class="smallcode">OPENTBS_DEBUG_AVOIDAUTOFIELDS</span> render option on the Render property before the document is loaded.<br />
+For example:<br />
+<span class="smallcode"> $TBS-&gt;Render = OPENTBS_DEBUG_AVOIDAUTOFIELDS;<br />
+$TBS-&gt;LoadTemplate('mydoc.odt');
+<br />
+</span></p>
 <p>Otherwise, here are some indications that may help for the issues you can met with merging:</p>
 <h3>a) The merged document is producing error messages when opened with its application (OpenOffice or Ms Office)</h3>
 <p> The most likely causes are:<br />
-  &bull; You've chosen the <span class="smallcode">OPENTBS_DOWNLOAD</span> option but a php error message or any other unexpected content has been output before by PHP.<br />
-  <span class="note">Activate the <a href="#debugmode">debug mode</a> using the option <span class="smallcode">OPENTBS_DEBUG_XML</span>, it helps to check PHP error message and other unexpected content.</span><br />
+  &bull; You've chosen the <span class="smallcode">OPENTBS_DOWNLOAD</span> render option but a php error message or any other unexpected content has been output before by PHP.<br />
+  <span class="note">Activate the <a href="#debugmode">debug mode</a> using the render option <span class="smallcode">OPENTBS_DEBUG_XML</span>, it helps to check PHP error message and other unexpected content.</span><br />
   or:<br />
   &bull; The merging has produced an invalid XML content in an XML file  of the document.<br />
-  <span class="note">Activate the <a href="#debugmode">debug mode</a> using the option <span class="smallcode">OPENTBS_DEBUG_XML</span>, it helps to check the XML contents of merged files.</span> See section (b) below for more information in the XML structure of the files.</p>
+  <span class="note">Activate the <a href="#debugmode">debug mode</a> using the render option <span class="smallcode">OPENTBS_DEBUG_XML</span>, it helps to check the XML contents of merged files.</span> See section (b) below for more information in the XML structure of the files.</p>
 <h3>b) The merged document is well opened by its application (OpenOffice or Ms Office) but the content is not designed as expected</h3>
 <p>First, you can have a look the <a href="#demo">demo templates</a>, they contain examples and advices for each type of document.<br />
   And to go further: even if you can edit your template using directly OpenOffice or Ms Office, you will probably need to understand the XML tags and attributes to complete your merge. The file <a href="xml_synopsis.txt">xml_synopsis.txt</a> is a small synopsis of the XML structure you can found in the inner source of those documents. Have a look to it if you feel lost.</p>
@@ -240,6 +249,8 @@ body, td, th {
   - new feature: headers and footers are automatically loaded for OpenOffice &amp; MsOffice.<br />
   - new feature: automatically cleans up spelling and change trackings  information in MsWord templates (such information may 
   deconstruct the TBS tags). This feature can be disabled.<br />
+  - new constant OPENTBS_DEBUG_AVOIDAUTOFIELDS
+  <br />
   - <span id="result_box2" lang="en" xml:lang="en"><span title="Cliquer ici pour voir d'autres traductions">improvement</span></span>: Debug doesn't stopped if an OpenTBS alert occurs.<br />
   - <span id="result_box3" lang="en" xml:lang="en"><span title="Cliquer ici pour voir d'autres traductions">improvement</span></span>: OpenTBS alerts say if the process will be stopped. <br />
   -    fixed bug: in debug mode: &quot;warning function.str-repeat: Second argument has to be greater than or equal to 0&quot;<br />
@@ -248,7 +259,7 @@ body, td, th {
   - fixed bug: the script ends and display the XML contents when a when using parameter &quot;ope=changepic&quot; with a new image type  in a DOCX document<br />
 </p>
 <p>version 1.4.1, on 2010-10-28<br />
-  -  major bug fixed: due to TbsZip, some added or modified files can be saved the document with a wrong CRC control code. This could make  softwares to consider the document as corrupted, but were often easily   fixed by OpenOffice and Ms Office. Only few CRC codes are wrongly saved, thus the bug is rare and can seem to appear randomly on few documents.</p>
+-  major bug fixed: due to TbsZip, some added or modified files can be saved the document with a wrong CRC control code. This could make  softwares to consider the document as corrupted, but were often easily   fixed by OpenOffice and Ms Office. Only few CRC codes are wrongly saved, thus the bug is rare and can seem to appear randomly on few documents.</p>
 <p> version 1.4.0, on 2010-10-05<br />
   - new parameters &quot;<span class="smallcode">changepic</span>&quot; and &quot;<span class="smallcode">default</span>&quot;</p>
 <p> version 1.3.3, on 2010-08-05<br />
@@ -265,7 +276,7 @@ body, td, th {
   - a parameter '<span class="smallcode">ope=addpic</span>' that add a new picture in the archive directly from the template<br />
   - based on a TbsZip v2 (modify/delete/add files in a zip archive, )</p>
 <p>version 1.1, on 2009-11-19<br />
-  - New output mode : <span class="smallcode">OPENTBS_STRING</span><br />
+  - New render option : <span class="smallcode">OPENTBS_STRING</span><br />
   - New feature: can reset changes in the current archive using <span class="smallcode">$TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</span><br />
   - New behavior: extension of the archive is ignored by <span class="smallcode">LoadTemplate()</span> if the name is ended with '<span class="smallcode">#</span>'<br />
   - Bug fixed: in case of several files to take from the archive in one shot, then only the last one had [onload] fields merged.</p>

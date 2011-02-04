@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.5.0-beta-2011-01-28
+/* OpenTBS version 1.5.0-beta-2011-02-04
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -24,6 +24,7 @@ define('OPENTBS_NOHEADER',4);   // option to use with DOWNLOAD: no header is sen
 define('OPENTBS_FILE',8);       // output to file
 define('OPENTBS_DEBUG_XML',16); // display the result of the current subfile
 define('OPENTBS_STRING',32);    // output to string
+define('OPENTBS_DEBUG_AVOIDAUTOFIELDS',64); // avoit auto field merging during the Show() method
 define('OPENTBS_INFO',1);       // command to display the archive info
 define('OPENTBS_RESET',2);      // command to reset the changes in the current archive
 define('OPENTBS_ADDFILE',4);    // command to add a new file in the archive
@@ -40,7 +41,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsAutoLoad)) $TBS->OtbsAutoLoad = true; // TBS will load the subfile regarding to the extension of the archive
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
-		$this->Version = '1.5.0-beta-2011-01-28'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
+		$this->Version = '1.5.0-beta-2011-02-04'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
 		$this->DebugLst = false; // deactivate the debug mode
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
 	}
@@ -88,6 +89,8 @@ class clsOpenTBS extends clsTbsZip {
 			}
 		}
 
+		$TbsLoadTemplate = (($TBS->Render & OPENTBS_DEBUG_AVOIDAUTOFIELDS)!=OPENTBS_DEBUG_AVOIDAUTOFIELDS);		
+		
 		// Load the subfile(s)
 		if (($SubFileLst!=='') && ($SubFileLst!==false)) {
 
@@ -119,7 +122,7 @@ class clsOpenTBS extends clsTbsZip {
 					}
 
 					// apply default TBS behaviors on the uncompressed content: other plug-ins + [onload] fields
-					if ($ok) $TBS->LoadTemplate(null,'+');
+					if ($ok & $TbsLoadTemplate) $TBS->LoadTemplate(null,'+');
 
 					$TBS->OtbsCurrFile = $SubFile;
 					$this->TbsCurrIdx = $idx;
@@ -153,13 +156,15 @@ class clsOpenTBS extends clsTbsZip {
 		$Debug = (($Render & OPENTBS_DEBUG_XML)==OPENTBS_DEBUG_XML);
 		if ($Debug) $this->DebugLst = array();
 
+		$TbsShow = (($Render & OPENTBS_DEBUG_AVOIDAUTOFIELDS)!=OPENTBS_DEBUG_AVOIDAUTOFIELDS);
+		
 		// Merges all modified subfiles
 		$idx_lst = array_keys($this->TbsSrcParking);
 		foreach ($idx_lst as $idx) {
 			$TBS->Source = $this->TbsSrcParking[$idx];
 			unset($this->TbsSrcParking[$idx]); // save memory space
 			$this->TbsCurrIdx = $idx; // usefull for debug mode
-			$TBS->Show(TBS_NOTHING);
+			if ($TbsShow) $TBS->Show(TBS_NOTHING);
 			if ($Debug) $this->DebugLst[$this->CdFileLst[$idx]['v_name']] = $TBS->Source;
 			$this->FileReplace($idx, $TBS->Source, TBSZIP_STRING, $TBS->OtbsAutoUncompress);
 		}
@@ -170,7 +175,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (isset($this->OpenXmlCTypes)) $this->OpenXML_CTypesCommit($Debug);   // Commit special OpenXML features if any
 		if (isset($this->OpenDocManif))  $this->OpenDoc_ManifestCommit($Debug); // Commit special OpenDocument features if any
 
-		if ( ($TBS->ErrCount>0) && (!$TBS->NoErr) ) {
+		if ( ($TBS->ErrCount>0) && (!$TBS->NoErr) && (!$Debug)) {
 			$TBS->meth_Misc_Alert('Show() Method', 'The output is cancelled by the OpenTBS plugin because at least one error has occured.');
 			exit;
 		}
@@ -843,7 +848,9 @@ It needs to be completed when a new picture file extension is added in the docum
 	// Cleaning tags in MsWord
 
 	function MsWord_Clean(&$Txt) {
-		$this->MsWord_CleanTag($Txt, array('<w:proofErr', '<w:noProof', '<w:lang'));
+		$Txt = str_replace('<w:lastRenderedPageBreak/>', '', $Txt); // faster
+		$this->MsWord_CleanTag($Txt, array('<w:proofErr', '<w:noProof', '<w:lang', '<w:lastRenderedPageBreak'));
+		$this->MsWord_CleanSystemBookmarks($Txt);
 		$this->MsWord_CleanRsID($Txt);
 		$this->MsWord_CleanDuplicatedLayout($Txt);
 	}
@@ -873,7 +880,7 @@ It needs to be completed when a new picture file extension is added in the docum
 			while (($p=$this->MsWord_FoundTag($Txt, $tag, $p))!==false) {
 				// get the end of the tag
 				$pe = strpos($Txt, '>', $p);
-				if ($pe===false) return false; // arror in the XML formating
+				if ($pe===false) return false; // error in the XML formating
 				// delete the tag
 				$Txt = substr_replace($Txt, '', $p, $pe-$p+1);
 			} 
@@ -881,6 +888,36 @@ It needs to be completed when a new picture file extension is added in the docum
 		return $nbr_del;
 	}
 
+	function MsWord_CleanSystemBookmarks(&$Txt) {
+	// Delete GoBack hidden bookmarks that appear since Office 2010. Example: <w:bookmarkStart w:id="0" w:name="_GoBack"/><w:bookmarkEnd w:id="0"/>
+
+		$x = ' w:name="_GoBack"/><w:bookmarkEnd ';
+		$x_len = strlen($x);
+		
+		$b = '<w:bookmarkStart ';
+		$b_len = strlen($b);
+		
+		$nbr_del = 0;
+		
+		$p = 0;
+		while ( ($p=strpos($Txt, $x, $p))!==false ) {
+			$pe = strpos($Txt, '>', $p + $x_len);
+			if ($pe===false) return false;
+			$pb = strrpos(substr($Txt,0,$p) , '<');
+			if ($pb===false) return false;
+			if (substr($Txt, $pb, $b_len)===$b) {
+				$Txt = substr_replace($Txt, '', $pb, $pe - $pb + 1); 
+				$p = $pb;
+				$nbr_del++;
+			} else {
+				$p = $pe +1;
+			}
+		}
+
+		return $nbr_del;
+		
+	}
+	
 	function MsWord_CleanRsID(&$Txt) {
 	/* Delete XML attributes relative to log of user modifications. Returns the number of deleted attributes.
 	In order to insert such information, MsWord do split TBS tags with XML elements.
