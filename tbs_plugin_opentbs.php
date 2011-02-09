@@ -8,6 +8,7 @@ Site: http://www.tinybutstrong.com/plugins.php
 */
 
 /* add ODS formating cell feature:
+<table:table-cell ...>
 office:value-type="string"
 office:value-type="float"      office:value="2.55"
 office:value-type="percentage" office:value="0.55"
@@ -43,6 +44,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
 		$this->Version = '1.5.0-beta-2011-02-04'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
 		$this->DebugLst = false; // deactivate the debug mode
+		$this->ExtMode = '';
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
 	}
 
@@ -222,14 +224,17 @@ class clsOpenTBS extends clsTbsZip {
 
 	function OnOperation($FieldName,&$Value,&$PrmLst,&$Txt,$PosBeg,$PosEnd,&$Loc) {
     // in this event, ope is exploded, there is one function call for each ope command
-		if ($PrmLst['ope']==='addpic') {
+		$ope = $PrmLst['ope'];
+		if ($ope==='addpic') {
 			$this->TbsPicAdd($Value, $PrmLst, $Loc, 'ope=addpic');
-		} elseif ($PrmLst['ope']==='changepic') {
+		} elseif ($ope==='changepic') {
 			if (!isset($PrmLst['pic_change'])) {
 				$this->TbsPicChg($Txt, $Loc);
 				$PrmLst['pic_change'] = true;
 			}
 			$this->TbsPicAdd($Value, $PrmLst, $Loc, 'ope=changepic'); // add parameter "att" which will be processed just before the value is merged
+		} elseif(substr($ope,0,3)==='ods') {
+			$this->OpenDoc_ChangeCellType($Txt, $Loc, $ope, true, $Value);
 		}
 	}
 
@@ -1080,7 +1085,86 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 
+	function OpenDoc_ChangeCellType(&$Txt, &$Loc, $Ope, $IsMerging, &$Value) {
+/*
+<table:table-cell ...>
+office:value-type="string"
+office:value-type="float"      office:value="2.55"
+office:value-type="percentage" office:value="0.55"
+office:value-type="currency"   office:value="3000" office:currency="EUR"
+office:value-type="boolean"    office:boolean-value="true"
+office:value-type="date"       office:date-value="2005-12-31T12:00:00"
+office:value-type="time"       office:time-value="PT00H12M00S"
+*/
+		if ($Ope==='odsStr') return true;
 
+		static $OpeLst = array('odsNum'=>'float', 'osdPC'=>'percentage', 'osdCurr'=>'currency', 'osdBool'=>'boolean', 'odsDate'=>'date', 'odsTime'=>'time');
+		$AttStr = 'office:value-type="string"';
+
+		if (!isset($OpeLst[$Ope])) return false;
+		
+		$t0 = clsTinyButStrong::f_Xml_FindTagStart($Txt, 'table:table-cell', true, $Loc->PosBeg, false, true);
+		if ($t0===false) return false; // error in the XML structure
+
+		$te = strpos($Txt, '>', $t0);
+		if ( ($te===false) || ($te>$Loc->PosBeg) ) return false; // error in the XML structure
+
+		$len = $te - $t0 + 1;
+		$tag = substr($Txt, $t0, $len);
+		
+		$p = strpos($tag,$AttStr);
+		if ($p===false) return false; // error: the celle was expected to have a string contents since it contains a TBS tag.
+
+		// replace the current string with blanck
+		$len = $Loc->PosEnd - $Loc->PosBeg + 1;
+		$Txt = substr_replace($Txt, str_repeat(' ',$len), $Loc->PosBeg, $len);
+
+		// move the TBS field
+		$Loc->PosBeg = $t0 + $p;
+		$Loc->PosEnd = $t0 + $p + strlen($AttStr) -1;
+
+		// prepare special formating for the value
+		$type = $OpeLst[$Ope];
+		$newatt = 'office:value-type="'.$type.'"';
+		$newfrm = false;
+		switch ($type) {
+		case 'float':      $newatt .= ' office:value="*"'; break;
+		case 'percentage': $newatt .= ' office:value="*"'; break;
+		case 'currency':   $newatt .= ' office:value="*"'; break;
+		case 'boolean':    $newatt .= ' office:boolean-value="*"'; break;
+		case 'date':       $newatt .= ' office:date-value="*"'; $newfrm = 'yyyy-mm-ddThh:nn:ss'; break;
+		case 'time';       $newatt .= ' office:time-value="*"'; $newfrm = '"PT"hh"H"nn"M"ss"S"'; break;
+		}
+		
+		/*
+		min template:
+		... office:value-type="string"><text:p>[var.x;ope=odsX]</text:p> 
+		... office:value-type="currency" office:currency="EUR" office:value="3000">
+		*/
+		
+		if ($IsMerging) {
+			// the field is currently beeing merged
+			if ($type==='boolean') {
+				if ($Value) {
+					$Value = 'true';
+				} else {
+					$Value = 'false';
+				}
+			} elseif ($newfrm!==false) {
+				$prm = array('frm'=>$newfrm);
+				$Value = $this->TBS->meth_Misc_Format($Value,$prm);
+			}
+			$Value = str_replace('*', $Value, $newatt);
+			$Loc->ConvStr = false;
+			$Loc->ConvProtect = false;
+		} else {
+			// the field is not merged yet, is is put in cache
+			$Loc->PrmLst['ope'] = 'msk:'.$newatt;
+			if ($newfrm!==false) $Loc->PrmLst['frm'] = $newfrm;
+		}
+
+	}
+	
 }
 
 /*
