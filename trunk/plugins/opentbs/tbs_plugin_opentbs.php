@@ -212,11 +212,19 @@ class clsOpenTBS extends clsTbsZip {
 	function OnCacheField($BlockName,&$Loc,&$Txt,$PrmProc) {
 
 		if (isset($Loc->PrmLst['ope'])) {
-		  // in this event, ope is not exploded
-			$ope = explode(',', $Loc->PrmLst['ope']);
-			if (in_array('changepic', $ope)) {
+			$ope_lst = explode(',', $Loc->PrmLst['ope']); // in this event, ope is not exploded
+			if (in_array('changepic', $ope_lst)) {
 				$this->TbsPicChg($Txt, $Loc); // add parameter "att" which will be processed just after this event, when the field is cached
 				$PrmLst['pic_change'] = true;
+			}
+			if (strpos(','.$Loc->PrmLst['ope'],',ods')!==false) {
+				foreach($ope_lst as $ope) {
+					if (substr($ope,0,3)==='ods') {
+						$x = '';
+						$this->OpenDoc_ChangeCellType($Txt, $Loc, $ope, false, $x);
+						return; // only once
+					}
+				}
 			}
 		}
 
@@ -234,7 +242,7 @@ class clsOpenTBS extends clsTbsZip {
 			}
 			$this->TbsPicAdd($Value, $PrmLst, $Loc, 'ope=changepic'); // add parameter "att" which will be processed just before the value is merged
 		} elseif(substr($ope,0,3)==='ods') {
-			$this->OpenDoc_ChangeCellType($Txt, $Loc, $ope, true, $Value);
+			if (!isset($Loc->PrmLst['odsok'])) $this->OpenDoc_ChangeCellType($Txt, $Loc, $ope, true, $Value);
 		}
 	}
 
@@ -1096,10 +1104,13 @@ office:value-type="boolean"    office:boolean-value="true"
 office:value-type="date"       office:date-value="2005-12-31T12:00:00"
 office:value-type="time"       office:time-value="PT00H12M00S"
 */
+		$Loc->PrmLst['odsok'] = true; // avoid the field to be processed twice
+
 		if ($Ope==='odsStr') return true;
 
-		static $OpeLst = array('odsNum'=>'float', 'osdPC'=>'percentage', 'osdCurr'=>'currency', 'osdBool'=>'boolean', 'odsDate'=>'date', 'odsTime'=>'time');
+		static $OpeLst = array('odsNum'=>'float', 'odsPercent'=>'percentage', 'odsCurr'=>'currency', 'odsBool'=>'boolean', 'odsDate'=>'date', 'odsTime'=>'time');
 		$AttStr = 'office:value-type="string"';
+		$AttStr_len = strlen($AttStr);
 
 		if (!isset($OpeLst[$Ope])) return false;
 		
@@ -1111,37 +1122,37 @@ office:value-type="time"       office:time-value="PT00H12M00S"
 
 		$len = $te - $t0 + 1;
 		$tag = substr($Txt, $t0, $len);
-		
-		$p = strpos($tag,$AttStr);
-		if ($p===false) return false; // error: the celle was expected to have a string contents since it contains a TBS tag.
 
-		// replace the current string with blanck
+		$p = strpos($tag, $AttStr);
+		if ($p===false) return false; // error: the cell was expected to have a string contents since it contains a TBS tag.
+
+		// replace the current string with blanck chars
 		$len = $Loc->PosEnd - $Loc->PosBeg + 1;
 		$Txt = substr_replace($Txt, str_repeat(' ',$len), $Loc->PosBeg, $len);
 
-		// move the TBS field
-		$Loc->PosBeg = $t0 + $p;
-		$Loc->PosEnd = $t0 + $p + strlen($AttStr) -1;
-
 		// prepare special formating for the value
 		$type = $OpeLst[$Ope];
-		$newatt = 'office:value-type="'.$type.'"';
+		$att_new = 'office:value-type="'.$type.'"';
 		$newfrm = false;
 		switch ($type) {
-		case 'float':      $newatt .= ' office:value="*"'; break;
-		case 'percentage': $newatt .= ' office:value="*"'; break;
-		case 'currency':   $newatt .= ' office:value="*"'; break;
-		case 'boolean':    $newatt .= ' office:boolean-value="*"'; break;
-		case 'date':       $newatt .= ' office:date-value="*"'; $newfrm = 'yyyy-mm-ddThh:nn:ss'; break;
-		case 'time';       $newatt .= ' office:time-value="*"'; $newfrm = '"PT"hh"H"nn"M"ss"S"'; break;
+		case 'float':      $att_new .= ' office:value="[]"'; break;
+		case 'percentage': $att_new .= ' office:value="[]"'; break;
+		case 'currency':   $att_new .= ' office:value="[]"'; if (isset($Loc->PrmLst['currency'])) $att_new .= ' office:currency="'.$Loc->PrmLst['currency'].'"'; break;
+		case 'boolean':    $att_new .= ' office:boolean-value="[]"'; break;
+		case 'date':       $att_new .= ' office:date-value="[]"'; $newfrm = 'yyyy-mm-ddThh:nn:ss'; break;
+		case 'time';       $att_new .= ' office:time-value="[]"'; $newfrm = '"PT"hh"H"nn"M"ss"S"'; break;
 		}
+
+		// replace the sring attribute with the new attribute
+		//$diff = strlen($att_new) - $AttStr_len;
+		$p_att = $t0 + $p;
+		$p_fld = $p_att + strpos($att_new, '['); // new position of the fields in $Txt
+		$Txt = substr_replace($Txt, $att_new, $p_att, $AttStr_len);
 		
-		/*
-		min template:
-		... office:value-type="string"><text:p>[var.x;ope=odsX]</text:p> 
-		... office:value-type="currency" office:currency="EUR" office:value="3000">
-		*/
-		
+		// move the TBS field
+		$Loc->PosBeg = $p_fld;
+		$Loc->PosEnd = $p_fld +1;
+
 		if ($IsMerging) {
 			// the field is currently beeing merged
 			if ($type==='boolean') {
@@ -1154,12 +1165,9 @@ office:value-type="time"       office:time-value="PT00H12M00S"
 				$prm = array('frm'=>$newfrm);
 				$Value = $this->TBS->meth_Misc_Format($Value,$prm);
 			}
-			$Value = str_replace('*', $Value, $newatt);
 			$Loc->ConvStr = false;
 			$Loc->ConvProtect = false;
 		} else {
-			// the field is not merged yet, is is put in cache
-			$Loc->PrmLst['ope'] = 'msk:'.$newatt;
 			if ($newfrm!==false) $Loc->PrmLst['frm'] = $newfrm;
 		}
 
