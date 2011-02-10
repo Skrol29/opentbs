@@ -42,6 +42,12 @@ $data[] = array('firstname'=>'Sandra', 'name'=>'Hill', 'number'=>'1523d' );
 $data[] = array('firstname'=>'Roger', 'name'=>'Smith', 'number'=>'1234f' );
 $data[] = array('firstname'=>'William', 'name'=>'Mac Dowell', 'number'=>'5491y' );
 
+$x_num = 3152.456;
+$x_pc = 0.2567;
+$x_dt = mktime(13,0,0,2,15,2010);
+$x_bt = true;
+$x_bf = false;
+
 // Load the template
 $TBS->LoadTemplate($template);
 $TBS->MergeBlock('a,b', $data);

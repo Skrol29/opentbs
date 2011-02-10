@@ -1,21 +1,10 @@
 <?php
 
-/* OpenTBS version 1.5.0-beta-2011-02-04
+/* OpenTBS version 1.5.0-beta-2011-02-10
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
 Site: http://www.tinybutstrong.com/plugins.php
-*/
-
-/* add ODS formating cell feature:
-<table:table-cell ...>
-office:value-type="string"
-office:value-type="float"      office:value="2.55"
-office:value-type="percentage" office:value="0.55"
-office:value-type="currency"   office:value="3000" office:currency="EUR"
-office:value-type="boolean"    office:boolean-value="true"
-office:value-type="date"       office:date-value="2005-12-31T12:00:00"
-office:value-type="time"       office:time-value="PT00H12M00S"
 */
 
 // Constants to drive the plugin.
@@ -42,7 +31,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsAutoLoad)) $TBS->OtbsAutoLoad = true; // TBS will load the subfile regarding to the extension of the archive
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
-		$this->Version = '1.5.0-beta-2011-02-04'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
+		$this->Version = '1.5.0-beta-2011-02-10'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtMode = '';
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
@@ -1094,16 +1083,8 @@ It needs to be completed when a new picture file extension is added in the docum
 	}
 
 	function OpenDoc_ChangeCellType(&$Txt, &$Loc, $Ope, $IsMerging, &$Value) {
-/*
-<table:table-cell ...>
-office:value-type="string"
-office:value-type="float"      office:value="2.55"
-office:value-type="percentage" office:value="0.55"
-office:value-type="currency"   office:value="3000" office:currency="EUR"
-office:value-type="boolean"    office:boolean-value="true"
-office:value-type="date"       office:date-value="2005-12-31T12:00:00"
-office:value-type="time"       office:time-value="PT00H12M00S"
-*/
+	// change the type of a cell in an ODS file
+	
 		$Loc->PrmLst['odsok'] = true; // avoid the field to be processed twice
 
 		if ($Ope==='odsStr') return true;
