@@ -3,8 +3,8 @@
 ********************************************************
 TinyButStrong - Template Engine for Pro and Beginners
 ------------------------
-Version  : 3.6.2-rc-2011-02-09 for PHP 5
-Date     : 2011-02-09
+Version  : 3.7.0 for PHP 5
+Date     : 2011-03-17
 Web site : http://www.tinybutstrong.com
 Author   : http://www.tinybutstrong.com/onlyyou.html
 ********************************************************
@@ -118,6 +118,10 @@ public function DataPrepare(&$SrcId,&$TBS) {
 		$this->Type = 9; $this->SubType = 2;
 	} elseif ($SrcId instanceof IteratorAggregate) {
 		$this->Type = 9; $this->SubType = 3;
+	} elseif ($SrcId instanceof MySQLi) {
+		$this->Type = 10;
+	} elseif ($SrcId instanceof PDO) {
+		$this->Type = 11;
 	} elseif (is_object($SrcId)) {
 		$FctInfo = get_class($SrcId);
 		$FctCat = 'o';
@@ -151,7 +155,7 @@ public function DataPrepare(&$SrcId,&$TBS) {
 
 }
 
-public function DataOpen(&$Query) {
+public function DataOpen(&$Query,$QryPrms=false) {
 
 	// Init values
 	unset($this->CurrRec); $this->CurrRec = true;
@@ -304,15 +308,15 @@ public function DataOpen(&$Query) {
 		break;
 	case 3: // Custom function
 		$FctOpen = $this->FctOpen;
-		$this->RecSet = $FctOpen($this->SrcId,$Query);
+		$this->RecSet = $FctOpen($this->SrcId,$Query,$QryPrms);
 		if ($this->RecSet===false) $this->DataAlert('function '.$FctOpen.'() has failed to open query {'.$Query.'}');
 		break;
 	case 4: // Custom method from ObjectRef
-		$this->RecSet = call_user_func_array($this->FctOpen,array(&$this->SrcId,&$Query));
+		$this->RecSet = call_user_func_array($this->FctOpen,array(&$this->SrcId,&$Query,&$QryPrms));
 		if ($this->RecSet===false) $this->DataAlert('method '.get_class($this->FctOpen[0]).'::'.$this->FctOpen[1].'() has failed to open query {'.$Query.'}');
 		break;
 	case 5: // Custom method of object
-		$this->RecSet = $this->SrcId->tbsdb_open($this->SrcId,$Query);
+		$this->RecSet = $this->SrcId->tbsdb_open($this->SrcId,$Query,$QryPrms);
 		if ($this->RecSet===false) $this->DataAlert('method '.get_class($this->SrcId).'::tbsdb_open() has failed to open query {'.$Query.'}');
 		break;
 	case 7: // PostgreSQL
@@ -336,6 +340,24 @@ public function DataOpen(&$Query) {
 			$this->RecSet = $this->SrcId->getIterator();
 		}
 		$this->RecSet->rewind();
+		break;
+	case 10: // MySQLi
+		$this->RecSet = $this->SrcId->query($Query);
+		if ($this->RecSet===false) $this->DataAlert('MySQLi error message when opening the query:'.$this->SrcId->error);
+		break;
+	case 11: // PDO
+		$this->RecSet = $this->SrcId->prepare($Query);
+		if ($this->RecSet===false) {
+			$ok = false;
+		} elseif (is_array($QryPrms)) {
+			$ok = $this->RecSet->execute($QryPrms);
+		} else {
+			$ok = $this->RecSet->execute();
+		}
+		if (!$ok) {
+			$err = $this->SrcId->errorInfo();
+			$this->DataAlert('PDO error message when opening the query:'.$err[2]);
+		}
 		break;
 	}
 
@@ -379,6 +401,7 @@ public function DataFetch() {
 			if ((!is_array($this->CurrRec)) and (!is_object($this->CurrRec))) $this->CurrRec = array('key'=>$this->RecKey, 'val'=>$this->CurrRec);
 			$this->RecNum++;
 			if ($this->OnDataOk) {
+				$this->OnDataArgs[1] = &$this->CurrRec; // Reference has changed if ($this->SubType===2)
 				if ($this->OnDataPrm) call_user_func_array($this->OnDataPrmRef,$this->OnDataArgs);
 				if ($this->OnDataPi) $this->TBS->meth_PlugIn_RunAll($this->OnDataPiRef,$this->OnDataArgs);
 				if ($this->SubType!==2) $this->RecSet[$this->RecKey] = $this->CurrRec; // save modifications because array reading is done without reference :(
@@ -438,13 +461,19 @@ public function DataFetch() {
 			$this->CurrRec = false;
 		}
 		break;
+	case 10: // MySQLi
+		$this->CurrRec = $this->RecSet->fetch_assoc();
+		if (is_null($this->CurrRec)) $this->CurrRec = false;
+		break;
+	case 11: // PDO
+		$this->CurrRec = $this->RecSet->fetch(PDO::FETCH_ASSOC);
+		break;
 	}
 
 	// Set the row count
 	if ($this->CurrRec!==false) {
 		$this->RecNum++;
 		if ($this->OnDataOk) {
-			$this->OnDataArgs[1] = &$this->CurrRec; // Reference has changed if ($this->SubType===2)
 			if ($this->OnDataPrm) call_user_func_array($this->OnDataPrmRef,$this->OnDataArgs);
 			if ($this->OnDataPi) $this->TBS->meth_PlugIn_RunAll($this->OnDataPiRef,$this->OnDataArgs);
 		}
@@ -464,6 +493,8 @@ public function DataClose() {
 	case 4: call_user_func_array($this->FctClose,array(&$this->RecSet)); break;
 	case 5: $this->SrcId->tbsdb_close($this->RecSet); break;
 	case 7: pg_free_result($this->RecSet); break;
+	case 10: $this->RecSet->free(); break; // MySQLi
+	//case 11: $this->RecSet->closeCursor(); break; // PDO
 	}
 	if ($this->RecSaving) {
 		$this->RecSet = &$this->RecBuffer;
@@ -487,7 +518,7 @@ public $ObjectRef = false;
 public $NoErr = false;
 public $Assigned = array();
 // Undocumented (can change at any version)
-public $Version = '3.6.2-rc-2011-02-09';
+public $Version = '3.7.0';
 public $Charset = '';
 public $TurboBlock = true;
 public $VarPrefix = '';
@@ -624,10 +655,10 @@ public function GetBlockSource($BlockName,$AsArray=false,$DefTags=true,$ReplaceW
 	return $RetVal;
 }
 
-public function MergeBlock($BlockLst,$SrcId='assigned',$Query='') {
+public function MergeBlock($BlockLst,$SrcId='assigned',$Query='',$QryPrms=false) {
 
 	if ($SrcId==='assigned') {
-		$Arg = array($BlockLst,&$SrcId,&$Query);
+		$Arg = array($BlockLst,&$SrcId,&$Query,&$QryPrms);
 		if (!$this->meth_Misc_Assign($BlockLst, $Arg, 'MergeBlock')) return 0;
 		$BlockLst = $Arg[0]; $SrcId = &$Arg[1]; $Query = &$Arg[2];
 	}
@@ -642,7 +673,7 @@ public function MergeBlock($BlockLst,$SrcId='assigned',$Query='') {
 		}
 		return $Nbr;
 	} else {
-		return $this->meth_Merge_Block($this->Source,$BlockLst,$SrcId,$Query,false,0);
+		return $this->meth_Merge_Block($this->Source,$BlockLst,$SrcId,$Query,false,0,$QryPrms);
 	}
 
 }
@@ -1373,7 +1404,7 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 			break;
 		case 3:
 			$Loc->Enlarged = true;
-			$Loc2 = $this->f_Xml_FindTag($Txt,$Loc->PrmLst['magnet'],true,$Loc->PosBeg,false,1,false);
+			$Loc2 = $this->f_Xml_FindTag($Txt,$Loc->PrmLst['magnet'],true,$Loc->PosBeg,false,false,false);
 			if ($Loc2!==false) {
 				$Loc->PosBeg = $Loc2->PosBeg;
 				if ($Loc->PosEnd<$Loc2->PosEnd) $Loc->PosEnd = $Loc2->PosEnd;
@@ -1381,7 +1412,7 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 			break;
 		case 4:
 			$Loc->Enlarged = true;
-			$Loc2 = $this->f_Xml_FindTag($Txt,$Loc->PrmLst['magnet'],true,$Loc->PosBeg,true,1,false);
+			$Loc2 = $this->f_Xml_FindTag($Txt,$Loc->PrmLst['magnet'],true,$Loc->PosBeg,true,false,false);
 			if ($Loc2!==false) $Loc->PosEnd = $Loc2->PosEnd;
 			break;
 		case 5:
@@ -1501,7 +1532,7 @@ function meth_Locator_Rename(&$Txt, $Replace) {
 				if ($new==='') {
 					$q = false;
 					$s = 'clear';
-					$this->meth_Merge_Block($Txt, $old, $s, $q, false, false);
+					$this->meth_Merge_Block($Txt, $old, $s, $q, false, false, false);
 				} else {
 					$old = $this->_ChrOpen.$old;
 					$old = array($old.'.', $old.' ', $old.';', $old.$this->_ChrClose);
@@ -1714,7 +1745,7 @@ function meth_Locator_FindBlockLst(&$Txt,$BlockName,$Pos,$SpePrm) {
 
 }
 
-function meth_Merge_Block(&$Txt,$BlockLst,&$SrcId,&$Query,$SpePrm,$SpeRecNum) {
+function meth_Merge_Block(&$Txt,$BlockLst,&$SrcId,&$Query,$SpePrm,$SpeRecNum,$QryPrms=false) {
 
 	$BlockSave = $this->_CurrBlock;
 	$this->_CurrBlock = $BlockLst;
@@ -1799,13 +1830,13 @@ function meth_Merge_Block(&$Txt,$BlockLst,&$SrcId,&$Query,$SpePrm,$SpeRecNum) {
 				// Special case: return data without any block to merge
 				$QueryOk = false;
 				if ($ReturnData and (!$Src->RecSaved)) {
-					if ($Src->DataOpen($QueryZ)) {
+					if ($Src->DataOpen($QueryZ,$QryPrms)) {
 						do {$Src->DataFetch();} while ($Src->CurrRec!==false);
 						$Src->DataClose();
 					}
 				}
 			}	else {
-				$QueryOk = $Src->DataOpen($QueryZ);
+				$QueryOk = $Src->DataOpen($QueryZ,$QryPrms);
 				if (!$QueryOk) {
 					if ($WasP1) {	$WasP1 = false;} else {$LocR->FieldOutside = false;} // prevent from infinit loop
 				}
@@ -2115,7 +2146,7 @@ function meth_Merge_AutoSpe(&$Txt,&$Loc) {
 		case 'version': $x = $this->Version; break;
 		case 'script_name': $x = basename(((isset($_SERVER)) ? $_SERVER['PHP_SELF'] : $GLOBALS['HTTP_SERVER_VARS']['PHP_SELF'] )); break;
 		case 'template_name': $x = $this->_LastFile; break;
-		case 'template_date': $x = filemtime($this->_LastFile); break;
+		case 'template_date': $x = ''; if ($this->f_Misc_GetFile($x,$this->_LastFile,'',false)) $x = $x['mtime']; break;
 		case 'template_path': $x = dirname($this->_LastFile).'/'; break;
 		case 'name': $x = 'TinyButStrong'; break;
 		case 'logo': $x = '**TinyButStrong**'; break;
@@ -2284,7 +2315,7 @@ function meth_Merge_SectionNormal(&$BDef,&$Src) {
 			} elseif (is_null($data) || ($data===false)) {
 				$data = array();
 			}
-			$this->meth_Merge_Block($Txt, $name, $data, $query, false, 0);
+			$this->meth_Merge_Block($Txt, $name, $data, $query, false, 0, false);
 		}
 	}
 
@@ -3149,21 +3180,29 @@ static function f_Misc_DelDelimiter(&$Txt,$Delim) {
 	}
 }
 
-static function f_Misc_GetFile(&$Txt,&$File,$LastFile='') {
+static function f_Misc_GetFile(&$Res,&$File,$LastFile='',$Contents=true) {
 // Load the content of a file into the text variable.
-	$Txt = '';
-	if (!file_exists($File)) {
+	$Res = '';
+	$fd = @fopen($File,'r',true); // 'rb' if binary for some OS. fopen() uses include_path and search on the __FILE__ directory while file_exists() doesn't.
+	if ($fd===false) {
 		if ($LastFile==='') return false;
-		$File = dirname($LastFile).'/'.$File;
-		if (!file_exists($File)) return false;
+		$File2 = dirname($LastFile).'/'.$File;
+		$fd = @fopen($File2,'r',true);
+		if ($fd===false) return false;
+		$File = $File2;
 	}
-	$fd = fopen($File,'r',true); // 'rb' if binary for some OS
 	if ($fd===false) return false;
-	$fs = @filesize($File); // return False for an URL
-	if ($fs===false) {
-		while (!feof($fd)) $Txt .= fread($fd,4096);
+	$fs = fstat($fd);
+	if ($Contents) {
+		// Return contents
+		if (isset($fs['size'])) {
+			if ($fs['size']>0) $Res = fread($fd,$fs['size']);
+		} else {
+			while (!feof($fd)) $Res .= fread($fd,4096);
+		}
 	} else {
-		if ($fs>0) $Txt = fread($fd,$fs);
+		// Return stats
+		$Res = $fs;
 	}
 	fclose($fd);
 	return true;

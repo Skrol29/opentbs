@@ -5,7 +5,7 @@ if (isset($_GET['source'])) exit('<!DOCTYPE HTML><html><head><meta http-equiv="C
 
 // load the TinyButStrong libraries
 if (version_compare(PHP_VERSION,'5')<0) {
-	include_once('tbs_class.php'); // TinyButStrong template engine for PHP 4
+	include_once('tbs_class_php4.php'); // TinyButStrong template engine for PHP 4
 } else {
 	include_once('tbs_class_php5.php'); // TinyButStrong template engine
 }
