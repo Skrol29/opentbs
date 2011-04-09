@@ -1,10 +1,14 @@
 <?php
 
-/* OpenTBS version 1.5.0
+/* OpenTBS version 1.5.5-beta
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
 Site: http://www.tinybutstrong.com/plugins.php
+*/
+
+/* CHANGE LOG
+[tt] Direct commands
 */
 
 // Constants to drive the plugin.
@@ -15,10 +19,10 @@ define('OPENTBS_FILE',8);       // output to file
 define('OPENTBS_DEBUG_XML',16); // display the result of the current subfile
 define('OPENTBS_STRING',32);    // output to string
 define('OPENTBS_DEBUG_AVOIDAUTOFIELDS',64); // avoit auto field merging during the Show() method
-define('OPENTBS_INFO',1);       // command to display the archive info
-define('OPENTBS_RESET',2);      // command to reset the changes in the current archive
-define('OPENTBS_ADDFILE',4);    // command to add a new file in the archive
-define('OPENTBS_DELETEFILE',8); // command to delete a file in the archive
+define('OPENTBS_INFO','clsOpenTBS.Info');       // command to display the archive info
+define('OPENTBS_RESET','clsOpenTBS.Reset');      // command to reset the changes in the current archive
+define('OPENTBS_ADDFILE','clsOpenTBS.AddFile');    // command to add a new file in the archive
+define('OPENTBS_DELETEFILE','clsOpenTBS.DeleteFile'); // command to delete a file in the archive
 define('OPENTBS_DEFAULT','');   // Charset
 define('OPENTBS_ALREADY_XML',false);
 define('OPENTBS_ALREADY_UTF8','already_utf8');
@@ -846,6 +850,128 @@ It needs to be completed when a new picture file extension is added in the docum
 
 		return $res;
 	}
+
+	function OpenXML_ChartInit() {
+
+		$this->OpenXmlCharts = array();
+		
+		foreach ($this->CdFileByName as $f => $i) {
+			if (strpos($f, '/charts/')!==false) {
+				$f = explode('/',$f);
+				$n = count($f) -1;
+				if ( ($n>=2) && ($f[$n-1]==='charts') ) {
+					$f = $f[$n]; // name of the xml file
+					if (substr($f,-4)==='.xml') {
+						$f = substr($f,0,strlen($f)-4);
+						$this->OpenXmlCharts[$f] = array('idx'=>$i, 'clean'=>false, 'series'=>false);
+					}
+				}
+			}
+		}	
+		
+	}
+
+	function OpenXML_ChartSeriesFound(&$Txt, $Num, $WithRealBeg=false) {
+
+		$p = strpos($Txt, '<c:order val="'.($Num-1).'"/>');
+		if ($p===false) return false;
+
+		// Real begining can useful to copy an existing series
+		if ($WithRealBeg) $p = clsTinyButStrong::f_Xml_FindTagStart($Txt, 'c:ser', true, $p, false, true);
+
+		$res = array('p'=>$p);
+
+		$end_tag = '</c:ser>';
+		$end = strpos($Txt, '</c:ser>', $p);
+		$len = $end + strlen($end_tag) - $p;
+		$res['l'] = $len;
+
+		$x = substr($Txt, $p, $len);
+		
+		// Legend, may be abensent
+		$p = 0;
+		$p1 = strpos($x, '<c:tx>');
+		if ($p1>0) {
+			$p2 = strpos($x, '</c:tx>', $p1);
+			$tag = '<c:v>';
+			$p1 = strpos($x, $tag, $p1);
+			if ( ($p1!==false) && ($p1<$p2) ) {
+				$p1 = $p1 + strlen($tag);
+				$p2 = strpos($x, '<', $p1);
+				$res['leg_p'] = $p1;
+				$res['leg_l'] = $p2 - $p1;
+				$p = $p2;
+			} 
+		}
+		
+		// Data X & Y, we assume that (X or Category) are always first and (Y or Value) are always second
+		for ($i=1; $i<=2; $i++) {
+			$p1 = strpos($x, '<c:ptCount ', $p);
+			if ($p1===false) return false;
+			$p2 = strpos($x, '</c:numCache>', $p1);
+			if ($p2===false) return false;
+			$res['point'.$i.'_p'] = $p1;
+			$res['point'.$i.'_l'] = $p2 - $p1;
+		}
+		
+		return $res;
+		
+	}
+			
+	function OpenXML_ChartChangeSeries($ChartNameOrNum, $SeriesNum, $NewValues, $NewLegend=false, $CopyFromSeries=false) {
+
+		if (!isset($this->OpenXmlCharts)) $this->OpenXML_ChartInit();
+
+		// search the chart
+		$ref = ''.$ChartNameOrNum;
+		if (!isset($this->OpenXmlCharts[$ref])) $ref = 'chart'.$ref;
+		if (!isset($this->OpenXmlCharts[$ref])) return false;
+		
+		$chart =& $this->OpenXmlCharts[$ref];
+		$Txt = $this->FileRead($chart['idx'], true);
+		
+		if (!$chart['clean']) {
+			// clean tags that refere to the XLSX file containing original data
+			$this->MsWord_CleanTag($Txt, array('<c:externalData', '<c:f'), true);
+			$chart['clean'] = true;
+		}
+		
+		$ser = $this->OpenXML_ChartSeriesFound($Txt, $SeriesNum, false);
+		if ($ser===false) return false;
+
+		$point1 = '';
+		$point2 = '';
+		$i = 0;
+		foreach ($NewValues as $k=>$v) {
+			if (is_array($v)) {
+				$x = reset($v);
+				$y = next($v);
+			} else {
+				$x = $k;
+				$y = $v;
+			}
+			$point1 .= '<c:pt idx="'.$i.'"><c:v>'.$x.'</c:v></c:pt>';
+			$point2 .= '<c:pt idx="'.$i.'"><c:v>'.$y.'</c:v></c:pt>';
+			$i++;
+		} 
+		$point1 = '<c:ptCount val="'.$i.'"/>'.$point1;
+		$point2 = '<c:ptCount val="'.$i.'"/>'.$point2;
+
+		// change info in reverse order of placement in order to avoid exention problems
+		$p = $ser['p'];
+		$Txt = substr_replace($Txt, $point2, $p+$ser['point2_p'], $ser['point2_l']);
+		$Txt = substr_replace($Txt, $point1, $p+$ser['point1_p'], $ser['point1_l']);
+		if ( ($NewLegend!==false) && isset($ser['leg_p']) && ($ser['leg_p']<$ser['point1_p']) ) {
+			$Txt = substr_replace($Txt, $NewLegend, $p+$ser['leg_p'], $ser['leg_l']);
+		}
+		
+		echo $Txt; exit;
+		
+		$this->FileReplace($chart['idx'], $Txt);
+
+		return true;
+
+	}
 	
 	// Cleaning tags in MsWord
 
@@ -874,14 +1000,20 @@ It needs to be completed when a new picture file extension is added in the docum
 		return false;
 	}
 
-	function MsWord_CleanTag(&$Txt, $TagLst) {
+	function MsWord_CleanTag(&$Txt, $TagLst, $UntilClosingTag=false) {
 	// Delete all tags of the types listed in the list. (Not specific to MsWord, works for any XML)
 		$nbr_del = 0;
 		foreach ($TagLst as $tag) {
 			$p = 0;
+			if ($UntilClosingTag) $tag_c = substr_replace($tag, '/', 1, 0).'>';
 			while (($p=$this->MsWord_FoundTag($Txt, $tag, $p))!==false) {
+				$pe = $p;
+				if ($UntilClosingTag) {
+					$pe = strpos($Txt, $tag_c, $p);
+					if ($pe===false) $pe = $p;
+				}
 				// get the end of the tag
-				$pe = strpos($Txt, '>', $p);
+				$pe = strpos($Txt, '>', $pe);
 				if ($pe===false) return false; // error in the XML formating
 				// delete the tag
 				$Txt = substr_replace($Txt, '', $p, $pe-$p+1);
