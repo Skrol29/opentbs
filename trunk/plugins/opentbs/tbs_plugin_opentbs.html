@@ -45,7 +45,7 @@ body, td, th {
 <body>
 <h1>OpenTBS</h1>
 <div>version 1.5.0, 2011-03-20, by Skrol29<br />
-  help file modified on 2011-03-20</div>
+  help file modified on 2011-04-12</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -55,9 +55,10 @@ body, td, th {
       <li>4.1. <a href="#preparation">Preparation of TinyButStrong Template Engine with the OpenTBS plug-in</a></li>
       <li>4.2. <a href="#loadtemplate">Method LoadTemplate()</a></li>
       <li>4.3. <a href="#show">Method Show()</a></li>
-      <li>4.4. <a href="#pic">Change pictures in the document</a></li>
-      <li>4.5. <a href="#modify">Manual modification of files in the archive</a></li>
-      <li>4.6. <a href="#misc">Miscellaneous</a></li>
+      <li>4.4. <a href="#chart">Change series in charts</a></li>
+      <li>4.5. <a href="#pic">Change pictures in the document</a></li>
+      <li>4.6. <a href="#modify">Manual modification of files in the archive</a></li>
+      <li>4.7. <a href="#misc">Miscellaneous</a></li>
     </ul>
   </li>
   <li><a href="#demo">Demo</a></li>
@@ -148,7 +149,21 @@ body, td, th {
 <div class="code">$TBS-&gt;Show(OPENTBS_STRING);<br />
   $string = $TBS-&gt;Source; </div>
 <div class="note">When you use <span class="smallcode">OPENTBS_STRING</span> then there is no output for the client. But instead, the binary source of the archive is placed into property $TBS-&gt;Source. This feature can be useful, for example, when you want to place the merged document into an email as an attached file.</div>
-<h3><a name="pic" id="pic"></a>4.4. Change pictures in the document</h3>
+<h3><a name="pic" id="pic"></a>4.4. Change series in charts</h3>
+&bull; Change series in charts: <span class="versioning">(supported since OpenTBS version 1.5.1, for Ms Word only)</span><br />
+<div class="code">Example: $TBS-&gt;PlugIn(OPENTBS_CHART, $ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewLegend=false)<br />
+</div>
+<div class="note">
+  <p>CarteNameOrNum: name of the XML file or the the number of (from 1 to the number of charts in the document). Typically 'chart1' or 1;
+  <p>    SeriesNumOrName: exact caption of the series in the chart, or its number (from 1 to the number of series in the chart). Typically 'Series 1' or 1.  
+  <p>$NewValues must be an array (or false if you want to delete the series)<br />
+    array(cat1, cat2, cat3, ...), array(val1, val2, val3, ...)<br />
+    array(cat1=&gt;val1,  cat2=&gt;val2, cat3=&gt;val3, ...)
+  <p>$NewLegend: optional. The new caption of the series.
+  <p>The result of the method is true if the series is modified with succes, otherwise it return false.<br />  
+</div>
+<br />
+<h3><a name="pic" id="pic2"></a>4.5. Change pictures in the document</h3>
 &bull; Change an internal picture with a new one: <span class="versioning">(supported since OpenTBS version 1.4.0, for OpenOffice and MsOffice documents only)</span><br />
 <div class="template">Example: [onshow.x;ope=changepic;from='../pic/[val].gif';as='[val].gif';default=current]<br />
 </div>
@@ -157,7 +172,7 @@ body, td, th {
     When a TBS field having <span class="smallcode">&quot;ope=changepic&quot;</span> is placed in the template and merged, then OpenTBS will search the first picture located before the field (to be more precise, the TBS field must be located somewhere inside or after the opening tag of the picture in the template source code), and then it will change the picture assuming that the value of the field is the path for a picture file on the server. You don't have to care about loading the picture file in the document, OpenTBS will manage this for you.<br />
     <br />
     In order to 
-    simplify your coding, they are other complementary parameters that are provided:
+    simplify your coding, they are other complementary parameters that are provided: </p>
   <ul>
     <li> Parameter &quot;<span class="smallcode">from&quot;</span> enables you to reformulate the path of the picture to insert. The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file">file</a>&quot;. Parameter &quot;<span class="smallcode">from</span>&quot; is optional.</li>
     <li> Parameter <span class="smallcode">&quot;as&quot;</span> enables you to reformulate name of the picture that it will take inside the document. It is rare to need it, but it can help in some cases. Note that the external picture file is not renamed. The new   name must be defined without path.
@@ -165,11 +180,7 @@ body, td, th {
     <li> Parameter <span class="smallcode">&quot;default&quot;</span> enables you to define the picture that should be used when the expected one is not found. The parameter's value must be the path of a file on the server, or the keyword &quot;<span class="smallcode">current&quot;</span>. If you've set <span class="smallcode">&quot;default=current&quot;</span> then OpenTBS will let the picture of the template if the expected one is not found.</li>
   </ul>
 </div>
-<br />
-&bull; Parameter "<span class="smallcode">addpic</span>" has appeared with OpenTBS version 1.3.0 and become deprecated since version 1.4.0. Parameter <span class="smallcode">addpic</span> works the same way as <span class="smallcode">changepic</span> but it cannot found the picture in the document by itself. Thus it has to be used together with parameter "<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_att">att</a>". <br />
-<div class="template">Example: [onshow.x;ope=addpic;from='../pic/[val].gif';as='[val].gif';att=draw:image#xlink:href]<br />
-</div>
-<h3><a name="modify" id="modify"></a>4.5. Manual modification of files in the archive</h3>
+<h3><a name="modify" id="modify"></a>4.6. Manual modification of files in the archive</h3>
 &bull; Add any new file in the archive: <span class="versioning">(supported since OpenTBS version 1.3)</span><br />
 <div class="code">$TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_ADDFILE, $Name, $Data, $DataType=TBSZIP_STRING, $Compress=true);<br />
 </div>
@@ -184,7 +195,7 @@ body, td, th {
 <div class="code">$TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);<br />
 </div>
 <div class="note">The automatic extension recognition is also applied as it was applied for the first load of the archive.</div>
-<h3><a name="misc" id="misc"></a>4.6. Miscellaneous</h3>
+<h3><a name="misc" id="misc"></a>4.7. Miscellaneous</h3>
 <p>&bull; Property <span class="code">$TBS-&gt;tbsCurrFile</span> indicates the name of the current file loaded from the archive. The value is false if no file is loaded yet from the archive.</p>
 <p> Other TinyButStrong methods and properties stay unchanged and are available for merging your template.
 </p>
