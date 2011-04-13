@@ -153,13 +153,14 @@ Synopsis of the main file "word/document.xml":
 				Parameters of the paragraph
 				<w:rPr>    Set of parameters for a Run </w:rPr>
 				<w:sectPr> Sart a new section. Section are a set of page layout (margin, columns, ...)available until the next section. </w:sectPr>
+				<w:pageBreakBefore/> page break before the paragraph (way #1)
 			</w:pPr>
 			<w:r>
 				New run item. A run item is a set of content having common layout properties.
 				<w:rPr> Set of parameters for a Run. Examples: <w:i/> is italic, <w:b/> is bold. </w:rPr>
 				<w:t> Your text is here</w:t>
 				Simple new lines are made with <w:br/>
-				Page breaks are made with <w:br w:type="page"/>
+				Page breaks can also be made with <w:br w:type="page"/> (way #2)
 			</w:r>
 		</w:p> 
 
@@ -257,6 +258,62 @@ Textboxes:
 		</mc:AlternateContent>
 	</w:r>
 </w:p>
+
+Charts:
+-------
+
+The first chart is saved under "word/charts/chart1.xml", and so on for the next ones.
+The XML file of the chart contains a copy of the data used for the chart.
+If the chart is designed manually, then "chart1.xml" also contains references to cells of an Ms Excel files that is used by Ms Word for managing series.
+The Excel file is emmbeded in the Docx file, for exemple: "word/embeddings/Worksheet_Microsoft_Excel1.xlsx"
+The path of the Excel file is saved into "word/charts/_rels/chart1.xml.rels".
+Nevertheless the references to that Exvel file are optional and can be deleted from the XML of the chart.
+
+Title of the chart, the axes and the series are saved in "chart1.xml".
+Other custom text boxes are saved in a shape file. For example : "word/drawings/drawing1.xml"
+
+Example of a series saved in the XML (the tags are different for an XY series):
+
+<c:ser>
+	<c:idx val="0"/>
+	<c:order val="0"/>
+	<c:tx>
+		<c:strRef>
+			<c:f>Sheet1!$A$2</c:f>
+			<c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>Here is the name of the Series</c:v></c:pt></c:strCache>
+		</c:strRef>
+	</c:tx>
+	<c:spPr>
+		<a:solidFill><a:srgbClr val="9999FF"/></a:solidFill>
+		<a:ln w="12700"><a:solidFill><a:srgbClr val="000000"/></a:solidFill><a:prstDash val="solid"/></a:ln>
+	</c:spPr>
+	<c:invertIfNegative val="0"/>
+	<c:cat>
+		<c:strRef>
+			<c:f>Sheet1!$B$1:$E$1</c:f>
+			<c:strCache>
+				<c:ptCount val="4"/>
+				<c:pt idx="0"><c:v>Category A</c:v></c:pt>
+				<c:pt idx="1"><c:v>Category B</c:v></c:pt>
+				<c:pt idx="2"><c:v>Category C</c:v></c:pt>
+				<c:pt idx="3"><c:v>Category D</c:v></c:pt>
+			</c:strCache>
+		</c:strRef>
+	</c:cat>
+	<c:val>
+		<c:numRef>
+			<c:f>Sheet1!$B$2:$E$2</c:f>
+			<c:numCache>
+				<c:formatCode>General</c:formatCode>
+				<c:ptCount val="4"/>
+				<c:pt idx="0"><c:v>20.399999999999999</c:v></c:pt>
+				<c:pt idx="1"><c:v>27.4</c:v></c:pt>
+				<c:pt idx="2"><c:v>90</c:v></c:pt>
+				<c:pt idx="3"><c:v>20.399999999999999</c:v></c:pt>
+			</c:numCache>
+		</c:numRef>
+	</c:val>
+</c:ser>
 
 ****************************
 Ms Excel SpreadSheet (.XLSX)
