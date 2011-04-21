@@ -68,7 +68,7 @@ class clsOpenTBS extends clsTbsZip {
 			}
 			$TBS->OtbsCurrFile = false;
 			$TBS->OtbsSubFileLst = $SubFileLst;
-			$this->TbsSrcParking = array();
+			$this->TbsParkLst = array();
 			$this->TbsCurrIdx = false;
 		} elseif ($this->ArchFile==='') {
 			$this->RaiseError('Cannot read file(s) "'.$SubFileLst.'" because no archive is opened.');
@@ -103,10 +103,11 @@ class clsOpenTBS extends clsTbsZip {
 					$this->RaiseError('The file "'.$SubFile.'" is not found in the archive "'.$this->ArchFile.'".');
 				} else {
 					// Save the current loaded subfile if any
-					$this->TbsSrcPark();
+					$this->TbsParkCurrSrc();
 					// load the subfile
-					if (isset($this->TbsSrcParking[$idx])) {
-						$TBS->Source = $this->TbsSrcParking[$idx]; // Load from parking
+/*
+					if (isset($this->TbsParkLst[$idx])) {
+						$TBS->Source = $this->TbsParkLst[$idx]['src']; // Load from parking
 						$ok = true;
 					} else {
 						$TBS->Source = $this->FileRead($idx, $TBS->OtbsAutoUncompress); // Load from the archive
@@ -119,6 +120,18 @@ class clsOpenTBS extends clsTbsZip {
 
 					// apply default TBS behaviors on the uncompressed content: other plug-ins + [onload] fields
 					if ($ok & $TbsLoadTemplate) $TBS->LoadTemplate(null,'+');
+*/
+					$TBS->Source = $this->TbsParkGet($idx, false);
+					if ($this->LastReadNotParked) {
+						if ($this->LastReadComp<=0) { // the contents is not compressed
+							if ($this->ArchExtInfo!==false) {
+								if (isset($this->ArchExtInfo['rpl_what'])) $TBS->Source = str_replace($this->ArchExtInfo['rpl_what'],$this->ArchExtInfo['rpl_with'],$TBS->Source); // auto replace strings in the loaded file
+								if (($this->ArchExt==='docx') && isset($TBS->OtbsClearMsWord) && $TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
+							}
+							// apply default TBS behaviors on the uncompressed content: other plug-ins + [onload] fields
+							if ($TbsLoadTemplate) $TBS->LoadTemplate(null,'+');
+						}
+					}
 
 					$TBS->OtbsCurrFile = $SubFile;
 					$this->TbsCurrIdx = $idx;
@@ -145,7 +158,7 @@ class clsOpenTBS extends clsTbsZip {
 
 		if ($TBS->_Mode!=0) return; // If we are in subtemplate mode, the we use the TBS default process
 
-		$this->TbsSrcPark(); // Save the current loaded subfile if any
+		$this->TbsParkCurrSrc(); // Save the current loaded subfile if any
 
 		$TBS->Plugin(-4); // deactivate other plugins
 
@@ -155,12 +168,13 @@ class clsOpenTBS extends clsTbsZip {
 		$TbsShow = (($Render & OPENTBS_DEBUG_AVOIDAUTOFIELDS)!=OPENTBS_DEBUG_AVOIDAUTOFIELDS);
 		
 		// Merges all modified subfiles
-		$idx_lst = array_keys($this->TbsSrcParking);
+		$idx_lst = array_keys($this->TbsParkLst);
 		foreach ($idx_lst as $idx) {
-			$TBS->Source = $this->TbsSrcParking[$idx];
-			unset($this->TbsSrcParking[$idx]); // save memory space
+			$TBS->Source = $this->TbsParkLst[$idx]['src'];
+			$onshow = $this->TbsParkLst[$idx]['onshow'];
+			unset($this->TbsParkLst[$idx]); // save memory space
 			$this->TbsCurrIdx = $idx; // usefull for debug mode
-			if ($TbsShow) $TBS->Show(TBS_NOTHING);
+			if ($TbsShow && $onshow) $TBS->Show(TBS_NOTHING);
 			if ($Debug) $this->DebugLst[$this->CdFileLst[$idx]['v_name']] = $TBS->Source;
 			$this->FileReplace($idx, $TBS->Source, TBSZIP_STRING, $TBS->OtbsAutoUncompress);
 		}
@@ -249,7 +263,7 @@ class clsOpenTBS extends clsTbsZip {
 		} elseif ($Cmd==OPENTBS_RESET) {
 			// Reset all mergings
 			$this->ArchCancelModif();
-			$this->TbsSrcParking = array();
+			$this->TbsParkLst = array();
 			$TBS =& $this->TBS;
 			$TBS->Source = '';
 			$TBS->OtbsCurrFile = false;
@@ -282,15 +296,40 @@ class clsOpenTBS extends clsTbsZip {
 
 	}
 
-	function TbsSrcPark() {
+	function TbsParkCurrSrc() {
 		// save the last opened subfile
 		if ($this->TbsCurrIdx!==false) {
-			$this->TbsSrcParking[$this->TbsCurrIdx] = $this->TBS->Source;
+			$this->TbsParkLst[$this->TbsCurrIdx] = array('src'=>$this->TBS->Source, 'onshow'=>true);
 			$this->TBS->Source = '';
 			$this->TbsCurrIdx = false;
 		}
 	}
 
+	function TbsParkSave($idx, $src, $onshow) {
+		// save a given source
+		$this->TbsParkLst[$idx] = array('src'=>$src, 'onshow'=>$onshow);
+	}
+
+	function TbsParkGet($idx, $caller) {
+		// retrieve a source in the parking or, when appropriate, from the archive 
+		if (isset($this->TbsParkLst[$idx])) {
+			$this->LastReadNotParked = false;
+			return $this->TbsParkLst[$idx]['src'];
+		} else {
+			$this->LastReadNotParked = true;
+			$txt = $this->FileRead($idx, true);
+			if ($this->LastReadComp>0) {
+				if ($caller===false) {
+					return $txt; // return the uncompressed contents
+				} else {
+					return $this->RaiseError("(".$caller.") unable to uncompress '".$this->CdFileLst[$idx]['v_name']."'.");
+				}
+			} else {
+				return $txt;
+			}
+		}
+	}
+	
 	function TbsDebug($XmlFormat = true) {
 		// display modified and added files
 
@@ -958,10 +997,11 @@ It needs to be completed when a new picture file extension is added in the docum
 		// search the chart
 		$ref = ''.$ChartNameOrNum;
 		if (!isset($this->OpenXmlCharts[$ref])) $ref = 'chart'.$ref;
-		if (!isset($this->OpenXmlCharts[$ref])) return false;
+		if (!isset($this->OpenXmlCharts[$ref])) return $this->RaiseError("(ChartChangeSeries) unable to found the chart corresponding to '".$ChartNameOrNum."'.");
 		
 		$chart =& $this->OpenXmlCharts[$ref];
-		$Txt = $this->FileRead($chart['idx'], true);
+		$Txt = $this->TbsParkGet($chart['idx'], 'ChartChangeSeries');
+		if ($Txt===false) exit;
 		
 		if (!$chart['clean']) {
 			// clean tags that refere to the XLSX file containing original data
@@ -972,7 +1012,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		
 		$Delete = ($NewValues===false);
 		$ser = $this->OpenXML_ChartSeriesFound($Txt, $SeriesNameOrNum, $Delete);
-		if ($ser===false) return false;
+		if ($ser===false) return $this->RaiseError("(ChartChangeSeries) unable to found series '".$SeriesNameOrNum."' in the chart '".$ref."'.");
 		
 		if ($Delete) {
 
@@ -1010,7 +1050,7 @@ It needs to be completed when a new picture file extension is added in the docum
 
 		}
 		
-		$this->FileReplace($chart['idx'], $Txt);
+		$this->TbsParkSave($chart['idx'], $Txt, true);
 
 		return true;
 
@@ -1220,12 +1260,8 @@ It needs to be completed when a new picture file extension is added in the docum
 		$idx = $this->FileGetIdx($name);
 		if ($idx===false) return;
 
-		if (isset($this->TbsSrcParking[$idx])) {
-			$Txt = $this->TbsSrcParking[$idx];
-		} else {
-			$Txt = $this->FileRead($idx, true);
-			if ($this->LastReadComp>0) return $this->RaiseError("(OpenDocumentFormat) unable to uncompress 'META-INF/manifest.xml'.");
-		}
+		$Txt = $this->TbsParkGet($idx, 'OpenDocumentFormat');
+		if ($Txt===false) return false;
 
 		// Perform all changes
 		foreach ($this->OpenDocManif as $Path => $Type) {
@@ -1250,7 +1286,7 @@ It needs to be completed when a new picture file extension is added in the docum
 			}
 		}
 
-		// Save changes
+		// Save changes (no need to save it in the park because this fct is called after merging)
 		$this->FileReplace($idx, $Txt);
 
 		if ($Debug) $this->DebugLst[$name] = $Txt;
