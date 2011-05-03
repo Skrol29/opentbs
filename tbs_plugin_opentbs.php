@@ -9,6 +9,7 @@ Site: http://www.tinybutstrong.com/plugins.php
 
 /* CHANGE LOG
 [tt] Direct commands
+[tt] command Chart
 */
 
 // Constants to drive the plugin.
@@ -105,28 +106,13 @@ class clsOpenTBS extends clsTbsZip {
 					// Save the current loaded subfile if any
 					$this->TbsParkCurrSrc();
 					// load the subfile
-/*
-					if (isset($this->TbsParkLst[$idx])) {
-						$TBS->Source = $this->TbsParkLst[$idx]['src']; // Load from parking
-						$ok = true;
-					} else {
-						$TBS->Source = $this->FileRead($idx, $TBS->OtbsAutoUncompress); // Load from the archive
-						$ok = ($this->LastReadComp<=0); // the contents is not compressed
-						if ($ok && ($this->ArchExtInfo!==false)) {
-							if (isset($this->ArchExtInfo['rpl_what'])) $TBS->Source = str_replace($this->ArchExtInfo['rpl_what'],$this->ArchExtInfo['rpl_with'],$TBS->Source); // auto replace strings in the loaded file
-							if (($this->ArchExt==='docx') && isset($TBS->OtbsClearMsWord) && $TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
-						}
-					}
-
-					// apply default TBS behaviors on the uncompressed content: other plug-ins + [onload] fields
-					if ($ok & $TbsLoadTemplate) $TBS->LoadTemplate(null,'+');
-*/
 					$TBS->Source = $this->TbsParkGet($idx, false);
 					if ($this->LastReadNotParked) {
 						if ($this->LastReadComp<=0) { // the contents is not compressed
 							if ($this->ArchExtInfo!==false) {
 								if (isset($this->ArchExtInfo['rpl_what'])) $TBS->Source = str_replace($this->ArchExtInfo['rpl_what'],$this->ArchExtInfo['rpl_with'],$TBS->Source); // auto replace strings in the loaded file
 								if (($this->ArchExt==='docx') && isset($TBS->OtbsClearMsWord) && $TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
+								if (($this->ArchExt==='xlsx') && isset($TBS->OtbsMsExcelConsistent) && isset($TBS->OtbsMsExcelConsistent) ) $this->MsExcel_ConvertToRelative($TBS->Source);
 							}
 							// apply default TBS behaviors on the uncompressed content: other plug-ins + [onload] fields
 							if ($TbsLoadTemplate) $TBS->LoadTemplate(null,'+');
@@ -513,25 +499,25 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$FullPath = $Value;
 		}
 
-    if ( (!isset($PrmLst['pic_prepared'])) && isset($PrmLst['default']) ) $TBS->meth_Merge_AutoVar($PrmLst['default'],true); // merge automatic TBS fields in the path
+		if ( (!isset($PrmLst['pic_prepared'])) && isset($PrmLst['default']) ) $TBS->meth_Merge_AutoVar($PrmLst['default'],true); // merge automatic TBS fields in the path
 
 		$ok = true; // true if the picture file is actually inserted and ready to be changed
 
 		// check if the picture exists, and eventually use the default picture
-    if (!file_exists($FullPath)) {
-    	if (isset($PrmLst['default'])) {
-    		$x = $PrmLst['default'];
-    		if ($x==='current') {
-    			$ok = false;
-    		} elseif (file_exists($x)) {
-    			$FullPath = $x;
-    		} else {
-    			$ok = $this->RaiseError('The default picture "'.$x.'" defined by parameter "default" of the field ['.$Loc->FullName.'] is not found.');
-    		}
-    	} else {
-   			$ok = $this->RaiseError('The picture "'.$FullPath.'" that is supposed to be added because of parameter "'.$Prm.'" of the field ['.$Loc->FullName.'] is not found. You can use parameter default=current to cancel this message');
-    	}
-    }
+		if (!file_exists($FullPath)) {
+			if (isset($PrmLst['default'])) {
+				$x = $PrmLst['default'];
+				if ($x==='current') {
+					$ok = false;
+				} elseif (file_exists($x)) {
+					$FullPath = $x;
+				} else {
+					$ok = $this->RaiseError('The default picture "'.$x.'" defined by parameter "default" of the field ['.$Loc->FullName.'] is not found.');
+				}
+			} else {
+				$ok = $this->RaiseError('The picture "'.$FullPath.'" that is supposed to be added because of parameter "'.$Prm.'" of the field ['.$Loc->FullName.'] is not found. You can use parameter default=current to cancel this message');
+			}
+		}
 
 		// set the name of the new files
 		if (isset($PrmLst['as'])) {
@@ -612,6 +598,7 @@ User can define his own Extension Information, they are taken in acount if saved
 		} elseif (strpos(',docx,xlsx,pptx,', ','.$Ext.',')!==false) {
 			// Microsoft Office documents
 			if (!isset($this->TBS->OtbsClearMsWord)) $this->TBS->OtbsClearMsWord = true;
+			if (!isset($this->TBS->OtbsMsExcelConsistent)) $this->TBS->OtbsMsExcelConsistent = true;
 			$this->OpenXML_MapInit();
 			$x = array(chr(226).chr(128).chr(152) , chr(226).chr(128).chr(153));
 			$ctype = 'application/vnd.openxmlformats-officedocument.';
@@ -619,8 +606,8 @@ User can define his own Extension Information, they are taken in acount if saved
 				$i = array('load'=>'word/document.xml', 'br'=>'<w:br/>', 'frm'=>'openxml', 'ctype'=>$ctype.'wordprocessingml.document', 'pic_path'=>'word/media/','rpl_what'=>$x,'rpl_with'=>'\'');
 				$i['load'] = $this->OpenXML_MapGetVal(array('wordprocessingml.header+xml', 'wordprocessingml.footer+xml', 'wordprocessingml.document.main+xml'), $i['load'], ';', true); // footnotes and endnotes omitted for perf
 			} elseif ($Ext==='xlsx') {
-				$i = array('load'=>'xl/worksheets/sheet1.xml;xl/sharedStrings.xml', 'br'=>false, 'frm'=>'openxml', 'ctype'=>$ctype.'spreadsheetml.sheet', 'pic_path'=>'xl/media/');
-				$i['load'] = $this->OpenXML_MapGetVal(array('spreadsheetml.worksheet+xml', 'spreadsheetml.sharedStrings+xml'), $i['load'], ';', true);
+				$i = array('load'=>'xl/worksheets/sheet1.xml', 'br'=>false, 'frm'=>'openxml', 'ctype'=>$ctype.'spreadsheetml.sheet', 'pic_path'=>'xl/media/');
+				//$i['load'] = $this->OpenXML_MapGetVal(array('spreadsheetml.worksheet+xml'), $i['load'], ';', true);
 			} elseif($Ext==='pptx') {
 				$i = array('load'=>'ppt/slides/slide1.xml', 'br'=>false, 'frm'=>'openxml', 'ctype'=>$ctype.'presentationml.presentation', 'pic_path'=>'ppt/media/' ,'rpl_what'=>$x,'rpl_with'=>'\'');
 				$i['load'] = $this->OpenXML_MapGetVal(array('presentationml.notesSlide+xml'), $i['load'], ';', true); // masternotes and slidenotes omitted for perf 
@@ -1001,7 +988,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		
 		$chart =& $this->OpenXmlCharts[$ref];
 		$Txt = $this->TbsParkGet($chart['idx'], 'ChartChangeSeries');
-		if ($Txt===false) exit;
+		if ($Txt===false) return false;
 		
 		if (!$chart['clean']) {
 			// clean tags that refere to the XLSX file containing original data
@@ -1055,6 +1042,224 @@ It needs to be completed when a new picture file extension is added in the docum
 		return true;
 
 	}
+
+	function OpenXML_SharedStrings_Prepare() {
+		
+		$file = 'xl/sharedStrings.xml';
+		$idx = $this->FileGetIdx($file);
+		if ($idx===false) return;
+		
+		$Txt = $this->TbsParkGet($idx, 'Excel SharedStrings');
+		if ($Txt===false) return false;
+		
+		$this->TbsParkSave($idx, $Txt, false);
+
+		$this->OpenXmlSharedStr = array();
+		$this->OpenXmlSharedSrc =& $this->TbsParkLst[$idx]['src'];
+
+	}
+
+	function OpenXML_SharedStrings_GetVal($id) {
+	// this function return the XML content of the string and put previous met values in cache
+		if (!isset($this->OpenXmlSharedStr)) $this->OpenXML_SharedStrings_Prepare();
+		
+		$Txt =& $this->OpenXmlSharedSrc;
+
+		if (!isset($this->OpenXmlSharedStr[$id])) {
+			$last_id = count($this->OpenXmlSharedStr) - 1; // last id in the cache
+			if ($last_id<0) {
+				$p2 = 0; // no items found yet
+			} else {
+				$p2 = $this->OpenXmlSharedStr[$last_id]['end'];
+			}
+			$x1 = '<si'; // SharedString Item
+			$x1_len = strlen($x1);
+			$x2 = '</si>';
+			while ($last_id<$id) {
+				$last_id++;
+				$p1 = strpos($Txt, $x1, $p2+1);
+				if ($p1===false) return $this->RaiseError("(Excel SharedStrings) id $id is searched but id $last_id is not found.");
+				$p1 = strpos($Txt, '>', $p1+$x1_len)+1;
+				$p2 = strpos($Txt, $x2, $p1);
+				if ($p2===false) return $this->RaiseError("(Excel SharedStrings) id $id is searched but no closing tag found for id $last_id.");
+				$this->OpenXmlSharedStr[$last_id] = array('beg'=>$p1, 'end'=>$p2, 'len'=>($p2-$p1));
+			}
+		}
+
+		$str =& $this->OpenXmlSharedStr[$id];
+		
+		return substr($Txt, $str['beg'], $str['len']);
+		
+	}
+
+	// Convert Sheet to relative rows and cells
+	function MsExcel_ConvertToRelative(&$Txt) {
+		// <row r="10" ...> attribute "r" is optional since missing row are added using <row />
+		// <c r="D10" ...> attribute "r" is optional since missing cells are added using <c />
+		$Loc = new clsTbsLocator;
+		$this->MsExcel_ConvertToRelative_Item($Txt, $Loc, 'row', 'r', true);
+	}
+
+	function MsExcel_ConvertToRelative_Item(&$Txt, &$Loc, $Tag, $Att, $IsRow) {
+		$item_num = 0;
+		$att_len = strlen($Att);
+		$missing = '<'.$Tag.' />';
+		$closing = '</'.$Tag.'>';
+		$p = 0;
+		while (($p=clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true, $p, true, true))!==false) {
+			
+			$Loc->PrmPos = array();
+			$Loc->PrmLst = array();
+			$p2 = $p + $att_len + 2; // count the char '<' before and the char ' ' after
+			$PosEnd = strpos($Txt, '>', $p2);
+			clsTinyButStrong::f_Loc_PrmRead($Txt,$p2,true,'\'"','<','>',$Loc, $PosEnd, true); // read parameters
+			if (isset($Loc->PrmPos[$Att])) {
+				// attribute found
+				$r = $Loc->PrmLst[$Att];
+				if ($IsRow) {
+					$r = intval($r);
+				} else {
+					$r = $this->MsExcel_ColNum($r);
+				}
+				$missing_nbr = $r - $item_num -1;
+				if ($missing_nbr<0) {
+					return $this->RaiseError('(Excel Consistency) error in counting items <'.$Tag.'>, found number '.$r.', previous was '.$item_num);
+				} else {
+					// delete the current attribute
+					$pp = $Loc->PrmPos[$Att];
+					$pp[3]--; //while ($Txt[$pp[3]]===' ') $pp[3]--; // external end of the attribute, may has an extra spaces
+					$x_p = $pp[0];
+					$x_len = $pp[3] - $x_p +1;
+					$Txt = substr_replace($Txt, '', $x_p, $x_len);
+					$PosEnd = $PosEnd - $x_len;
+					// If it's a cell, we look if it's a good idea to replace the shared string
+					if ( (!$IsRow) && isset($Loc->PrmPos['t']) && ($Loc->PrmLst['t']=='s') ) $this->MsExcel_ReplaceSharedStr($Txt, $p, $PosEnd);
+					// add missing items before the current item
+					if ($missing_nbr>0) {
+						$x = str_repeat($missing, $missing_nbr);
+						$x_len = strlen($x);
+						$Txt = substr_replace($Txt, $x, $p, 0);
+						$PosEnd = $PosEnd + $x_len;
+						$x = ''; // empty the memory
+					}
+				}
+				$item_num = $r;
+			} else {
+				// nothing to change the item is already relative
+				$item_num++;
+			}
+			
+			if ($IsRow && ($Txt[$PosEnd-1]!=='/')) {
+				// It's a row item that may contain columns
+				$x_p = strpos($Txt, $closing, $PosEnd);
+				if ($x_p===false) return $this->RaiseError('(Excel Consistency) closing row tag is not found.');
+				$x_len0 = $x_p - $PosEnd -1;
+				$x = substr($Txt, $PosEnd+1, $x_len0);
+				$this->MsExcel_ConvertToRelative_Item($x, $Loc, 'c', 'r', false);
+				$Txt = substr_replace($Txt, $x, $PosEnd+1, $x_len0);
+				$x_len = strlen($x);
+				$p = $x_p + $x_len - $x_len0;
+			} else {
+				$p = $PosEnd;
+			}
+			
+		}
+
+	}
+	
+	function MsExcel_ColNum($ColRef) {
+	// return the column number from a reference like "B3"
+		$i = 0;
+		$i_end = strlen($ColRef);
+		$rank = 1;
+		$num = 0;
+		do {
+			$l = $ColRef[$i];
+			if (is_numeric($l)) {
+				$i = $i_end;
+			} else {
+				$l = ord(strtoupper($l)) -64;
+				if ($l>0 && $l<27) {
+					$num = $num + $l*$rank; 
+				} else {
+					return $this->RaiseError('(Excel Consistency) Reference of cell \''.$ColRef.'\' cannot be recognized.');
+				}
+				$i++;
+				$rank = $rank * 27;
+			}
+		} while ($i<$i_end);
+		return $num;
+	}
+
+	function MsExcel_ReplaceSharedStr(&$Txt, $p, &$PosEnd) {
+		
+		static $c = '</c>';
+		static $v1 = '<v>';
+		static $v1_len = 3;
+		static $v2 = '</v>';
+		static $v2_len = 4;
+		static $notbs = array();
+		
+		$x1 = 
+		$p_close = strpos($Txt, $c, $PosEnd);
+		if ($p_close===false) return;
+		$x_len = $p_close - $p;
+		$x = substr($Txt, $p, $x_len); // [<c ...> ... ]</c>
+
+		$v1_p = strpos($x, $v1);
+		if ($v1_p==false) return false;
+		$v2_p = strpos($x, $v2, $v1_p);
+		if ($v2_p==false) return false;
+		$v = substr($x, $v1_p+$v1_len, $v2_p - $v1_p - $v1_len);
+		$v = intval($v);
+		if ($v==0) return false;
+		if (isset($notbs[$v])) return true;
+		$s = $this->OpenXML_SharedStrings_GetVal($v);
+
+		if (strpos($s, $this->TBS->_ChrOpen)===false) {
+			$notbs[$v] = true; // this string id has no TBS field
+			return true;
+		}
+		
+		$IsNum  = (strpos($s, 'ope=xlsxNum')!==false);
+		$IsDate = ( (!$IsNum) && (strpos($s, 'ope=xlsxDate')!==false) ) ;
+		
+		$x1 = substr($x, 0, $v1_p);
+		if ($IsNum || $IsDate) {
+			// numerical format: there must be no parameter 't', the current style stay available
+			// TODO: xlsxDate, 1<=>01/01/1900 and avoid those 'ope' parameters in TBS
+			$s = $this->XML_GetInnerVal($s, 't', true);
+			$x2 = '<v>'.$s.'</v>';
+			$x3 = substr($x, $v2_p + $v2_len);
+			$x = str_replace(' t="s"', '', $x1).$x2.$x3;
+		} else {
+			$x2 = '<is>'.$s.'</is>';
+			$x3 = substr($x, $v2_p + $v2_len);
+			$x = str_replace(' t="s"', ' t="inlineStr"', $x1).$x2.$x3;
+		}
+		
+		$Txt = substr_replace($Txt, $x, $p, $x_len);
+		
+		// $PosEnd is sued to sreach the next item, we update it
+		$PosEnd = $p + strlen($x);
+		
+	}
+	
+	function XML_GetInnerVal($Txt, $Tag, $Concat=false) {
+		$txt = '';
+		$p = 0;
+		$Close = '</'.$Tag.'>';
+		while (($p=$this->XML_FoundTagStart($Txt, $Tag, $p))!==false) {
+			$p2 = strpos($Txt, '>', $p);
+			if ($p2==false) return $this->RaiseError('(XML) the end of tag '.$Tag.' is not found.');
+			$p2++;
+			$p3 = strpos($Txt, $Close, $p2);
+			if ($p3==false) return $this->RaiseError('(XML) the closing tag '.$Tag.' is not found.');
+			$txt .= substr($Txt, $p2, $p3-$p2);
+			if (!$Concat) $p = false;
+		}
+		return $txt;
+	}
 	
 	// Cleaning tags in MsWord
 
@@ -1066,7 +1271,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		$this->MsWord_CleanDuplicatedLayout($Txt);
 	}
 
-	function MsWord_FoundTag($Txt, $Tag, $PosBeg) {
+	function XML_FoundTagStart($Txt, $Tag, $PosBeg) {
 	// Found the next tag of the asked type. (Not specific to MsWord, works for any XML)
 		$len = strlen($Tag);
 		$p = $PosBeg;
@@ -1089,7 +1294,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		foreach ($TagLst as $tag) {
 			$p = 0;
 			if ($UntilClosingTag) $tag_c = substr_replace($tag, '/', 1, 0).'>';
-			while (($p=$this->MsWord_FoundTag($Txt, $tag, $p))!==false) {
+			while (($p=$this->XML_FoundTagStart($Txt, $tag, $p))!==false) {
 				$pe = $p;
 				if ($UntilClosingTag) {
 					$pe = strpos($Txt, $tag_c, $p);
@@ -1197,13 +1402,13 @@ It needs to be completed when a new picture file extension is added in the docum
 
 		$nbr = 0;
 		$wro_p = 0;
-		while ( ($wro_p=$this->MsWord_FoundTag($Txt, $wro, $wro_p))!==false ) {
-			$wto_p = $this->MsWord_FoundTag($Txt,$wto,$wro_p); if ($wto_p===false) return false; // error in the structure of the <w:r> element
+		while ( ($wro_p=$this->XML_FoundTagStart($Txt, $wro, $wro_p))!==false ) {
+			$wto_p = $this->XML_FoundTagStart($Txt,$wto,$wro_p); if ($wto_p===false) return false; // error in the structure of the <w:r> element
 			$first = true;
 			do {
 				$ok = false;
-				$wtc_p = $this->MsWord_FoundTag($Txt,$wtc,$wto_p); if ($wtc_p===false) return false; // error in the structure of the <w:r> element
-				$wrc_p = $this->MsWord_FoundTag($Txt,$wrc,$wro_p); if ($wrc_p===false) return false; // error in the structure of the <w:r> element
+				$wtc_p = $this->XML_FoundTagStart($Txt,$wtc,$wto_p); if ($wtc_p===false) return false; // error in the structure of the <w:r> element
+				$wrc_p = $this->XML_FoundTagStart($Txt,$wrc,$wro_p); if ($wrc_p===false) return false; // error in the structure of the <w:r> element
 				if ( ($wto_p<$wrc_p) && ($wtc_p<$wrc_p) ) { // if the found <w:t> is actually included in the <w:r> element
 					if ($first) {
 						$superflous = '</w:t></w:r>'.substr($Txt, $wro_p, ($wto_p+$wto_len)-$wro_p); // should be like: '</w:t></w:r><w:r>....<w:t'
