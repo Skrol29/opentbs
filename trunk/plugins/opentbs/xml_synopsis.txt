@@ -340,12 +340,12 @@ Synopsis of a sheet file like "xl/worksheets/sheet1.xml":
 			<c r="B2" s="1" t="s">
 				
 				Definition of a cell:
-				Attribute r is the address if the cell in the sheet
+				Attribute r is the address if the cell in the sheet (format A1). This attribute is optional.
 				Attribute s is the style of the cell (the format). Styles are saved into the file 'xl/styles.xml' but I have not found the link yet.
 				Attribute t is the type of data, by default it is numerical
 				t="s" means that the displayed value is a string, the saved value is the index if the string taken in file sharedStrings.xml.
 				<f>B13+B14</f> the formula. If there is no formula, this tag is absent.
-				<v>0</v> the inner value without formatting. If t="s" then the value is in fact the index of the string.
+				<v>0</v> the inner value without formatting. If t="s" then the value is in fact the index of the string in the "xl/sharedStrings.xml" file.
 			</c>
 		</row>
 	</sheetData>
