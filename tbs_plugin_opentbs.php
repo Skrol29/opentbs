@@ -9,7 +9,9 @@ Site: http://www.tinybutstrong.com/plugins.php
 
 /* CHANGE LOG
 [tt] Direct commands
-[tt] command Chart
+[tt] command Chart for Word
+[ok] Excel: merge row and cells + cell type
+[ok] TbsZip 2.4
 */
 
 // Constants to drive the plugin.
@@ -235,6 +237,25 @@ class clsOpenTBS extends clsTbsZip {
 				$PrmLst['pic_change'] = true;
 			}
 			$this->TbsPicAdd($Value, $PrmLst, $Loc, 'ope=changepic'); // add parameter "att" which will be processed just before the value is merged
+		} elseif($ope==='xlsxString') {
+			// Nothing to do
+		} elseif($ope==='xlsxNum') {
+			$Value = (is_numeric($Value)) ? ''.$Value : '';
+		} elseif($ope==='xlsxBool') {
+			$Value = ($Value) ? 1 : 0;
+		} elseif($ope==='xlsxDate') {
+			if (is_string($Value)) {
+				$t = strtotime($Value); // We look if it's a date
+			} else {
+				$t = $Value;
+			}
+			if (($t===-1) or ($t===false)) { // Date not recognized
+				$Value = '';
+			} elseif ($t===943916400) { // Date to zero
+				$Value = '';
+			} else { // It's a date
+				$Value = ($t/86400.00)+25569; // unix: 1 means 01/01/1970, xls: 1 means 01/01/1900
+			}
 		} elseif(substr($ope,0,3)==='ods') {
 			if (!isset($Loc->PrmLst['odsok'])) $this->OpenDoc_ChangeCellType($Txt, $Loc, $ope, true, $Value);
 		}
@@ -1092,7 +1113,6 @@ It needs to be completed when a new picture file extension is added in the docum
 		
 	}
 
-	// Convert Sheet to relative rows and cells
 	function MsExcel_ConvertToRelative(&$Txt) {
 		// <row r="10" ...> attribute "r" is optional since missing row are added using <row />
 		// <c r="D10" ...> attribute "r" is optional since missing cells are added using <c />
@@ -1133,7 +1153,13 @@ It needs to be completed when a new picture file extension is added in the docum
 					$Txt = substr_replace($Txt, '', $x_p, $x_len);
 					$PosEnd = $PosEnd - $x_len;
 					// If it's a cell, we look if it's a good idea to replace the shared string
-					if ( (!$IsRow) && isset($Loc->PrmPos['t']) && ($Loc->PrmLst['t']=='s') ) $this->MsExcel_ReplaceSharedStr($Txt, $p, $PosEnd);
+					if ( (!$IsRow) && isset($Loc->PrmPos['t']) ) {
+						if ($Loc->PrmLst['t']==='s') {
+							$this->MsExcel_ReplaceString($Txt, $p, $PosEnd, false);
+						} elseif ($Loc->PrmLst['t']==='str') {
+							$this->MsExcel_ReplaceString($Txt, $p, $PosEnd, true);
+						}
+					}
 					// add missing items before the current item
 					if ($missing_nbr>0) {
 						$x = str_repeat($missing, $missing_nbr);
@@ -1191,8 +1217,8 @@ It needs to be completed when a new picture file extension is added in the docum
 		return $num;
 	}
 
-	function MsExcel_ReplaceSharedStr(&$Txt, $p, &$PosEnd) {
-		
+	function MsExcel_ReplaceString(&$Txt, $p, &$PosEnd, $IsStrFormula) {
+	// replace a shared string or a string formula
 		static $c = '</c>';
 		static $v1 = '<v>';
 		static $v1_len = 3;
@@ -1200,7 +1226,6 @@ It needs to be completed when a new picture file extension is added in the docum
 		static $v2_len = 4;
 		static $notbs = array();
 		
-		$x1 = 
 		$p_close = strpos($Txt, $c, $PosEnd);
 		if ($p_close===false) return;
 		$x_len = $p_close - $p;
@@ -1211,54 +1236,71 @@ It needs to be completed when a new picture file extension is added in the docum
 		$v2_p = strpos($x, $v2, $v1_p);
 		if ($v2_p==false) return false;
 		$v = substr($x, $v1_p+$v1_len, $v2_p - $v1_p - $v1_len);
-		$v = intval($v);
-		if ($v==0) return false;
-		if (isset($notbs[$v])) return true;
-		$s = $this->OpenXML_SharedStrings_GetVal($v);
-
-		if (strpos($s, $this->TBS->_ChrOpen)===false) {
-			$notbs[$v] = true; // this string id has no TBS field
-			return true;
-		}
 		
-		$IsNum  = (strpos($s, 'ope=xlsxNum')!==false);
-		$IsDate = ( (!$IsNum) && (strpos($s, 'ope=xlsxDate')!==false) ) ;
-		
+		// prepare the replace
 		$x1 = substr($x, 0, $v1_p);
-		if ($IsNum || $IsDate) {
-			// numerical format: there must be no parameter 't', the current style stay available
-			// TODO: xlsxDate, 1<=>01/01/1900 and avoid those 'ope' parameters in TBS
-			$s = $this->XML_GetInnerVal($s, 't', true);
-			$x2 = '<v>'.$s.'</v>';
-			$x3 = substr($x, $v2_p + $v2_len);
-			$x = str_replace(' t="s"', '', $x1).$x2.$x3;
-		} else {
-			$x2 = '<is>'.$s.'</is>';
-			$x3 = substr($x, $v2_p + $v2_len);
-			$x = str_replace(' t="s"', ' t="inlineStr"', $x1).$x2.$x3;
+		$x3 = substr($x, $v2_p + $v2_len);
+
+		if ($IsStrFormula) { // String Formula => element <v></v> is set empty
+
+			if (strpos($v, $this->TBS->_ChrOpen)===false) return true; // no TBS field in the value
+			$x = $x1.''.$x3; // no double TBS fields and force the cell to be refreshed
+
+		} else { // Shared String
+			
+			$v = intval($v);
+			if ($v==0) return false;
+			if (isset($notbs[$v])) return true;
+			$s = $this->OpenXML_SharedStrings_GetVal($v);
+
+			if (strpos($s, $this->TBS->_ChrOpen)===false) {
+				$notbs[$v] = true; // this string id has no TBS field
+				return true;
+			}
+
+			// the string has a TBS fields
+			if ( (strpos($s, 'ope=xlsx')!==false) && (strpos($s, 'ope=xlsxString')===false) ) {
+				// numerical and date types: there must be no parameter 't', the current style stay available
+				$s = $this->XML_GetInnerVal($s, 't', true);
+				$x2 = '<v>'.$s.'</v>';
+				$new = (strpos($s, 'ope=xlsxBool')===false) ? '' : ' t="b"'; 
+				$x = str_replace(' t="s"', $new, $x1).$x2.$x3;
+			} else {
+				$x2 = '<is>'.$s.'</is>';
+				$x = str_replace(' t="s"', ' t="inlineStr"', $x1).$x2.$x3;
+			}
+		
 		}
-		
+
 		$Txt = substr_replace($Txt, $x, $p, $x_len);
-		
-		// $PosEnd is sued to sreach the next item, we update it
-		$PosEnd = $p + strlen($x);
+		$PosEnd = $p + strlen($x); // $PosEnd is used to search the next item, we update it
 		
 	}
 	
 	function XML_GetInnerVal($Txt, $Tag, $Concat=false) {
-		$txt = '';
-		$p = 0;
-		$Close = '</'.$Tag.'>';
-		while (($p=$this->XML_FoundTagStart($Txt, $Tag, $p))!==false) {
+		$res = '';
+		$p3 = 0;
+		$close = '</'.$Tag.'>';
+		$close_len = strlen($close);
+		$nbr = 0;
+		while ( ($p = $this->XML_FoundTagStart($Txt, $Tag, $p3))!==false ) {
+			$nbr++;
 			$p2 = strpos($Txt, '>', $p);
 			if ($p2==false) return $this->RaiseError('(XML) the end of tag '.$Tag.' is not found.');
 			$p2++;
-			$p3 = strpos($Txt, $Close, $p2);
+			$p3 = strpos($Txt, $close, $p2);
+			if ($p3==false) exit("strpos($Txt, $close, $p2) p=$p ; nbr=$nbr");
 			if ($p3==false) return $this->RaiseError('(XML) the closing tag '.$Tag.' is not found.');
-			$txt .= substr($Txt, $p2, $p3-$p2);
-			if (!$Concat) $p = false;
+			$x = substr($Txt, $p2, $p3-$p2);
+			if ($Concat===false) {
+				return $x;
+			} elseif ($res!=='') {
+				$res .= $Concat;
+			}
+			$res .= $x;
+			$p3 = $p3 + $close_len;
 		}
-		return $txt;
+		return $res;
 	}
 	
 	// Cleaning tags in MsWord
@@ -1573,7 +1615,7 @@ It needs to be completed when a new picture file extension is added in the docum
 }
 
 /*
-TbsZip version 2.3 (2010-11-29)
+TbsZip version 2.4 (2011-03-25)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class is independent from any other classes and has been originally created for the OpenTbs plug-in
@@ -1590,7 +1632,7 @@ class clsTbsZip {
 
 	function __construct() {
 		$this->Meth8Ok = extension_loaded('zlib'); // check if Zlib extension is available. This is need for compress and uncompress with method 8.
-		$this->DisplayError = false;
+		$this->DisplayError = true;
 		$this->ArchFile = '';
 		$this->Error = false;
 	}
@@ -1732,7 +1774,7 @@ class clsTbsZip {
 	}
 
 	function RaiseError($Msg) {
-		if ($this->DisplayError) echo '<strong>'.get_class($this).' ERROR : '.$Msg.'</strong><br>'."\r\n";
+		if ($this->DisplayError) echo '<strong>'.get_class($this).' ERROR :</strong> '.$Msg.'<br>'."\r\n";
 		$this->Error = $Msg;
 		return false;
 	}
@@ -1964,6 +2006,11 @@ class clsTbsZip {
 
 	function Flush($Render=TBSZIP_DOWNLOAD, $File='', $ContentType='') {
 
+		if ( ($File!=='') && ($this->ArchFile===$File)) {
+			$this->RaiseError('Method Flush() cannot overwrite the current opened archive: \''.$File.'\''); // this makes corrupted zip archives without PHP error.
+			return false;
+		}
+	
 		$ArchPos = 0;
 		$Delta = 0;
 		$FicNewPos = array();
@@ -2098,6 +2145,10 @@ class clsTbsZip {
 		}
 		$this->_PutDec($b2, $this->CdPos+$Delta , 16, 4); // p_cd  (offset of start of central directory with respect to the starting disk number)
 		$this->OutputFromString($b2);
+		
+		$this->OutputClose();
+		
+		return true;
 		
 	}
 
