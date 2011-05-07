@@ -44,8 +44,8 @@ body, td, th {
 
 <body>
 <h1>OpenTBS</h1>
-<div>version 1.5.0, 2011-03-20, by Skrol29<br />
-  help file modified on 2011-04-12</div>
+<div>version 1.6.0 (beta), 2011-05-07, by Skrol29<br />
+  help file modified on 2011-05-07</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -149,7 +149,7 @@ body, td, th {
 <div class="code">$TBS-&gt;Show(OPENTBS_STRING);<br />
   $string = $TBS-&gt;Source; </div>
 <div class="note">When you use <span class="smallcode">OPENTBS_STRING</span> then there is no output for the client. But instead, the binary source of the archive is placed into property $TBS-&gt;Source. This feature can be useful, for example, when you want to place the merged document into an email as an attached file.</div>
-<h3><a name="pic" id="pic"></a>4.4. Change series in charts</h3>
+<h3><a name="chart" id="chart"></a>4.4. Change series in charts</h3>
 &bull; Change series in charts: <span class="versioning">(supported since OpenTBS version 1.5.1, for Ms Word only)</span><br />
 <div class="code">Example: $TBS-&gt;PlugIn(OPENTBS_CHART, $ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewLegend=false)<br />
 </div>
@@ -256,6 +256,12 @@ $TBS-&gt;LoadTemplate('mydoc.odt');
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
+<p>version 1.6.0, on 2011-05-07<br />
+- new feature: merge charts in Ms Word documents.<br />
+- new feature: merging rows and columns is now possible in Ms Excel.<br />
+- new feature: new ope parameters for forcing cells type in Ms Excel (Numeric, Date and Boolean).<br />
+- improvement: can use the Direct Command feature of TBS 3.7.0.<br />
+- based on a TbsZip v2.4</p>
 <p>version 1.5.0, on 2011-03-20<br />
   - new feature: headers and footers are automatically loaded for OpenOffice &amp; MsOffice.<br />
   - new feature: automatically cleans up spelling and change trackings  information in MsWord templates (such information may 
@@ -267,8 +273,7 @@ $TBS-&gt;LoadTemplate('mydoc.odt');
   -    fixed bug: in debug mode: &quot;warning function.str-repeat: Second argument has to be greater than or equal to 0&quot;<br />
   - fixed bug: when using OPENTBS_RESET: &quot;Warning: Missing argument 2 for clsOpenTBS::OnCommand() in ... on line 225&quot;<br />
   - fixed bug: DML images were not found   when using parameter &quot;ope=changepic&quot; in a DOCX document<br />
-  - fixed bug: the script ends and display the XML contents when a when using parameter &quot;ope=changepic&quot; with a new image type  in a DOCX document<br />
-</p>
+  - fixed bug: the script ends and display the XML contents when a when using parameter &quot;ope=changepic&quot; with a new image type  in a DOCX document</p>
 <p>version 1.4.1, on 2010-10-28<br />
 -  major bug fixed: due to TbsZip, some added or modified files can be saved the document with a wrong CRC control code. This could make  softwares to consider the document as corrupted, but were often easily   fixed by OpenOffice and Ms Office. Only few CRC codes are wrongly saved, thus the bug is rare and can seem to appear randomly on few documents.</p>
 <p> version 1.4.0, on 2010-10-05<br />
