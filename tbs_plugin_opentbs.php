@@ -6,6 +6,9 @@ Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
 Site: http://www.tinybutstrong.com/plugins.php
 */
+/* Change log :
+[tt] OPENTBS_DEBUG_XML_SHOW + OPENTBS_DEBUG_XML_CURRENT + OPENTBS_DEBUG_CHART_LIST
+*/
 
 // Constants to drive the plugin.
 define('OPENTBS_PLUGIN','clsOpenTBS');
@@ -23,6 +26,9 @@ define('OPENTBS_CHART','clsOpenTBS.Chart'); // command to delete a file in the a
 define('OPENTBS_DEFAULT','');   // Charset
 define('OPENTBS_ALREADY_XML',false);
 define('OPENTBS_ALREADY_UTF8','already_utf8');
+define('OPENTBS_DEBUG_XML_SHOW','clsOpenTBS.DebugXmlShow');
+define('OPENTBS_DEBUG_XML_CURRENT','clsOpenTBS.DebugXmlCurrent');
+define('OPENTBS_DEBUG_CHART_LIST','clsOpenTBS.DebugChartList');
 
 class clsOpenTBS extends clsTbsZip {
 
@@ -292,6 +298,13 @@ class clsOpenTBS extends clsTbsZip {
 			$NewLegend = (is_null($x4)) ? false : $x4;
 			$CopyFromSeries = (is_null($x5)) ? false : $x5;
 			return $this->OpenXML_ChartChangeSeries($ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewLegend, $CopyFromSeries);
+		} elseif ($Cmd==OPENTBS_DEBUG_CHART_LIST) {
+			$this->OpenXML_ChartDebug();			
+		} elseif ( ($Cmd==OPENTBS_DEBUG_XML_SHOW) || ($Cmd==OPENTBS_DEBUG_XML_CURRENT) ) {
+			if ($Cmd==OPENTBS_DEBUG_XML_SHOW) $this->TBS->Show(TBS_NOTHING);
+			$this->DebugLst = array();
+			foreach ($this->TbsParkLst as $idx=>$park) $this->DebugLst[$this->CdFileLst[$idx]['v_name']] = $park['src'];
+			$this->TbsDebug(true);
 		}
 
 	}
@@ -329,15 +342,18 @@ class clsOpenTBS extends clsTbsZip {
 			}
 		}
 	}
-	
-	function TbsDebug($XmlFormat = true) {
-		// display modified and added files
 
-		if (!headers_sent()) header('Content-Type: text/plain; charset="UTF-8"');
+	function TbsDebug_Init(&$nl, &$sep, &$bull) {
+	// display the header of debug mode
 
 		$nl = "\n";
 		$sep = str_repeat('-',30);
 		$bull = $nl.'  - ';
+
+		if (isset($this->DebugInit)) return;
+		$this->DebugInit = true;
+
+		if (!headers_sent()) header('Content-Type: text/plain; charset="UTF-8"');
 
 		echo "* OPENTBS DEBUG MODE: if the star, (*) on the left before the word OPENTBS, is not the very first character of this page, then your
 merged Document will be corrupted when you use the OPENTBS_DOWNLOAD option. If there is a PHP error message, then you have to fix it.
@@ -348,7 +364,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		echo $nl.'* TinyButStrong version: '.$this->TBS->Version;
 		echo $nl.'* PHP version: '.PHP_VERSION;
 		echo $nl.'* Opened archive: '.$this->ArchFile;
+		
+	}
+	
+	function TbsDebug($XmlFormat = true) {
+		// display modified and added files
 
+		$this->TbsDebug_Init($nl, $sep, $bull);
+	
 		// scann files for collecting information
 		$mod_lst = ''; // id of modified files
 		$del_lst = ''; // id of deleted  files
@@ -924,6 +947,25 @@ It needs to be completed when a new picture file extension is added in the docum
 		
 	}
 
+	function OpenXML_ChartDebug() {
+
+		$this->TbsDebug_Init($nl, $sep, $bull);
+	
+		if (!isset($this->OpenXmlCharts)) $this->OpenXML_ChartInit();
+
+		if (!headers_sent()) header('Content-Type: text/plain; charset="UTF-8"');
+		echo $nl.$nl."List of chart in the current document {".$this->ArchFile."} :".$nl;
+		
+		foreach ($this->OpenXmlCharts as $key => $info) {
+			if (!isset($info['series_nbr'])) {
+				$txt = $this->FileRead($info['idx'], true);
+				$info['series_nbr'] = substr_count($txt, '<c:ser>');
+			}
+			echo "- key for OPENTBS_CHART command: ".$key." , number of series: ".$info['series_nbr'].$nl;
+		}
+		
+	}
+	
 	function OpenXML_ChartSeriesFound(&$Txt, $SeriesNameOrNum, $OnlyBounds=false) {
 
 		$IsNum = is_numeric($SeriesNameOrNum);
@@ -1608,7 +1650,7 @@ It needs to be completed when a new picture file extension is added in the docum
 }
 
 /*
-TbsZip version 2.4 (2011-03-25)
+TbsZip version 2.5 (2011-05-12)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class is independent from any other classes and has been originally created for the OpenTbs plug-in
@@ -1630,10 +1672,9 @@ class clsTbsZip {
 		$this->Error = false;
 	}
 
-	function clsTbsZip() {$this->__construct();} // for PHP 4 compatibility
-
 	function CreateNew($ArchName='new.zip') {
 	// Create a new virtual empty archive, the name will be the default name when the archive is flushed.
+		if (!isset($this->Meth8Ok)) $this->__construct();  // for PHP 4 compatibility
 		$this->Close(); // note that $this->ArchHnd is set to false here
 		$this->Error = false;
 		$this->ArchFile = $ArchName;
@@ -1646,6 +1687,7 @@ class clsTbsZip {
 
 	function Open($ArchFile) {
 	// Open the zip archive
+		if (!isset($this->Meth8Ok)) $this->__construct();  // for PHP 4 compatibility
 		$this->Close(); // close handle and init info
 		$this->Error = false;
 		$this->ArchFile = $ArchFile;
