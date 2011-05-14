@@ -8,6 +8,10 @@ Site: http://www.tinybutstrong.com/plugins.php
 */
 /* Change log :
 [tt] OPENTBS_DEBUG_XML_SHOW + OPENTBS_DEBUG_XML_CURRENT + OPENTBS_DEBUG_CHART_LIST
+[ok] XLSX: bug on MsExcel_ColNum()
+[ok] XLSX: delete all formula's results
+[tt] enhance ->XML_DeleteElements() (to be tested with OPENTBS_CHART to merge serials)
+
 */
 
 // Constants to drive the plugin.
@@ -113,7 +117,10 @@ class clsOpenTBS extends clsTbsZip {
 							if ($this->ArchExtInfo!==false) {
 								if (isset($this->ArchExtInfo['rpl_what'])) $TBS->Source = str_replace($this->ArchExtInfo['rpl_what'],$this->ArchExtInfo['rpl_with'],$TBS->Source); // auto replace strings in the loaded file
 								if (($this->ArchExt==='docx') && isset($TBS->OtbsClearMsWord) && $TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
-								if (($this->ArchExt==='xlsx') && isset($TBS->OtbsMsExcelConsistent) && isset($TBS->OtbsMsExcelConsistent) ) $this->MsExcel_ConvertToRelative($TBS->Source);
+								if (($this->ArchExt==='xlsx') && isset($TBS->OtbsMsExcelConsistent) && isset($TBS->OtbsMsExcelConsistent) ) {
+									$this->MsExcel_DeleteFormulaResults($TBS->Source);
+									$this->MsExcel_ConvertToRelative($TBS->Source);
+								}
 							}
 							// apply default TBS behaviors on the uncompressed content: other plug-ins + [onload] fields
 							if ($TbsLoadTemplate) $TBS->LoadTemplate(null,'+');
@@ -301,7 +308,11 @@ class clsOpenTBS extends clsTbsZip {
 		} elseif ($Cmd==OPENTBS_DEBUG_CHART_LIST) {
 			$this->OpenXML_ChartDebug();			
 		} elseif ( ($Cmd==OPENTBS_DEBUG_XML_SHOW) || ($Cmd==OPENTBS_DEBUG_XML_CURRENT) ) {
-			if ($Cmd==OPENTBS_DEBUG_XML_SHOW) $this->TBS->Show(TBS_NOTHING);
+			if ($Cmd==OPENTBS_DEBUG_XML_SHOW) {
+				$this->TBS->Show(TBS_NOTHING);
+			} else {
+				$this->TbsParkCurrSrc();
+			}
 			$this->DebugLst = array();
 			foreach ($this->TbsParkLst as $idx=>$park) $this->DebugLst[$this->CdFileLst[$idx]['v_name']] = $park['src'];
 			$this->TbsDebug(true);
@@ -1047,8 +1058,8 @@ It needs to be completed when a new picture file extension is added in the docum
 		if ($Txt===false) return false;
 		
 		if (!$chart['clean']) {
-			// clean tags that refere to the XLSX file containing original data
-			$this->MsWord_CleanTag($Txt, array('<c:externalData', '<c:f'), true);
+			// delete tags that refere to the XLSX file containing original data
+			$this->XML_DeleteElements($Txt, array('c:externalData', 'c:f'));
 			$chart['nbr'] = substr_count($Txt, '<c:ser>');
 			$chart['clean'] = true;
 		}
@@ -1156,6 +1167,7 @@ It needs to be completed when a new picture file extension is added in the docum
 	}
 
 	function MsExcel_ConvertToRelative_Item(&$Txt, &$Loc, $Tag, $Att, $IsRow) {
+	// convert tags $Tag which have a position (defined with attribute $Att) into relatives tags without attribute $Att. Missing tags are added as empty tags.
 		$item_num = 0;
 		$att_len = strlen($Att);
 		$missing = '<'.$Tag.' />';
@@ -1180,7 +1192,7 @@ It needs to be completed when a new picture file extension is added in the docum
 				if ($missing_nbr<0) {
 					return $this->RaiseError('(Excel Consistency) error in counting items <'.$Tag.'>, found number '.$r.', previous was '.$item_num);
 				} else {
-					// delete the current attribute
+					// delete the $Att attribute
 					$pp = $Loc->PrmPos[$Att];
 					$pp[3]--; //while ($Txt[$pp[3]]===' ') $pp[3]--; // external end of the attribute, may has an extra spaces
 					$x_p = $pp[0];
@@ -1188,13 +1200,7 @@ It needs to be completed when a new picture file extension is added in the docum
 					$Txt = substr_replace($Txt, '', $x_p, $x_len);
 					$PosEnd = $PosEnd - $x_len;
 					// If it's a cell, we look if it's a good idea to replace the shared string
-					if ( (!$IsRow) && isset($Loc->PrmPos['t']) ) {
-						if ($Loc->PrmLst['t']==='s') {
-							$this->MsExcel_ReplaceString($Txt, $p, $PosEnd, false);
-						} elseif ($Loc->PrmLst['t']==='str') {
-							$this->MsExcel_ReplaceString($Txt, $p, $PosEnd, true);
-						}
-					}
+					if ( (!$IsRow) && isset($Loc->PrmPos['t']) && ($Loc->PrmLst['t']==='s') ) $this->MsExcel_ReplaceString($Txt, $p, $PosEnd);
 					// add missing items before the current item
 					if ($missing_nbr>0) {
 						$x = str_repeat($missing, $missing_nbr);
@@ -1228,32 +1234,42 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 	
-	function MsExcel_ColNum($ColRef) {
-	// return the column number from a reference like "B3"
-		$i = 0;
-		$i_end = strlen($ColRef);
-		$rank = 1;
-		$num = 0;
-		do {
-			$l = $ColRef[$i];
-			if (is_numeric($l)) {
-				$i = $i_end;
-			} else {
-				$l = ord(strtoupper($l)) -64;
-				if ($l>0 && $l<27) {
-					$num = $num + $l*$rank; 
-				} else {
-					return $this->RaiseError('(Excel Consistency) Reference of cell \''.$ColRef.'\' cannot be recognized.');
-				}
-				$i++;
-				$rank = $rank * 27;
-			}
-		} while ($i<$i_end);
-		return $num;
+    function MsExcel_ColNum($ColRef) {
+    // return the column number from a reference like "B3"
+        $num = 0;
+        $rank = 0;
+        for ($i=strlen($ColRef)-1;$i>=0;$i--) {
+            $l = $ColRef[$i];
+            if (!is_numeric($l)) {
+                $l = ord(strtoupper($l)) -64;
+                if ($l>0 && $l<27) {
+                    $num = $num + $l*pow(27,$rank);
+                } else {
+                    return $this->RaiseError('(Excel Consistency) Reference of cell \''.$ColRef.'\' cannot be recognized.');
+                }
+                $rank++;
+            }
+        }
+        return $num;
+    }
+
+	function MsExcel_DeleteFormulaResults(&$Txt) {
+	// In order to refresh the formula results when the merged XLSX is opened, then we delete all <v> elements having a formula.
+		$c_close = '</c>';
+		$p = 0;
+		while (($p=clsTinyButStrong::f_Xml_FindTagStart($Txt, 'f', true, $p, true, true))!==false) {
+			$c_p = strpos($Txt, $c_close, $p);
+			if ($c_p===false) return false; // error in the XML
+			$x_len0 = $c_p - $p;
+			$x = substr($Txt, $p, $x_len0);
+			$this->XML_DeleteElements($x, array('v'));
+			$Txt = substr_replace($Txt, $x, $p, $x_len0);
+			$p = $p + strlen($x);
+		}
 	}
 
-	function MsExcel_ReplaceString(&$Txt, $p, &$PosEnd, $IsStrFormula) {
-	// replace a shared string or a string formula
+	function MsExcel_ReplaceString(&$Txt, $p, &$PosEnd) {
+	// replace a SharedString into an InlineStr only if the string contains a TBS field
 		static $c = '</c>';
 		static $v1 = '<v>';
 		static $v1_len = 3;
@@ -1261,50 +1277,45 @@ It needs to be completed when a new picture file extension is added in the docum
 		static $v2_len = 4;
 		static $notbs = array();
 		
+		// found position of the <c> element, and extract its contents
 		$p_close = strpos($Txt, $c, $PosEnd);
 		if ($p_close===false) return;
 		$x_len = $p_close - $p;
 		$x = substr($Txt, $p, $x_len); // [<c ...> ... ]</c>
 
+		// found position of the <v> element, and extract its contents
 		$v1_p = strpos($x, $v1);
 		if ($v1_p==false) return false;
 		$v2_p = strpos($x, $v2, $v1_p);
 		if ($v2_p==false) return false;
 		$v = substr($x, $v1_p+$v1_len, $v2_p - $v1_p - $v1_len);
 		
+		// extract the SharedString id, and retrieve the corresponding text
+		$v = intval($v);
+		if ($v==0) return false;
+		if (isset($notbs[$v])) return true;
+		$s = $this->OpenXML_SharedStrings_GetVal($v);
+
+		// if the SharedSring has no TBS field, then we save the id in a list of known id, and we leave the function
+		if (strpos($s, $this->TBS->_ChrOpen)===false) {
+			$notbs[$v] = true;
+			return true;
+		}
+
 		// prepare the replace
 		$x1 = substr($x, 0, $v1_p);
 		$x3 = substr($x, $v2_p + $v2_len);
-
-		if ($IsStrFormula) { // String Formula => element <v></v> is set empty
-
-			if (strpos($v, $this->TBS->_ChrOpen)===false) return true; // no TBS field in the value
-			$x = $x1.''.$x3; // no double TBS fields and force the cell to be refreshed
-
-		} else { // Shared String
-			
-			$v = intval($v);
-			if ($v==0) return false;
-			if (isset($notbs[$v])) return true;
-			$s = $this->OpenXML_SharedStrings_GetVal($v);
-
-			if (strpos($s, $this->TBS->_ChrOpen)===false) {
-				$notbs[$v] = true; // this string id has no TBS field
-				return true;
-			}
-
-			// the string has a TBS fields
-			if ( (strpos($s, 'ope=xlsx')!==false) && (strpos($s, 'ope=xlsxString')===false) ) {
-				// numerical and date types: there must be no parameter 't', the current style stay available
-				$s = $this->XML_GetInnerVal($s, 't', true);
-				$x2 = '<v>'.$s.'</v>';
-				$new = (strpos($s, 'ope=xlsxBool')===false) ? '' : ' t="b"'; 
-				$x = str_replace(' t="s"', $new, $x1).$x2.$x3;
-			} else {
-				$x2 = '<is>'.$s.'</is>';
-				$x = str_replace(' t="s"', ' t="inlineStr"', $x1).$x2.$x3;
-			}
 		
+		// the string has a TBS fields
+		if ( (strpos($s, 'ope=xlsx')!==false) && (strpos($s, 'ope=xlsxString')===false) ) {
+			// numerical and date types: there must be no parameter 't', the current style stay available
+			$s = $this->XML_GetInnerVal($s, 't', true);
+			$x2 = '<v>'.$s.'</v>';
+			$new = (strpos($s, 'ope=xlsxBool')===false) ? '' : ' t="b"'; 
+			$x = str_replace(' t="s"', $new, $x1).$x2.$x3;
+		} else {
+			$x2 = '<is>'.$s.'</is>';
+			$x = str_replace(' t="s"', ' t="inlineStr"', $x1).$x2.$x3;
 		}
 
 		$Txt = substr_replace($Txt, $x, $p, $x_len);
@@ -1342,7 +1353,7 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	function MsWord_Clean(&$Txt) {
 		$Txt = str_replace('<w:lastRenderedPageBreak/>', '', $Txt); // faster
-		$this->MsWord_CleanTag($Txt, array('<w:proofErr', '<w:noProof', '<w:lang', '<w:lastRenderedPageBreak'));
+		$this->XML_DeleteElements($Txt, array('w:proofErr', 'w:noProof', 'w:lang', 'w:lastRenderedPageBreak'));
 		$this->MsWord_CleanSystemBookmarks($Txt);
 		$this->MsWord_CleanRsID($Txt);
 		$this->MsWord_CleanDuplicatedLayout($Txt);
@@ -1350,6 +1361,7 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	function XML_FoundTagStart($Txt, $Tag, $PosBeg) {
 	// Found the next tag of the asked type. (Not specific to MsWord, works for any XML)
+	// Tag must be prefixed with '<' or '</'.
 		$len = strlen($Tag);
 		$p = $PosBeg;
 		while ($p!==false) {
@@ -1365,20 +1377,22 @@ It needs to be completed when a new picture file extension is added in the docum
 		return false;
 	}
 
-	function MsWord_CleanTag(&$Txt, $TagLst, $UntilClosingTag=false) {
-	// Delete all tags of the types listed in the list. (Not specific to MsWord, works for any XML)
+	function XML_DeleteElements(&$Txt, $TagLst) {
+	// Delete all tags of the types given in the list. In fact the entire element is deleted if it's an opening+closing tag.
 		$nbr_del = 0;
 		foreach ($TagLst as $tag) {
+			$t_open = '<'.$tag;
+			$t_close = '</'.$tag;
 			$p = 0;
-			if ($UntilClosingTag) $tag_c = substr_replace($tag, '/', 1, 0).'>';
-			while (($p=$this->XML_FoundTagStart($Txt, $tag, $p))!==false) {
-				$pe = $p;
-				if ($UntilClosingTag) {
-					$pe = strpos($Txt, $tag_c, $p);
-					if ($pe===false) $pe = $p;
-				}
+			while (($p=$this->XML_FoundTagStart($Txt, $t_open, $p))!==false) {
 				// get the end of the tag
-				$pe = strpos($Txt, '>', $pe);
+				$pe = strpos($Txt, '>', $p);
+				if (substr($Txt, $pe-1, 1)!='/') {
+					// it's an opening+closing
+					$pe = $this->XML_FoundTagStart($Txt, $t_close, $pe);
+					if ($pe===false) return false; // error in the XML formating
+					$pe = strpos($Txt, '>', $pe);
+				}
 				if ($pe===false) return false; // error in the XML formating
 				// delete the tag
 				$Txt = substr_replace($Txt, '', $p, $pe-$p+1);
