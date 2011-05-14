@@ -38,9 +38,9 @@ if ($yourname=='') $yourname = "(no name)";
 
 // Prepare some data for the demo
 $data = array();
-$data[] = array('firstname'=>'Sandra', 'name'=>'Hill', 'number'=>'1523d' );
-$data[] = array('firstname'=>'Roger', 'name'=>'Smith', 'number'=>'1234f' );
-$data[] = array('firstname'=>'William', 'name'=>'Mac Dowell', 'number'=>'5491y' );
+$data[] = array('firstname'=>'Sandra', 'name'=>'Hill', 'number'=>'1523d', 'score'=>200 );
+$data[] = array('firstname'=>'Roger', 'name'=>'Smith', 'number'=>'1234f', 'score'=>800 );
+$data[] = array('firstname'=>'William', 'name'=>'Mac Dowell', 'number'=>'5491y', 'score'=>130 );
 
 $x_num = 3152.456;
 $x_pc = 0.2567;
