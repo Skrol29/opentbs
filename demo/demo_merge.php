@@ -28,6 +28,8 @@ $debug = (isset($_POST['debug']));
 // Retrieve the template to use
 $template = (isset($_POST['tpl'])) ? $_POST['tpl'] : '';
 $template = basename($template);
+$x = pathinfo($template);
+$template_ext = $x['extension'];
 if (substr($template,0,5)!=='demo_') exit("Wrong file.");
 if (!file_exists($template)) exit("File does not exist.");
 
@@ -51,6 +53,8 @@ $x_bf = false;
 // Load the template
 $TBS->LoadTemplate($template);
 $TBS->MergeBlock('a,b', $data);
+
+if ($template_ext=='xlsx') $TBS->MergeBlock('b1,b2', $data);
 
 // Define the name of the output file
 $file_name = str_replace('.','_'.date('Y-m-d').'.',$template);
