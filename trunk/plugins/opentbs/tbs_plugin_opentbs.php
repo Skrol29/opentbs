@@ -11,6 +11,7 @@ Site: http://www.tinybutstrong.com/plugins.php
 [ok] XLSX: bug on MsExcel_ColNum()
 [ok] XLSX: delete all formula's results
 [tt] enhance ->XML_DeleteElements() (to be tested with OPENTBS_CHART to merge serials)
+[tt] OPENTBS_FORCE_DOCTYPE
 
 */
 
@@ -33,6 +34,8 @@ define('OPENTBS_ALREADY_UTF8','already_utf8');
 define('OPENTBS_DEBUG_XML_SHOW','clsOpenTBS.DebugXmlShow');
 define('OPENTBS_DEBUG_XML_CURRENT','clsOpenTBS.DebugXmlCurrent');
 define('OPENTBS_DEBUG_CHART_LIST','clsOpenTBS.DebugChartList');
+define('OPENTBS_FORCE_DOCTYPE','clsOpenTBS.ForceDocType');
+
 
 class clsOpenTBS extends clsTbsZip {
 
@@ -316,6 +319,8 @@ class clsOpenTBS extends clsTbsZip {
 			$this->DebugLst = array();
 			foreach ($this->TbsParkLst as $idx=>$park) $this->DebugLst[$this->CdFileLst[$idx]['v_name']] = $park['src'];
 			$this->TbsDebug(true);
+		} elseif($Cmd==OPENTBS_FORCE_DOCTYPE) {
+			return $this->PrepareExtInfo($x1);
 		}
 
 	}
@@ -615,7 +620,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	function PrepareExtInfo() {
+	function PrepareExtInfo($Ext=false) {
 /* Extension Info must be an array with keys 'load', 'br', 'ctype' and 'pic_path'. Keys 'rpl_what' and 'rpl_with' are optional.
  load:     files in the archive to be automatically loaded by OpenTBS when the archive is loaded. Separate files with comma ';'.
  br:       string that replace break-lines in the values merged by TBS, set to false if no conversion.
@@ -628,9 +633,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 User can define his own Extension Information, they are taken in acount if saved int the global variable $_OPENTBS_AutoExt.
 */
 
-		$Ext = basename($this->ArchFile);
-		$p = strrpos($Ext, '.');
-		$Ext = ($p===false) ? ''  : strtolower(substr($Ext,$p+1));
+		if ($Ext===false) {
+			$Ext = basename($this->ArchFile);
+			$p = strrpos($Ext, '.');
+			$Ext = ($p===false) ? ''  : strtolower(substr($Ext,$p+1));
+		}
 
 		$i = false;
 		if (isset($GLOBAL['_OPENTBS_AutoExt'][$Ext])) {
@@ -665,7 +672,8 @@ User can define his own Extension Information, they are taken in acount if saved
 
 		$this->ArchExt = $Ext;
 		$this->ArchExtInfo = $i;
-
+		return (is_array($i)); // return true if the extension is suported
+		
 	}
 
 	function OpenXML_RidPrepare($DocPath, $ImageName) {
