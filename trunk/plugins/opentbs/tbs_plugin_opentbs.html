@@ -98,7 +98,9 @@ body, td, th {
 <p> When the OpenTBS plugin is installed, the LoadTemplate() method becomes able to first load a zip archive (an OpenOffice or Ms Office document), and then to load the contents of any XML or Text files stored in the archive. You can then merge the contents of XML or Text files with all features of the TinyButStrong template engine. At the end, the Show() method does render the entire zip archive including  modified stored files. The render can be done as an HTTP download, a news file on the server's disk, or in a PHP string.</p>
 <p>Since OpenTBS version 1.3, you can also add and delete files in the archive. Before this version you could only modify existing files in the archive.<br />
 </p>
-<p> <a name="extension" id="extension"></a>OpenTBS has <strong>automatic extension recognition</strong>. When you load a document (an archive) which has one of the following extensions { odt, odg, ods, odf, odp, odm, docx, xlsx and pptx }, then the main XML file of the archive are automatically  loaded, and some special character conversion are preset. For example, for all OpenDocument  files, the stored file  &quot;content.xml&quot; is automatically loaded.</p>
+<p> <a name="extension" id="extension"></a>OpenTBS has <strong>automatic extension recognition</strong>. When you load a document which has one of the following extensions { odt, odg, ods, odf, odp, odm, docx, xlsx, pptx }, then the main XML file of the archive are automatically  loaded, and some special character conversion are preset. For example, for all OpenDocument  files, the stored file  &quot;content.xml&quot; is automatically loaded.<br />
+  Since  version 1.6.0, 
+if the extension is not recognized then OpenTBS also try to find the document by the sub-file presence. And if all fails, then you can force the document type using a <a href="#force_doctype">special command</a>.</p>
 <h2><a name="coding" id="coding"></a>4. Synopsis and code examples</h2>
 <h3><a name="preparation" id="preparation"></a>4.1. Preparation of TinyButStrong Template Engine with the OpenTBS plug-in</h3>
 <div class="code">include_once('tbs_class.php');<br />
@@ -196,7 +198,16 @@ body, td, th {
 </div>
 <div class="note">The automatic extension recognition is also applied as it was applied for the first load of the archive.</div>
 <h3><a name="misc" id="misc"></a>4.7. Miscellaneous</h3>
-<p>&bull; Property <span class="code">$TBS-&gt;tbsCurrFile</span> indicates the name of the current file loaded from the archive. The value is false if no file is loaded yet from the archive.</p>
+<p>&bull; <u>Dealing with apostrophes:</u><br />
+Both OpenOffice and Ms Office may automatically convert single quotes (') into typographic apostrophes (&rsquo;), depending to the auto-correction options. This may be annoying   when you need to code a TBS fields that have a single quote. That's why OpenTBS automatically convert by default all (&rsquo;) back to single quotes (') in documents.<br />
+If you want to stop this conversion, you can set <span class="smallcode">$TBS-&gt;OtbsConvertApostrophes = false;</span> and no apostrophes   will be converted. Note that you can avoid the auto-correction of single quotes (') in Ms Word using keys[ctrl]+[z], and in OpenOffice using the cancel button.<br />
+<span class="versioning">Property OtbsConvertApostrophes is supported since OpenTBS version 1.6.0.</span></p>
+<p><a name="force_doctype" id="demo4"></a>&bull; <u>Forcing the document type recognition:</u><br /> 
+  You can force the document type recognition using command OPENTBS_FORCE_DOCTYPE. Example:</p>
+<div class="code"> $TBS-&gt;PlugIn(OPENTBS_FORCE_DOCTYPE, 'docx');</div>
+<span class="versioning">This command is supported since OpenTBS version 1.6.0.</span>
+<p>&bull; <u>Retreiving the name of the current document:</u><br />
+Property <span class="smallcode">$TBS-&gt;tbsCurrFile</span> indicates the name of the current file loaded from the archive. The value is false if no file is loaded yet from the archive.</p>
 <p> Other TinyButStrong methods and properties stay unchanged and are available for merging your template.
 </p>
 <h2><a name="demo" id="demo"></a>5. Demo</h2>
@@ -258,11 +269,14 @@ $TBS-&gt;Show(OPENTBS_DEBUG_XML+<span class="smallcode">OPENTBS_DEBUG_AVOIDAUTOF
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
-<p>version 1.6.0, on 2011-05-07<br />
+<p>version 1.6.0, on 2011-05-25<br />
 - new feature: merge charts in Ms Word documents.<br />
 - new feature: merging rows and columns is now possible in Ms Excel.<br />
 - new feature: new ope parameters for forcing cells type in Ms Excel (Numeric, Date and Boolean).<br />
 - new feature: debug mode enehaced using commands OPENTBS_DEBUG_XML_SHOW ; OPENTBS_DEBUG_XML_CURRENT ;  OPENTBS_DEBUG_CHART_LIST<br />
+- new command OPENTBS_FORCE_DOCTYPE.<br />
+- new property OtbsConvertApostrophes for dealing with apostrophes.<br />
+- improvement: if extension is not recognized, try to recognize document type by sub-file presence.<br />
 - improvement: can use the Direct Command feature of TBS 3.7.0.<br />
 - based on a TbsZip v2.4</p>
 <p>version 1.5.0, on 2011-03-20<br />
@@ -271,7 +285,7 @@ $TBS-&gt;Show(OPENTBS_DEBUG_XML+<span class="smallcode">OPENTBS_DEBUG_AVOIDAUTOF
   deconstruct the TBS tags). This feature can be disabled.<br />
   - new constant OPENTBS_DEBUG_AVOIDAUTOFIELDS
   <br />
-  - <span id="result_box2" lang="en" xml:lang="en"><span title="Cliquer ici pour voir d'autres traductions">improvement</span></span>: Debug doesn't stopped if an OpenTBS alert occurs.<br />
+  - <span id="result_box4" lang="en" xml:lang="en"><span title="Cliquer ici pour voir d'autres traductions">improvement</span></span>: Debug doesn't stopped if an OpenTBS alert occurs.  <br />
   - <span id="result_box3" lang="en" xml:lang="en"><span title="Cliquer ici pour voir d'autres traductions">improvement</span></span>: OpenTBS alerts say if the process will be stopped. <br />
   -    fixed bug: in debug mode: &quot;warning function.str-repeat: Second argument has to be greater than or equal to 0&quot;<br />
   - fixed bug: when using OPENTBS_RESET: &quot;Warning: Missing argument 2 for clsOpenTBS::OnCommand() in ... on line 225&quot;<br />
