@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.6.0-beta-2011-05-17
+/* OpenTBS version 1.6.0-beta-2011-05-25
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -12,6 +12,7 @@ Site: http://www.tinybutstrong.com/plugins.php
 [ok] XLSX: delete all formula's results
 [tt] enhance ->XML_DeleteElements() (to be tested with OPENTBS_CHART to merge serials)
 [tt] OPENTBS_FORCE_DOCTYPE
+[ok] recognize default doc
 
 */
 
@@ -45,7 +46,8 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsAutoLoad)) $TBS->OtbsAutoLoad = true; // TBS will load the subfile regarding to the extension of the archive
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
-		$this->Version = '1.6.0-beta-2011-05-17'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
+		if (!isset($TBS->OtbsConvertApostrophes)) $TBS->OtbsConvertApostrophes = true;
+		$this->Version = '1.6.0-beta-2011-05-25'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtMode = '';
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
@@ -69,7 +71,7 @@ class clsOpenTBS extends clsTbsZip {
 		// Open the archive
 		if ($FilePath!=='') {
 			$this->Open($FilePath);  // Open the archive
-			$this->PrepareExtInfo(); // Set extension information
+			$this->Ext_PrepareInfo(); // Set extension information
 			if ($TBS->OtbsAutoLoad && ($this->ArchExtInfo!==false) && ($SubFileLst===false)) {
 				// auto load files from the archive
 				$SubFileLst = $this->ArchExtInfo['load'];
@@ -320,7 +322,7 @@ class clsOpenTBS extends clsTbsZip {
 			foreach ($this->TbsParkLst as $idx=>$park) $this->DebugLst[$this->CdFileLst[$idx]['v_name']] = $park['src'];
 			$this->TbsDebug(true);
 		} elseif($Cmd==OPENTBS_FORCE_DOCTYPE) {
-			return $this->PrepareExtInfo($x1);
+			return $this->Ext_PrepareInfo($x1);
 		}
 
 	}
@@ -620,61 +622,96 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	function PrepareExtInfo($Ext=false) {
-/* Extension Info must be an array with keys 'load', 'br', 'ctype' and 'pic_path'. Keys 'rpl_what' and 'rpl_with' are optional.
- load:     files in the archive to be automatically loaded by OpenTBS when the archive is loaded. Separate files with comma ';'.
- br:       string that replace break-lines in the values merged by TBS, set to false if no conversion.
- frm:      format of the file ('odf' or 'openxml'), for now it is used only to activate a special feature for openxml files
- ctype:    (optional) the Content-Type header name that should be use for HTTP download. Omit or set to '' if not specified.
- pic_path: (optional) the folder nale in the archive where to place pictures
- rpl_what: (optional) string to replace automatically in the files when they are loaded. Can be a string or an array.
- rpl_with: (optional) to be used with 'rpl_what',  Can be a string or an array.
+	function Ext_PrepareInfo($Ext=false) {
+		/* Extension Info must be an array with keys 'load', 'br', 'ctype' and 'pic_path'. Keys 'rpl_what' and 'rpl_with' are optional.
+		  load:     files in the archive to be automatically loaded by OpenTBS when the archive is loaded. Separate files with comma ';'.
+		  br:       string that replace break-lines in the values merged by TBS, set to false if no conversion.
+		  frm:      format of the file ('odf' or 'openxml'), for now it is used only to activate a special feature for openxml files
+		  ctype:    (optional) the Content-Type header name that should be use for HTTP download. Omit or set to '' if not specified.
+		  pic_path: (optional) the folder nale in the archive where to place pictures
+		  rpl_what: (optional) string to replace automatically in the files when they are loaded. Can be a string or an array.
+		  rpl_with: (optional) to be used with 'rpl_what',  Can be a string or an array.
 
-User can define his own Extension Information, they are taken in acount if saved int the global variable $_OPENTBS_AutoExt.
-*/
+		  User can define his own Extension Information, they are taken in acount if saved int the global variable $_OPENTBS_AutoExt.
+		 */
 
-		if ($Ext===false) {
+		if ($Ext === false) {
+			// Get the extension of the current archive
 			$Ext = basename($this->ArchFile);
 			$p = strrpos($Ext, '.');
-			$Ext = ($p===false) ? ''  : strtolower(substr($Ext,$p+1));
+			$Ext = ($p===false) ? '' : strtolower(substr($Ext, $p + 1));
+			$Frm = $this->Ext_GetFormat($Ext, true);
+		} else {
+			// The extension is forced
+			$Frm = $this->Ext_GetFormat($Ext, false);
 		}
 
 		$i = false;
 		if (isset($GLOBAL['_OPENTBS_AutoExt'][$Ext])) {
 			$i = $GLOBAL['_OPENTBS_AutoExt'][$Ext];
-		} elseif (strpos(',odt,ods,odg,odf,odp,odm,ott,ots,otg,otp,', ','.$Ext.',')!==false) {
+		} elseif ($Frm==='odf') {
 			// OpenOffice & LibreOffice documents
-			$i = array('load'=>'content.xml', 'br'=>'<text:line-break/>', 'frm'=>'odf', 'ctype'=>'application/vnd.oasis.opendocument.', 'pic_path'=>'Pictures/', 'rpl_what'=>'&apos;', 'rpl_with'=>'\'');
-			if ($this->FileExists('styles.xml')) $i['load'] = 'styles.xml;'.$i['load']; // styles.xml may contain header/footer contents
-			if ($Ext==='odf') $i['br'] = false;
-			$ctype = array('t'=>'text', 's'=>'spreadsheet', 'g'=>'graphics', 'f'=>'formula', 'p'=>'presentation', 'm'=>'text-master');
+			$i = array('load' => 'content.xml', 'br' => '<text:line-break/>', 'frm' => 'odf', 'ctype' => 'application/vnd.oasis.opendocument.', 'pic_path' => 'Pictures/', 'rpl_what' => '&apos;', 'rpl_with' => '\'');
+			if ($this->FileExists('styles.xml')) $i['load'] = 'styles.xml;' . $i['load']; // styles.xml may contain header/footer contents
+			if ($Ext === 'odf') $i['br'] = false;
+			$ctype = array('t' => 'text', 's' => 'spreadsheet', 'g' => 'graphics', 'f' => 'formula', 'p' => 'presentation', 'm' => 'text-master');
 			$i['ctype'] .= $ctype[($Ext[2])];
-			$i['pic_ext'] = array('png'=>'png', 'bmp'=>'bmp', 'gif'=>'gif', 'jpg'=>'jpeg', 'jpeg'=>'jpeg', 'jpe'=>'jpeg', 'jfif'=>'jpeg', 'tif'=>'tiff', 'tiff'=>'tiff');
-		} elseif (strpos(',docx,xlsx,pptx,', ','.$Ext.',')!==false) {
+			$i['pic_ext'] = array('png' => 'png', 'bmp' => 'bmp', 'gif' => 'gif', 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'jpe' => 'jpeg', 'jfif' => 'jpeg', 'tif' => 'tiff', 'tiff' => 'tiff');
+		} elseif ($Frm==='openxml') {
 			// Microsoft Office documents
 			if (!isset($this->TBS->OtbsClearMsWord)) $this->TBS->OtbsClearMsWord = true;
 			if (!isset($this->TBS->OtbsMsExcelConsistent)) $this->TBS->OtbsMsExcelConsistent = true;
 			$this->OpenXML_MapInit();
-			$x = array(chr(226).chr(128).chr(152) , chr(226).chr(128).chr(153));
+			if ($this->TBS->OtbsConvertApostrophes) {
+				$x = array(chr(226) . chr(128) . chr(152), chr(226) . chr(128) . chr(153));
+			} else {
+				$x = null;
+			}
 			$ctype = 'application/vnd.openxmlformats-officedocument.';
 			if ($Ext==='docx') {
-				$i = array('load'=>'word/document.xml', 'br'=>'<w:br/>', 'frm'=>'openxml', 'ctype'=>$ctype.'wordprocessingml.document', 'pic_path'=>'word/media/','rpl_what'=>$x,'rpl_with'=>'\'');
+				$i = array('load' => 'word/document.xml', 'br' => '<w:br/>', 'frm' => 'openxml', 'ctype' => $ctype . 'wordprocessingml.document', 'pic_path' => 'word/media/', 'rpl_what' => $x, 'rpl_with' => '\'');
 				$i['load'] = $this->OpenXML_MapGetVal(array('wordprocessingml.header+xml', 'wordprocessingml.footer+xml', 'wordprocessingml.document.main+xml'), $i['load'], ';', true); // footnotes and endnotes omitted for perf
 			} elseif ($Ext==='xlsx') {
-				$i = array('load'=>'xl/worksheets/sheet1.xml', 'br'=>false, 'frm'=>'openxml', 'ctype'=>$ctype.'spreadsheetml.sheet', 'pic_path'=>'xl/media/');
+				$i = array('load' => 'xl/worksheets/sheet1.xml', 'br' => false, 'frm' => 'openxml', 'ctype' => $ctype . 'spreadsheetml.sheet', 'pic_path' => 'xl/media/');
 				//$i['load'] = $this->OpenXML_MapGetVal(array('spreadsheetml.worksheet+xml'), $i['load'], ';', true);
-			} elseif($Ext==='pptx') {
-				$i = array('load'=>'ppt/slides/slide1.xml', 'br'=>false, 'frm'=>'openxml', 'ctype'=>$ctype.'presentationml.presentation', 'pic_path'=>'ppt/media/' ,'rpl_what'=>$x,'rpl_with'=>'\'');
+			} elseif ($Ext==='pptx') {
+				$i = array('load' => 'ppt/slides/slide1.xml', 'br' => false, 'frm' => 'openxml', 'ctype' => $ctype . 'presentationml.presentation', 'pic_path' => 'ppt/media/', 'rpl_what' => $x, 'rpl_with' => '\'');
 				$i['load'] = $this->OpenXML_MapGetVal(array('presentationml.notesSlide+xml'), $i['load'], ';', true); // masternotes and slidenotes omitted for perf 
 			}
-			$i['pic_ext'] = array('png'=>'png', 'bmp'=>'bmp', 'gif'=>'gif', 'jpg'=>'jpeg', 'jpeg'=>'jpeg', 'jpe'=>'jpeg', 'tif'=>'tiff', 'tiff'=>'tiff', 'ico'=>'x-icon', 'svg'=>'svg+xml');
+			$i['pic_ext'] = array('png' => 'png', 'bmp' => 'bmp', 'gif' => 'gif', 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'jpe' => 'jpeg', 'tif' => 'tiff', 'tiff' => 'tiff', 'ico' => 'x-icon', 'svg' => 'svg+xml');
 		}
 
 		$this->ArchExt = $Ext;
 		$this->ArchExtInfo = $i;
 		return (is_array($i)); // return true if the extension is suported
-		
 	}
+
+	function Ext_GetFormat(&$Ext, $Search) {
+		if (strpos(',odt,ods,odg,odf,odp,odm,ott,ots,otg,otp,', ',' . $Ext . ',') !== false) return 'odf';
+		if (strpos(',docx,xlsx,pptx,', ',' . $Ext . ',') !== false) return 'openxml';
+		if (!$Search) return false;
+		if ($this->FileExists('content.xml')) {
+			// OpenOffice documents
+			if ($this->FileExists('META-INF/manifest.xml')) {
+				$Ext = '?'; // not needed for processing OpenOffice documents
+				return 'odf';
+			}
+		} elseif ($this->FileExists('[Content_Types].xml')) {
+			// Ms Office documents
+			if ($this->FileExists('word/document.xml')) {
+				$Ext = 'docx';
+				return 'openxml';
+			} elseif ($this->FileExists('xl/workbook.xml')) {
+				$Ext = 'xlsx';
+				return 'openxml';
+			} elseif ($this->FileExists('ppt/presentation.xml')) {
+				$Ext = 'pptx';
+				return 'openxml';
+			}
+		}
+		return false;
+	}
+
 
 	function OpenXML_RidPrepare($DocPath, $ImageName) {
 /* Return the RelationId if the image if it's already referenced in the Relation file in the archive.
