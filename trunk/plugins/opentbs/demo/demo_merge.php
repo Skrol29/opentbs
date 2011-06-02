@@ -52,6 +52,18 @@ $x_bf = false;
 
 // Load the template
 $TBS->LoadTemplate($template);
+
+if ($debug==1) {
+	// debug mode 1
+	$TBS->Plugin(OPENTBS_DEBUG_XML_CURRENT);
+	exit;
+} elseif ($debug==3) {
+	// debug mode 3
+	$TBS->Plugin(OPENTBS_DEBUG_CHART_LIST);
+	exit;
+}
+
+// Merge data
 $TBS->MergeBlock('a,b', $data);
 
 if ($template_ext=='xlsx') $TBS->MergeBlock('b1,b2', $data);
@@ -60,12 +72,9 @@ if ($template_ext=='xlsx') $TBS->MergeBlock('b1,b2', $data);
 $file_name = str_replace('.','_'.date('Y-m-d').'.',$template);
 
 // Output as a download file (some automatic fields are merged here)
-if ($debug==1) {
-	$TBS->Plugin(OPENTBS_DEBUG_XML_CURRENT);
-} elseif ($debug==2) {
+if ($debug==2) {
+	// debug mode 2
 	$TBS->Plugin(OPENTBS_DEBUG_XML_SHOW);
-} elseif ($debug==3) {
-	$TBS->Plugin(OPENTBS_DEBUG_CHART_LIST);
 } elseif ($suffix==='') {
 	// download
 	$TBS->Show(OPENTBS_DOWNLOAD, $file_name);
