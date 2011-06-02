@@ -46,10 +46,16 @@ Help file : <a href="http://www.tinybutstrong.com/plugins/opentbs/tbs_plugin_ope
     <option value="demo_ms_word.docx">Ms Word Document (.docx)</option>
     <option value="demo_ms_excel.xlsx">Ms Excel SpreadSheet (.xlsx)</option>
     <option value="demo_ms_powerpoint.pptx">Ms PowerPoint Presentation (.pptx)</option>
-  </select>, enable debug mode:
-<input name="debug" type="checkbox" id="debug" value="1" />
+  </select>
+  ,  debug:
+  <select name="debug" id="debug">
+    <option value="0" selected="selected">No</option>
+    <option value="1">During merge</option>
+    <option value="2">After merge</option>
+    <option value="3">Charts</option>
+  </select>
   <div id="save_as_file" style="display:none;">, save as file with suffix: 
-  <input name="suffix" type="text" id="suffix" size="10" />
+    <input name="suffix" type="text" id="suffix" size="10" />
   (let empty for download),</div>
   <input type="submit" name="btn_go" id="btn_go" value="and go" />
 </form>

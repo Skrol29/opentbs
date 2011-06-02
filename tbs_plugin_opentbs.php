@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.6.0-beta-2011-05-25
+/* OpenTBS version 1.6.0-beta-2011-06-01
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -47,9 +47,9 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
 		if (!isset($TBS->OtbsConvertApostrophes)) $TBS->OtbsConvertApostrophes = true;
-		$this->Version = '1.6.0-beta-2011-05-25'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
+		$this->Version = '1.6.0-beta-2011-06-01'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
 		$this->DebugLst = false; // deactivate the debug mode
-		$this->ExtMode = '';
+		$this->ExtInfo = false;
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
 	}
 
@@ -72,10 +72,10 @@ class clsOpenTBS extends clsTbsZip {
 		if ($FilePath!=='') {
 			$this->Open($FilePath);  // Open the archive
 			$this->Ext_PrepareInfo(); // Set extension information
-			if ($TBS->OtbsAutoLoad && ($this->ArchExtInfo!==false) && ($SubFileLst===false)) {
+			if ($TBS->OtbsAutoLoad && ($this->ExtInfo!==false) && ($SubFileLst===false)) {
 				// auto load files from the archive
-				$SubFileLst = $this->ArchExtInfo['load'];
-				$TBS->OtbsConvBr = $this->ArchExtInfo['br'];
+				$SubFileLst = $this->ExtInfo['load'];
+				$TBS->OtbsConvBr = $this->ExtInfo['br'];
 			}
 			$TBS->OtbsCurrFile = false;
 			$TBS->OtbsSubFileLst = $SubFileLst;
@@ -119,10 +119,11 @@ class clsOpenTBS extends clsTbsZip {
 					$TBS->Source = $this->TbsParkGet($idx, false);
 					if ($this->LastReadNotParked) {
 						if ($this->LastReadComp<=0) { // the contents is not compressed
-							if ($this->ArchExtInfo!==false) {
-								if (isset($this->ArchExtInfo['rpl_what'])) $TBS->Source = str_replace($this->ArchExtInfo['rpl_what'],$this->ArchExtInfo['rpl_with'],$TBS->Source); // auto replace strings in the loaded file
-								if (($this->ArchExt==='docx') && isset($TBS->OtbsClearMsWord) && $TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
-								if (($this->ArchExt==='xlsx') && isset($TBS->OtbsMsExcelConsistent) && isset($TBS->OtbsMsExcelConsistent) ) {
+							if ($this->ExtInfo!==false) {
+								$i = $this->ExtInfo;
+								if (isset($i['rpl_what'])) $TBS->Source = str_replace($i['rpl_what'], $i['rpl_with'], $TBS->Source); // auto replace strings in the loaded file
+								if (($i['ext']==='docx') && isset($TBS->OtbsClearMsWord) && $TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
+								if (($i['ext']==='xlsx') && isset($TBS->OtbsMsExcelConsistent) && isset($TBS->OtbsMsExcelConsistent) ) {
 									$this->MsExcel_DeleteFormulaResults($TBS->Source);
 									$this->MsExcel_ConvertToRelative($TBS->Source);
 								}
@@ -194,7 +195,7 @@ class clsOpenTBS extends clsTbsZip {
 			$this->TbsDebug(true);
 		} elseif (($Render & TBS_OUTPUT)==TBS_OUTPUT) { // notice that TBS_OUTPUT = OPENTBS_DOWNLOAD
 			// download
-			$ContentType = (isset($this->ArchExtInfo['ctype'])) ? $this->ArchExtInfo['ctype'] : '';
+			$ContentType = (isset($this->ExtInfo['ctype'])) ? $this->ExtInfo['ctype'] : '';
 			$this->Flush($Render, $File, $ContentType); // $Render is used because it can contain options OPENTBS_DOWNLOAD and OPENTBS_NOHEADER.
 			$Render = $Render - TBS_OUTPUT; //prevent TBS from an extra output.
 		} elseif(($Render & OPENTBS_FILE)==OPENTBS_FILE) {
@@ -312,12 +313,10 @@ class clsOpenTBS extends clsTbsZip {
 			return $this->OpenXML_ChartChangeSeries($ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewLegend, $CopyFromSeries);
 		} elseif ($Cmd==OPENTBS_DEBUG_CHART_LIST) {
 			$this->OpenXML_ChartDebug();			
-		} elseif ( ($Cmd==OPENTBS_DEBUG_XML_SHOW) || ($Cmd==OPENTBS_DEBUG_XML_CURRENT) ) {
-			if ($Cmd==OPENTBS_DEBUG_XML_SHOW) {
-				$this->TBS->Show(TBS_NOTHING);
-			} else {
-				$this->TbsParkCurrSrc();
-			}
+		} elseif ($Cmd==OPENTBS_DEBUG_XML_SHOW) {
+			$this->TBS->Show(OPENTBS_DEBUG_XML);
+		} elseif ($Cmd==OPENTBS_DEBUG_XML_CURRENT) {
+			$this->TbsParkCurrSrc();
 			$this->DebugLst = array();
 			foreach ($this->TbsParkLst as $idx=>$park) $this->DebugLst[$this->CdFileLst[$idx]['v_name']] = $park['src'];
 			$this->TbsDebug(true);
@@ -382,11 +381,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		echo $nl.'* TinyButStrong version: '.$this->TBS->Version;
 		echo $nl.'* PHP version: '.PHP_VERSION;
 		echo $nl.'* Opened archive: '.$this->ArchFile;
+		echo $nl.'* Activated features for document type: '.(($this->ExtInfo===false) ? '(none)' : $this->ExtInfo['frm'].'/'.$this->ExtInfo['ext']);
 		
 	}
 	
 	function TbsDebug($XmlFormat = true) {
-		// display modified and added files
+	// display modified and added files
 
 		$this->TbsDebug_Init($nl, $sep, $bull);
 	
@@ -395,6 +395,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$del_lst = ''; // id of deleted  files
 		$add_lst = ''; // id of added    files
 
+		// files marked as replaced in TbsZip
 		$idx_lst = array_keys($this->ReplInfo);
 		foreach ($idx_lst as $idx) {
 			$name = $this->CdFileLst[$idx]['v_name'];
@@ -404,6 +405,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$mod_lst .= $bull.$name;
 			}
 		}
+
+		// files marked as modified in the Park
+		$idx_lst = array_keys($this->TbsParkLst);
+		foreach ($idx_lst as $idx) {
+			if (!isset($this->ReplInfo[$idx])) {
+				$name = $this->CdFileLst[$idx]['v_name'];
+				$mod_lst .= $bull.$name;
+			}
+		}
+
+		// files marked as added in TbsZip
 		$idx_lst = array_keys($this->AddInfo);
 		foreach ($idx_lst as $idx) {
 			$name = $this->AddInfo[$idx]['name'];
@@ -517,10 +529,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	function TbsPicChg($Txt, &$Loc) {
 
 		$att = false;
-		if (isset($this->ArchExtInfo['frm'])) {
-			if ($this->ArchExtInfo['frm']==='odf') {
+		if (isset($this->ExtInfo['frm'])) {
+			if ($this->ExtInfo['frm']==='odf') {
 				$att = 'draw:image#xlink:href';
-			} elseif ($this->ArchExtInfo['frm']==='openxml') {
+			} elseif ($this->ExtInfo['frm']==='openxml') {
 				$att = $this->OpenXML_FirstPicAtt($Txt, $Loc->PosBeg, true);
 				if ($att===false) return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] has failed to found the picture.');
 			}
@@ -585,18 +597,18 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ($ok) {
 
 			// the value of the current TBS fields becomes the full path
-			if (isset($this->ArchExtInfo['pic_path'])) $InternalPath = $this->ArchExtInfo['pic_path'].$InternalPath;
+			if (isset($this->ExtInfo['pic_path'])) $InternalPath = $this->ExtInfo['pic_path'].$InternalPath;
 
 			// actually add the picture inside the archive
 			if ($this->FileGetIdxAdd($InternalPath)===false) $this->FileAdd($InternalPath, $FullPath, TBSZIP_FILE, true);
 
 			// preparation for others file in the archive
 			$Rid = false;
-			if ($this->ArchExtInfo!==false) {
-				if ($this->ArchExtInfo['frm']==='odf') {
+			if ($this->ExtInfo!==false) {
+				if ($this->ExtInfo['frm']==='odf') {
 					// OpenOffice document
 					$this->OpenDoc_ManifestChange($InternalPath,'');
-				} elseif ($this->ArchExtInfo['frm']==='openxml') {
+				} elseif ($this->ExtInfo['frm']==='openxml') {
 					// Microsoft Office document
 					$this->OpenXML_CTypesPrepare($InternalPath, '');
 					$Rid = $this->OpenXml_RidPrepare($TBS->OtbsCurrFile, basename($InternalPath));
@@ -635,7 +647,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		  User can define his own Extension Information, they are taken in acount if saved int the global variable $_OPENTBS_AutoExt.
 		 */
 
-		if ($Ext === false) {
+		if ($Ext===false) {
 			// Get the extension of the current archive
 			$Ext = basename($this->ArchFile);
 			$p = strrpos($Ext, '.');
@@ -653,7 +665,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			// OpenOffice & LibreOffice documents
 			$i = array('load' => 'content.xml', 'br' => '<text:line-break/>', 'frm' => 'odf', 'ctype' => 'application/vnd.oasis.opendocument.', 'pic_path' => 'Pictures/', 'rpl_what' => '&apos;', 'rpl_with' => '\'');
 			if ($this->FileExists('styles.xml')) $i['load'] = 'styles.xml;' . $i['load']; // styles.xml may contain header/footer contents
-			if ($Ext === 'odf') $i['br'] = false;
+			if ($Ext==='odf') $i['br'] = false;
 			$ctype = array('t' => 'text', 's' => 'spreadsheet', 'g' => 'graphics', 'f' => 'formula', 'p' => 'presentation', 'm' => 'text-master');
 			$i['ctype'] .= $ctype[($Ext[2])];
 			$i['pic_ext'] = array('png' => 'png', 'bmp' => 'bmp', 'gif' => 'gif', 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'jpe' => 'jpeg', 'jfif' => 'jpeg', 'tif' => 'tiff', 'tiff' => 'tiff');
@@ -681,8 +693,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$i['pic_ext'] = array('png' => 'png', 'bmp' => 'bmp', 'gif' => 'gif', 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'jpe' => 'jpeg', 'tif' => 'tiff', 'tiff' => 'tiff', 'ico' => 'x-icon', 'svg' => 'svg+xml');
 		}
 
-		$this->ArchExt = $Ext;
-		$this->ArchExtInfo = $i;
+		if ($i!==false) $i['ext'] = $Ext;
+		$this->ExtInfo = $i;
 		return (is_array($i)); // return true if the extension is suported
 	}
 
@@ -813,7 +825,7 @@ It needs to be completed when a new picture file extension is added in the docum
 
 		if (isset($this->OpenXmlCTypes[$ext]) && ($this->OpenXmlCTypes[$ext]!=='') ) return;
 
-		if (($ct==='') && isset($this->ArchExtInfo['pic_ext'][$ext])) $ct = 'image/'.$this->ArchExtInfo['pic_ext'][$ext];
+		if (($ct==='') && isset($this->ExtInfo['pic_ext'][$ext])) $ct = 'image/'.$this->ExtInfo['pic_ext'][$ext];
 
 		$this->OpenXmlCTypes[$ext] = $ct;
 
@@ -1010,14 +1022,20 @@ It needs to be completed when a new picture file extension is added in the docum
 		if (!isset($this->OpenXmlCharts)) $this->OpenXML_ChartInit();
 
 		if (!headers_sent()) header('Content-Type: text/plain; charset="UTF-8"');
-		echo $nl.$nl."List of chart in the current document {".$this->ArchFile."} :".$nl;
+		echo $nl.$nl."List of charts found:".$nl;
 		
+		$nbr = 0;
 		foreach ($this->OpenXmlCharts as $key => $info) {
+			$nbr++;
 			if (!isset($info['series_nbr'])) {
 				$txt = $this->FileRead($info['idx'], true);
 				$info['series_nbr'] = substr_count($txt, '<c:ser>');
 			}
 			echo "- key for OPENTBS_CHART command: ".$key." , number of series: ".$info['series_nbr'].$nl;
+		}
+		
+		if ($nbr==0) {
+			echo "(none)".$nl;
 		}
 		
 	}
@@ -1586,7 +1604,7 @@ It needs to be completed when a new picture file extension is added in the docum
 			$p = strrpos($ext, '.');
 			if ($p!==false) {
 				$ext = strtolower(substr($ext,$p+1));
-				if (isset($this->ArchExtInfo['pic_ext'][$ext])) $Type = 'image/'.$this->ArchExtInfo['pic_ext'][$ext];
+				if (isset($this->ExtInfo['pic_ext'][$ext])) $Type = 'image/'.$this->ExtInfo['pic_ext'][$ext];
 			}
 		}
 
