@@ -44,8 +44,8 @@ body, td, th {
 
 <body>
 <h1>OpenTBS</h1>
-<div>version 1.6.0 (beta), 2011-05-27, by Skrol29<br />
-  help file modified on 2011-05-27</div>
+<div>version 1.6.0, 2011-06-01, by Skrol29<br />
+  help file modified on 2011-06-01</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -152,7 +152,7 @@ if the extension is not recognized then OpenTBS also try to find the document by
   $string = $TBS-&gt;Source; </div>
 <div class="note">When you use <span class="smallcode">OPENTBS_STRING</span> then there is no output for the client. But instead, the binary source of the archive is placed into property $TBS-&gt;Source. This feature can be useful, for example, when you want to place the merged document into an email as an attached file.</div>
 <h3><a name="chart" id="chart"></a>4.4. Change data of series in charts</h3>
-&bull; Change series in charts: <span class="versioning">(supported since OpenTBS version 1.5.1, for Ms Word only)</span><br />
+&bull; Change series in charts: <span class="versioning">(supported since OpenTBS version 1.6.0, for Ms Word only)</span><br />
 <div class="code">Example: $TBS-&gt;PlugIn(OPENTBS_CHART, $ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewLegend=false)<br />
 </div>
 <div class="note">
@@ -184,19 +184,20 @@ if the extension is not recognized then OpenTBS also try to find the document by
 </div>
 <h3><a name="modify" id="modify"></a>4.6. Manual modification of files in the archive</h3>
 &bull; Add any new file in the archive: <span class="versioning">(supported since OpenTBS version 1.3)</span><br />
-<div class="code">$TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_ADDFILE, $Name, $Data, $DataType=TBSZIP_STRING, $Compress=true);<br />
-</div>
+<div class="code">$TBS-&gt;Plugin(OPENTBS_ADDFILE, $Name, $Data, $DataType=TBSZIP_STRING, $Compress=true); // OpenTBS &gt;= 1.6.0<br />
+  $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_ADDFILE, $Name, $Data, $DataType=TBSZIP_STRING, $Compress=true);  // OpenTBS &lt;= 1.5.0</div>
 <div class="note">Add a new file in the archive. If $Data is false then the previously add file with the given name is canceled if any. $DataType accepts <span class="smallcode">TBSZIP_STRING</span> and <span class="smallcode">TBSZIP_FILE</span> ($Data must then be the path of the external file to insert). $Compress can be true, false or an array with keys ('meth','len_u','crc32') which means that the data is already previously compressed.</div>
 <br />
 &bull; Delete an existing file in the archive: <span class="versioning">(supported since OpenTBS version 1.3)</span><br />
-<div class="code">$TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_DELETEFILE, $Name);<br />
-</div>
+<div class="code">$TBS-&gt;Plugin(OPENTBS_DELETEFILE, $Name); // OpenTBS &gt;= 1.6.0<br />
+  $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_DELETEFILE, $Name); // OpenTBS &lt;= 1.5.0</div>
 <div class="note">Delete the existing file in the archive, or a file previously   added using the <span class="smallcode">OPENTBS_ADDFILE</span> command.</div>
 <br />
 &bull; Reset all modifications in the  archive: <span class="versioning">(supported since OpenTBS version 1.1)</span><br />
-<div class="code">$TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);<br />
+<div class="code">$TBS-&gt;Plugin(OPENTBS_RESET); // OpenTBS &gt;= 1.6.0<br />
+$TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET); // OpenTBS &lt;= 1.5.0</div>
+<div class="note">The automatic extension recognition is also applied as it was applied for the first load of the archive.<br />
 </div>
-<div class="note">The automatic extension recognition is also applied as it was applied for the first load of the archive.</div>
 <h3><a name="misc" id="misc"></a>4.7. Miscellaneous</h3>
 <p>&bull; <u>Dealing with apostrophes:</u><br />
 Both OpenOffice and Ms Office may automatically convert single quotes (') into typographic apostrophes (&rsquo;), depending to the auto-correction options. This may be annoying   when you need to code a TBS fields that have a single quote. That's why OpenTBS automatically convert by default all (&rsquo;) back to single quotes (') in documents.<br />
@@ -269,7 +270,7 @@ $TBS-&gt;Show(OPENTBS_DEBUG_XML+<span class="smallcode">OPENTBS_DEBUG_AVOIDAUTOF
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
-<p>version 1.6.0, on 2011-05-25<br />
+<p>version 1.6.0, on 2011-06-01<br />
 - new feature: merge charts in Ms Word documents.<br />
 - new feature: merging rows and columns is now possible in Ms Excel.<br />
 - new feature: new ope parameters for forcing cells type in Ms Excel (Numeric, Date and Boolean).<br />
