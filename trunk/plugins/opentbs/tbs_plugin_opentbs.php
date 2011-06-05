@@ -380,7 +380,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		echo $nl.'* OpenTBS version: '.$this->Version;
 		echo $nl.'* TinyButStrong version: '.$this->TBS->Version;
 		echo $nl.'* PHP version: '.PHP_VERSION;
-		echo $nl.'* Opened archive: '.$this->ArchFile;
+		echo $nl.'* Opened document: '.$this->ArchFile;
 		echo $nl.'* Activated features for document type: '.(($this->ExtInfo===false) ? '(none)' : $this->ExtInfo['frm'].'/'.$this->ExtInfo['ext']);
 		
 	}
@@ -1022,8 +1022,9 @@ It needs to be completed when a new picture file extension is added in the docum
 		if (!isset($this->OpenXmlCharts)) $this->OpenXML_ChartInit();
 
 		if (!headers_sent()) header('Content-Type: text/plain; charset="UTF-8"');
-		echo $nl.$nl."List of charts found:".$nl;
+		echo $nl.$nl."List of supported charts in the document:".$nl;
 		
+		// list of supported charts
 		$nbr = 0;
 		foreach ($this->OpenXmlCharts as $key => $info) {
 			$nbr++;
@@ -1031,13 +1032,36 @@ It needs to be completed when a new picture file extension is added in the docum
 				$txt = $this->FileRead($info['idx'], true);
 				$info['series_nbr'] = substr_count($txt, '<c:ser>');
 			}
-			echo "- key for OPENTBS_CHART command: ".$key." , number of series: ".$info['series_nbr'].$nl;
+			echo "- internal chart name: ".$key." , number of series: ".$info['series_nbr'].$nl;
 		}
+		if ($nbr==0) echo "(none)".$nl;
 		
-		if ($nbr==0) {
-			echo "(none)".$nl;
+		
+		// list of unsupported charts
+		echo $nl.$nl."List of unsupported charts in the document:".$nl;
+		if ($this->TbsCurrIdx===false) {
+			echo "(no subfile loaded)".$nl;
+		} else {
+			$x = ' ProgID="MSGraph.Chart.';
+			$x_len = strlen($x);
+			$p = 0;
+			$nbr = 0;
+			$txt = $this->TBS->Source;
+			while (($p=strpos($txt, $x, $p))!==false) {
+				// check that the text is inside an xml tag
+				$p = $p + $x_len;
+				$p1 = strpos($txt, '>', $p);
+				$p2 = strpos($txt, '<', $p);
+				if ( ($p1!==false) && ($p2!==false) && ($p1<$p2) ) {
+					$nbr++;
+					$p1 = strpos($txt, '"', $p);
+					$z = substr($txt, $p, $p1-$p);
+					echo "- 1 chart created using MsChart version ".$z.$nl;
+				}
+			}
 		}
-		
+		if ($nbr==0) echo "(none)".$nl;
+				
 	}
 	
 	function OpenXML_ChartSeriesFound(&$Txt, $SeriesNameOrNum, $OnlyBounds=false) {
@@ -1141,6 +1165,12 @@ It needs to be completed when a new picture file extension is added in the docum
 			$point1 = '';
 			$point2 = '';
 			$i = 0;
+			$z = reset($NewValues);
+			if (is_array($z)) {
+				$k_lst = array_keys($z);
+			} else {
+				$k_lst = array_keys($z);
+			}
 			foreach ($NewValues as $k=>$v) {
 				if (is_array($v)) {
 					$x = reset($v);
