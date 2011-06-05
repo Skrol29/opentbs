@@ -137,7 +137,7 @@ if the extension is not recognized then OpenTBS also try to find the document by
   you need to change the data conversion for one or few fields only in your template, then you can use parameter &quot;<span class="smallcode">htmlconv</span>&quot; (see the TBS documentation for more details).</div>
 <h3><a name="show" id="show"></a>4.3. Method Show()</h3>
 <p>Render options for OpenTBS:</p>
-&bull; Render the merged archive as an HTTP donwload: ($file_name is optional)<br />
+&bull; Render the merged archive as an HTTP download: ($file_name is optional)<br />
 <div class="code">$TBS-&gt;Show(OPENTBS_DOWNLOAD, $file_name);</div>
 <br />
 &bull; Render the merged archive as an HTTP output with your customized HTTP headers:<br />
@@ -157,7 +157,7 @@ if the extension is not recognized then OpenTBS also try to find the document by
 </div>
 <div class="note">
   <p>This command changes the values of a series in a Chart of the document. The chart will be automatically actualized when the merged document is opened because OpenTBS also breaks the link between the chart and its cached view.<br />
-The result is <span class="smallcode">true</span> if the series is modified with succes, otherwise the result is <span class="smallcode">false</span>. <br />
+The result is <span class="smallcode">true</span> if the series is modified with success, otherwise the result is <span class="smallcode">false</span>. <br />
   </p>
   <table width="100%" border="0" cellspacing="2" cellpadding="0">
     <tr>
@@ -166,8 +166,8 @@ The result is <span class="smallcode">true</span> if the series is modified with
     </tr>
     <tr>
       <td valign="top" class="smallcode">$CharteNameOrNum</td>
-      <td>Name of the XML file that contains the chart definition, or the  order number of the chart in the document (first is number 1).<br />
-        You can use the command <a href="#debugmode">OPENTBS_DEBUG_CHART_LIST</a> in order to list all chart names in the document.<br />
+      <td>Internal name of the XML file that contains the chart definition (with or without the extension), or the  order number of the chart in the document (first is number 1).<br />
+        You can use the command <a href="#debugmode">OPENTBS_DEBUG_CHART_LIST</a> in order to view all chart internal names in the document.<br />
       <span class="smallcode">$CarteNameOrNum</span> is typically <span class="smallcode">'chart1'</span> or <span class="smallcode">1</span>.</td>
     </tr>
     <tr>
@@ -177,7 +177,7 @@ The result is <span class="smallcode">true</span> if the series is modified with
     <tr>
       <td valign="top" class="smallcode">$NewValues</td>
       <td>The new data of the series. Must be an array, or value <span class="smallcode">false</span> if you want to delete the series.<br />
-        The array can store data with 2 possibilites:<br />
+        The array can store data with 2 possibilities:<br />
         <span class="code">$NewValues = array( array('cat1', 'cat2', 'cat3', ...), array(val1, val2, val3, ...) );</span><br />
         or
         <br />
@@ -189,7 +189,10 @@ If the chart type is &quot;X Y (Scatter)&quot; then you must use only the  first
       <td>Optional. The new caption of the series. </td>
     </tr>
   </table>
-  <p>Please not that the type of the chart won't be changed.</p>
+  <p>Please note:<br />
+    - The type of the chart won't be changed.<br />
+    - 
+  Some charts may not be recognized by this feature when the Word document is saved with a Compatibility Mode. You have to convert charts to have it work (right on the chart and choose &quot;Convert&quot;). You can use the command <a href="#debugmode">OPENTBS_DEBUG_CHART_LIST</a> in order to view all unsupported   charts in the document.</p>
 </div>
 <br />
 <h3><a name="pic" id="pic2"></a>4.5. Change pictures in the document</h3>
@@ -234,7 +237,7 @@ If you want to stop this conversion, you can set <span class="smallcode">$TBS-&g
   You can force the document type recognition using command OPENTBS_FORCE_DOCTYPE. Example:</p>
 <div class="code"> $TBS-&gt;PlugIn(OPENTBS_FORCE_DOCTYPE, 'docx');</div>
 <span class="versioning">This command is supported since OpenTBS version 1.6.0.</span>
-<p>&bull; <u>Retreiving the name of the current document:</u><br />
+<p>&bull; <u>Retrieving the name of the current document:</u><br />
 Property <span class="smallcode">$TBS-&gt;tbsCurrFile</span> indicates the name of the current file loaded from the archive. The value is false if no file is loaded yet from the archive.</p>
 <p> Other TinyButStrong methods and properties stay unchanged and are available for merging your template.
 </p>
