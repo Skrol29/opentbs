@@ -104,6 +104,62 @@ You can choose for each page to hide or display the header and footer. Neverthel
 	</office:master-styles>
 </office:document-styles>
 
+Charts:
+-------
+The location of the chart is defined in the main subfile "contents.xml":
+
+<text:p text:style-name="Standard">
+	<draw:frame draw:name="Object1" text:anchor-type="paragraph" svg:x="2.401cm" svg:y="1.379cm" svg:width="14.102cm" svg:height="7.622cm" draw:z-index="0">
+	  <draw:object xlink:href="./Object 1" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad" />
+	  <draw:image xlink:href="./ObjectReplacements/Object 1" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad" />
+	</draw:frame>
+</text:p>
+
+Data and properties of the chart are saved into the corresponding subdirectory "Object 1".
+Data are saved in "Object 1/contents.xml" in a table that groups data of all series of the chart.
+
+<table:table table:name="local-table">
+
+  <table:table-header-columns><table:table-column /></table:table-header-columns>
+  <table:table-columns><table:table-column table:number-columns-repeated="3" /></table:table-columns>
+
+  <table:table-header-rows>
+	<table:table-row>
+	  <table:table-cell><text:p /></table:table-cell>
+	  <table:table-cell office:value-type="string"><text:p>column 1</text:p></table:table-cell>
+	  <table:table-cell office:value-type="string"><text:p>column 2</text:p></table:table-cell>
+	  <table:table-cell office:value-type="string"><text:p>column 3</text:p></table:table-cell>
+	</table:table-row>
+  </table:table-header-rows>
+  
+  <table:table-rows>
+	<table:table-row>
+	  <table:table-cell office:value-type="string"><text:p>ligne 1</text:p></table:table-cell>
+	  <table:table-cell office:value-type="float" office:value="9.1"><text:p>9.1</text:p></table:table-cell>
+	  <table:table-cell office:value-type="float" office:value="3.2"><text:p>3.2</text:p></table:table-cell>
+	  <table:table-cell office:value-type="float" office:value="4.54"><text:p>4.54</text:p></table:table-cell>
+	</table:table-row>
+	<table:table-row>
+	  <table:table-cell office:value-type="string"><text:p>ligne 2</text:p></table:table-cell>
+	  <table:table-cell office:value-type="float" office:value="2.4"><text:p>2.4</text:p></table:table-cell>
+	  <table:table-cell office:value-type="float" office:value="8.8"><text:p>8.8</text:p></table:table-cell>
+	  <table:table-cell office:value-type="float" office:value="9.65"><text:p>9.65</text:p></table:table-cell>
+	</table:table-row>
+	<table:table-row>
+	  <table:table-cell office:value-type="string"><text:p>ligne 3</text:p></table:table-cell>
+	  <table:table-cell office:value-type="float" office:value="3.1"><text:p>3.1</text:p></table:table-cell>
+	  <table:table-cell office:value-type="float" office:value="1.5"><text:p>1.5</text:p></table:table-cell>
+	  <table:table-cell office:value-type="float" office:value="3.7"><text:p>3.7</text:p></table:table-cell>
+	</table:table-row>
+	<table:table-row>
+	  <table:table-cell office:value-type="string"><text:p>ligne 4</text:p></table:table-cell>
+	  <table:table-cell office:value-type="float" office:value="4.3"><text:p>4.3</text:p></table:table-cell>
+	  <table:table-cell office:value-type="float" office:value="9.02"><text:p>9.02</text:p></table:table-cell>
+	  <table:table-cell office:value-type="float" office:value="6.2"><text:p>6.2</text:p></table:table-cell>
+	</table:table-row>
+  </table:table-rows>
+
+</table:table>
 
 Special to .ODF (OpenOffice Math Formula):
 ------------------------------------------

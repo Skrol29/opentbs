@@ -1,19 +1,10 @@
 <?php
 
-/* OpenTBS version 1.6.0-beta-2011-06-01
+/* OpenTBS version 1.6.0-beta-2011-06-05
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
 Site: http://www.tinybutstrong.com/plugins.php
-*/
-/* Change log :
-[tt] OPENTBS_DEBUG_XML_SHOW + OPENTBS_DEBUG_XML_CURRENT + OPENTBS_DEBUG_CHART_LIST
-[ok] XLSX: bug on MsExcel_ColNum()
-[ok] XLSX: delete all formula's results
-[tt] enhance ->XML_DeleteElements() (to be tested with OPENTBS_CHART to merge serials)
-[tt] OPENTBS_FORCE_DOCTYPE
-[ok] recognize default doc
-
 */
 
 // Constants to drive the plugin.
@@ -47,7 +38,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
 		if (!isset($TBS->OtbsConvertApostrophes)) $TBS->OtbsConvertApostrophes = true;
-		$this->Version = '1.6.0-beta-2011-06-01'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
+		$this->Version = '1.6.0-beta-2011-06-05'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
@@ -1165,23 +1156,32 @@ It needs to be completed when a new picture file extension is added in the docum
 			$point1 = '';
 			$point2 = '';
 			$i = 0;
-			$z = reset($NewValues);
-			if (is_array($z)) {
-				$k_lst = array_keys($z);
+			$v = reset($NewValues);
+			if (is_array($v)) {
+				// syntax 2: $NewValues = array( array('cat1','cat2',...), array(val1,val2,...) );
+				$k = key($NewValues);
+				$key_lst = &$NewValues[$k];
+				$val_lst = &$NewValues[1];
+				$simple = false;
 			} else {
-				$k_lst = array_keys($z);
+				// syntax 1: $NewValues = array('cat1'=>val1, 'cat2'=>val2, ...);
+				$key_lst = &$NewValues;
+				$val_lst = &$NewValues;
+				$simple = true;
 			}
-			foreach ($NewValues as $k=>$v) {
-				if (is_array($v)) {
-					$x = reset($v);
-					$y = next($v);
-				} else {
+			foreach ($key_lst as $k=>$v) {
+				if ($simple) {
 					$x = $k;
 					$y = $v;
+				} else {
+					$x = $v;
+					$y = isset($val_lst[$k]) ? $val_lst[$k] : null;
 				}
-				$point1 .= '<c:pt idx="'.$i.'"><c:v>'.$x.'</c:v></c:pt>';
-				$point2 .= '<c:pt idx="'.$i.'"><c:v>'.$y.'</c:v></c:pt>';
-				$i++;
+				if ( (!is_null($y)) && ($y!==false) && ($y!=='') && ($y!=='NULL') ) {
+					$point1 .= '<c:pt idx="'.$i.'"><c:v>'.$x.'</c:v></c:pt>';
+					$point2 .= '<c:pt idx="'.$i.'"><c:v>'.$y.'</c:v></c:pt>';
+					$i++;
+				}
 			} 
 			$point1 = '<c:ptCount val="'.$i.'"/>'.$point1;
 			$point2 = '<c:ptCount val="'.$i.'"/>'.$point2;
