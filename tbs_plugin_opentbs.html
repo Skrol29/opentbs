@@ -156,13 +156,38 @@ if the extension is not recognized then OpenTBS also try to find the document by
 <div class="code">Example: $TBS-&gt;PlugIn(OPENTBS_CHART, $ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewLegend=false)<br />
 </div>
 <div class="note">
-  <p>CarteNameOrNum: name of the XML file or the the number of (from 1 to the number of charts in the document). Typically 'chart1' or 1;
-  <p>    SeriesNumOrName: exact caption of the series in the chart, or its number (from 1 to the number of series in the chart). Typically 'Series 1' or 1.  
-  <p>$NewValues must be an array (or false if you want to delete the series)<br />
-    array(cat1, cat2, cat3, ...), array(val1, val2, val3, ...)<br />
-    array(cat1=&gt;val1,  cat2=&gt;val2, cat3=&gt;val3, ...)
-  <p>$NewLegend: optional. The new caption of the series.
-  <p>The result of the method is true if the series is modified with succes, otherwise it return false.<br />  
+  <p>This command changes the values of a series in a Chart of the document. The chart will be automatically actualized when the merged document is opened because OpenTBS also breaks the link between the chart and its cached view.<br />
+The result is true if the series is modified with succes, otherwise it return false.    <br />
+  </p>
+  <table width="100%" border="0" cellspacing="2" cellpadding="0">
+    <tr>
+      <th align="left" valign="top">Argument</th>
+      <th align="left">Description</th>
+    </tr>
+    <tr>
+      <td valign="top" class="smallcode">$CharteNameOrNum</td>
+      <td>Name of the XML file that contains the chart definition, or the  order number of the chart in the document (first is number 1).<br />
+        You can use the command <a href="#debugmode">OPENTBS_DEBUG_CHART_LIST</a> in order to list all chart names in the document.<br />
+      <span class="smallcode">$CarteNameOrNum</span> is typically <span class="smallcode">'chart1'</span> or <span class="smallcode">1</span>.</td>
+    </tr>
+    <tr>
+      <td valign="top" class="smallcode">$SeriesNumOrName</td>
+      <td>Exact caption of the series in the chart, or its number (first is number 1). Typically <span class="smallcode">'Series 1'</span> or <span class="smallcode">1</span>. </td>
+    </tr>
+    <tr>
+      <td valign="top" class="smallcode">$NewValues</td>
+      <td>The new data of the series. Must be an array, or value <span class="smallcode">false</span> if you want to delete the series.<br />
+        The array can store data with 2 possibilites:<br />
+        <span class="code">$NewValues = array( array('cat1', 'cat2', 'cat3', ...), array(val1, val2, val3, ...) );</span><br />
+        or
+        <br />
+      <span class="code">$NewValues = array('cat1'=&gt;val1,  'cat2'=&gt;val2, 'cat3'=&gt;val3, ...);</span></td>
+    </tr>
+    <tr>
+      <td valign="top" class="smallcode">$NewLegend</td>
+      <td>Optional. The new caption of the series. </td>
+    </tr>
+  </table>
 </div>
 <br />
 <h3><a name="pic" id="pic2"></a>4.5. Change pictures in the document</h3>
@@ -225,7 +250,7 @@ the XML contents of sub-files  modified for merging. XML is indented to improve 
   $TBS-&gt;PlugIn(OPENTBS_DEBUG_XML_SHOW);<br />
   <br />
 // Display information about existing charts in the opened document. (supported only with Ms Word for now)<br />
-$TBS-&gt;PlugIn(OPENTBS_DEBUG_CHART_LIST); </div>
+$TBS-&gt;PlugIn(OPENTBS_DEBUG_CHART_LIST);</div>
 <p>There is  also deprecated debug options available since  OpenTBS version 1.3.2:</p>
 <div class="code">$TBS-&gt;Show(OPENTBS_DEBUG_XML); // does the same as $TBS-&gt;PlugIn(OPENTBS_DEBUG_XML_SHOW);<br />
 $TBS-&gt;Show(OPENTBS_DEBUG_XML+<span class="smallcode">OPENTBS_DEBUG_AVOIDAUTOFIELDS</span>); // avoid merging of [onload], [onshow] and [var]<br />
