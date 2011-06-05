@@ -44,8 +44,8 @@ body, td, th {
 
 <body>
 <h1>OpenTBS</h1>
-<div>version 1.6.0, 2011-06-01, by Skrol29<br />
-  help file modified on 2011-06-01</div>
+<div>version 1.6.0, 2011-06-05, by Skrol29<br />
+  help file modified on 2011-06-05</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -157,7 +157,7 @@ if the extension is not recognized then OpenTBS also try to find the document by
 </div>
 <div class="note">
   <p>This command changes the values of a series in a Chart of the document. The chart will be automatically actualized when the merged document is opened because OpenTBS also breaks the link between the chart and its cached view.<br />
-The result is true if the series is modified with succes, otherwise it return false.    <br />
+The result is <span class="smallcode">true</span> if the series is modified with succes, otherwise the result is <span class="smallcode">false</span>. <br />
   </p>
   <table width="100%" border="0" cellspacing="2" cellpadding="0">
     <tr>
@@ -181,13 +181,15 @@ The result is true if the series is modified with succes, otherwise it return fa
         <span class="code">$NewValues = array( array('cat1', 'cat2', 'cat3', ...), array(val1, val2, val3, ...) );</span><br />
         or
         <br />
-      <span class="code">$NewValues = array('cat1'=&gt;val1,  'cat2'=&gt;val2, 'cat3'=&gt;val3, ...);</span></td>
+      <span class="code">$NewValues = array('cat1'=&gt;val1,  'cat2'=&gt;val2, 'cat3'=&gt;val3, ...);</span><br />
+If the chart type is &quot;X Y (Scatter)&quot; then you must use only the  first data store type.</td>
     </tr>
     <tr>
       <td valign="top" class="smallcode">$NewLegend</td>
       <td>Optional. The new caption of the series. </td>
     </tr>
   </table>
+  <p>Please not that the type of the chart won't be changed.</p>
 </div>
 <br />
 <h3><a name="pic" id="pic2"></a>4.5. Change pictures in the document</h3>
@@ -295,14 +297,14 @@ $TBS-&gt;Show(OPENTBS_DEBUG_XML+<span class="smallcode">OPENTBS_DEBUG_AVOIDAUTOF
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
-<p>version 1.6.0, on 2011-06-01<br />
+<p>version 1.6.0, on 2011-06-05<br />
 - new feature: merge charts in Ms Word documents.<br />
-- new feature: merging rows and columns is now possible in Ms Excel.<br />
-- new feature: new ope parameters for forcing cells type in Ms Excel (Numeric, Date and Boolean).<br />
-- new feature: debug mode enehaced using commands OPENTBS_DEBUG_XML_SHOW ; OPENTBS_DEBUG_XML_CURRENT ;  OPENTBS_DEBUG_CHART_LIST<br />
-- new command OPENTBS_FORCE_DOCTYPE.<br />
-- new property OtbsConvertApostrophes for dealing with apostrophes.<br />
-- improvement: if extension is not recognized, try to recognize document type by sub-file presence.<br />
+- new feature: merge rows and columns Ms Excel workbooks.<br />
+- new feature: new &quot;ope&quot; parameters for forcing cells type in Ms Excel (Numeric, Date and Boolean).<br />
+- new feature: debug mode enhanced.<br />
+- new feature: force the type of document using command OPENTBS_FORCE_DOCTYPE.<br />
+- new property: deal with apostrophes using property OtbsConvertApostrophes.<br />
+- improvement: if the document extension is not recognized, then try to recognize document type by sub-file presence.<br />
 - improvement: can use the Direct Command feature of TBS 3.7.0.<br />
 - based on a TbsZip v2.4</p>
 <p>version 1.5.0, on 2011-03-20<br />
