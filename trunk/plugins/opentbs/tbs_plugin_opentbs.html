@@ -44,8 +44,8 @@ body, td, th {
 
 <body>
 <h1>OpenTBS</h1>
-<div>version 1.6.0, 2011-06-05, by Skrol29<br />
-  help file modified on 2011-06-05</div>
+<div>version 1.6.0, 2011-06-07, by Skrol29<br />
+  help file modified on 2011-06-07</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -86,7 +86,7 @@ body, td, th {
 </p>
 <h2><a name="install" id="install"></a>2. Installing</h2>
 <p><u>Requirements:</u><br />
-  - TinyButStrong version 3.6.0 or higher.<br />
+  - TinyButStrong version 3.7.0 or higher. (OpenTBS versions &lt;= 1.5.0 require TinyButStrong version 3.6.0 or higher)<br />
   - PHP 4.3 or higher, PHP 5<br />
   - It is better to have the <a href="http://www.php.net/manual/en/book.zlib.php">Zlib</a> extension enabled on your PHP installation. If it's not, <a href="#zlib">here is what to do</a>.<br />
   <br />
@@ -300,7 +300,7 @@ $TBS-&gt;Show(OPENTBS_DEBUG_XML+<span class="smallcode">OPENTBS_DEBUG_AVOIDAUTOF
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
-<p>version 1.6.0, on 2011-06-05<br />
+<p>version 1.6.0, on 2011-06-07<br />
 - new feature: merge charts in Ms Word documents.<br />
 - new feature: merge rows and columns Ms Excel workbooks.<br />
 - new feature: new &quot;ope&quot; parameters for forcing cells type in Ms Excel (Numeric, Date and Boolean).<br />
@@ -309,7 +309,7 @@ $TBS-&gt;Show(OPENTBS_DEBUG_XML+<span class="smallcode">OPENTBS_DEBUG_AVOIDAUTOF
 - new property: deal with apostrophes using property OtbsConvertApostrophes.<br />
 - improvement: if the document extension is not recognized, then try to recognize document type by sub-file presence.<br />
 - improvement: can use the Direct Command feature of TBS 3.7.0.<br />
-- based on a TbsZip v2.4</p>
+- based on a TbsZip v2.6</p>
 <p>version 1.5.0, on 2011-03-20<br />
   - new feature: headers and footers are automatically loaded for OpenOffice &amp; MsOffice.<br />
   - new feature: automatically cleans up spelling and change trackings  information in MsWord templates (such information may 
