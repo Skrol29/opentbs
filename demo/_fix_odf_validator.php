@@ -1,3 +1,7 @@
+<!DOCTYPE HTML><html><head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Fix ODF files of the OpenTBS package</title>
+</head><body>
 <?php
 
 /* Fix ODF files of the OpenTBS package.
