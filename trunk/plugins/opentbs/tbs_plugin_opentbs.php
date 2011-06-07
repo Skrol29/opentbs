@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.6.0 (2011-06-07)
+/* OpenTBS version 1.6.1-b (2011-06-07)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -38,7 +38,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
 		if (!isset($TBS->OtbsConvertApostrophes)) $TBS->OtbsConvertApostrophes = true;
-		$this->Version = '1.6.0'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
+		$this->Version = '1.6.1b'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
@@ -1137,7 +1137,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		
 		if (!$chart['clean']) {
 			// delete tags that refere to the XLSX file containing original data
-			$this->XML_DeleteElements($Txt, array('c:externalData', 'c:f'));
+			//$this->XML_DeleteElements($Txt, array('c:externalData', 'c:f'));
 			$chart['nbr'] = substr_count($Txt, '<c:ser>');
 			$chart['clean'] = true;
 		}
@@ -1757,7 +1757,7 @@ It needs to be completed when a new picture file extension is added in the docum
 }
 
 /*
-TbsZip version 2.6 (2011-06-07)
+TbsZip version 2.7 (2011-06-07)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class is independent from any other classes and has been originally created for the OpenTbs plug-in
@@ -2301,14 +2301,13 @@ class clsTbsZip {
 	function OutputOpen($Render, $File, $ContentType) {
 
 		if (($Render & TBSZIP_FILE)==TBSZIP_FILE) {
+			$this->OutputMode = TBSZIP_FILE;
 			if (''.$File=='') $File = basename($this->ArchFile).'.zip';
-			$h = @fopen($File, 'w');
-			if ($h===false) {
-				$this->RaiseError('Method Flush() cannot overwrite the target file \''.$File.'\'. Permission denied. The file may be locked by another process.');
+			$this->OutputHandle = @fopen($File, 'w');
+			if ($this->OutputHandle===false) {
+				$this->RaiseError('Method Flush() cannot overwrite the target file \''.$File.'\'. This may not be a valid file path or the file may be locked by another process or because of a denied permission.');
 				return false;
 			}
-			$this->OutputHandle = $h;
-			$this->OutputMode = TBSZIP_FILE;
 		} elseif (($Render & TBSZIP_STRING)==TBSZIP_STRING) {
 			$this->OutputMode = TBSZIP_STRING;
 			$this->OutputSrc = '';
@@ -2360,7 +2359,7 @@ class clsTbsZip {
 	}
 
 	function OutputClose() {
-		if ($this->OutputHandle!==false) fclose($this->OutputHandle);
+		if ( ($this->OutputMode===TBSZIP_FILE) && ($this->OutputHandle!==false) ) fclose($this->OutputHandle);
 	}
 
 	// ----------------
