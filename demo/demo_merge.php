@@ -40,9 +40,9 @@ if ($yourname=='') $yourname = "(no name)";
 
 // Prepare some data for the demo
 $data = array();
-$data[] = array('firstname'=>'Sandra', 'name'=>'Hill', 'number'=>'1523d', 'score'=>200 );
-$data[] = array('firstname'=>'Roger', 'name'=>'Smith', 'number'=>'1234f', 'score'=>800 );
-$data[] = array('firstname'=>'William', 'name'=>'Mac Dowell', 'number'=>'5491y', 'score'=>130 );
+$data[] = array('firstname'=>'Sandra' , 'name'=>'Hill'      , 'number'=>'1523d', 'score'=>200, 'email_1'=>'sh@tbs.com',  'email_2'=>'sandra@tbs.com',  'email_3'=>'s.hill@tbs.com');
+$data[] = array('firstname'=>'Roger'  , 'name'=>'Smith'     , 'number'=>'1234f', 'score'=>800, 'email_1'=>'rs@tbs.com',  'email_2'=>'robert@tbs.com',  'email_3'=>'r.smith@tbs.com' );
+$data[] = array('firstname'=>'William', 'name'=>'Mac Dowell', 'number'=>'5491y', 'score'=>130, 'email_1'=>'wmc@tbs.com', 'email_2'=>'william@tbs.com', 'email_3'=>'w.m.dowell@tbs.com' );
 
 $x_num = 3152.456;
 $x_pc = 0.2567;
@@ -66,9 +66,21 @@ if ($debug==1) {
 // Merge data
 $TBS->MergeBlock('a,b', $data);
 
-if ($template_ext=='xlsx') $TBS->MergeBlock('b1,b2', $data);
-
-if ($template_ext=='docx') {
+// specific merges depending to the docuement
+if ($template_ext=='xlsx') {
+	// merge cells (exending columns)
+	$TBS->MergeBlock('cell1,cell2', $data);
+	// change the current sheet
+	$TBS->LoadTemplate('#xl/worksheets/sheet2.xml');
+	// merge data in Sheet 2
+	$TBS->MergeBlock('cell1,cell2', 'num', 3);
+	$TBS->MergeBlock('b2', $data);
+} elseif ($template_ext=='ods') {
+	// no need to change the current sheet, they are all stored in the same XLS subfile.
+	// merge data in Sheet 2
+	$TBS->MergeBlock('cell1,cell2', 'num', 3);
+	$TBS->MergeBlock('b2', $data);
+} elseif ($template_ext=='docx') {
 	// change chart series
 	$ChartNameOrNum = 'chart1';
 	$SeriesNameOrNum = 2;
