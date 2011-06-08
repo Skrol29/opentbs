@@ -38,14 +38,16 @@ body, td, th {
 	font-size: 12px;
 	color: #036;
 }
+.warning {	color: #F30;
+}
 -->
 </style>
 </head>
 
 <body>
 <h1>OpenTBS</h1>
-<div>version 1.6.0, 2011-06-07, by Skrol29<br />
-  help file modified on 2011-06-07</div>
+<div>version 1.6.1, 2011-06-08, by Skrol29<br />
+  help file modified on 2011-06-08</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -192,7 +194,7 @@ If the chart type is &quot;X Y (Scatter)&quot; then you must use only the  first
   <p>Please note:<br />
     - The type of the chart won't be changed.<br />
     - 
-  Some charts may not be recognized by this feature when the Word document is saved with a Compatibility Mode. You have to convert charts to have it work (right on the chart and choose &quot;Convert&quot;). You can use the command <a href="#debugmode">OPENTBS_DEBUG_CHART_LIST</a> in order to view all unsupported   charts in the document.</p>
+  Some charts may not be recognized by this feature when the Word document is created with Word &lt;= 2007 or is saved with a Compatibility Mode. You have to convert charts to have it work (right on the chart and choose &quot;Convert&quot;). You can use the command <a href="#debugmode">OPENTBS_DEBUG_CHART_LIST</a> in order to view all unsupported   charts in the document.</p>
 </div>
 <br />
 <h3><a name="pic" id="pic2"></a>4.5. Change pictures in the document</h3>
@@ -264,10 +266,10 @@ $TBS-&gt;Show(OPENTBS_DEBUG_XML+<span class="smallcode">OPENTBS_DEBUG_AVOIDAUTOF
 <h3>a) The merged document is producing error messages when opened with its application (OpenOffice or Ms Office)</h3>
 <p> The most likely causes are:<br />
   &bull; You've chosen the <span class="smallcode">OPENTBS_DOWNLOAD</span> render option but a php error message or any other unexpected content has been output before by PHP.<br />
-  <span class="note">Activate the <a href="#debugmode">debug mode</a> using the render option <span class="smallcode">OPENTBS_DEBUG_XML</span>, it helps to check PHP error message and other unexpected content.</span><br />
+  <span class="note">Activate the <a href="#debugmode">debug mode</a> using the command  <span class="smallcode">OPENTBS_DEBUG_XML_SHOW</span>, it helps to check PHP error message and other unexpected content.</span><br />
   or:<br />
-  &bull; The merging has produced an invalid XML content in an XML file  of the document.<br />
-  <span class="note">Activate the <a href="#debugmode">debug mode</a> using the render option <span class="smallcode">OPENTBS_DEBUG_XML</span>, it helps to check the XML contents of merged files.</span> See section (b) below for more information in the XML structure of the files.</p>
+  &bull; The merging has produced an invalid document or an invalid XML content in an XML file  of the document.<br />
+  <span class="note">Activate the <a href="#debugmode">debug mode</a> using  it helps to check the XML contents of merged files.</span> See section (b) below for more information in the XML structure of the files.</p>
 <h3>b) The merged document is well opened by its application (OpenOffice or Ms Office) but the content is not designed as expected</h3>
 <p>First, you can have a look the <a href="#demo">demo templates</a>, they contain examples and advices for each type of document.<br />
   And to go further: even if you can edit your template using directly OpenOffice or Ms Office, you will probably need to understand the XML tags and attributes to complete your merge. The file <a href="xml_synopsis.txt">xml_synopsis.txt</a> is a small synopsis of the XML structure you can found in the inner source of those documents. Have a look to it if you feel lost.</p>
@@ -278,7 +280,7 @@ $TBS-&gt;Show(OPENTBS_DEBUG_XML+<span class="smallcode">OPENTBS_DEBUG_AVOIDAUTOF
   <li>Open the merged document with 7-Zip (or your other zip software),</li>
   <li> extract the main XML file (or another file that you've merged),</li>
   <li> then open the XML file in an Text Editor software.</li>
-  <li>those XML files are usually saved with no line breaks, which make them hard to be read. Some Text Editors can reformat them. You can also use the  option <span class="smallcode">OPENTBS_DEBUG_XML</span> of the <a href="#debugmode">debug mode</a> to see the formatted XML.</li>
+  <li>those XML files are usually saved with no line breaks, which make them hard to be read. Some Text Editors can reformat them. You can also use the  <a href="#debugmode">debug mode</a> to see the formatted XML.</li>
   <li>check the structure of the XMK, try some fix and arrangements, deleted suspicious parts, ...</li>
   <li>put the modified XML file back to the archive, and test if it's correctly opened with its application (OpenOffice, Ms Office)</li>
 </ul>
@@ -300,16 +302,20 @@ $TBS-&gt;Show(OPENTBS_DEBUG_XML+<span class="smallcode">OPENTBS_DEBUG_AVOIDAUTOF
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
+<p>version 1.6.1, on 2011-06-08<br />
+- fixed bug: some documents may be corrupted when created using OPENTBS_DOWNLOAD because of a PHP error <span class="warning">&quot;supplied argument is not a valid stream resource&quot;</span> or <span class="warning">&quot;Undefined property: clsOpenTBS::$OutputHandle&quot;</span>.<br />
+- fixed bug: using keyword &quot;xlsxNum&quot;, &quot;xlsxDate&quot; or &quot;xlsxBoolean&quot; inside a cell that is not merged can make a corrupted XLSX spreadsheet.<br />
+- based on a TbsZip v2.7</p>
 <p>version 1.6.0, on 2011-06-07<br />
-- new feature: merge charts in Ms Word documents.<br />
-- new feature: merge rows and columns Ms Excel workbooks.<br />
-- new feature: new &quot;ope&quot; parameters for forcing cells type in Ms Excel (Numeric, Date and Boolean).<br />
-- new feature: debug mode enhanced.<br />
-- new feature: force the type of document using command OPENTBS_FORCE_DOCTYPE.<br />
-- new property: deal with apostrophes using property OtbsConvertApostrophes.<br />
-- improvement: if the document extension is not recognized, then try to recognize document type by sub-file presence.<br />
-- improvement: can use the Direct Command feature of TBS 3.7.0.<br />
-- based on a TbsZip v2.6</p>
+  - new feature: merge charts in Ms Word documents.<br />
+  - new feature: merge rows and columns Ms Excel workbooks.<br />
+  - new feature: new &quot;ope&quot; parameters for forcing cells type in Ms Excel (Numeric, Date and Boolean).<br />
+  - new feature: debug mode enhanced.<br />
+  - new feature: force the type of document using command OPENTBS_FORCE_DOCTYPE.<br />
+  - new property: deal with apostrophes using property OtbsConvertApostrophes.<br />
+  - improvement: if the document extension is not recognized, then try to recognize document type by sub-file presence.<br />
+  - improvement: can use the Direct Command feature of TBS 3.7.0.<br />
+  - based on a TbsZip v2.6</p>
 <p>version 1.5.0, on 2011-03-20<br />
   - new feature: headers and footers are automatically loaded for OpenOffice &amp; MsOffice.<br />
   - new feature: automatically cleans up spelling and change trackings  information in MsWord templates (such information may 

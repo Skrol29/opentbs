@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.6.1-b (2011-06-07)
+/* OpenTBS version 1.6.1 (2011-06-08)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -38,7 +38,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
 		if (!isset($TBS->OtbsConvertApostrophes)) $TBS->OtbsConvertApostrophes = true;
-		$this->Version = '1.6.1b'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
+		$this->Version = '1.6.1'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
@@ -211,20 +211,36 @@ class clsOpenTBS extends clsTbsZip {
 	function OnCacheField($BlockName,&$Loc,&$Txt,$PrmProc) {
 
 		if (isset($Loc->PrmLst['ope'])) {
+
+			// Prepare to change picture
 			$ope_lst = explode(',', $Loc->PrmLst['ope']); // in this event, ope is not exploded
 			if (in_array('changepic', $ope_lst)) {
 				$this->TbsPicChg($Txt, $Loc); // add parameter "att" which will be processed just after this event, when the field is cached
 				$PrmLst['pic_change'] = true;
 			}
+
+			// Change cell type in ODS files
 			if (strpos(','.$Loc->PrmLst['ope'],',ods')!==false) {
 				foreach($ope_lst as $ope) {
 					if (substr($ope,0,3)==='ods') {
 						$x = '';
 						$this->OpenDoc_ChangeCellType($Txt, $Loc, $ope, false, $x);
-						return; // only once
+						return; // do it only once
 					}
 				}
 			}
+
+			// Change cell type in XLSX files
+			if (strpos(','.$Loc->PrmLst['ope'],',xlsx')!==false) {
+				foreach($ope_lst as $ope) {
+					if (substr($ope,0,4)==='xlsx') {
+						$x = '';
+						$this->MsExcel_ChangeCellType($Txt, $Loc, $ope);
+						return; // do it only once
+					}
+				}
+			}
+
 		}
 
 	}
@@ -240,24 +256,31 @@ class clsOpenTBS extends clsTbsZip {
 				$PrmLst['pic_change'] = true;
 			}
 			$this->TbsPicAdd($Value, $PrmLst, $Loc, 'ope=changepic'); // add parameter "att" which will be processed just before the value is merged
-		} elseif($ope==='xlsxString') {
-			// Nothing to do
-		} elseif($ope==='xlsxNum') {
-			$Value = (is_numeric($Value)) ? ''.$Value : '';
-		} elseif($ope==='xlsxBool') {
-			$Value = ($Value) ? 1 : 0;
-		} elseif($ope==='xlsxDate') {
-			if (is_string($Value)) {
-				$t = strtotime($Value); // We look if it's a date
-			} else {
-				$t = $Value;
-			}
-			if (($t===-1) or ($t===false)) { // Date not recognized
-				$Value = '';
-			} elseif ($t===943916400) { // Date to zero
-				$Value = '';
-			} else { // It's a date
-				$Value = ($t/86400.00)+25569; // unix: 1 means 01/01/1970, xls: 1 means 01/01/1900
+		} elseif(substr($ope,0,4)==='xlsx') {
+			if (!isset($Loc->PrmLst['xlsxok'])) $this->MsExcel_ChangeCellType($Txt, $Loc, $ope);
+			switch ($Loc->PrmLst['xlsxok']) {
+			case 'xlsxNum':
+				$Value = (is_numeric($Value)) ? ''.$Value : '';
+				break;
+			case 'xlsxBool':
+				$Value = ($Value) ? 1 : 0;
+				break;
+			case 'xlsxDate':
+				if (is_string($Value)) {
+					$t = strtotime($Value); // We look if it's a date
+				} else {
+					$t = $Value;
+				}
+				if (($t===-1) or ($t===false)) { // Date not recognized
+					$Value = '';
+				} elseif ($t===943916400) { // Date to zero
+					$Value = '';
+				} else { // It's a date
+					$Value = ($t/86400.00)+25569; // unix: 1 means 01/01/1970, xls: 1 means 01/01/1900
+				}
+				break;
+			default:
+				// do nothing
 			}
 		} elseif(substr($ope,0,3)==='ods') {
 			if (!isset($Loc->PrmLst['odsok'])) $this->OpenDoc_ChangeCellType($Txt, $Loc, $ope, true, $Value);
@@ -1398,22 +1421,64 @@ It needs to be completed when a new picture file extension is added in the docum
 		// prepare the replace
 		$x1 = substr($x, 0, $v1_p);
 		$x3 = substr($x, $v2_p + $v2_len);
-		
-		// the string has a TBS fields
-		if ( (strpos($s, 'ope=xlsx')!==false) && (strpos($s, 'ope=xlsxString')===false) ) {
-			// numerical and date types: there must be no parameter 't', the current style stay available
-			$s = $this->XML_GetInnerVal($s, 't', true);
-			$x2 = '<v>'.$s.'</v>';
-			$new = (strpos($s, 'ope=xlsxBool')===false) ? '' : ' t="b"'; 
-			$x = str_replace(' t="s"', $new, $x1).$x2.$x3;
-		} else {
-			$x2 = '<is>'.$s.'</is>';
-			$x = str_replace(' t="s"', ' t="inlineStr"', $x1).$x2.$x3;
-		}
+		$x2 = '<is>'.$s.'</is>';
+		$x = str_replace(' t="s"', ' t="inlineStr"', $x1).$x2.$x3;
 
 		$Txt = substr_replace($Txt, $x, $p, $x_len);
-		$PosEnd = $p + strlen($x); // $PosEnd is used to search the next item, we update it
+
+		$PosEnd = $p + strlen($x); // $PosEnd is used to search the next item, so we update it
 		
+	}
+
+	function MsExcel_ChangeCellType(&$Txt, &$Loc, $Ope) {
+	// change the type of a cell in an XLSX file
+		
+		$Loc->PrmLst['xlsxok'] = $Ope; // avoid the field to be processed twice
+
+		if ($Ope==='xlsxString') return true;
+
+		static $OpeLst = array('xlsxBool'=>' t="b"', 'xlsxDate'=>'', 'xlsxNum'=>'');
+
+		if (!isset($OpeLst[$Ope])) return false;
+
+		$t0 = clsTinyButStrong::f_Xml_FindTagStart($Txt, 'c', true, $Loc->PosBeg, false, true);
+		if ($t0===false) return false; // error in the XML structure
+
+		$te = strpos($Txt, '>', $t0);
+		if ( ($te===false) || ($te>$Loc->PosBeg) ) return false; // error in the XML structure
+
+		$len = $te - $t0 + 1;
+		$c_open = substr($Txt, $t0, $len); // '<c ...>'
+		$c_open = str_replace(' t="inlineStr"', $OpeLst[$Ope], $c_open);
+
+		$t1 = strpos($Txt, '</c>', $te);
+		if ($t1===false) return false; // error in the XML structure
+
+		$p_is1 = strpos($Txt, '<is>', $te);
+		if (($p_is1===false) || ($p_is1>$t1) ) return false; // error in the XML structure
+
+		$is2 = '</is>';
+		$p_is2 = strpos($Txt, $is2, $p_is1);
+		if (($p_is2===false) || ($p_is2>$t1) ) return false; // error in the XML structure
+		$p_is2 = $p_is2 + strlen($is2); // move to end the of the tag
+
+		$middle_len = $p_is1 - $te - 1;
+		$middle = substr($Txt, $te + 1, $middle_len); // text bewteen <c...> and <is>
+		
+		// new tag to replace <is>...</is>
+		static $v = '<v>[]</v>';
+		$v_len = strlen($v);
+		$v_pos = strpos($v, '[]');
+
+		$x = $c_open.$middle.$v;
+		
+		$Txt = substr_replace($Txt, $x, $t0, $p_is2 - $t0);
+		
+		// move the TBS field
+		$p_fld = $t0 + strlen($c_open) + $middle_len + $v_pos;
+		$Loc->PosBeg = $p_fld;
+		$Loc->PosEnd = $p_fld +1;
+
 	}
 	
 	function XML_GetInnerVal($Txt, $Tag, $Concat=false) {
