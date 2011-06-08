@@ -1822,7 +1822,7 @@ It needs to be completed when a new picture file extension is added in the docum
 }
 
 /*
-TbsZip version 2.7 (2011-06-07)
+TbsZip version 2.8 (2011-06-08)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class is independent from any other classes and has been originally created for the OpenTbs plug-in
@@ -2424,7 +2424,10 @@ class clsTbsZip {
 	}
 
 	function OutputClose() {
-		if ( ($this->OutputMode===TBSZIP_FILE) && ($this->OutputHandle!==false) ) fclose($this->OutputHandle);
+		if ( ($this->OutputMode===TBSZIP_FILE) && ($this->OutputHandle!==false) ) {
+			fclose($this->OutputHandle);
+			$this->OutputHandle = false;
+		}
 	}
 
 	// ----------------
