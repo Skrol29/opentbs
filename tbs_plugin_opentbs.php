@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.6.1 (2011-06-08)
+/* OpenTBS version 1.6.2b (2011-06-29)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -38,7 +38,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
 		if (!isset($TBS->OtbsConvertApostrophes)) $TBS->OtbsConvertApostrophes = true;
-		$this->Version = '1.6.1'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
+		$this->Version = '1.6.2b'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
@@ -260,6 +260,20 @@ class clsOpenTBS extends clsTbsZip {
 			if (!isset($Loc->PrmLst['xlsxok'])) $this->MsExcel_ChangeCellType($Txt, $Loc, $ope);
 			switch ($Loc->PrmLst['xlsxok']) {
 			case 'xlsxNum':
+				if (is_numeric($Value)) {
+					// we have to check contents in order to avoid Excel errors. Note that value '0.00000000000000' makes an Excel error.
+					if (strpos($Value,'e')!==false) { // exponential representation
+						$Value = (float) $Value;
+					} elseif (strpos($Value,'x')!==false) { // hexa representation
+						$Value = hexdec($Value);
+					} elseif (strpos($Value,'.')===false) {
+						$Value = (integer) $Value;
+					} else {
+						$Value = (float) $Value;
+					}
+				} else {
+					$Value = '';
+				}
 				$Value = (is_numeric($Value)) ? ''.$Value : '';
 				break;
 			case 'xlsxBool':
@@ -888,7 +902,7 @@ It needs to be completed when a new picture file extension is added in the docum
 	}
 
 	function OpenXML_FirstPicAtt($Txt, $Pos, $Backward) {
-	// search the first image element in the given direction. Two types of igame can be found. Return the value required for "att" parameter.
+	// search the first image element in the given direction. Two types of image can be found. Return the value required for "att" parameter.
 		$TypeVml = '<v:imagedata ';
 		$TypeDml = '<a:blip ';
 

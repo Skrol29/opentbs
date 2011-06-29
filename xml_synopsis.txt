@@ -25,34 +25,34 @@ Main file: "content.xml":
 Synopsis:
 ---------
 <office:document-content>
-	...
-	<office:body>
-		<office:text>
-			<text:section text:style-name="Sect1" text:name="Section1">
-				<text:p text:style-name="Standard">
-					Normal new lines are made with a new paragraphs <text:p>...</text:p>
-					Simple new lines are made with <text:line-break/>
-					Page breaks are made with a new paragraph having a style which has the attribute {fo:break-before="page"}. 
-					Local styles (bold, color,...) are made with <text:span text:style-name="T1">...</text:span>
-					Images:
-						<draw:frame draw:style-name="fr1" draw:name="images1" text:anchor-type="paragraph" svg:width="0.847cm" svg:height="0.847cm" draw:z-index="0">
-							<draw:image xlink:href="Pictures/100000000000002000000020A0D29467.jpg" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
-						</draw:frame>
-				</text:p>
-			</text:section>
-		</office:text>
-	</office:body>
+  ...
+  <office:body>
+    <office:text>
+      <text:section text:style-name="Sect1" text:name="Section1">
+        <text:p text:style-name="Standard">
+          Normal new lines are made with a new paragraphs <text:p>...</text:p>
+          Simple new lines are made with <text:line-break/>
+          Page breaks are made with a new paragraph having a style which has the attribute {fo:break-before="page"}. 
+          Local styles (bold, color,...) are made with <text:span text:style-name="T1">...</text:span>
+          Images:
+            <draw:frame draw:style-name="fr1" draw:name="images1" text:anchor-type="paragraph" svg:width="0.847cm" svg:height="0.847cm" draw:z-index="0">
+              <draw:image xlink:href="Pictures/100000000000002000000020A0D29467.jpg" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
+            </draw:frame>
+        </text:p>
+      </text:section>
+    </office:text>
+  </office:body>
 </office:document-content>
 
 Table in a document:
 --------------------
 <table:table>
-	<table:table-column ... />
-	<table:table-row>
-		<table:table-cell> ... </table:table-cell>
-		<table:table-cell> ... </table:table-cell>
-		...
-	</table:table-row>
+  <table:table-column ... />
+  <table:table-row>
+    <table:table-cell> ... </table:table-cell>
+    <table:table-cell> ... </table:table-cell>
+    ...
+  </table:table-row>
 </table:table>
 
 Comments:
@@ -61,29 +61,29 @@ Comments:
 Comments in ODS workbooks (OpenOffice Calc):
 
 <table:table-row table:style-name="ro2">
-	<table:table-cell ...> ... </table:table-cell>
-	<table:table-cell office:value-type="float" office:value="3.6">
-		<office:annotation draw:style-name="gr1" draw:text-style-name="P1" svg:width="2.899cm" svg:height="0.991cm" svg:x="9.632cm" svg:y="2.786cm" draw:caption-point-x="-0.61cm" draw:caption-point-y="1.511cm">
-			<dc:date>2011-02-02T00:00:00</dc:date>
-			<text:p text:style-name="P1">Here is my comment.</text:p>
-		</office:annotation>
-		<text:p>3,60</text:p>
-	</table:table-cell>
-	<table:table-cell ...> ... </table:table-cell>
+  <table:table-cell ...> ... </table:table-cell>
+  <table:table-cell office:value-type="float" office:value="3.6">
+    <office:annotation draw:style-name="gr1" draw:text-style-name="P1" svg:width="2.899cm" svg:height="0.991cm" svg:x="9.632cm" svg:y="2.786cm" draw:caption-point-x="-0.61cm" draw:caption-point-y="1.511cm">
+      <dc:date>2011-02-02T00:00:00</dc:date>
+      <text:p text:style-name="P1">Here is my comment.</text:p>
+    </office:annotation>
+    <text:p>3,60</text:p>
+  </table:table-cell>
+  <table:table-cell ...> ... </table:table-cell>
 </table:table-row>
 
 Comments in ODT documents (OpenOffice Write):
 
 <text:p text:style-name="Standard">
-	Here is the start of the text and now 
-	<office:annotation>
-		<dc:creator>Skrol29</dc:creator>
-		<dc:date>2011-02-02T16:13:58.42</dc:date>
-		<text:p text:style-name="P1">
-			<text:span text:style-name="T1">Here is my comment.</text:span>
-		</text:p>
-	</office:annotation>
-	comment is just inserted there.
+  Here is the start of the text and now 
+  <office:annotation>
+    <dc:creator>Skrol29</dc:creator>
+    <dc:date>2011-02-02T16:13:58.42</dc:date>
+    <text:p text:style-name="P1">
+      <text:span text:style-name="T1">Here is my comment.</text:span>
+    </text:p>
+  </office:annotation>
+  comment is just inserted there.
 </text:p>
 
 Headers and footers in a document:
@@ -92,16 +92,16 @@ Header's and footer's contents are saved in the "sytles.xml" file:
 You can choose for each page to hide or display the header and footer. Nevertheless, the contents is always the same for each page.
 
 <office:document-styles ...>
-	<office:master-styles>
-		<style:master-page ...>
-			<style:header>
-				<text:p text:style-name="Header">here is the header</text:p>
-			</style:header>
-			<style:footer>
-				<text:p text:style-name="Footer">here is the footer</text:p>
-			</style:footer>	  
-		</style:master-page>
-	</office:master-styles>
+  <office:master-styles>
+    <style:master-page ...>
+      <style:header>
+        <text:p text:style-name="Header">here is the header</text:p>
+      </style:header>
+      <style:footer>
+        <text:p text:style-name="Footer">here is the footer</text:p>
+      </style:footer>    
+    </style:master-page>
+  </office:master-styles>
 </office:document-styles>
 
 Charts:
@@ -109,10 +109,10 @@ Charts:
 The location of the chart is defined in the main subfile "contents.xml":
 
 <text:p text:style-name="Standard">
-	<draw:frame draw:name="Object1" text:anchor-type="paragraph" svg:x="2.401cm" svg:y="1.379cm" svg:width="14.102cm" svg:height="7.622cm" draw:z-index="0">
-	  <draw:object xlink:href="./Object 1" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad" />
-	  <draw:image xlink:href="./ObjectReplacements/Object 1" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad" />
-	</draw:frame>
+  <draw:frame draw:name="Object1" text:anchor-type="paragraph" svg:x="2.401cm" svg:y="1.379cm" svg:width="14.102cm" svg:height="7.622cm" draw:z-index="0">
+    <draw:object xlink:href="./Object 1" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad" />
+    <draw:image xlink:href="./ObjectReplacements/Object 1" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad" />
+  </draw:frame>
 </text:p>
 
 Data and properties of the chart are saved into the corresponding subdirectory "Object 1".
@@ -124,39 +124,39 @@ Data are saved in "Object 1/contents.xml" in a table that groups data of all ser
   <table:table-columns><table:table-column table:number-columns-repeated="3" /></table:table-columns>
 
   <table:table-header-rows>
-	<table:table-row>
-	  <table:table-cell><text:p /></table:table-cell>
-	  <table:table-cell office:value-type="string"><text:p>column 1</text:p></table:table-cell>
-	  <table:table-cell office:value-type="string"><text:p>column 2</text:p></table:table-cell>
-	  <table:table-cell office:value-type="string"><text:p>column 3</text:p></table:table-cell>
-	</table:table-row>
+  <table:table-row>
+    <table:table-cell><text:p /></table:table-cell>
+    <table:table-cell office:value-type="string"><text:p>column 1</text:p></table:table-cell>
+    <table:table-cell office:value-type="string"><text:p>column 2</text:p></table:table-cell>
+    <table:table-cell office:value-type="string"><text:p>column 3</text:p></table:table-cell>
+  </table:table-row>
   </table:table-header-rows>
   
   <table:table-rows>
-	<table:table-row>
-	  <table:table-cell office:value-type="string"><text:p>ligne 1</text:p></table:table-cell>
-	  <table:table-cell office:value-type="float" office:value="9.1"><text:p>9.1</text:p></table:table-cell>
-	  <table:table-cell office:value-type="float" office:value="3.2"><text:p>3.2</text:p></table:table-cell>
-	  <table:table-cell office:value-type="float" office:value="4.54"><text:p>4.54</text:p></table:table-cell>
-	</table:table-row>
-	<table:table-row>
-	  <table:table-cell office:value-type="string"><text:p>ligne 2</text:p></table:table-cell>
-	  <table:table-cell office:value-type="float" office:value="2.4"><text:p>2.4</text:p></table:table-cell>
-	  <table:table-cell office:value-type="float" office:value="8.8"><text:p>8.8</text:p></table:table-cell>
-	  <table:table-cell office:value-type="float" office:value="9.65"><text:p>9.65</text:p></table:table-cell>
-	</table:table-row>
-	<table:table-row>
-	  <table:table-cell office:value-type="string"><text:p>ligne 3</text:p></table:table-cell>
-	  <table:table-cell office:value-type="float" office:value="3.1"><text:p>3.1</text:p></table:table-cell>
-	  <table:table-cell office:value-type="float" office:value="1.5"><text:p>1.5</text:p></table:table-cell>
-	  <table:table-cell office:value-type="float" office:value="3.7"><text:p>3.7</text:p></table:table-cell>
-	</table:table-row>
-	<table:table-row>
-	  <table:table-cell office:value-type="string"><text:p>ligne 4</text:p></table:table-cell>
-	  <table:table-cell office:value-type="float" office:value="4.3"><text:p>4.3</text:p></table:table-cell>
-	  <table:table-cell office:value-type="float" office:value="9.02"><text:p>9.02</text:p></table:table-cell>
-	  <table:table-cell office:value-type="float" office:value="6.2"><text:p>6.2</text:p></table:table-cell>
-	</table:table-row>
+  <table:table-row>
+    <table:table-cell office:value-type="string"><text:p>ligne 1</text:p></table:table-cell>
+    <table:table-cell office:value-type="float" office:value="9.1"><text:p>9.1</text:p></table:table-cell>
+    <table:table-cell office:value-type="float" office:value="3.2"><text:p>3.2</text:p></table:table-cell>
+    <table:table-cell office:value-type="float" office:value="4.54"><text:p>4.54</text:p></table:table-cell>
+  </table:table-row>
+  <table:table-row>
+    <table:table-cell office:value-type="string"><text:p>ligne 2</text:p></table:table-cell>
+    <table:table-cell office:value-type="float" office:value="2.4"><text:p>2.4</text:p></table:table-cell>
+    <table:table-cell office:value-type="float" office:value="8.8"><text:p>8.8</text:p></table:table-cell>
+    <table:table-cell office:value-type="float" office:value="9.65"><text:p>9.65</text:p></table:table-cell>
+  </table:table-row>
+  <table:table-row>
+    <table:table-cell office:value-type="string"><text:p>ligne 3</text:p></table:table-cell>
+    <table:table-cell office:value-type="float" office:value="3.1"><text:p>3.1</text:p></table:table-cell>
+    <table:table-cell office:value-type="float" office:value="1.5"><text:p>1.5</text:p></table:table-cell>
+    <table:table-cell office:value-type="float" office:value="3.7"><text:p>3.7</text:p></table:table-cell>
+  </table:table-row>
+  <table:table-row>
+    <table:table-cell office:value-type="string"><text:p>ligne 4</text:p></table:table-cell>
+    <table:table-cell office:value-type="float" office:value="4.3"><text:p>4.3</text:p></table:table-cell>
+    <table:table-cell office:value-type="float" office:value="9.02"><text:p>9.02</text:p></table:table-cell>
+    <table:table-cell office:value-type="float" office:value="6.2"><text:p>6.2</text:p></table:table-cell>
+  </table:table-row>
   </table:table-rows>
 
 </table:table>
@@ -171,17 +171,17 @@ Pictures:
 Binary contents is saved as a file in "Pictures/"
 Short synopsis of the control in the document:
 <text:p ...>
-	<draw:frame ...>
-		<draw:text-box ...>
-			<text:p ...>
-				<draw:a ...>
-					<draw:frame ...>
-						<draw:image xlink:href="Pictures/1000000000000096000000A5773AC4DD.png" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
-					</draw:frame>
-				</draw:a>
-			</text:p>
-		</draw:text-box>
-	</draw:frame>
+  <draw:frame ...>
+    <draw:text-box ...>
+      <text:p ...>
+        <draw:a ...>
+          <draw:frame ...>
+            <draw:image xlink:href="Pictures/1000000000000096000000A5773AC4DD.png" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
+          </draw:frame>
+        </draw:a>
+      </text:p>
+    </draw:text-box>
+  </draw:frame>
 </text:p>
 
 
@@ -202,25 +202,25 @@ Note: I've test to change the "word/document.xml" name in both the "[Content_Typ
 Synopsis of the main file "word/document.xml":
 ----------------------------------------------
 <w:document>
-	<w:body>
+  <w:body>
 
-		<w:p> New paragraph
-			<w:pPr>
-				Parameters of the paragraph
-				<w:rPr>    Set of parameters for a Run </w:rPr>
-				<w:sectPr> Sart a new section. Section are a set of page layout (margin, columns, ...)available until the next section. </w:sectPr>
-				<w:pageBreakBefore/> page break before the paragraph (way #1)
-			</w:pPr>
-			<w:r>
-				New run item. A run item is a set of content having common layout properties.
-				<w:rPr> Set of parameters for a Run. Examples: <w:i/> is italic, <w:b/> is bold. </w:rPr>
-				<w:t> Your text is here</w:t>
-				Simple new lines are made with <w:br/>
-				Page breaks can also be made with <w:br w:type="page"/> (way #2)
-			</w:r>
-		</w:p> 
+    <w:p> New paragraph
+      <w:pPr>
+        Parameters of the paragraph
+        <w:rPr>    Set of parameters for a Run </w:rPr>
+        <w:sectPr> Sart a new section. Section are a set of page layout (margin, columns, ...)available until the next section. </w:sectPr>
+        <w:pageBreakBefore/> page break before the paragraph (way #1)
+      </w:pPr>
+      <w:r>
+        New run item. A run item is a set of content having common layout properties.
+        <w:rPr> Set of parameters for a Run. Examples: <w:i/> is italic, <w:b/> is bold. </w:rPr>
+        <w:t> Your text is here</w:t>
+        Simple new lines are made with <w:br/>
+        Page breaks can also be made with <w:br w:type="page"/> (way #2)
+      </w:r>
+    </w:p> 
 
-	</w:body>
+  </w:body>
 </w:document>
 
 What are attributes "w:rsidR" and "w:rsidRPr" for?
@@ -233,15 +233,15 @@ Synopsis of a table inserted in a Word document:
 ------------------------------------------------
 <w:p>...</w:p>
 
-	<w:tbl>
-		<w:tblPr></w:tblPr>
-		<w:tblGrid></w:tblGrid>
-		<w:tr>
-			<w:tc> ... </w:tc>
-			<w:tc> ... </w:tc>
-			...
-		</w:tr>
-	</w:tbl>
+  <w:tbl>
+    <w:tblPr></w:tblPr>
+    <w:tblGrid></w:tblGrid>
+    <w:tr>
+      <w:tc> ... </w:tc>
+      <w:tc> ... </w:tc>
+      ...
+    </w:tr>
+  </w:tbl>
 
 <w:p>...</w:p> 
 
@@ -254,20 +254,20 @@ There alos may have an optional couple of XML files for odd numbered pages (usua
 And an optional couple of files for the first page (usually "/word/header3.xml" and "/word/footer3.xml").
 
 But the actual locations are defined in the file "[Content_Types].xml", in the elements like:
-	<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>
+  <Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>
 and
-	<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>
+  <Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>
 Some referenced header/footers may have no actual files because of no data.
 
 Example of header source:
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:hdr ...>
-	<w:p>
-		<w:pPr><w:pStyle w:val="my_header"/></w:pPr>
-		<w:r>
-			<w:t>here is the text of the header</w:t>
-		</w:r>
-	</w:p>
+  <w:p>
+    <w:pPr><w:pStyle w:val="my_header"/></w:pPr>
+    <w:r>
+      <w:t>here is the text of the header</w:t>
+    </w:r>
+  </w:p>
 </w:hdr>
 
 Comments, footnotes and endnotes:
@@ -277,42 +277,42 @@ Like headers and footers, they are aslo saved in separated XML files.
 Bookmarks:
 ----------
 <w:p>
-	<w:r><w:t xml:space="preserve">Here is a </w:t></w:r>
-	<w:bookmarkStart w:id="0" w:name="mybookmark"/>
-	<w:r><w:t>bookmark</w:t></w:r>
-	<w:bookmarkEnd w:id="0"/>
-	<w:r><w:t>.</w:t></w:r>
+  <w:r><w:t xml:space="preserve">Here is a </w:t></w:r>
+  <w:bookmarkStart w:id="0" w:name="mybookmark"/>
+  <w:r><w:t>bookmark</w:t></w:r>
+  <w:bookmarkEnd w:id="0"/>
+  <w:r><w:t>.</w:t></w:r>
 </w:p>
 
 Textboxes:
 ----------
 
 <w:p>
-	<w:r>
-		<mc:AlternateContent>
-			<mc:Choice Requires="wps">
-				<w:drawing>
-					<wp:anchor ...>
-						...
-					</wp:anchor>
-				</w:drawing>
-			</mc:Choice>
-			<mc:Fallback>
-				<w:pict>
-					<v:shapetype ...>
-						...
-					</v:shapetype>
-					<v:shape ...>
-						<v:textbox ...>
-							<w:txbxContent>
-								<w:p> <w:r> <w:t>Here s a text box.</w:t>	</w:r> </w:p>
-							</w:txbxContent>
-						</v:textbox>
-					</v:shape>
-				</w:pict>
-			</mc:Fallback>
-		</mc:AlternateContent>
-	</w:r>
+  <w:r>
+    <mc:AlternateContent>
+      <mc:Choice Requires="wps">
+        <w:drawing>
+          <wp:anchor ...>
+            ...
+          </wp:anchor>
+        </w:drawing>
+      </mc:Choice>
+      <mc:Fallback>
+        <w:pict>
+          <v:shapetype ...>
+            ...
+          </v:shapetype>
+          <v:shape ...>
+            <v:textbox ...>
+              <w:txbxContent>
+                <w:p> <w:r> <w:t>Here s a text box.</w:t>  </w:r> </w:p>
+              </w:txbxContent>
+            </v:textbox>
+          </v:shape>
+        </w:pict>
+      </mc:Fallback>
+    </mc:AlternateContent>
+  </w:r>
 </w:p>
 
 Charts:
@@ -331,44 +331,44 @@ Other custom text boxes are saved in a shape file. For example : "word/drawings/
 Example of a series saved in the XML (the tags are different for an XY series):
 
 <c:ser>
-	<c:idx val="0"/>
-	<c:order val="0"/>
-	<c:tx>
-		<c:strRef>
-			<c:f>Sheet1!$A$2</c:f>
-			<c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>Here is the name of the Series</c:v></c:pt></c:strCache>
-		</c:strRef>
-	</c:tx>
-	<c:spPr>
-		<a:solidFill><a:srgbClr val="9999FF"/></a:solidFill>
-		<a:ln w="12700"><a:solidFill><a:srgbClr val="000000"/></a:solidFill><a:prstDash val="solid"/></a:ln>
-	</c:spPr>
-	<c:invertIfNegative val="0"/>
-	<c:cat>
-		<c:strRef>
-			<c:f>Sheet1!$B$1:$E$1</c:f>
-			<c:strCache>
-				<c:ptCount val="4"/>
-				<c:pt idx="0"><c:v>Category A</c:v></c:pt>
-				<c:pt idx="1"><c:v>Category B</c:v></c:pt>
-				<c:pt idx="2"><c:v>Category C</c:v></c:pt>
-				<c:pt idx="3"><c:v>Category D</c:v></c:pt>
-			</c:strCache>
-		</c:strRef>
-	</c:cat>
-	<c:val>
-		<c:numRef>
-			<c:f>Sheet1!$B$2:$E$2</c:f>
-			<c:numCache>
-				<c:formatCode>General</c:formatCode>
-				<c:ptCount val="4"/>
-				<c:pt idx="0"><c:v>20.399999999999999</c:v></c:pt>
-				<c:pt idx="1"><c:v>27.4</c:v></c:pt>
-				<c:pt idx="2"><c:v>90</c:v></c:pt>
-				<c:pt idx="3"><c:v>20.399999999999999</c:v></c:pt>
-			</c:numCache>
-		</c:numRef>
-	</c:val>
+  <c:idx val="0"/>
+  <c:order val="0"/>
+  <c:tx>
+    <c:strRef>
+      <c:f>Sheet1!$A$2</c:f>
+      <c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>Here is the name of the Series</c:v></c:pt></c:strCache>
+    </c:strRef>
+  </c:tx>
+  <c:spPr>
+    <a:solidFill><a:srgbClr val="9999FF"/></a:solidFill>
+    <a:ln w="12700"><a:solidFill><a:srgbClr val="000000"/></a:solidFill><a:prstDash val="solid"/></a:ln>
+  </c:spPr>
+  <c:invertIfNegative val="0"/>
+  <c:cat>
+    <c:strRef>
+      <c:f>Sheet1!$B$1:$E$1</c:f>
+      <c:strCache>
+        <c:ptCount val="4"/>
+        <c:pt idx="0"><c:v>Category A</c:v></c:pt>
+        <c:pt idx="1"><c:v>Category B</c:v></c:pt>
+        <c:pt idx="2"><c:v>Category C</c:v></c:pt>
+        <c:pt idx="3"><c:v>Category D</c:v></c:pt>
+      </c:strCache>
+    </c:strRef>
+  </c:cat>
+  <c:val>
+    <c:numRef>
+      <c:f>Sheet1!$B$2:$E$2</c:f>
+      <c:numCache>
+        <c:formatCode>General</c:formatCode>
+        <c:ptCount val="4"/>
+        <c:pt idx="0"><c:v>20.399999999999999</c:v></c:pt>
+        <c:pt idx="1"><c:v>27.4</c:v></c:pt>
+        <c:pt idx="2"><c:v>90</c:v></c:pt>
+        <c:pt idx="3"><c:v>20.399999999999999</c:v></c:pt>
+      </c:numCache>
+    </c:numRef>
+  </c:val>
 </c:ser>
 
 ****************************
@@ -389,30 +389,30 @@ All sheets of the workbook are listed in the file "xl/workbook.xml".
 Synopsis of a sheet file like "xl/worksheets/sheet1.xml":
 ---------------------------------------------------------
 <worksheet>
-	...
-	<sheetData>
-		<row r="2" spans="2:2" ht="90">
-			A range of one row in wich several cells are defined
-			<c r="B2" s="1" t="s">
-				
-				Definition of a cell:
-				Attribute r is the address if the cell in the sheet (format A1). This attribute is optional.
-				Attribute s is the style of the cell (the format). Styles are saved into the file 'xl/styles.xml' but I have not found the link yet.
-				Attribute t is the type of data, by default it is numerical
-				t="s" means that the displayed value is a string, the saved value is the index if the string taken in file sharedStrings.xml.
-				<f>B13+B14</f> the formula. If there is no formula, this tag is absent.
-				<v>0</v> the inner value without formatting. If t="s" then the value is in fact the index of the string in the "xl/sharedStrings.xml" file.
-			</c>
-		</row>
-	</sheetData>
+  ...
+  <sheetData>
+    <row r="2" spans="2:2" ht="90">
+      A range of one row in wich several cells are defined
+      <c r="B2" s="1" t="s">
+        
+        Definition of a cell:
+        Attribute r is the address if the cell in the sheet (format A1). This attribute is optional.
+        Attribute s is the style of the cell (the format). Styles are saved into the file 'xl/styles.xml' but I have not found the link yet.
+        Attribute t is the type of data, by default it is numerical
+        t="s" means that the displayed value is a string, the saved value is the index if the string taken in file sharedStrings.xml.
+        <f>B13+B14</f> the formula. If there is no formula, this tag is absent.
+        <v>0</v> the inner value without formatting. If t="s" then the value is in fact the index of the string in the "xl/sharedStrings.xml" file.
+      </c>
+    </row>
+  </sheetData>
 </worksheet>
 
 Synopsis of the Shared String file "xl/sharedStrings.xml":
 ----------------------------------------------------------
 <sst>
-	<si>
-		<t>value or text</t>
-	</si>
+  <si>
+    <t>value or text</t>
+  </si>
 </sst>
 
 **********************************
@@ -430,22 +430,22 @@ Synopsis of a slide file like "ppt/slides/slide1.xml":
 ------------------------------------------------------
 
 <p:sld>
-	<p:cSld>
-		<p:spTree>
-			<p:sp>
+  <p:cSld>
+    <p:spTree>
+      <p:sp>
 
-				<p:txBody>
-					<a:p>
-						<a:pPr eaLnBrk="1" hangingPunct="1"/>
-						<a:r>
-							<a:t>Some text here</a:t>
-						</a:r>
-					</a:p>
-				</p:txBody>
+        <p:txBody>
+          <a:p>
+            <a:pPr eaLnBrk="1" hangingPunct="1"/>
+            <a:r>
+              <a:t>Some text here</a:t>
+            </a:r>
+          </a:p>
+        </p:txBody>
 
-			</p:sp>
-		</p:spTree>
-	</p:cSld>
+      </p:sp>
+    </p:spTree>
+  </p:cSld>
 </p:sld>
 
 
@@ -465,9 +465,12 @@ They are two ways to insert a picture.
 -------------------------
 (short synopsis)
 <w:pict>
-	<v:shape ...>
-		<v:imagedata r:id="rId6" o:title=""/>
-	</v:shape>
+  <v:shapetype ...>
+    ...
+  </v:shapetype>
+  <v:shape style="width:89.25pt;height:119.25pt" ...> this element contains the siez of the picture
+    <v:imagedata r:id="rId6" o:title=""/> // this element contains the link to the picture internal file
+  </v:shape>
 </w:pict>
 
 
@@ -476,15 +479,28 @@ They are two ways to insert a picture.
 (short synopsis)
 <w:drawing> 
   <wp:inline ...>
-      <a:graphic ...>
-          <a:graphicData ...>
-              <pic:pic ...>
-                  <pic:blipFill>
-                      <a:blip r:embed="rId4" />
-                  </pic:blipFill>
-              </pic:pic>
-          </a:graphicData>
-      </a:graphic>
+    <wp:extent cx="1130400" cy="1512000" /> // this element gives the size of the shape box that contains the picture
+    <a:graphic ...>
+      <a:graphicData ...>
+        <pic:pic ...>
+
+          <pic:blipFill>
+            <a:blip r:embed="rId4" /> // this element contains the link to the picture internal file
+          </pic:blipFill>
+
+          <pic:spPr ...>
+            <a:xfrm>
+               <a:off x="0" y="0" />
+               <a:ext cx="1130400" cy="1512000" /> // this element gives the size of the picture inside its shape box, it can be rescaled to fit in the shape box
+            </a:xfrm>
+            <a:prstGeom prst="rect"><a:avLst /></a:prstGeom>
+            <a:noFill />
+            <a:ln><a:noFill /></a:ln>
+          </pic:spPr>
+
+	    </pic:pic>
+      </a:graphicData>
+    </a:graphic>
   </wp:inline>
 </w:drawing>
 
@@ -493,10 +509,16 @@ Powerpoint:
 
 (short synopsis)
 <p:pic>
-	<p:blipFill>
-		<a:blip r:embed="rId2">
-		</a:blip>
-	</p:blipFill>
+  <p:blipFill>
+    <a:blip r:embed="rId2">
+    </a:blip>
+  </p:blipFill>
+  <p:spPr>
+    <a:xfrm>
+      <a:off x="2667000" y="4365104" />
+      <a:ext cx="3810000" cy="1200150" />
+    </a:xfrm>
+  </p:spPr>
 </p:pic>
 
 Excel:
@@ -507,9 +529,9 @@ All pictures of a sheet are finally references in a third XML file.
 
 * File "xl\worksheets\sheet1.xml"
 <worksheet ...>
-	...
-	<drawing r:id="rId2"/> (only one entity for all pictures in the sheet)
-</worksheet>	
+  ...
+  <drawing r:id="rId2"/> (only one entity for all pictures in the sheet)
+</worksheet>  
 
 * File "xl\worksheets\_rels\sheet1.xml.rels"
 <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/> (only one entity for all pictures in the sheet)
@@ -517,10 +539,10 @@ All pictures of a sheet are finally references in a third XML file.
 * File "xl\drawings\drawing1.xml"
 (short synopsis, one entity per picture in the sheet)
 <xdr:twoCellAnchor ...>
-	<xdr:pic>
-		<xdr:blipFill>
-			<a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="rId1">
-			</a:blip>
-		</xdr:blipFill>
-	</xdr:pic>
+  <xdr:pic>
+    <xdr:blipFill>
+      <a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="rId1">
+      </a:blip>
+    </xdr:blipFill>
+  </xdr:pic>
 </xdr:twoCellAnchor>
