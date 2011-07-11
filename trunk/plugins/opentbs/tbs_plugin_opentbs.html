@@ -47,7 +47,7 @@ body, td, th {
 <body>
 <h1>OpenTBS</h1>
 <div>version 1.6.1, 2011-06-08, by Skrol29<br />
-  help file modified on 2011-06-08</div>
+  help file modified on 2011-07-11</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -95,7 +95,7 @@ body, td, th {
   <u>Installation:</u><br />
   Just put the file &quot;tbs_plugin_opentbs.php&quot; with your PHP scripts.</p>
 <h2><a name="principles" id="principles"></a>3. Understanding principles</h2>
-<p>It is important to figure out that OpenOffice and Ms Office (since version 2007) documents are technically zip archives containing XML files, even if the extension of the document is not &quot;.zip&quot;. Those zip archives can contain other file types like pictures or sounds, but the document structure and the text contents are saved as  XML files.</p>
+<p>It is important to figure out that OpenOffice and Ms Office (since version 2007) documents are technically zip archives containing XML files, even if the extension of the document is not &quot;.zip&quot;. Those zip archives can contain other file types like pictures or sounds, but the document structure and the text contents are saved as  XML files. The <a href="xml_synopsis.txt">XML Synopsis</a> summarizes the key entities of XML sub-files contained in OpenOffice and Ms Office documents.</p>
 <p>TinyButStrong can merge XML files, but cannot read zip archives by itself. The plug-in OpenTBS extends the TinyButStrong methods <a href="http://www.tinybutstrong.com/manual.php#php_loadtemplate">LoadTemplate()</a> and <a href="http://www.tinybutstrong.com/manual.php#php_show">Show()</a> to make them working with zip archives. <span id="result_box"><span title="">But you   do not have to bother with it because OpenTBS is managing archives  in a way that is invisible for you.</span></span></p>
 <p> When the OpenTBS plugin is installed, the LoadTemplate() method becomes able to first load a zip archive (an OpenOffice or Ms Office document), and then to load the contents of any XML or Text files stored in the archive. You can then merge the contents of XML or Text files with all features of the TinyButStrong template engine. At the end, the Show() method does render the entire zip archive including  modified stored files. The render can be done as an HTTP download, a news file on the server's disk, or in a PHP string.</p>
 <p>Since OpenTBS version 1.3, you can also add and delete files in the archive. Before this version you could only modify existing files in the archive.<br />
@@ -202,11 +202,12 @@ If the chart type is &quot;X Y (Scatter)&quot; then you must use only the  first
 <div class="template">Example: [onshow.x;ope=changepic;from='../pic/[val].gif';as='[val].gif';default=current]<br />
 </div>
 <div class="note">
-  <p>Parameter <span class="smallcode">&quot;ope=changepic&quot;</span> is  a feature provided by the OpenTBS plug-in, which extends the &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_ope">ope</a>&quot; parameter natively present with TBS.<br />
-    When a TBS field having <span class="smallcode">&quot;ope=changepic&quot;</span> is placed in the template and merged, then OpenTBS will search the first picture located before the field (to be more precise, the TBS field must be located somewhere inside or after the opening tag of the picture in the template source code), and then it will change the picture assuming that the value of the field is the path for a picture file on the server. You don't have to care about loading the picture file in the document, OpenTBS will manage this for you.<br />
+  <p>I the example above, $x is a PHP global variable containing the name or the path for an external picture file. But the feature  works simillary with items data merged with a TBS block.</p>
+  <p>    When a TBS field having <span class="smallcode">&quot;ope=changepic&quot;</span> is merged in the template, then OpenTBS will search the first picture located before the field (to be more precise, the TBS field must be located somewhere inside or after the opening tag of the picture in the template source code), and then it will change the picture assuming that the value of the field is the path for a picture file on the server. You don't have to care about loading the picture file in the document, OpenTBS will manage this for you.</p>
+  <p>Note that parameter <span class="smallcode">&quot;ope=changepic&quot;</span> is  a feature provided by the OpenTBS plug-in, which extends the &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_ope">ope</a>&quot; parameter natively present with TBS.<br />
     <br />
     In order to 
-    simplify your coding, they are other complementary parameters that are provided: </p>
+    simplify your coding, they are other complementary parameters that are provided for the <span class="smallcode">changepic</span> parameter: </p>
   <ul>
     <li> Parameter &quot;<span class="smallcode">from&quot;</span> enables you to reformulate the path of the picture to insert. The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file">file</a>&quot;. Parameter &quot;<span class="smallcode">from</span>&quot; is optional.</li>
     <li> Parameter <span class="smallcode">&quot;as&quot;</span> enables you to reformulate name of the picture that it will take inside the document. It is rare to need it, but it can help in some cases. Note that the external picture file is not renamed. The new   name must be defined without path.
