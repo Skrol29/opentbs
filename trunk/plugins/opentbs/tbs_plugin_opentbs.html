@@ -46,8 +46,8 @@ body, td, th {
 
 <body>
 <h1>OpenTBS</h1>
-<div>version 1.6.1, 2011-06-08, by Skrol29<br />
-  help file modified on 2011-07-11</div>
+<div>version 1.6.2, 2011-07-12, by Skrol29<br />
+  help file modified on 2011-07-12</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -303,11 +303,13 @@ $TBS-&gt;Show(OPENTBS_DEBUG_XML+<span class="smallcode">OPENTBS_DEBUG_AVOIDAUTOF
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
+<p>version 1.6.2, on 2011-07-12<br />
+- fixed bug: Ms Excel cells could considee as error some formatted values such as  '0.00000000000000'.</p>
 <p>version 1.6.1, on 2011-06-08<br />
-- fixed bug: some documents may be corrupted when created using OPENTBS_DOWNLOAD because of a PHP error <span class="warning">&quot;supplied argument is not a valid stream resource&quot;</span> or <span class="warning">&quot;Undefined property: clsOpenTBS::$OutputHandle&quot;</span>.<br />
-- fixed bug: using keyword &quot;xlsxNum&quot;, &quot;xlsxDate&quot; or &quot;xlsxBool&quot; inside a cell that is not merged can make a corrupted XLSX spreadsheet.<br />
-- improvement: updated templates in the demo.<br />
-- based on a TbsZip v2.8</p>
+  - fixed bug: some documents may be corrupted when created using OPENTBS_DOWNLOAD because of a PHP error <span class="warning">&quot;supplied argument is not a valid stream resource&quot;</span> or <span class="warning">&quot;Undefined property: clsOpenTBS::$OutputHandle&quot;</span>.<br />
+  - fixed bug: using keyword &quot;xlsxNum&quot;, &quot;xlsxDate&quot; or &quot;xlsxBool&quot; inside a cell that is not merged can make a corrupted XLSX spreadsheet.<br />
+  - improvement: updated templates in the demo.<br />
+  - based on a TbsZip v2.8</p>
 <p>version 1.6.0, on 2011-06-07<br />
   - new feature: merge charts in Ms Word documents.<br />
   - new feature: merge rows and columns Ms Excel workbooks.<br />
