@@ -1,10 +1,19 @@
 <?php
 
-/* OpenTBS version 1.6.2 (2011-07-12)
+/* OpenTBS version 1.6.3b (2011-07-12)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
 Site: http://www.tinybutstrong.com/plugins.php
+*/
+/*
+[ok] parameter 'changepic' optimized
+[tt] paramter 'adjust'
+samewidth
+sameheigh
+samelimits (par défaut)
+10pc;
+100%
 */
 
 // Constants to drive the plugin.
@@ -38,7 +47,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
 		if (!isset($TBS->OtbsConvertApostrophes)) $TBS->OtbsConvertApostrophes = true;
-		$this->Version = '1.6.2'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
+		$this->Version = '1.6.3b'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
@@ -215,8 +224,8 @@ class clsOpenTBS extends clsTbsZip {
 			// Prepare to change picture
 			$ope_lst = explode(',', $Loc->PrmLst['ope']); // in this event, ope is not exploded
 			if (in_array('changepic', $ope_lst)) {
-				$this->TbsPicChg($Txt, $Loc); // add parameter "att" which will be processed just after this event, when the field is cached
-				$PrmLst['pic_change'] = true;
+				$this->TbsPicFound($Txt, $Loc); // add parameter "att" which will be processed just after this event, when the field is cached
+				$Loc->PrmLst['pic_change'] = true;
 			}
 
 			// Change cell type in ODS files
@@ -249,13 +258,13 @@ class clsOpenTBS extends clsTbsZip {
     // in this event, ope is exploded, there is one function call for each ope command
 		$ope = $PrmLst['ope'];
 		if ($ope==='addpic') {
-			$this->TbsPicAdd($Value, $PrmLst, $Loc, 'ope=addpic');
+			$this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=addpic');
 		} elseif ($ope==='changepic') {
 			if (!isset($PrmLst['pic_change'])) {
-				$this->TbsPicChg($Txt, $Loc);
+				$this->TbsPicFound($Txt, $Loc);  // add parameter "att" which will be processed just before the value is merged
 				$PrmLst['pic_change'] = true;
 			}
-			$this->TbsPicAdd($Value, $PrmLst, $Loc, 'ope=changepic'); // add parameter "att" which will be processed just before the value is merged
+			$this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=changepic');
 		} elseif(substr($ope,0,4)==='xlsx') {
 			if (!isset($Loc->PrmLst['xlsxok'])) $this->MsExcel_ChangeCellType($Txt, $Loc, $ope);
 			switch ($Loc->PrmLst['xlsxok']) {
@@ -554,12 +563,13 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return false;
 	}
 
-	function TbsPicChg($Txt, &$Loc) {
-
+	function TbsPicFound($Txt, &$Loc) {
+	// Found the relevent attribute for the image source, and then add parameter 'att' to the TBS locator.
 		$att = false;
 		if (isset($this->ExtInfo['frm'])) {
 			if ($this->ExtInfo['frm']==='odf') {
 				$att = 'draw:image#xlink:href';
+				if (isset($Loc->PrmLst['adjust'])) $Loc->otbsDim = $this->TbsPicGetDimODF($Txt, $Loc->PosBeg);
 			} elseif ($this->ExtInfo['frm']==='openxml') {
 				$att = $this->OpenXML_FirstPicAtt($Txt, $Loc->PosBeg, true);
 				if ($att===false) return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] has failed to found the picture.');
@@ -580,9 +590,70 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	function TbsPicAdd(&$Value, &$PrmLst, $Loc, $Prm) {
-	// add a picture inside the archive, use parameters 'from' and 'as'.
-	// Arguments $Loc and $Prm are only used for error messages.
+	function TbsPicAdjust(&$Txt, &$Loc, &$File) {
+		// Adjust the dimensions if the picture
+		$fDim = @getimagesize($File); // file dimensions
+		if (!is_array($fDim)) return;
+		$w = (float) $fDim[0];
+		$h = (float) $fDim[1];
+		$r = ($w/$h);
+		$tDim = $Loc->otbsDim; // template dimensions
+		if ($tDim['r']>=$r) {
+			// adjust width
+			$new = $r * $tDim['hv'];
+			$what = 'w';
+		} else {
+			// adjust height
+			$new = $tDim['wv'] * $h / $w;
+			$what = 'h';
+		}
+		$new = number_format($new,2,'.','');
+		$beg = $tDim[$what.'b'];
+		$len = $tDim[$what.'l'];
+		$Txt = substr_replace($Txt, $new, $beg, $len);
+		if ($Loc->PosBeg>$beg) {
+			$delta = strlen($new) - $len;
+			if ($delta<>0) {
+				$Loc->PosBeg = $Loc->PosBeg + $delta;
+				$Loc->PosEnd = $Loc->PosEnd + $delta;
+			}
+		}
+		
+	}
+
+	function TbsPicGetDimODF($Txt, $Pos) {
+	// Found the attributes for the image dimensions, in an ODF file
+		$p = clsTinyButStrong::f_Xml_FindTagStart($Txt, 'draw:frame', true, $Pos, false, true);
+		if ($p===false) return false;
+		$pe = strpos($Txt, '>', $p);
+		if ($pe===false) return false;
+		$x = substr($Txt, $p, $pe -$p);
+		$att_lst = array('w'=>'svg:width="', 'h'=>'svg:height="');
+		$res_lst = array();
+		foreach ($att_lst as $i=>$att) {
+				$l = strlen($att);
+				$b = strpos($x, $att);
+				if ($b===false) return false;
+				$b = $b + $l;
+				$e = strpos($x, '"', $b);
+				if ($e===false) return false;
+				$lv = $e - $b - 2;
+				$v = floatval(substr($x, $b, $lv));
+				if ($v==0) return false;
+				$res_lst[$i.'b'] = ($p+$b); // start
+				$res_lst[$i.'l'] = $lv; // lenght of the value
+				$res_lst[$i.'u'] = substr($x, $e-2, 2); // unit (can be: mm, cm, in, pi, pt)
+				$res_lst[$i.'v'] = $v; // value
+		}
+
+		$res_lst['r'] = $res_lst['wv']/$res_lst['hv']; // ratio
+		return $res_lst;
+
+	}
+	
+	function TbsPicAdd(&$Value, &$PrmLst, &$Txt, &$Loc, $Prm) {
+	// Add a picture inside the archive, use parameters 'from' and 'as'.
+	// Argument $Prm is only used for error messages.
 
 		$TBS = &$this->TBS;
 
@@ -614,7 +685,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			}
 		}
 
-		// set the name of the new files
+		// set the name of the internal file
 		if (isset($PrmLst['as'])) {
 			if (!isset($PrmLst['pic_prepared'])) $TBS->meth_Merge_AutoVar($PrmLst['as'],true); // merge automatic TBS fields in the path
 			$InternalPath = str_replace($TBS->_ChrVal,$Value,$PrmLst['as']); // merge [val] fields in the path
@@ -624,7 +695,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		if ($ok) {
 
-			// the value of the current TBS fields becomes the full path
+			// the value of the current TBS field becomes the full internal path
 			if (isset($this->ExtInfo['pic_path'])) $InternalPath = $this->ExtInfo['pic_path'].$InternalPath;
 
 			// actually add the picture inside the archive
@@ -643,7 +714,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				}
 			}
 
-			// change the value of the fields for the merging process
+			// change the value of the field for the merging process
 			if ($Rid===false) {
 				$Value = $InternalPath;
 			} else {
@@ -654,6 +725,13 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 			$Value = '';
 
+		}
+
+		// change the dimensions
+		if (isset($Loc->otbsDim)) {
+			$Loc->PosBeg = $Loc->otbsRealBeg;
+			$Loc->PosEnd = $Loc->otbsRealEnd;
+			if ($ok) $this->TbsPicAdjust($Txt, $Loc, $FullPath);
 		}
 
 		$PrmLst['pic_prepared'] = true; // mark the locator as Picture prepared
