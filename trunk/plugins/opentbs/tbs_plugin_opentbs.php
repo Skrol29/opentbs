@@ -727,10 +727,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		}
 
-		// change the dimensions
+		// change the dimensions of the picture
 		if (isset($Loc->otbsDim)) {
-			$Loc->PosBeg = $Loc->otbsRealBeg;
-			$Loc->PosEnd = $Loc->otbsRealEnd;
+			if (isset($Loc->AttForward)) { // the field has been already moved by parameter att
+				if (!isset($Loc->otbsRealBeg)) { // save the real position of the field
+					$Loc->otbsRealBeg = $Loc->PosBeg;
+					$Loc->otbsRealEnd = $Loc->PosEnd;
+				} else { // restore the real position of the field
+					$Loc->PosBeg = $Loc->otbsRealBeg;
+					$Loc->PosEnd = $Loc->otbsRealEnd;
+				}
+			}
 			if ($ok) $this->TbsPicAdjust($Txt, $Loc, $FullPath);
 		}
 
