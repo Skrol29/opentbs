@@ -46,8 +46,8 @@ body, td, th {
 
 <body>
 <h1>OpenTBS</h1>
-<div>version 1.6.2, 2011-07-12, by Skrol29<br />
-  help file modified on 2011-07-12</div>
+<div>version 1.7.0-beta, 2011-07-22, by Skrol29<br />
+  help file modified on 2011-07-22</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -208,12 +208,49 @@ If the chart type is &quot;X Y (Scatter)&quot; then you must use only the  first
     <br />
     In order to 
     simplify your coding, they are other complementary parameters that are provided for the <span class="smallcode">changepic</span> parameter: </p>
-  <ul>
-    <li> Parameter &quot;<span class="smallcode">from&quot;</span> enables you to reformulate the path of the picture to insert. The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file">file</a>&quot;. Parameter &quot;<span class="smallcode">from</span>&quot; is optional.</li>
-    <li> Parameter <span class="smallcode">&quot;as&quot;</span> enables you to reformulate name of the picture that it will take inside the document. It is rare to need it, but it can help in some cases. Note that the external picture file is not renamed. The new   name must be defined without path.
-      The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file">file</a>&quot;. Parameter <span class="smallcode">&quot;as&quot;</span> is optional.</li>
-    <li> Parameter <span class="smallcode">&quot;default&quot;</span> enables you to define the picture that should be used when the expected one is not found. The parameter's value must be the path of a file on the server, or the keyword &quot;<span class="smallcode">current&quot;</span>. If you've set <span class="smallcode">&quot;default=current&quot;</span> then OpenTBS will let the picture of the template if the expected one is not found.</li>
-  </ul>
+  <table border="0" cellpadding="0" cellspacing="4" style="marging-left:20px;">
+    <tr>
+      <th align="left">Parameter</th>
+      <th align="left">Description</th>
+    </tr>
+    <tr>
+      <td valign="top"><span class="smallcode">from</span></td>
+      <td>Reformulate the path of the picture to insert. The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file">file</a>&quot;. Parameter &quot;<span class="smallcode">from</span>&quot; is optional.</td>
+    </tr>
+    <tr>
+      <td valign="top"><span class="smallcode">as</span></td>
+      <td> Reformulate name of the picture that it will take inside the document. It is rare to need it, but it can help in some cases. Note that the external picture file is not renamed. The new   name must be defined without path.
+      The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file">file</a>&quot;. Parameter <span class="smallcode">&quot;as&quot;</span> is optional.</td>
+    </tr>
+    <tr>
+      <td valign="top"><span class="smallcode">default</span></td>
+      <td>Define the picture that should be used when the expected one is not found. The parameter's value must be the path of a file on the server, or the keyword &quot;<span class="smallcode">current&quot;</span>. If you've set <span class="smallcode">&quot;default=current&quot;</span> then OpenTBS will let the picture of the template if the expected one is not found.</td>
+    </tr>
+    <tr>
+      <td valign="top"><span class="smallcode">adjust</span></td>
+      <td>Adjust the size of the picture in the document. Values can be on of the followings:<br />
+        <table border="0" cellspacing="0" cellpadding="3">
+          <tr>
+            <td valign="top"><span class="smallcode">adjust</span> (or <span class="smallcode">adjust=inside</span>)</td>
+            <td>The picture is adjusted to enter into the picture bounds of the template.</td>
+          </tr>
+          <tr>
+            <td valign="top"><span class="smallcode">adjust=samewidth</span><br /></td>
+            <td>The picture is adjusted to have the same width than the picture of the template.</td>
+          </tr>
+          <tr>
+            <td valign="top" class="smallcode">adjust=sameheigth</td>
+            <td>The picture is adjusted to have the same height than the picture of the template.</td>
+          </tr>
+          <tr>
+            <td valign="top"><span class="smallcode">adjust=100%</span> (or 
+        another pourcentage) </td>
+            <td>The picture is adjusted to be  proportional to the originial size.</td>
+          </tr>
+        </table>
+      <span class="versioning">Parameter adjust is supported since OpenTBS version 1.7.0.</span></td>
+    </tr>
+  </table>
 </div>
 <h3><a name="modify" id="modify"></a>4.6. Manual modification of files in the archive</h3>
 &bull; Add any new file in the archive: <span class="versioning">(supported since OpenTBS version 1.3)</span><br />
@@ -240,6 +277,17 @@ If you want to stop this conversion, you can set <span class="smallcode">$TBS-&g
   You can force the document type recognition using command OPENTBS_FORCE_DOCTYPE. Example:</p>
 <div class="code"> $TBS-&gt;PlugIn(OPENTBS_FORCE_DOCTYPE, 'docx');</div>
 <span class="versioning">This command is supported since OpenTBS version 1.6.0.</span>
+<p>&bull; <u>Other operations on the contents:</u><br />
+<span class="versioning">Those commands are supported since OpenTBS version 1.7.0.</span></p>
+<div class="code"> 
+  <p>// Change the current sheet for XLSX worksheets (ODS worksheet have all sheets in the same xml subfile)<br />
+    $TBS-&gt;PlugIn(OPENTBS_SELECT_SHEET, 2); // produce anerror if the corresponding worksheet is not found<br />
+  <br />
+    // 
+    Delete one or several XML elements in the current sub-file<br />
+    // In this example, DOCX Comment Marks are deleted, so that comments becomes hidden.<br />
+  $TBS-&gt;PlugIn(OPENTBS_DELETE_ELEMENTS, array('w:commentRangeStart', 'w:commentRangeEnd', 'w:commentReference') ); </p>
+</div>
 <p>&bull; <u>Retrieving the name of the current document:</u><br />
 Property <span class="smallcode">$TBS-&gt;tbsCurrFile</span> indicates the name of the current file loaded from the archive. The value is false if no file is loaded yet from the archive.</p>
 <p> Other TinyButStrong methods and properties stay unchanged and are available for merging your template.
@@ -303,8 +351,16 @@ $TBS-&gt;Show(OPENTBS_DEBUG_XML+<span class="smallcode">OPENTBS_DEBUG_AVOIDAUTOF
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
+<p>version 1.7.0-beta, on 2011-07-22<br />
+  - new parameter 'adjust'for changing picture size<br />
+  - new command OPENTBS_SELECT_SHEET
+  <br />
+  - new command OPENTBS_DELETE_ELEMENTS
+  <br />
+- parameter 'changepic' is optimized<br />
+</p>
 <p>version 1.6.2, on 2011-07-12<br />
-- fixed bug: Ms Excel cells could consider as error some formatted values such as  '0.00000000000000'.</p>
+  - fixed bug: Ms Excel cells could consider as error some formatted values such as  '0.00000000000000'.</p>
 <p>version 1.6.1, on 2011-06-08<br />
   - fixed bug: some documents may be corrupted when created using OPENTBS_DOWNLOAD because of a PHP error <span class="warning">&quot;supplied argument is not a valid stream resource&quot;</span> or <span class="warning">&quot;Undefined property: clsOpenTBS::$OutputHandle&quot;</span>.<br />
   - fixed bug: using keyword &quot;xlsxNum&quot;, &quot;xlsxDate&quot; or &quot;xlsxBool&quot; inside a cell that is not merged can make a corrupted XLSX spreadsheet.<br />

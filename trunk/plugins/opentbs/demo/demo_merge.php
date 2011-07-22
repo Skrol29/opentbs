@@ -71,7 +71,7 @@ if ($template_ext=='xlsx') {
 	// merge cells (exending columns)
 	$TBS->MergeBlock('cell1,cell2', $data);
 	// change the current sheet
-	$TBS->LoadTemplate('#xl/worksheets/sheet2.xml');
+	$TBS->PlugIn(OPENTBS_SELECT_SHEET, 2);
 	// merge data in Sheet 2
 	$TBS->MergeBlock('cell1,cell2', 'num', 3);
 	$TBS->MergeBlock('b2', $data);
