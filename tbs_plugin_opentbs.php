@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.6.3b (2011-07-12)
+/* OpenTBS version 1.7.0b (2011-07-22)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -8,12 +8,12 @@ Site: http://www.tinybutstrong.com/plugins.php
 */
 /*
 [ok] parameter 'changepic' optimized
-[tt] paramter 'adjust'
-samewidth
-sameheigh
-samelimits (par défaut)
-10pc;
-100%
+[ok] paramter 'adjust'
+[ok] command OPENTBS_SELECT_SHEET
+[ok] command OPENTBS_DELETE_ELEMENTS
+[  ] command OPENTBS_DELETE_SHEETS
+[  ] command OPENTBS_HIDE_COMMENTS
+[  ] command OPENTBS_SELECT_HEADER, OPENTBS_SELECT_FOOTER, OPENTBS_SELECT_COMMENTS
 */
 
 // Constants to drive the plugin.
@@ -36,6 +36,8 @@ define('OPENTBS_DEBUG_XML_SHOW','clsOpenTBS.DebugXmlShow');
 define('OPENTBS_DEBUG_XML_CURRENT','clsOpenTBS.DebugXmlCurrent');
 define('OPENTBS_DEBUG_CHART_LIST','clsOpenTBS.DebugChartList');
 define('OPENTBS_FORCE_DOCTYPE','clsOpenTBS.ForceDocType');
+define('OPENTBS_DELETE_ELEMENTS','clsOpenTBS.DeleteElements');
+define('OPENTBS_SELECT_SHEET','clsOpenTBS.SelectSheet');
 
 
 class clsOpenTBS extends clsTbsZip {
@@ -47,7 +49,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
 		if (!isset($TBS->OtbsConvertApostrophes)) $TBS->OtbsConvertApostrophes = true;
-		$this->Version = '1.6.3b'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
+		$this->Version = '1.7.0-beta-2011-07-22'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
@@ -359,6 +361,20 @@ class clsOpenTBS extends clsTbsZip {
 			$this->TbsDebug(true);
 		} elseif($Cmd==OPENTBS_FORCE_DOCTYPE) {
 			return $this->Ext_PrepareInfo($x1);
+		} elseif ($Cmd==OPENTBS_DELETE_ELEMENTS) {
+			if (is_string($x1)) $x1 = explode(',', $x1);
+			return $this->XML_DeleteElements($this->TBS->Source, $x1);
+		} elseif ($Cmd==OPENTBS_SELECT_SHEET) {
+			// Only XLSX files have sheets in separated subfiles.
+			if (($this->ExtInfo!==false) && ($this->ExtInfo['ext']=='xlsx') ) {
+				$subfile = 'xl/worksheets/sheet'.$x1.'.xml';
+				if ($this->FileExists($subfile)) {
+					$this->TBS->LoadTemplate('#'.$subfile);
+				} else {
+					return $this->RaiseError("(OPENTBS_SELECT_SHEET) sub-file '".$subfile."' is not found inside the Workbook.");
+				}
+			}
+			return true;
 		}
 
 	}
@@ -569,10 +585,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if (isset($this->ExtInfo['frm'])) {
 			if ($this->ExtInfo['frm']==='odf') {
 				$att = 'draw:image#xlink:href';
-				if (isset($Loc->PrmLst['adjust'])) $Loc->otbsDim = $this->TbsPicGetDimODF($Txt, $Loc->PosBeg);
+				if (isset($Loc->PrmLst['adjust'])) $Loc->otbsDim = $this->TbsPicGetDim_ODF($Txt, $Loc->PosBeg);
 			} elseif ($this->ExtInfo['frm']==='openxml') {
 				$att = $this->OpenXML_FirstPicAtt($Txt, $Loc->PosBeg, true);
 				if ($att===false) return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] has failed to found the picture.');
+				if (isset($Loc->PrmLst['adjust'])) {
+					if (strpos($att,'v:imagedata')!==false) { 
+						$Loc->otbsDim = $this->TbsPicGetDim_OpenXML_vml($Txt, $Loc->PosBeg);
+					} else {
+						$Loc->otbsDim = $this->TbsPicGetDim_OpenXML_dml($Txt, $Loc->PosBeg);
+					}
+				}
 			}
 		} else {
 			return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] is not supported with the current document type.');
@@ -597,38 +620,83 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$w = (float) $fDim[0];
 		$h = (float) $fDim[1];
 		$r = ($w/$h);
-		$tDim = $Loc->otbsDim; // template dimensions
-		if ($tDim['r']>=$r) {
-			// adjust width
-			$new = $r * $tDim['hv'];
-			$what = 'w';
-		} else {
-			// adjust height
-			$new = $tDim['wv'] * $h / $w;
-			$what = 'h';
+		$delta = 0;
+		$adjust = $Loc->PrmLst['adjust'];
+		if ( (!is_string($adjust)) || ($adjust=='') ) $adjust = 'inside';
+		if (strpos($adjust, '%')!==false) {
+			$adjust_coef = floatval(str_replace('%','',$adjust))/100.0;
+			$adjust = '%';
 		}
-		$new = number_format($new,2,'.','');
-		$beg = $tDim[$what.'b'];
-		$len = $tDim[$what.'l'];
-		$Txt = substr_replace($Txt, $new, $beg, $len);
-		if ($Loc->PosBeg>$beg) {
-			$delta = strlen($new) - $len;
-			if ($delta<>0) {
-				$Loc->PosBeg = $Loc->PosBeg + $delta;
-				$Loc->PosEnd = $Loc->PosEnd + $delta;
+		foreach ($Loc->otbsDim as $tDim) { // template dimensions. They must be sorted in reverse order of location
+			if ($tDim!==false) {
+				// find what dimensions should be edited
+				if ($adjust=='%') {
+					if ($tDim['wb']>$tDim['hb']) { // the last attribute must be processed first
+						$edit_lst = array('w' =>  $adjust_coef * $w, 'h' =>  $adjust_coef * $h );
+					} else {
+						$edit_lst = array('h' =>  $adjust_coef * $h, 'w' =>  $adjust_coef * $w );
+					}
+				} elseif ($adjust=='samewidth') {
+					$edit_lst = array('h' => $tDim['wv'] * $h / $w );
+				} elseif ($adjust=='sameheight') {
+					$edit_lst = array('w' =>  $r * $tDim['hv'] );
+				} else { // default value
+					if ($tDim['r']>=$r) {
+						$edit_lst = array('w' =>  $r * $tDim['hv'] ); // adjust width
+					} else {
+						$edit_lst = array('h' => $tDim['wv'] * $h / $w ); // adjust height
+					}
+				}
+				// edit dimensions
+				foreach ($edit_lst as $what=>$new) {
+					$beg  = $tDim[$what.'b'];
+					$len  = $tDim[$what.'l'];
+					$unit = $tDim[$what.'u'];
+					if ($adjust=='%') {
+						if ($tDim['cpt']!==false) $new = $new * $tDim['cpt']; // apply the coef to Point conversion if any
+						if ($unit!=='') { // force unit to pt, if units are allowed
+							$unit = 'pt';
+						}
+					}
+					$new = number_format($new, $tDim['dec'], '.', '').$unit;
+					$Txt = substr_replace($Txt, $new, $beg, $len);
+					if ($Loc->PosBeg>$beg) $delta = $delta + strlen($new) - $len;
+				}
 			}
 		}
-		
+		if ($delta<>0) {
+			$Loc->PosBeg = $Loc->PosBeg + $delta;
+			$Loc->PosEnd = $Loc->PosEnd + $delta;
+		}
 	}
 
-	function TbsPicGetDimODF($Txt, $Pos) {
+	function TbsPicGetDim_ODF($Txt, $Pos) {
 	// Found the attributes for the image dimensions, in an ODF file
-		$p = clsTinyButStrong::f_Xml_FindTagStart($Txt, 'draw:frame', true, $Pos, false, true);
+		// unit (can be: mm, cm, in, pi, pt)
+		$dim = $this->TbsPicGetDim_Any($Txt, $Pos, 'draw:frame', 'svg:width="', 'svg:height="', 3, false);
+		return array($dim);
+	}
+
+	function TbsPicGetDim_OpenXML_vml($Txt, $Pos) {
+		$dim = $this->TbsPicGetDim_Any($Txt, $Pos, 'v:shape', 'width:', 'height:', 2, false);
+		return array($dim);
+	}
+
+	function TbsPicGetDim_OpenXML_dml($Txt, $Pos) {
+		$dim_shape = $this->TbsPicGetDim_Any($Txt, $Pos, 'wp:extent', 'cx="', 'cy="', 0, 12700);
+		$dim_inner = $this->TbsPicGetDim_Any($Txt, $Pos, 'a:ext'    , 'cx="', 'cy="', 0, 12700);
+		if ( ($dim_inner!==false) && ($dim_inner['wb']<$dim_shape['wb']) ) $dim_inner = false; // <a:ext> isoptional but must always be after the corresponding <wp:extent>, otherwise it may be the <a:ext> of another picture
+		return array($dim_inner, $dim_shape); // dims must be soerted in reverse order of location
+	}
+
+	function TbsPicGetDim_Any($Txt, $Pos, $Element, $AttW, $AttH, $AllowedDec, $CoefToPt) {
+	// Found the attributes for the image dimensions, in an ODF file
+		$p = clsTinyButStrong::f_Xml_FindTagStart($Txt, $Element, true, $Pos, false, true);
 		if ($p===false) return false;
 		$pe = strpos($Txt, '>', $p);
 		if ($pe===false) return false;
 		$x = substr($Txt, $p, $pe -$p);
-		$att_lst = array('w'=>'svg:width="', 'h'=>'svg:height="');
+		$att_lst = array('w'=>$AttW, 'h'=>$AttH);
 		$res_lst = array();
 		foreach ($att_lst as $i=>$att) {
 				$l = strlen($att);
@@ -636,17 +704,26 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				if ($b===false) return false;
 				$b = $b + $l;
 				$e = strpos($x, '"', $b);
+				$e2 = strpos($x, ';', $b); // in case of VML format, width and height are styles separted by ;
+				if ($e2!==false) $e = min($e, $e2);
 				if ($e===false) return false;
-				$lv = $e - $b - 2;
-				$v = floatval(substr($x, $b, $lv));
-				if ($v==0) return false;
+				$lt = $e - $b;
+				$t = substr($x, $b, $lt);
+				$pu = $lt; // unit first char
+				while ( ($pu>1) && (!is_numeric($t[$pu-1])) ) $pu--;
+				$u = ($pu>=$lt) ? '' : substr($t, $pu);
+				$v = floatval(substr($t, 0, $pu));
 				$res_lst[$i.'b'] = ($p+$b); // start
-				$res_lst[$i.'l'] = $lv; // lenght of the value
-				$res_lst[$i.'u'] = substr($x, $e-2, 2); // unit (can be: mm, cm, in, pi, pt)
+				$res_lst[$i.'l'] = $lt; // length of the text
+				$res_lst[$i.'u'] = $u; // unit
 				$res_lst[$i.'v'] = $v; // value
+				$res_lst[$i.'t'] = $t; // text
 		}
 
-		$res_lst['r'] = $res_lst['wv']/$res_lst['hv']; // ratio
+		$res_lst['r'] = ($res_lst['hv']==0) ? 0.0 : $res_lst['wv']/$res_lst['hv']; // ratio W/H
+		$res_lst['dec'] = $AllowedDec; // save the allowed decimal for this attribute
+		$res_lst['cpt'] = $CoefToPt;
+
 		return $res_lst;
 
 	}

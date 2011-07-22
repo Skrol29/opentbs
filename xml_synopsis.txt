@@ -34,10 +34,6 @@ Synopsis:
           Simple new lines are made with <text:line-break/>
           Page breaks are made with a new paragraph having a style which has the attribute {fo:break-before="page"}. 
           Local styles (bold, color,...) are made with <text:span text:style-name="T1">...</text:span>
-          Images:
-            <draw:frame draw:style-name="fr1" draw:name="images1" text:anchor-type="paragraph" svg:width="0.847cm" svg:height="0.847cm" draw:z-index="0">
-              <draw:image xlink:href="Pictures/100000000000002000000020A0D29467.jpg" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
-            </draw:frame>
         </text:p>
       </text:section>
     </office:text>
@@ -166,8 +162,8 @@ Special to .ODF (OpenOffice Math Formula):
 Any comment in the formula must be entered between text delimiters which are the double quotes (").
 Newlines are made with the keyword 'newline' outside the text delimiter. 
 
-Pictures:
---------- 
+Pictures/Images:
+----------------
 Binary contents is saved as a file in "Pictures/"
 Short synopsis of the control in the document:
 <text:p ...>
@@ -175,15 +171,14 @@ Short synopsis of the control in the document:
     <draw:text-box ...>
       <text:p ...>
         <draw:a ...>
-          <draw:frame ...>
-            <draw:image xlink:href="Pictures/1000000000000096000000A5773AC4DD.png" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
-          </draw:frame>
+			<draw:frame draw:style-name="fr1" draw:name="images1" text:anchor-type="paragraph" svg:width="0.847cm" svg:height="0.847cm" draw:z-index="0">
+				<draw:image xlink:href="Pictures/100000000000002000000020A0D29467.jpg" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
+			</draw:frame>
         </draw:a>
       </text:p>
     </draw:text-box>
   </draw:frame>
 </text:p>
-
 
 =================================
 Ms Office Document (.DOCX, .XLSX, .PPTX)
@@ -449,9 +444,9 @@ Synopsis of a slide file like "ppt/slides/slide1.xml":
 </p:sld>
 
 
-*********
-Pictures
-*********
+***************
+Pictures/Images
+***************
 Binary contents is saved as a file in "word/media/" , "ppt/media/" , "xl/media/"
 
 Word :
@@ -468,7 +463,7 @@ They are two ways to insert a picture.
   <v:shapetype ...>
     ...
   </v:shapetype>
-  <v:shape style="width:89.25pt;height:119.25pt" ...> this element contains the siez of the picture
+  <v:shape style="width:89.25pt;height:119.25pt" ...> this element contains the size of the picture
     <v:imagedata r:id="rId6" o:title=""/> // this element contains the link to the picture internal file
   </v:shape>
 </w:pict>
