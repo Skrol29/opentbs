@@ -53,13 +53,11 @@ $x_bf = false;
 // Load the template
 $TBS->LoadTemplate($template);
 
-if ($debug==1) {
-	// debug mode 1
+if ($debug==2) { // debug mode 2
 	$TBS->Plugin(OPENTBS_DEBUG_XML_CURRENT);
 	exit;
-} elseif ($debug==3) {
-	// debug mode 3
-	$TBS->Plugin(OPENTBS_DEBUG_CHART_LIST);
+} elseif ($debug==1) { // debug mode 1
+	$TBS->Plugin(OPENTBS_DEBUG_INFO);
 	exit;
 }
 
@@ -93,8 +91,7 @@ if ($template_ext=='xlsx') {
 $file_name = str_replace('.','_'.date('Y-m-d').'.',$template);
 
 // Output as a download file (some automatic fields are merged here)
-if ($debug==2) {
-	// debug mode 2
+if ($debug==3) { // debug mode 3
 	$TBS->Plugin(OPENTBS_DEBUG_XML_SHOW);
 } elseif ($suffix==='') {
 	// download
