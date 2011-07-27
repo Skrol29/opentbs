@@ -34,7 +34,8 @@ define('OPENTBS_ALREADY_XML',false);
 define('OPENTBS_ALREADY_UTF8','already_utf8');
 define('OPENTBS_DEBUG_XML_SHOW','clsOpenTBS.DebugXmlShow');
 define('OPENTBS_DEBUG_XML_CURRENT','clsOpenTBS.DebugXmlCurrent');
-define('OPENTBS_DEBUG_CHART_LIST','clsOpenTBS.DebugChartList');
+define('OPENTBS_DEBUG_INFO','clsOpenTBS.DebugInfo');
+define('OPENTBS_DEBUG_CHART_LIST','clsOpenTBS.DebugInfo'); // deprecated
 define('OPENTBS_FORCE_DOCTYPE','clsOpenTBS.ForceDocType');
 define('OPENTBS_DELETE_ELEMENTS','clsOpenTBS.DeleteElements');
 define('OPENTBS_SELECT_SHEET','clsOpenTBS.SelectSheet');
@@ -194,7 +195,7 @@ class clsOpenTBS extends clsTbsZip {
 
 		if ($Debug) {
 			// Do the debug even if other options are used
-			$this->TbsDebug(true);
+			$this->TbsDebug_Merge(true);
 		} elseif (($Render & TBS_OUTPUT)==TBS_OUTPUT) { // notice that TBS_OUTPUT = OPENTBS_DOWNLOAD
 			// download
 			$ContentType = (isset($this->ExtInfo['ctype'])) ? $this->ExtInfo['ctype'] : '';
@@ -315,10 +316,13 @@ class clsOpenTBS extends clsTbsZip {
 	function OnCommand($Cmd, $x1=null, $x2=null, $x3=null, $x4=null, $x5=null) {
 
 		if ($Cmd==OPENTBS_INFO) {
+
 			// Display debug information
 			echo "<strong>OpenTBS plugin Information</strong><br>\r\n";
 			return $this->Debug();
+
 		} elseif ($Cmd==OPENTBS_RESET) {
+
 			// Reset all mergings
 			$this->ArchCancelModif();
 			$this->TbsParkLst = array();
@@ -331,50 +335,70 @@ class clsOpenTBS extends clsTbsZip {
 				$this->BeforeLoadTemplate($f,$h);
 			}
 			return true;
+
 		} elseif ($Cmd==OPENTBS_ADDFILE) {
+
 			// Add a new file or cancel a previous add
 			$Name = (is_null($x1)) ? false : $x1;
 			$Data = (is_null($x2)) ? false : $x2;
 			$DataType = (is_null($x3)) ? TBSZIP_STRING : $x3;
 			$Compress = (is_null($x4)) ? true : $x4;
 			return $this->FileAdd($Name, $Data, $DataType, $Compress);
+
 		} elseif ($Cmd==OPENTBS_DELETEFILE) {
+
 			// Delete an existing file in the archive
 			$Name = (is_null($x1)) ? false : $x1;
 			$this->FileCancelModif($Name, false);    // cancel added files
 			return $this->FileReplace($Name, false); // mark the file as to be deleted
+
 		} elseif ($Cmd==OPENTBS_CHART) {
+
 			$ChartNameOrNum = $x1;
 			$SeriesNameOrNum = $x2;
 			$NewValues = (is_null($x3)) ? false : $x3;
 			$NewLegend = (is_null($x4)) ? false : $x4;
 			$CopyFromSeries = (is_null($x5)) ? false : $x5;
 			return $this->OpenXML_ChartChangeSeries($ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewLegend, $CopyFromSeries);
-		} elseif ($Cmd==OPENTBS_DEBUG_CHART_LIST) {
-			$this->OpenXML_ChartDebug();			
+
+		} elseif ($Cmd==OPENTBS_DEBUG_INFO) {
+
+			$this->TbsDebug_Info();			
+
 		} elseif ($Cmd==OPENTBS_DEBUG_XML_SHOW) {
+
 			$this->TBS->Show(OPENTBS_DEBUG_XML);
+
 		} elseif ($Cmd==OPENTBS_DEBUG_XML_CURRENT) {
+
 			$this->TbsParkCurrSrc();
 			$this->DebugLst = array();
 			foreach ($this->TbsParkLst as $idx=>$park) $this->DebugLst[$this->CdFileLst[$idx]['v_name']] = $park['src'];
-			$this->TbsDebug(true);
+			$this->TbsDebug_Merge(true);
+
 		} elseif($Cmd==OPENTBS_FORCE_DOCTYPE) {
+
 			return $this->Ext_PrepareInfo($x1);
+
 		} elseif ($Cmd==OPENTBS_DELETE_ELEMENTS) {
+
 			if (is_string($x1)) $x1 = explode(',', $x1);
 			return $this->XML_DeleteElements($this->TBS->Source, $x1);
+
 		} elseif ($Cmd==OPENTBS_SELECT_SHEET) {
+
 			// Only XLSX files have sheets in separated subfiles.
-			if (($this->ExtInfo!==false) && ($this->ExtInfo['ext']=='xlsx') ) {
-				$subfile = 'xl/worksheets/sheet'.$x1.'.xml';
-				if ($this->FileExists($subfile)) {
-					$this->TBS->LoadTemplate('#'.$subfile);
+			if ($this->Ext_Get()==='xlsx') {
+				$loc = $this->MsExcel_SheetGet($x1, $Cmd, true);
+				if ($loc==false) return;
+				if ($this->FileExists($loc->xlsxTarget)) {
+					$this->TBS->LoadTemplate('#'.$loc->xlsxTarget);
 				} else {
-					return $this->RaiseError("(OPENTBS_SELECT_SHEET) sub-file '".$subfile."' is not found inside the Workbook.");
+					return $this->RaiseError("($Cmd) sub-file '".$loc->xlsxTarget."' is not found inside the Workbook.");
 				}
 			}
 			return true;
+
 		}
 
 	}
@@ -438,7 +462,21 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		
 	}
 	
-	function TbsDebug($XmlFormat = true) {
+	function TbsDebug_Info() {
+
+		$this->TbsDebug_Init($nl, $sep, $bull);
+	
+		if ($this->Ext_Get()==='xlsx') {
+			$this->MsExcel_SheetDebug($nl, $sep, $bull);
+		}
+
+		if ($this->Ext_GetFrm()==='openxml') {
+			$this->OpenXML_ChartDebug($nl, $sep, $bull);
+		}
+		
+	}
+	
+	function TbsDebug_Merge($XmlFormat = true) {
 	// display modified and added files
 
 		$this->TbsDebug_Init($nl, $sep, $bull);
@@ -572,7 +610,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ($exit) {
 			if ($this->DebugLst!==false) {
 				if ($this->TbsCurrIdx!==false) $this->DebugLst[$this->CdFileLst[$this->TbsCurrIdx]['v_name']] = $this->TBS->Source;
-				$this->TbsDebug(true);
+				$this->TbsDebug_Merge(true);
 			}
 			exit;
 		}
@@ -914,7 +952,22 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return false;
 	}
 
+	function Ext_Get() {
+		if ( ($this->ExtInfo!==false) && isset($this->ExtInfo['ext']) ) {
+			return $this->ExtInfo['ext'];
+		} else {
+			return false;
+		}
+	}
 
+	function Ext_GetFrm() {
+		if ( ($this->ExtInfo!==false) && isset($this->ExtInfo['frm']) ) {
+			return $this->ExtInfo['frm'];
+		} else {
+			return false;
+		}
+	}
+	
 	function OpenXML_RidPrepare($DocPath, $ImageName) {
 /* Return the RelationId if the image if it's already referenced in the Relation file in the archive.
 Otherwise, OpenTBS prepares info to add this information at the end of the merging.
@@ -1203,16 +1256,17 @@ It needs to be completed when a new picture file extension is added in the docum
 			}
 		}	
 		
+		
+		
 	}
 
-	function OpenXML_ChartDebug() {
+	function OpenXML_ChartDebug($nl, $sep, $bull) {
 
-		$this->TbsDebug_Init($nl, $sep, $bull);
-	
 		if (!isset($this->OpenXmlCharts)) $this->OpenXML_ChartInit();
 
-		if (!headers_sent()) header('Content-Type: text/plain; charset="UTF-8"');
-		echo $nl.$nl."List of supported charts in the document:".$nl;
+		echo $nl;
+		echo $nl."Charts inside the document:";
+		echo $nl."---------------------------";
 		
 		// list of supported charts
 		$nbr = 0;
@@ -1222,20 +1276,15 @@ It needs to be completed when a new picture file extension is added in the docum
 				$txt = $this->FileRead($info['idx'], true);
 				$info['series_nbr'] = substr_count($txt, '<c:ser>');
 			}
-			echo "- internal chart name: ".$key." , number of series: ".$info['series_nbr'].$nl;
+			echo $bull."id: '".$key."' , number of series: ".$info['series_nbr'];
 		}
-		if ($nbr==0) echo "(none)".$nl;
 		
-		
-		// list of unsupported charts
-		echo $nl.$nl."List of unsupported charts in the document:".$nl;
 		if ($this->TbsCurrIdx===false) {
-			echo "(no subfile loaded)".$nl;
+			echo $bull."(unable to scann more because no subfile is loaded)";
 		} else {
 			$x = ' ProgID="MSGraph.Chart.';
 			$x_len = strlen($x);
 			$p = 0;
-			$nbr = 0;
 			$txt = $this->TBS->Source;
 			while (($p=strpos($txt, $x, $p))!==false) {
 				// check that the text is inside an xml tag
@@ -1246,11 +1295,12 @@ It needs to be completed when a new picture file extension is added in the docum
 					$nbr++;
 					$p1 = strpos($txt, '"', $p);
 					$z = substr($txt, $p, $p1-$p);
-					echo "- 1 chart created using MsChart version ".$z.$nl;
+					echo $bull."1 chart created using MsChart version ".$z." (series can't be merged with OpenTBS)";
 				}
 			}
 		}
-		if ($nbr==0) echo "(none)".$nl;
+		
+		if ($nbr==0) echo $bull."(none)";
 				
 	}
 	
@@ -1657,6 +1707,74 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 	
+	function MsExcel_SheetInit() {
+		
+		if (isset($this->MsExcel_Sheets)) return;
+		
+		$this->MsExcel_Sheets = array();   // sheet info soerted by location
+		$this->MsExcel_SheetsById = array(); // shorcut for names and id
+		
+		$name = 'xl/workbook.xml';
+		$idx = $this->FileGetIdx($name);
+		if ($idx===false) return;
+		
+		$Txt = $this->TbsParkGet($idx, 'SheetInfo');
+		if ($Txt===false) return false;
+
+		// scann sheet list
+		$p = 0;
+		$idx = 0;
+		$rels = array();
+		while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, 'sheet', true, $p, true, false, true, true) ) {
+			if (isset($loc->PrmLst['sheetid'])) {
+				$id = $loc->PrmLst['sheetid']; // actual parameter is 'sheetId'
+				$this->MsExcel_Sheets[$idx] = $loc;
+				if (isset($loc->PrmLst['r:id'])) $rels[$loc->PrmLst['r:id']] = $idx;
+				$this->MsExcel_SheetsById[$id] =& $this->MsExcel_Sheets[$idx];
+				if (isset($loc->PrmLst['name'])) $this->MsExcel_SheetsById[$loc->PrmLst['name']] =& $this->MsExcel_Sheets[$idx];
+				$idx++;
+			}
+			$p = $loc->PosEnd;
+		}
+
+		// retrieve sheet files
+		$Txt = $this->FileRead('xl/_rels/workbook.xml.rels');
+		if ($Txt===false) return false;
+		
+		$p = 0;
+		while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, 'Relationship', true, $p, true, false, true, false) ) {
+			if (isset($loc->PrmLst['id']) && isset($loc->PrmLst['target']) ) {
+				$rid = $loc->PrmLst['id'];
+				if (isset($rels[$rid])) $this->MsExcel_Sheets[$rels[$rid]]->xlsxTarget = 'xl/'.$loc->PrmLst['target'];
+			}
+			$p = $loc->PosEnd;
+		}
+		
+	}
+
+	function MsExcel_SheetGet($IdOrName, $Caller, $CheckTarget=false) {
+		$this->MsExcel_SheetInit();
+		if (!isset($this->MsExcel_SheetsById[$IdOrName])) return $this->RaiseError("($Caller) The sheet '$IdOrName' is not found inside the Workbook. Try command OPENTBS_DEBUG_INFO to check all sheets inside the current Workbook.");
+		$loc = $this->MsExcel_SheetsById[$IdOrName];
+		if ($CheckTarget && (!isset($loc->xlsxTarget)) )  return $this->RaiseError("($Caller) Error with sheet '$IdOrName'. The corresponding XML subfile is not referenced.");
+		return $loc;
+	}
+	
+	function MsExcel_SheetDebug($nl, $sep, $bull) {
+		
+		$this->MsExcel_SheetInit();
+		
+		echo $nl;
+		echo $nl."Sheets in the Workbook:";
+		echo $nl."-----------------------";
+		foreach ($this->MsExcel_Sheets as $loc) {
+			echo $bull."id: '".$loc->PrmLst['sheetid']."', name: [".$loc->PrmLst['name']."]";
+			if (isset($loc->PrmLst['state'])) echo ", state: ".$loc->PrmLst['state'];
+		}
+		
+		var_export($this->MsExcel_Sheets);
+	}
+	
 	function XML_GetInnerVal($Txt, $Tag, $Concat=false) {
 		$res = '';
 		$p3 = 0;
@@ -1998,7 +2116,7 @@ It needs to be completed when a new picture file extension is added in the docum
 }
 
 /*
-TbsZip version 2.8 (2011-06-08)
+TbsZip version 2.9 (2011-07-27)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class is independent from any other classes and has been originally created for the OpenTbs plug-in
@@ -2230,7 +2348,7 @@ class clsTbsZip {
 	function FileRead($NameOrIdx, $Uncompress=true) {
 		
 		$this->LastReadComp = false; // means the file is not found
-		$this->LastReadIdx - false;
+		$this->LastReadIdx = false;
 
 		$idx = $this->FileGetIdx($NameOrIdx);
 		if ($idx===false) return $this->RaiseError('File "'.$NameOrIdx.'" is not found in the Central Directory.');
