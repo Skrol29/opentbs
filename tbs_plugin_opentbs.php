@@ -9,10 +9,13 @@ Site: http://www.tinybutstrong.com/plugins.php
 /*
 [ok] parameter 'changepic' optimized
 [ok] paramter 'adjust'
+[ok] command OPENTBS_DEBUG_INFO
 [ok] command OPENTBS_SELECT_SHEET
+[tt] command OPENTBS_SELECT_MAIN
 [ok] command OPENTBS_DELETE_ELEMENTS
+[ok] command OPENTBS_DELETE_COMMENTS
 [  ] command OPENTBS_DELETE_SHEETS
-[  ] command OPENTBS_HIDE_COMMENTS
+[  ] command OPENTBS_DISPLAY_SHEETS
 [  ] command OPENTBS_SELECT_HEADER, OPENTBS_SELECT_FOOTER, OPENTBS_SELECT_COMMENTS
 */
 
@@ -39,6 +42,10 @@ define('OPENTBS_DEBUG_CHART_LIST','clsOpenTBS.DebugInfo'); // deprecated
 define('OPENTBS_FORCE_DOCTYPE','clsOpenTBS.ForceDocType');
 define('OPENTBS_DELETE_ELEMENTS','clsOpenTBS.DeleteElements');
 define('OPENTBS_SELECT_SHEET','clsOpenTBS.SelectSheet');
+define('OPENTBS_SELECT_MAIN','clsOpenTBS.SelectMain');
+define('OPENTBS_DISPLAY_SHEETS','clsOpenTBS.DisplaySheets');
+define('OPENTBS_DELETE_SHEETS','clsOpenTBS.DeleteSheets');
+define('OPENTBS_DELETE_COMMENTS','clsOpenTBS.DeleteComments');
 
 
 class clsOpenTBS extends clsTbsZip {
@@ -82,7 +89,7 @@ class clsOpenTBS extends clsTbsZip {
 			}
 			$TBS->OtbsCurrFile = false;
 			$TBS->OtbsSubFileLst = $SubFileLst;
-			$this->TbsParkLst = array();
+			$this->TbsStoreLst = array();
 			$this->TbsCurrIdx = false;
 		} elseif ($this->ArchFile==='') {
 			$this->RaiseError('Cannot read file(s) "'.$SubFileLst.'" because no archive is opened.');
@@ -115,11 +122,11 @@ class clsOpenTBS extends clsTbsZip {
 				$idx = $this->FileGetIdx($SubFile);
 				if ($idx===false) {
 					$this->RaiseError('The file "'.$SubFile.'" is not found in the archive "'.$this->ArchFile.'".');
-				} else {
+				} elseif ($idx!==$this->TbsCurrIdx) {
 					// Save the current loaded subfile if any
-					$this->TbsParkCurrSrc();
+					$this->TbsStorePark();
 					// load the subfile
-					$TBS->Source = $this->TbsParkGet($idx, false);
+					$TBS->Source = $this->TbsStoreGet($idx, false);
 					if ($this->LastReadNotParked) {
 						if ($this->LastReadComp<=0) { // the contents is not compressed
 							if ($this->ExtInfo!==false) {
@@ -161,7 +168,7 @@ class clsOpenTBS extends clsTbsZip {
 
 		if ($TBS->_Mode!=0) return; // If we are in subtemplate mode, the we use the TBS default process
 
-		$this->TbsParkCurrSrc(); // Save the current loaded subfile if any
+		$this->TbsStorePark(); // Save the current loaded subfile if any
 
 		$TBS->Plugin(-4); // deactivate other plugins
 
@@ -171,14 +178,14 @@ class clsOpenTBS extends clsTbsZip {
 		$TbsShow = (($Render & OPENTBS_DEBUG_AVOIDAUTOFIELDS)!=OPENTBS_DEBUG_AVOIDAUTOFIELDS);
 		
 		// Merges all modified subfiles
-		$idx_lst = array_keys($this->TbsParkLst);
+		$idx_lst = array_keys($this->TbsStoreLst);
 		foreach ($idx_lst as $idx) {
-			$TBS->Source = $this->TbsParkLst[$idx]['src'];
-			$onshow = $this->TbsParkLst[$idx]['onshow'];
-			unset($this->TbsParkLst[$idx]); // save memory space
+			$TBS->Source = $this->TbsStoreLst[$idx]['src'];
+			$onshow = $this->TbsStoreLst[$idx]['onshow'];
+			unset($this->TbsStoreLst[$idx]); // save memory space
 			$this->TbsCurrIdx = $idx; // usefull for debug mode
 			if ($TbsShow && $onshow) $TBS->Show(TBS_NOTHING);
-			if ($Debug) $this->DebugLst[$this->CdFileLst[$idx]['v_name']] = $TBS->Source;
+			if ($Debug) $this->DebugLst[$this->TbsGetFileName($idx)] = $TBS->Source;
 			$this->FileReplace($idx, $TBS->Source, TBSZIP_STRING, $TBS->OtbsAutoUncompress);
 		}
 		$TBS->Plugin(-10); // reactivate other plugins
@@ -325,7 +332,7 @@ class clsOpenTBS extends clsTbsZip {
 
 			// Reset all mergings
 			$this->ArchCancelModif();
-			$this->TbsParkLst = array();
+			$this->TbsStoreLst = array();
 			$TBS =& $this->TBS;
 			$TBS->Source = '';
 			$TBS->OtbsCurrFile = false;
@@ -371,9 +378,9 @@ class clsOpenTBS extends clsTbsZip {
 
 		} elseif ($Cmd==OPENTBS_DEBUG_XML_CURRENT) {
 
-			$this->TbsParkCurrSrc();
+			$this->TbsStorePark();
 			$this->DebugLst = array();
-			foreach ($this->TbsParkLst as $idx=>$park) $this->DebugLst[$this->CdFileLst[$idx]['v_name']] = $park['src'];
+			foreach ($this->TbsStoreLst as $idx=>$park) $this->DebugLst[$this->TbsGetFileName($idx)] = $park['src'];
 			$this->TbsDebug_Merge(true);
 
 		} elseif($Cmd==OPENTBS_FORCE_DOCTYPE) {
@@ -383,8 +390,18 @@ class clsOpenTBS extends clsTbsZip {
 		} elseif ($Cmd==OPENTBS_DELETE_ELEMENTS) {
 
 			if (is_string($x1)) $x1 = explode(',', $x1);
-			return $this->XML_DeleteElements($this->TBS->Source, $x1);
+			if (is_null($x2)) $x2 = false; // OnlyInner
+			return $this->XML_DeleteElements($this->TBS->Source, $x1, $x2);
 
+		} elseif ($Cmd==OPENTBS_SELECT_MAIN) {
+
+			if ( ($this->ExtInfo!==false) && isset($this->ExtInfo['main']) ) {
+				$this->TBS->LoadTemplate('#'.$this->ExtInfo['main']);
+				return true;
+			} else {
+				return false;
+			}
+		
 		} elseif ($Cmd==OPENTBS_SELECT_SHEET) {
 
 			// Only XLSX files have sheets in separated subfiles.
@@ -399,29 +416,86 @@ class clsOpenTBS extends clsTbsZip {
 			}
 			return true;
 
+		} elseif ($Cmd==OPENTBS_DELETE_SHEETS) {
+
+			if (is_null($x2)) $x2 = true;
+			$this->TbsSheetAction($x1, 'd', $x2);
+			
+		} elseif ($Cmd==OPENTBS_DISPLAY_SHEETS) {	
+		
+			if (is_null($x2)) $x2 = true;
+			$this->TbsSheetAction($x1, 's', $x2);
+			
+		} elseif ($Cmd==OPENTBS_DELETE_COMMENTS) {	
+
+			// Default values
+			$MainTags = false;
+			$CommFiles = false;
+			$CommTags = false;
+			$Inner = false;
+		
+			if ($this->Ext_GetFrm()=='odf') {
+				$MainTags = array('office:annotation', 'officeooo:annotation'); // officeooo:annotation is used in ODP Presentations
+			} else {
+				switch ($this->Ext_Get()) {
+				case 'docx':
+					$MainTags = array('w:commentRangeStart', 'w:commentRangeEnd', 'w:commentReference');
+					$CommFiles = array('wordprocessingml.comments+xml');
+					$CommTags = array('w:comment');
+					$Inner = true;
+					break;
+				case 'xlsx':
+					$CommFiles = array('spreadsheetml.comments+xml');
+					$CommTags = array('comment', 'author');
+					break;
+				case 'pptx':
+					$CommFiles = array('presentationml.comments+xml');
+					$CommTags = array('p:cm');
+					break;
+				default:
+					return 0;
+				}
+			}
+			
+			return $this->TbsDeleteComments($MainTags, $CommFiles, $CommTags, $Inner);
+		
 		}
 
 	}
 
-	function TbsParkCurrSrc() {
-		// save the last opened subfile
+	function TbsStorePark() {
+		// save the last opened subfile into the store, and close the subfile
 		if ($this->TbsCurrIdx!==false) {
-			$this->TbsParkLst[$this->TbsCurrIdx] = array('src'=>$this->TBS->Source, 'onshow'=>true);
+			$this->TbsStoreLst[$this->TbsCurrIdx] = array('src'=>$this->TBS->Source, 'onshow'=>true);
 			$this->TBS->Source = '';
 			$this->TbsCurrIdx = false;
 		}
 	}
 
-	function TbsParkSave($idx, $src, $onshow) {
-		// save a given source
-		$this->TbsParkLst[$idx] = array('src'=>$src, 'onshow'=>$onshow);
+	function TbsStorePut($idx, $src, $onshow = null) {
+		// Save a given source in the store. If $onshow is null, then it will be unchanged
+		if ($idx===$this->TbsCurrIdx) {
+			$this->TBS->Source = $src;
+		} else {
+			if (is_null($onshow)) {
+				if (isset($this->TbsStoreLst[$idx])) {
+					$onshow = $this->TbsStoreLst[$idx]['onshow'];
+				} else {
+					$onshow = false;
+				}
+			}
+			$this->TbsStoreLst[$idx] = array('src'=>$src, 'onshow'=>$onshow);
+		}
 	}
 
-	function TbsParkGet($idx, $caller) {
-		// retrieve a source in the parking or, when appropriate, from the archive 
-		if (isset($this->TbsParkLst[$idx])) {
-			$this->LastReadNotParked = false;
-			return $this->TbsParkLst[$idx]['src'];
+	function TbsStoreGet($idx, $caller) {
+		// retrieve a source from the merging, the store, or the archive
+		// the file is not stored yet if it comes from the archive
+		$this->LastReadNotParked = false;
+		if ($idx===$this->TbsCurrIdx) {
+			return $this->TBS->Source;
+		} elseif (isset($this->TbsStoreLst[$idx])) {
+			return $this->TbsStoreLst[$idx]['src'];
 		} else {
 			$this->LastReadNotParked = true;
 			$txt = $this->FileRead($idx, true);
@@ -429,7 +503,7 @@ class clsOpenTBS extends clsTbsZip {
 				if ($caller===false) {
 					return $txt; // return the uncompressed contents
 				} else {
-					return $this->RaiseError("(".$caller.") unable to uncompress '".$this->CdFileLst[$idx]['v_name']."'.");
+					return $this->RaiseError("(".$caller.") unable to uncompress '".$this->TbsGetFileName($idx)."'.");
 				}
 			} else {
 				return $txt;
@@ -437,6 +511,14 @@ class clsOpenTBS extends clsTbsZip {
 		}
 	}
 
+	function TbsGetFileName($idx) {
+		if (isset($this->CdFileLst[$idx])) {
+			return $this->CdFileLst[$idx]['v_name'];
+		} else {
+			return '(id='.$idx.')';
+		}
+	}
+	
 	function TbsDebug_Init(&$nl, &$sep, &$bull) {
 	// display the header of debug mode
 
@@ -489,7 +571,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		// files marked as replaced in TbsZip
 		$idx_lst = array_keys($this->ReplInfo);
 		foreach ($idx_lst as $idx) {
-			$name = $this->CdFileLst[$idx]['v_name'];
+			$name = $this->TbsGetFileName($idx);
 			if ($this->ReplInfo[$idx]===false) {
 				$del_lst .= $bull.$name;
 			} else {
@@ -498,11 +580,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		// files marked as modified in the Park
-		$idx_lst = array_keys($this->TbsParkLst);
+		$idx_lst = array_keys($this->TbsStoreLst);
 		foreach ($idx_lst as $idx) {
 			if (!isset($this->ReplInfo[$idx])) {
-				$name = $this->CdFileLst[$idx]['v_name'];
-				$mod_lst .= $bull.$name;
+				$mod_lst .= $bull.$this->TbsGetFileName($idx);
 			}
 		}
 
@@ -609,7 +690,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$this->TBS->meth_Misc_Alert('OpenTBS Plugin', $Msg, $NoErrMsg);
 		if ($exit) {
 			if ($this->DebugLst!==false) {
-				if ($this->TbsCurrIdx!==false) $this->DebugLst[$this->CdFileLst[$this->TbsCurrIdx]['v_name']] = $this->TBS->Source;
+				if ($this->TbsCurrIdx!==false) $this->DebugLst[$this->TbsGetFileName($this->TbsCurrIdx)] = $this->TBS->Source;
 				$this->TbsDebug_Merge(true);
 			}
 			exit;
@@ -862,6 +943,45 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	function TbsSheetAction($IdOrName, $Action) {
+		if (!isset($this->otbsSheets)) $this->otbsSheets = array();
+		$this->otbsSheets[$IdOrName] = $Action;
+	}
+
+	function TbsDeleteComments($MainTags, $CommFiles, $CommTags, $Inner) {
+
+		$nbr = 0;
+	
+		// Retrieve the Comment sub-file (OpenXML only)
+		if ($CommFiles!==false) {
+			$Files = $this->OpenXML_MapGetFiles($CommFiles);
+			foreach ($Files as $file) {
+				$idx = $this->FileGetIdx($file);
+				if ($idx!==false) {
+					// Delete inner text of the comments to be sure that contents is deleted
+					// we only empty the comment elements in case some comments are referenced in other special part of the document
+					$Txt = $this->TbsStoreGet($idx, "Delete Comments");
+					$nbr = $nbr + $this->XML_DeleteElements($Txt, $CommTags, $Inner);
+					$this->TbsStorePut($idx, $Txt);		
+				}
+			}
+		}
+		
+		// Retrieve the Main sub-file
+		if ($MainTags!==false) {
+			$idx = $this->FileGetIdx($this->ExtInfo['main']);
+			if ($idx===false) return false;
+			// Delete Comment locators
+			$Txt = $this->TbsStoreGet($idx, "Delete Comments");
+			$nbr2 = $this->XML_DeleteElements($Txt, $MainTags);
+			$this->TbsStorePut($idx, $Txt);
+			if ($CommFiles===false) $nbr = $nbr2;
+		}
+		
+		return $nbr;
+		
+	}
+	
 	function Ext_PrepareInfo($Ext=false) {
 		/* Extension Info must be an array with keys 'load', 'br', 'ctype' and 'pic_path'. Keys 'rpl_what' and 'rpl_with' are optional.
 		  load:     files in the archive to be automatically loaded by OpenTBS when the archive is loaded. Separate files with comma ';'.
@@ -891,8 +1011,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$i = $GLOBAL['_OPENTBS_AutoExt'][$Ext];
 		} elseif ($Frm==='odf') {
 			// OpenOffice & LibreOffice documents
-			$i = array('load' => 'content.xml', 'br' => '<text:line-break/>', 'frm' => 'odf', 'ctype' => 'application/vnd.oasis.opendocument.', 'pic_path' => 'Pictures/', 'rpl_what' => '&apos;', 'rpl_with' => '\'');
-			if ($this->FileExists('styles.xml')) $i['load'] = 'styles.xml;' . $i['load']; // styles.xml may contain header/footer contents
+			$i = array('main' => 'content.xml', 'br' => '<text:line-break/>', 'frm' => 'odf', 'ctype' => 'application/vnd.oasis.opendocument.', 'pic_path' => 'Pictures/', 'rpl_what' => '&apos;', 'rpl_with' => '\'');
+			if ($this->FileExists('styles.xml')) $i['load'] = array('styles.xml'); // styles.xml may contain header/footer contents
 			if ($Ext==='odf') $i['br'] = false;
 			$ctype = array('t' => 'text', 's' => 'spreadsheet', 'g' => 'graphics', 'f' => 'formula', 'p' => 'presentation', 'm' => 'text-master');
 			$i['ctype'] .= $ctype[($Ext[2])];
@@ -909,19 +1029,25 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			}
 			$ctype = 'application/vnd.openxmlformats-officedocument.';
 			if ($Ext==='docx') {
-				$i = array('load' => 'word/document.xml', 'br' => '<w:br/>', 'frm' => 'openxml', 'ctype' => $ctype . 'wordprocessingml.document', 'pic_path' => 'word/media/', 'rpl_what' => $x, 'rpl_with' => '\'');
-				$i['load'] = $this->OpenXML_MapGetVal(array('wordprocessingml.header+xml', 'wordprocessingml.footer+xml', 'wordprocessingml.document.main+xml'), $i['load'], ';', true); // footnotes and endnotes omitted for perf
+				$i = array('br' => '<w:br/>', 'frm' => 'openxml', 'ctype' => $ctype . 'wordprocessingml.document', 'pic_path' => 'word/media/', 'rpl_what' => $x, 'rpl_with' => '\'');
+				$i['main'] = $this->OpenXML_MapGetMain('wordprocessingml.document.main+xml', 'word/document.xml');
+				$i['load'] = $this->OpenXML_MapGetFiles(array('wordprocessingml.header+xml', 'wordprocessingml.footer+xml'));
 			} elseif ($Ext==='xlsx') {
-				$i = array('load' => 'xl/worksheets/sheet1.xml', 'br' => false, 'frm' => 'openxml', 'ctype' => $ctype . 'spreadsheetml.sheet', 'pic_path' => 'xl/media/');
-				//$i['load'] = $this->OpenXML_MapGetVal(array('spreadsheetml.worksheet+xml'), $i['load'], ';', true);
+				$i = array('br' => false, 'frm' => 'openxml', 'ctype' => $ctype . 'spreadsheetml.sheet', 'pic_path' => 'xl/media/');
+				$i['main'] = $this->OpenXML_MapGetMain('spreadsheetml.worksheet+xml', 'xl/worksheets/sheet1.xml');
 			} elseif ($Ext==='pptx') {
-				$i = array('load' => 'ppt/slides/slide1.xml', 'br' => false, 'frm' => 'openxml', 'ctype' => $ctype . 'presentationml.presentation', 'pic_path' => 'ppt/media/', 'rpl_what' => $x, 'rpl_with' => '\'');
-				$i['load'] = $this->OpenXML_MapGetVal(array('presentationml.notesSlide+xml'), $i['load'], ';', true); // masternotes and slidenotes omitted for perf 
+				$i = array('br' => false, 'frm' => 'openxml', 'ctype' => $ctype . 'presentationml.presentation', 'pic_path' => 'ppt/media/', 'rpl_what' => $x, 'rpl_with' => '\'');
+				$i['main'] = $this->OpenXML_MapGetMain('presentationml.slide+xml', 'ppt/slides/slide1.xml');
+				$i['load'] = $this->OpenXML_MapGetFiles(array('presentationml.notesSlide+xml'));
 			}
 			$i['pic_ext'] = array('png' => 'png', 'bmp' => 'bmp', 'gif' => 'gif', 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'jpe' => 'jpeg', 'tif' => 'tiff', 'tiff' => 'tiff', 'ico' => 'x-icon', 'svg' => 'svg+xml');
 		}
 
-		if ($i!==false) $i['ext'] = $Ext;
+		if ($i!==false) {
+			$i['ext'] = $Ext;
+			if (!isset($i['load'])) $i['load'] = array();
+			$i['load'][] = $i['main']; // add to main file at the end of the files to load
+		}
 		$this->ExtInfo = $i;
 		return (is_array($i)); // return true if the extension is suported
 	}
@@ -966,6 +1092,83 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		} else {
 			return false;
 		}
+	}
+
+	function XML_GetInnerVal($Txt, $Tag, $Concat=false) {
+		$res = '';
+		$p3 = 0;
+		$close = '</'.$Tag.'>';
+		$close_len = strlen($close);
+		$nbr = 0;
+		while ( ($p = $this->XML_FoundTagStart($Txt, $Tag, $p3))!==false ) {
+			$nbr++;
+			$p2 = strpos($Txt, '>', $p);
+			if ($p2==false) return $this->RaiseError('(XML) the end of tag '.$Tag.' is not found.');
+			$p2++;
+			$p3 = strpos($Txt, $close, $p2);
+			if ($p3==false) exit("strpos($Txt, $close, $p2) p=$p ; nbr=$nbr");
+			if ($p3==false) return $this->RaiseError('(XML) the closing tag '.$Tag.' is not found.');
+			$x = substr($Txt, $p2, $p3-$p2);
+			if ($Concat===false) {
+				return $x;
+			} elseif ($res!=='') {
+				$res .= $Concat;
+			}
+			$res .= $x;
+			$p3 = $p3 + $close_len;
+		}
+		return $res;
+	}
+	
+	function XML_FoundTagStart($Txt, $Tag, $PosBeg) {
+	// Found the next tag of the asked type. (Not specific to MsWord, works for any XML)
+	// Tag must be prefixed with '<' or '</'.
+		$len = strlen($Tag);
+		$p = $PosBeg;
+		while ($p!==false) {
+			$p = strpos($Txt, $Tag, $p);
+			if ($p===false) return false;
+			$x = substr($Txt, $p+$len, 1);
+			if (($x===' ') || ($x==='/') || ($x==='>') ) {
+				return $p;
+			} else {
+				$p = $p+$len;
+			}
+		}
+		return false;
+	}
+
+	function XML_DeleteElements(&$Txt, $TagLst, $OnlyInner=false) {
+	// Delete all tags of the types given in the list. In fact the entire element is deleted if it's an opening+closing tag.
+		$nbr_del = 0;
+		foreach ($TagLst as $tag) {
+			$t_open = '<'.$tag;
+			$t_close = '</'.$tag;
+			$p1 = 0;
+			while (($p1=$this->XML_FoundTagStart($Txt, $t_open, $p1))!==false) {
+				// get the end of the tag
+				$pe1 = strpos($Txt, '>', $p1);
+				if ($pe1===false) return false; // error in the XML formating
+				$p2 = false;
+				if (substr($Txt, $pe1-1, 1)=='/') {
+					$pe2 = $pe1;
+				} else {
+					// it's an opening+closing
+					$p2 = $this->XML_FoundTagStart($Txt, $t_close, $pe1);
+					if ($p2===false) return false; // error in the XML formating
+					$pe2 = strpos($Txt, '>', $p2);
+				}
+				if ($pe2===false) return false; // error in the XML formating
+				// delete the tag
+				if ($OnlyInner) {
+					if ($p2!==false) $Txt = substr_replace($Txt, '', $pe1+1, $p2-$pe1-1);
+					$p1 = $pe1; // for next search
+				} else {
+					$Txt = substr_replace($Txt, '', $p1, $pe2-$p1+1);
+				}
+			} 
+		}
+		return $nbr_del;
 	}
 	
 	function OpenXML_RidPrepare($DocPath, $ImageName) {
@@ -1200,6 +1403,7 @@ It needs to be completed when a new picture file extension is added in the docum
 					$pc = strpos($x, '"', $pi);
 					if ($pc===false) return; // syntax error in the XML
 					$Name = substr($x, $pi, $pc-$pi); // name
+					if ($Name[0]=='/') $Name = substr($Name,1); // fix the file path
 					if (!isset($Map[$ShortType])) $Map[$ShortType] = array();
 					$Map[$ShortType][] = $Name;
 				}
@@ -1209,33 +1413,26 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 
-	function OpenXML_MapGetVal($ShortType, $Default, $Glue=false, $CheckFiles=false) {
-	// Return all values for a given type (or array of types) in the map. If $CheckFiles=true, then fix pathes and return only files that do exist in the archive.
-
-		if (is_string($ShortType)) $ShortType = array($ShortType);
-
+	function OpenXML_MapGetFiles($ShortTypes) {
+	// Return all values for a given type (or array of types) in the map.
+		if (is_string($ShortTypes)) $ShortTypes = array($ShortTypes);
 		$res = array();
-		foreach ($ShortType as $type) {
+		foreach ($ShortTypes as $type) {
 			if (isset($this->OpenXmlMap[$type])) {
 				$val = $this->OpenXmlMap[$type];
-				if ($CheckFiles) {
-					foreach ($val as $file) {
-						if ($file[0]=='/') $file = substr($file,1); // fix the file path
-						if ($this->FileExists($file)) $res[] = $file;
-					}
-				} else {
-					$res = array_merge($res, $val);
-				}
+				foreach ($val as $file) $res[] = $file;
 			}
 		}
-		
-		if (count($res)==0) {
-			$res = $Default;
-		} elseif ($Glue!==false) {
-			$res = implode($Glue, $res);
-		}
-
 		return $res;
+	}
+
+	function OpenXML_MapGetMain($ShortType, $Default) {
+	// Return all values for a given type (or array of types) in the map.
+		if (isset($this->OpenXmlMap[$ShortType])) {
+			return $this->OpenXmlMap[$ShortType][0];
+		} else {
+			return $Default;
+		}
 	}
 
 	function OpenXML_ChartInit() {
@@ -1381,7 +1578,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		if (!isset($this->OpenXmlCharts[$ref])) return $this->RaiseError("(ChartChangeSeries) unable to found the chart corresponding to '".$ChartNameOrNum."'.");
 		
 		$chart =& $this->OpenXmlCharts[$ref];
-		$Txt = $this->TbsParkGet($chart['idx'], 'ChartChangeSeries');
+		$Txt = $this->TbsStoreGet($chart['idx'], 'ChartChangeSeries');
 		if ($Txt===false) return false;
 		
 		if (!$chart['clean']) {
@@ -1446,7 +1643,7 @@ It needs to be completed when a new picture file extension is added in the docum
 
 		}
 		
-		$this->TbsParkSave($chart['idx'], $Txt, true);
+		$this->TbsStorePut($chart['idx'], $Txt, true);
 
 		return true;
 
@@ -1458,13 +1655,12 @@ It needs to be completed when a new picture file extension is added in the docum
 		$idx = $this->FileGetIdx($file);
 		if ($idx===false) return;
 		
-		$Txt = $this->TbsParkGet($idx, 'Excel SharedStrings');
+		$Txt = $this->TbsStoreGet($idx, 'Excel SharedStrings');
 		if ($Txt===false) return false;
-		
-		$this->TbsParkSave($idx, $Txt, false);
+		$this->TbsStorePut($idx, $Txt); // save for any further usage
 
 		$this->OpenXmlSharedStr = array();
-		$this->OpenXmlSharedSrc =& $this->TbsParkLst[$idx]['src'];
+		$this->OpenXmlSharedSrc =& $this->TbsStoreLst[$idx]['src'];
 
 	}
 
@@ -1711,16 +1907,17 @@ It needs to be completed when a new picture file extension is added in the docum
 		
 		if (isset($this->MsExcel_Sheets)) return;
 		
-		$this->MsExcel_Sheets = array();   // sheet info soerted by location
+		$this->MsExcel_Sheets = array();   // sheet info sorted by location
 		$this->MsExcel_SheetsById = array(); // shorcut for names and id
 		
 		$name = 'xl/workbook.xml';
 		$idx = $this->FileGetIdx($name);
 		if ($idx===false) return;
 		
-		$Txt = $this->TbsParkGet($idx, 'SheetInfo');
+		$Txt = $this->TbsStoreGet($idx, 'SheetInfo'); // use the store, so the file will be available for editing if needed
 		if ($Txt===false) return false;
-
+		$this->TbsStorePut($idx, $Txt);
+		
 		// scann sheet list
 		$p = 0;
 		$idx = 0;
@@ -1775,32 +1972,6 @@ It needs to be completed when a new picture file extension is added in the docum
 		var_export($this->MsExcel_Sheets);
 	}
 	
-	function XML_GetInnerVal($Txt, $Tag, $Concat=false) {
-		$res = '';
-		$p3 = 0;
-		$close = '</'.$Tag.'>';
-		$close_len = strlen($close);
-		$nbr = 0;
-		while ( ($p = $this->XML_FoundTagStart($Txt, $Tag, $p3))!==false ) {
-			$nbr++;
-			$p2 = strpos($Txt, '>', $p);
-			if ($p2==false) return $this->RaiseError('(XML) the end of tag '.$Tag.' is not found.');
-			$p2++;
-			$p3 = strpos($Txt, $close, $p2);
-			if ($p3==false) exit("strpos($Txt, $close, $p2) p=$p ; nbr=$nbr");
-			if ($p3==false) return $this->RaiseError('(XML) the closing tag '.$Tag.' is not found.');
-			$x = substr($Txt, $p2, $p3-$p2);
-			if ($Concat===false) {
-				return $x;
-			} elseif ($res!=='') {
-				$res .= $Concat;
-			}
-			$res .= $x;
-			$p3 = $p3 + $close_len;
-		}
-		return $res;
-	}
-	
 	// Cleaning tags in MsWord
 
 	function MsWord_Clean(&$Txt) {
@@ -1810,49 +1981,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		$this->MsWord_CleanRsID($Txt);
 		$this->MsWord_CleanDuplicatedLayout($Txt);
 	}
-
-	function XML_FoundTagStart($Txt, $Tag, $PosBeg) {
-	// Found the next tag of the asked type. (Not specific to MsWord, works for any XML)
-	// Tag must be prefixed with '<' or '</'.
-		$len = strlen($Tag);
-		$p = $PosBeg;
-		while ($p!==false) {
-			$p = strpos($Txt, $Tag, $p);
-			if ($p===false) return false;
-			$x = substr($Txt, $p+$len, 1);
-			if (($x===' ') || ($x==='/') || ($x==='>') ) {
-				return $p;
-			} else {
-				$p = $p+$len;
-			}
-		}
-		return false;
-	}
-
-	function XML_DeleteElements(&$Txt, $TagLst) {
-	// Delete all tags of the types given in the list. In fact the entire element is deleted if it's an opening+closing tag.
-		$nbr_del = 0;
-		foreach ($TagLst as $tag) {
-			$t_open = '<'.$tag;
-			$t_close = '</'.$tag;
-			$p = 0;
-			while (($p=$this->XML_FoundTagStart($Txt, $t_open, $p))!==false) {
-				// get the end of the tag
-				$pe = strpos($Txt, '>', $p);
-				if (substr($Txt, $pe-1, 1)!='/') {
-					// it's an opening+closing
-					$pe = $this->XML_FoundTagStart($Txt, $t_close, $pe);
-					if ($pe===false) return false; // error in the XML formating
-					$pe = strpos($Txt, '>', $pe);
-				}
-				if ($pe===false) return false; // error in the XML formating
-				// delete the tag
-				$Txt = substr_replace($Txt, '', $p, $pe-$p+1);
-			} 
-		}
-		return $nbr_del;
-	}
-
+	
 	function MsWord_CleanSystemBookmarks(&$Txt) {
 	// Delete GoBack hidden bookmarks that appear since Office 2010. Example: <w:bookmarkStart w:id="0" w:name="_GoBack"/><w:bookmarkEnd w:id="0"/>
 
@@ -2008,7 +2137,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		$idx = $this->FileGetIdx($name);
 		if ($idx===false) return;
 
-		$Txt = $this->TbsParkGet($idx, 'OpenDocumentFormat');
+		$Txt = $this->TbsStoreGet($idx, 'OpenDocumentFormat');
 		if ($Txt===false) return false;
 
 		// Perform all changes
