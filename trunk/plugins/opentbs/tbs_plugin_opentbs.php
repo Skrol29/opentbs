@@ -127,7 +127,7 @@ class clsOpenTBS extends clsTbsZip {
 					$this->TbsStorePark();
 					// load the subfile
 					$TBS->Source = $this->TbsStoreGet($idx, false);
-					if ($this->LastReadNotParked) {
+					if ($this->LastReadNotStored) {
 						if ($this->LastReadComp<=0) { // the contents is not compressed
 							if ($this->ExtInfo!==false) {
 								$i = $this->ExtInfo;
@@ -177,6 +177,8 @@ class clsOpenTBS extends clsTbsZip {
 
 		$TbsShow = (($Render & OPENTBS_DEBUG_AVOIDAUTOFIELDS)!=OPENTBS_DEBUG_AVOIDAUTOFIELDS);
 		
+		if (isset($this->OtbsSheetODS))  $this->OpenDoc_SheetDeleteAndDisplay();
+
 		// Merges all modified subfiles
 		$idx_lst = array_keys($this->TbsStoreLst);
 		foreach ($idx_lst as $idx) {
@@ -191,10 +193,10 @@ class clsOpenTBS extends clsTbsZip {
 		$TBS->Plugin(-10); // reactivate other plugins
 		$this->TbsCurrIdx = false;
 		
-		if (isset($this->OpenXmlRid))    $this->OpenXML_RidCommit($Debug);      // Commit special OpenXML features if any
-		if (isset($this->OpenXmlCTypes)) $this->OpenXML_CTypesCommit($Debug);   // Commit special OpenXML features if any
-		if (isset($this->OpenDocManif))  $this->OpenDoc_ManifestCommit($Debug); // Commit special OpenDocument features if any
-
+		if (isset($this->OpenXmlRid))    $this->OpenXML_RidCommit($Debug);       // Commit special OpenXML features if any
+		if (isset($this->OpenXmlCTypes)) $this->OpenXML_CTypesCommit($Debug);    // Commit special OpenXML features if any
+		if (isset($this->OpenDocManif))  $this->OpenDoc_ManifestCommit($Debug);  // Commit special OpenDocument features if any
+		
 		if ( ($TBS->ErrCount>0) && (!$TBS->NoErr) && (!$Debug)) {
 			$TBS->meth_Misc_Alert('Show() Method', 'The output is cancelled by the OpenTBS plugin because at least one error has occured.');
 			exit;
@@ -416,16 +418,41 @@ class clsOpenTBS extends clsTbsZip {
 			}
 			return true;
 
-		} elseif ($Cmd==OPENTBS_DELETE_SHEETS) {
+		} elseif ( ($Cmd==OPENTBS_DELETE_SHEETS) || ($Cmd==OPENTBS_DISPLAY_SHEETS) ) {
 
-			if (is_null($x2)) $x2 = true;
-			$this->TbsSheetAction($x1, 'd', $x2);
+			if (is_null($x2)) $x2 = true; // default value
+			$delete = ($Cmd==OPENTBS_DELETE_SHEETS);
 			
-		} elseif ($Cmd==OPENTBS_DISPLAY_SHEETS) {	
+			if (!isset($this->OtbsSheetOk)) {
+				$ext = $this->Ext_Get();
+				if ($ext=='xlsl') $this->OtbsSheetXLSX = true;
+				if ($ext=='ods') $this->OtbsSheetODS = true;
+				$this->OtbsSheetDelete  = array();
+				$this->OtbsSheetVisible = array();
+				$this->OtbsSheetOk = true;
+			}
+			
+			
+			$x2 = (boolean) $x2;
+			if (!is_array($x1)) $x1 = array($x1);
+			
+			foreach ($x1 as $sheet=>$action) {
+				if (!is_bool($action)) {
+					$sheet = $action;
+					$action = $x2;
+				}
+				$sheet = (is_string($sheet)) ? 'n:'.$sheet : 'i:'.$sheet; // help to make the difference beetween id and name
+				if ($delete) {
+					if ($x2) {
+						$this->OtbsSheetDelete[$sheet] = true;
+					} else {
+						unset($this->OtbsSheetDelete[$sheet]);
+					}
+				} else {
+					$this->OtbsSheetVisible[$sheet] = $x2;
+				}
+			}
 		
-			if (is_null($x2)) $x2 = true;
-			$this->TbsSheetAction($x1, 's', $x2);
-			
 		} elseif ($Cmd==OPENTBS_DELETE_COMMENTS) {	
 
 			// Default values
@@ -473,7 +500,7 @@ class clsOpenTBS extends clsTbsZip {
 	}
 
 	function TbsStorePut($idx, $src, $onshow = null) {
-		// Save a given source in the store. If $onshow is null, then it will be unchanged
+		// Save a given source in the store. If $onshow is null, then it stay unchanged
 		if ($idx===$this->TbsCurrIdx) {
 			$this->TBS->Source = $src;
 		} else {
@@ -491,13 +518,13 @@ class clsOpenTBS extends clsTbsZip {
 	function TbsStoreGet($idx, $caller) {
 		// retrieve a source from the merging, the store, or the archive
 		// the file is not stored yet if it comes from the archive
-		$this->LastReadNotParked = false;
+		$this->LastReadNotStored = false;
 		if ($idx===$this->TbsCurrIdx) {
 			return $this->TBS->Source;
 		} elseif (isset($this->TbsStoreLst[$idx])) {
 			return $this->TbsStoreLst[$idx]['src'];
 		} else {
-			$this->LastReadNotParked = true;
+			$this->LastReadNotStored = true;
 			$txt = $this->FileRead($idx, true);
 			if ($this->LastReadComp>0) {
 				if ($caller===false) {
@@ -548,9 +575,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$this->TbsDebug_Init($nl, $sep, $bull);
 	
-		if ($this->Ext_Get()==='xlsx') {
-			$this->MsExcel_SheetDebug($nl, $sep, $bull);
-		}
+		if ($this->Ext_Get()==='xlsx') $this->MsExcel_SheetDebug($nl, $sep, $bull);
+		if ($this->Ext_Get()==='ods')  $this->OpenDoc_SheetDebug($nl, $sep, $bull);
+		
 
 		if ($this->Ext_GetFrm()==='openxml') {
 			$this->OpenXML_ChartDebug($nl, $sep, $bull);
@@ -943,9 +970,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	function TbsSheetAction($IdOrName, $Action) {
-		if (!isset($this->otbsSheets)) $this->otbsSheets = array();
-		$this->otbsSheets[$IdOrName] = $Action;
+	// Check after the sheet process
+	function TbsSheetCheck() {
+		if (count($this->OtbsSheetDelete)>0) $this->RaiseError("Unable to delete the following sheets because they are not found in the workbook: ".(str_replace(array('i:','n:'),'',implode(', ',array_keys($this->OtbsSheetDelete)))).'.');
+		if (count($this->OtbsSheetVisible)>0) $this->RaiseError("Unable to change visibility of the following sheets because they are not found in the workbook: ".(str_replace(array('i:','n:'),'',implode(', ',array_keys($this->OtbsSheetVisible)))).'.');
 	}
 
 	function TbsDeleteComments($MainTags, $CommFiles, $CommTags, $Inner) {
@@ -1905,10 +1933,11 @@ It needs to be completed when a new picture file extension is added in the docum
 	
 	function MsExcel_SheetInit() {
 		
-		if (isset($this->MsExcel_Sheets)) return;
+		if (isset($this->Otbs_Sheets)) return;
 		
-		$this->MsExcel_Sheets = array();   // sheet info sorted by location
-		$this->MsExcel_SheetsById = array(); // shorcut for names and id
+		$this->Otbs_Sheets = array();   // sheet info sorted by location
+		$this->Otbs_SheetsById = array(); // shorcut for ids
+		$this->Otbs_SheetsByName = array(); // shorcut for names
 		
 		$name = 'xl/workbook.xml';
 		$idx = $this->FileGetIdx($name);
@@ -1925,10 +1954,10 @@ It needs to be completed when a new picture file extension is added in the docum
 		while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, 'sheet', true, $p, true, false, true, true) ) {
 			if (isset($loc->PrmLst['sheetid'])) {
 				$id = $loc->PrmLst['sheetid']; // actual parameter is 'sheetId'
-				$this->MsExcel_Sheets[$idx] = $loc;
+				$this->Otbs_Sheets[$idx] = $loc;
 				if (isset($loc->PrmLst['r:id'])) $rels[$loc->PrmLst['r:id']] = $idx;
-				$this->MsExcel_SheetsById[$id] =& $this->MsExcel_Sheets[$idx];
-				if (isset($loc->PrmLst['name'])) $this->MsExcel_SheetsById[$loc->PrmLst['name']] =& $this->MsExcel_Sheets[$idx];
+				$this->Otbs_SheetsById[$id] =& $this->Otbs_Sheets[$idx];
+				if (isset($loc->PrmLst['name'])) $this->Otbs_SheetsByName[$loc->PrmLst['name']] =& $this->Otbs_Sheets[$idx];
 				$idx++;
 			}
 			$p = $loc->PosEnd;
@@ -1942,7 +1971,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, 'Relationship', true, $p, true, false, true, false) ) {
 			if (isset($loc->PrmLst['id']) && isset($loc->PrmLst['target']) ) {
 				$rid = $loc->PrmLst['id'];
-				if (isset($rels[$rid])) $this->MsExcel_Sheets[$rels[$rid]]->xlsxTarget = 'xl/'.$loc->PrmLst['target'];
+				if (isset($rels[$rid])) $this->Otbs_Sheets[$rels[$rid]]->xlsxTarget = 'xl/'.$loc->PrmLst['target'];
 			}
 			$p = $loc->PosEnd;
 		}
@@ -1951,25 +1980,30 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	function MsExcel_SheetGet($IdOrName, $Caller, $CheckTarget=false) {
 		$this->MsExcel_SheetInit();
-		if (!isset($this->MsExcel_SheetsById[$IdOrName])) return $this->RaiseError("($Caller) The sheet '$IdOrName' is not found inside the Workbook. Try command OPENTBS_DEBUG_INFO to check all sheets inside the current Workbook.");
-		$loc = $this->MsExcel_SheetsById[$IdOrName];
+		if (isset($this->Otbs_SheetsByName[$IdOrName])) {
+			$loc = $this->Otbs_SheetsByName[$IdOrName];
+		} elseif (isset($this->Otbs_SheetsById[$IdOrName])) {
+			$loc = $this->Otbs_SheetsById[$IdOrName];
+		} else {
+			return $this->RaiseError("($Caller) The sheet '$IdOrName' is not found inside the Workbook. Try command OPENTBS_DEBUG_INFO to check all sheets inside the current Workbook.");			
+		}
+		$loc = $this->Otbs_SheetsById[$IdOrName];
 		if ($CheckTarget && (!isset($loc->xlsxTarget)) )  return $this->RaiseError("($Caller) Error with sheet '$IdOrName'. The corresponding XML subfile is not referenced.");
 		return $loc;
 	}
 	
 	function MsExcel_SheetDebug($nl, $sep, $bull) {
-		
+
 		$this->MsExcel_SheetInit();
-		
+
 		echo $nl;
 		echo $nl."Sheets in the Workbook:";
 		echo $nl."-----------------------";
-		foreach ($this->MsExcel_Sheets as $loc) {
-			echo $bull."id: '".$loc->PrmLst['sheetid']."', name: [".$loc->PrmLst['name']."]";
+		foreach ($this->Otbs_Sheets as $loc) {
+			echo $bull."id: ".$loc->PrmLst['sheetid'].", name: [".$loc->PrmLst['name']."]";
 			if (isset($loc->PrmLst['state'])) echo ", state: ".$loc->PrmLst['state'];
 		}
-		
-		var_export($this->MsExcel_Sheets);
+
 	}
 	
 	// Cleaning tags in MsWord
@@ -2238,6 +2272,125 @@ It needs to be completed when a new picture file extension is added in the docum
 			$Loc->ConvProtect = false;
 		} else {
 			if ($newfrm!==false) $Loc->PrmLst['frm'] = $newfrm;
+		}
+
+	}
+	
+	function OpenDoc_SheetInit($force = false) {
+	
+		if (isset($this->OpenDoc_Sheets) && (!$force) ) return;
+	
+		$this->OpenDoc_Sheets = array();     // sheet info sorted by location
+
+		$idx = $this->FileGetIdx($this->ExtInfo['main']);
+		if ($idx===false) return;
+		$Txt = $this->TbsStoreGet($idx, 'Sheet Info');
+		if ($Txt===false) return false;
+		if ($this->LastReadNotStored) $this->TbsStorePut($idx, $Txt);
+		$this->OpenDoc_Sheets_FileId = $idx;
+		
+		// scann sheet list
+		$p = 0;
+		$idx = 0;
+		while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, 'table:table', true, $p, true, false, true, true) ) {
+			$this->OpenDoc_Sheets[$idx] = $loc;
+			$idx++;
+			$p = $loc->PosEnd;
+		}
+	
+	}
+
+	function OpenDoc_SheetDeleteAndDisplay() {
+
+		if (!isset($this->OtbsSheetOk)) return;
+		if ( (count($this->OtbsSheetDelete)==0) && (count($this->OtbsSheetVisible)==0) ) return;
+
+		$this->OpenDoc_SheetInit(true);
+		$Txt = $this->TbsStoreGet($this->OpenDoc_Sheets_FileId, 'Sheet Delete and Display');
+
+		$close = '</table:table>';
+		$close_len = strlen($close);
+
+		$styles_to_edit = array();
+
+		// process sheet in rever order of their positions
+		for ($idx = count($this->OpenDoc_Sheets) - 1; $idx>=0; $idx--) {
+			$loc = $this->OpenDoc_Sheets[$idx];
+			$id = 'i:'.($idx + 1);
+			$name = 'n:'.$loc->PrmLst['table:name'];
+			if ( isset($this->OtbsSheetDelete[$name]) || isset($this->OtbsSheetDelete[$id]) ) {
+				// Delete the sheet
+				$p = strpos($Txt, $close, $loc->PosEnd);
+				if ($p===false) return; // XML error
+				$Txt = substr_replace($Txt, '', $loc->PosBeg, $p + $close_len - $loc->PosBeg);
+				unset($this->OtbsSheetDelete[$name]);
+				unset($this->OtbsSheetDelete[$id]);
+				unset($this->OtbsSheetVisible[$name]);
+				unset($this->OtbsSheetVisible[$id]);
+			} elseif ( isset($this->OtbsSheetVisible[$name]) || isset($this->OtbsSheetVisible[$id]) ) {
+				// Hide or dispay the sheet
+				$visible = (isset($this->OtbsSheetVisible[$name])) ? $this->OtbsSheetVisible[$name] : $this->OtbsSheetVisible[$id];
+				$visible = ($visible) ? 'true' : 'false';
+				if (isset($loc->PrmLst['table:style-name'])) {
+					$style = $loc->PrmLst['table:style-name'];
+					$new = $style.'_tbs_'.$visible;
+					if (!isset($styles_to_edit[$style])) $styles_to_edit[$style] = array();
+					$styles_to_edit[$style][$visible] = $new; // mark the style to be edited
+					$pi = $loc->PrmPos['table:style-name'];
+					$Txt = substr_replace($Txt, $pi[4].$new.$pi[4], $pi[2], $pi[3]-$pi[2]);
+				}
+				unset($this->OtbsSheetVisible[$name]);
+				unset($this->OtbsSheetVisible[$id]);
+			}
+		}
+		
+		// process styles to edit
+		if (count($styles_to_edit)>0) {
+			$close = '</style:style>';
+			$close_len = strlen($close);
+			$p = 0;
+			while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, 'style:style', true, $p, true, false, true, false) ) {
+				$p = $loc->PosEnd;
+				if (isset($loc->PrmLst['style:name'])) {
+					$name = $loc->PrmLst['style:name'];
+					if (isset($styles_to_edit[$name])) {
+						// retrieve the full source of the <style:style> element
+						$p = strpos($Txt, $close, $p);
+						if ($p===false) return; // bug in the XML contents
+						$p = $p + $close_len;
+						$src = substr($Txt, $loc->PosBeg, $p - $loc->PosBeg);
+						// add the attribute, if missing
+						if (strpos($src, ' table:display="')===false)  $src = str_replace('<style:table-properties ', '<style:table-properties table:display="true" ', $src);
+						// add new styles
+						foreach ($styles_to_edit[$name] as $visible => $newName) {
+							$not = ($visible==='true') ? 'false' : 'true';
+							$src2 = str_replace(' style:name="'.$name.'"', ' style:name="'.$newName.'"', $src);
+							$src2 = str_replace(' table:display="'.$not.'"', ' table:display="'.$visible.'"', $src2);
+							$Txt = substr_replace($Txt, $src2, $loc->PosBeg, 0);
+							$p = $p + strlen($src2);
+						}
+					}
+				}
+			}
+			
+		}
+		
+		// store the result
+		$this->TbsStorePut($this->OpenDoc_Sheets_FileId, $Txt);
+
+		$this->TbsSheetCheck();
+		
+	}
+
+	function OpenDoc_SheetDebug($nl, $sep, $bull) {
+		
+		$this->OpenDoc_SheetInit();
+		
+		echo $nl;
+		echo $nl."Sheets in the Workbook:";
+		echo $nl."-----------------------";
+		foreach ($this->OpenDoc_Sheets as $idx => $loc) {
+			echo $bull."id: ".($idx+1).", name: [".$loc->PrmLst['table:name']."]";
 		}
 
 	}
