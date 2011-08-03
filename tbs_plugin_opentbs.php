@@ -14,8 +14,8 @@ Site: http://www.tinybutstrong.com/plugins.php
 [tt] command OPENTBS_SELECT_MAIN
 [ok] command OPENTBS_DELETE_ELEMENTS
 [ok] command OPENTBS_DELETE_COMMENTS
-[  ] command OPENTBS_DELETE_SHEETS
-[  ] command OPENTBS_DISPLAY_SHEETS
+[~~] command OPENTBS_DELETE_SHEETS
+[~~] command OPENTBS_DISPLAY_SHEETS
 [  ] command OPENTBS_SELECT_HEADER, OPENTBS_SELECT_FOOTER, OPENTBS_SELECT_COMMENTS
 */
 
@@ -177,7 +177,8 @@ class clsOpenTBS extends clsTbsZip {
 
 		$TbsShow = (($Render & OPENTBS_DEBUG_AVOIDAUTOFIELDS)!=OPENTBS_DEBUG_AVOIDAUTOFIELDS);
 		
-		if (isset($this->OtbsSheetODS))  $this->OpenDoc_SheetDeleteAndDisplay();
+		if (isset($this->OtbsSheetODS))   $this->OpenDoc_SheetDeleteAndDisplay();
+		if (isset($this->OtbsSheetXLSX))  $this->MsExcel_SheetDeleteAndDisplay();
 
 		// Merges all modified subfiles
 		$idx_lst = array_keys($this->TbsStoreLst);
@@ -425,7 +426,7 @@ class clsOpenTBS extends clsTbsZip {
 			
 			if (!isset($this->OtbsSheetOk)) {
 				$ext = $this->Ext_Get();
-				if ($ext=='xlsl') $this->OtbsSheetXLSX = true;
+				if ($ext=='xlsx') $this->OtbsSheetXLSX = true;
 				if ($ext=='ods') $this->OtbsSheetODS = true;
 				$this->OtbsSheetDelete  = array();
 				$this->OtbsSheetVisible = array();
@@ -1933,14 +1934,15 @@ It needs to be completed when a new picture file extension is added in the docum
 	
 	function MsExcel_SheetInit() {
 		
-		if (isset($this->Otbs_Sheets)) return;
+		if (isset($this->MsExcel_Sheets)) return;
 		
-		$this->Otbs_Sheets = array();   // sheet info sorted by location
-		$this->Otbs_SheetsById = array(); // shorcut for ids
-		$this->Otbs_SheetsByName = array(); // shorcut for names
+		$this->MsExcel_Sheets = array();   // sheet info sorted by location
+		$this->MsExcel_SheetsById = array(); // shorcut for ids
+		$this->MsExcel_SheetsByName = array(); // shorcut for names
 		
 		$name = 'xl/workbook.xml';
 		$idx = $this->FileGetIdx($name);
+		$this->MsExcel_Sheets_FileId = $idx;
 		if ($idx===false) return;
 		
 		$Txt = $this->TbsStoreGet($idx, 'SheetInfo'); // use the store, so the file will be available for editing if needed
@@ -1954,10 +1956,10 @@ It needs to be completed when a new picture file extension is added in the docum
 		while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, 'sheet', true, $p, true, false, true, true) ) {
 			if (isset($loc->PrmLst['sheetid'])) {
 				$id = $loc->PrmLst['sheetid']; // actual parameter is 'sheetId'
-				$this->Otbs_Sheets[$idx] = $loc;
+				$this->MsExcel_Sheets[$idx] = $loc;
 				if (isset($loc->PrmLst['r:id'])) $rels[$loc->PrmLst['r:id']] = $idx;
-				$this->Otbs_SheetsById[$id] =& $this->Otbs_Sheets[$idx];
-				if (isset($loc->PrmLst['name'])) $this->Otbs_SheetsByName[$loc->PrmLst['name']] =& $this->Otbs_Sheets[$idx];
+				$this->MsExcel_SheetsById[$id] =& $this->MsExcel_Sheets[$idx];
+				if (isset($loc->PrmLst['name'])) $this->MsExcel_SheetsByName[$loc->PrmLst['name']] =& $this->MsExcel_Sheets[$idx];
 				$idx++;
 			}
 			$p = $loc->PosEnd;
@@ -1971,7 +1973,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, 'Relationship', true, $p, true, false, true, false) ) {
 			if (isset($loc->PrmLst['id']) && isset($loc->PrmLst['target']) ) {
 				$rid = $loc->PrmLst['id'];
-				if (isset($rels[$rid])) $this->Otbs_Sheets[$rels[$rid]]->xlsxTarget = 'xl/'.$loc->PrmLst['target'];
+				if (isset($rels[$rid])) $this->MsExcel_Sheets[$rels[$rid]]->xlsxTarget = 'xl/'.$loc->PrmLst['target'];
 			}
 			$p = $loc->PosEnd;
 		}
@@ -1980,14 +1982,14 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	function MsExcel_SheetGet($IdOrName, $Caller, $CheckTarget=false) {
 		$this->MsExcel_SheetInit();
-		if (isset($this->Otbs_SheetsByName[$IdOrName])) {
-			$loc = $this->Otbs_SheetsByName[$IdOrName];
-		} elseif (isset($this->Otbs_SheetsById[$IdOrName])) {
-			$loc = $this->Otbs_SheetsById[$IdOrName];
+		if (isset($this->MsExcel_SheetsByName[$IdOrName])) {
+			$loc = $this->MsExcel_SheetsByName[$IdOrName];
+		} elseif (isset($this->MsExcel_SheetsById[$IdOrName])) {
+			$loc = $this->MsExcel_SheetsById[$IdOrName];
 		} else {
 			return $this->RaiseError("($Caller) The sheet '$IdOrName' is not found inside the Workbook. Try command OPENTBS_DEBUG_INFO to check all sheets inside the current Workbook.");			
 		}
-		$loc = $this->Otbs_SheetsById[$IdOrName];
+		$loc = $this->MsExcel_SheetsById[$IdOrName];
 		if ($CheckTarget && (!isset($loc->xlsxTarget)) )  return $this->RaiseError("($Caller) Error with sheet '$IdOrName'. The corresponding XML subfile is not referenced.");
 		return $loc;
 	}
@@ -1999,11 +2001,60 @@ It needs to be completed when a new picture file extension is added in the docum
 		echo $nl;
 		echo $nl."Sheets in the Workbook:";
 		echo $nl."-----------------------";
-		foreach ($this->Otbs_Sheets as $loc) {
+		foreach ($this->MsExcel_Sheets as $loc) {
 			echo $bull."id: ".$loc->PrmLst['sheetid'].", name: [".$loc->PrmLst['name']."]";
 			if (isset($loc->PrmLst['state'])) echo ", state: ".$loc->PrmLst['state'];
 		}
 
+	}
+	
+	function MsExcel_SheetDeleteAndDisplay() {
+
+		if (!isset($this->OtbsSheetOk)) return;
+		if ( (count($this->OtbsSheetDelete)==0) && (count($this->OtbsSheetVisible)==0) ) return;
+
+		$this->MsExcel_SheetInit();
+		$Txt = $this->TbsStoreGet($this->MsExcel_Sheets_FileId, 'Sheet Delete and Display');
+
+		$close = '</table:table>';
+		$close_len = strlen($close);
+
+		$styles_to_edit = array();
+
+		// process sheet in rever order of their positions
+		for ($idx = count($this->MsExcel_Sheets) - 1; $idx>=0; $idx--) {
+			$loc = $this->MsExcel_Sheets[$idx];
+			$id = 'i:'.$loc->PrmLst['sheetid'];
+			$name = 'n:'.$loc->PrmLst['name'];
+			if ( isset($this->OtbsSheetDelete[$name]) || isset($this->OtbsSheetDelete[$id]) ) {
+				// Delete the sheet
+				$Txt = substr_replace($Txt, '', $loc->PosBeg, $loc->PosEnd - $loc->PosBeg +1);
+				$this->FileReplace($loc->xlsxTarget, false); // mark the target file to be deleted
+				unset($this->OtbsSheetDelete[$name]);
+				unset($this->OtbsSheetDelete[$id]);
+				unset($this->OtbsSheetVisible[$name]);
+				unset($this->OtbsSheetVisible[$id]);
+			} elseif ( isset($this->OtbsSheetVisible[$name]) || isset($this->OtbsSheetVisible[$id]) ) {
+				// Hide or dispay the sheet
+				$visible = (isset($this->OtbsSheetVisible[$name])) ? $this->OtbsSheetVisible[$name] : $this->OtbsSheetVisible[$id];
+				$state = ($visible) ? 'visible' : 'hidden';
+				if (isset($loc->PrmLst['state'])) {
+					$pi = $loc->PrmPos['state'];
+					$Txt = substr_replace($Txt, $pi[4].$state.$pi[4], $pi[2], $pi[3]-$pi[2]);
+				} elseif(!$visible) {
+					// add the attribute
+					$Txt = substr_replace($Txt, 'state="hidden" ', $loc->PosBeg + strlen('<sheet '), 0);
+				}
+				unset($this->OtbsSheetVisible[$name]);
+				unset($this->OtbsSheetVisible[$id]);
+			}
+		}
+		
+		// store the result
+		$this->TbsStorePut($this->MsExcel_Sheets_FileId, $Txt);
+
+		$this->TbsSheetCheck();	
+	
 	}
 	
 	// Cleaning tags in MsWord
