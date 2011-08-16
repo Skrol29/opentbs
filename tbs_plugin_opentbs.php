@@ -106,8 +106,8 @@ class clsOpenTBS extends clsTbsZip {
 			}
 		}
 
-		$TbsLoadTemplate = (($TBS->Render & OPENTBS_DEBUG_AVOIDAUTOFIELDS)!=OPENTBS_DEBUG_AVOIDAUTOFIELDS);		
-		
+		$TbsLoadTemplate = (($TBS->Render & OPENTBS_DEBUG_AVOIDAUTOFIELDS)!=OPENTBS_DEBUG_AVOIDAUTOFIELDS);
+
 		// Load the subfile(s)
 		if (($SubFileLst!=='') && ($SubFileLst!==false)) {
 
@@ -176,7 +176,7 @@ class clsOpenTBS extends clsTbsZip {
 		if ($Debug) $this->DebugLst = array();
 
 		$TbsShow = (($Render & OPENTBS_DEBUG_AVOIDAUTOFIELDS)!=OPENTBS_DEBUG_AVOIDAUTOFIELDS);
-		
+
 		if (isset($this->OtbsSheetODS))   $this->OpenDoc_SheetDeleteAndDisplay();
 		if (isset($this->OtbsSheetXLSX))  $this->MsExcel_SheetDeleteAndDisplay();
 
@@ -193,11 +193,11 @@ class clsOpenTBS extends clsTbsZip {
 		}
 		$TBS->Plugin(-10); // reactivate other plugins
 		$this->TbsCurrIdx = false;
-		
+
 		if (isset($this->OpenXmlRid))    $this->OpenXML_RidCommit($Debug);       // Commit special OpenXML features if any
 		if (isset($this->OpenXmlCTypes)) $this->OpenXML_CTypesCommit($Debug);    // Commit special OpenXML features if any
 		if (isset($this->OpenDocManif))  $this->OpenDoc_ManifestCommit($Debug);  // Commit special OpenDocument features if any
-		
+
 		if ( ($TBS->ErrCount>0) && (!$TBS->NoErr) && (!$Debug)) {
 			$TBS->meth_Misc_Alert('Show() Method', 'The output is cancelled by the OpenTBS plugin because at least one error has occured.');
 			exit;
@@ -373,7 +373,7 @@ class clsOpenTBS extends clsTbsZip {
 
 		} elseif ($Cmd==OPENTBS_DEBUG_INFO) {
 
-			$this->TbsDebug_Info();			
+			$this->TbsDebug_Info();
 
 		} elseif ($Cmd==OPENTBS_DEBUG_XML_SHOW) {
 
@@ -404,7 +404,7 @@ class clsOpenTBS extends clsTbsZip {
 			} else {
 				return false;
 			}
-		
+
 		} elseif ($Cmd==OPENTBS_SELECT_SHEET) {
 
 			// Only XLSX files have sheets in separated subfiles.
@@ -423,45 +423,44 @@ class clsOpenTBS extends clsTbsZip {
 
 			if (is_null($x2)) $x2 = true; // default value
 			$delete = ($Cmd==OPENTBS_DELETE_SHEETS);
-			
+
+			$ext = $this->Ext_Get();
 			if (!isset($this->OtbsSheetOk)) {
-				$ext = $this->Ext_Get();
 				if ($ext=='xlsx') $this->OtbsSheetXLSX = true;
 				if ($ext=='ods') $this->OtbsSheetODS = true;
-				$this->OtbsSheetDelete  = array();
+				$this->OtbsSheetDelete = array();
 				$this->OtbsSheetVisible = array();
 				$this->OtbsSheetOk = true;
 			}
-			
-			
+
 			$x2 = (boolean) $x2;
 			if (!is_array($x1)) $x1 = array($x1);
-			
+
 			foreach ($x1 as $sheet=>$action) {
 				if (!is_bool($action)) {
 					$sheet = $action;
 					$action = $x2;
 				}
-				$sheet = (is_string($sheet)) ? 'n:'.$sheet : 'i:'.$sheet; // help to make the difference beetween id and name
+				$sheet_ref = (is_string($sheet)) ? 'n:'.htmlspecialchars($sheet) : 'i:'.$sheet; // help to make the difference beetween id and name
 				if ($delete) {
 					if ($x2) {
-						$this->OtbsSheetDelete[$sheet] = true;
+						$this->OtbsSheetDelete[$sheet_ref] = $sheet;
 					} else {
-						unset($this->OtbsSheetDelete[$sheet]);
+						unset($this->OtbsSheetDelete[$sheet_ref]);
 					}
 				} else {
-					$this->OtbsSheetVisible[$sheet] = $x2;
+					$this->OtbsSheetVisible[$sheet_ref] = $x2;
 				}
 			}
-		
-		} elseif ($Cmd==OPENTBS_DELETE_COMMENTS) {	
+
+		} elseif ($Cmd==OPENTBS_DELETE_COMMENTS) {
 
 			// Default values
 			$MainTags = false;
 			$CommFiles = false;
 			$CommTags = false;
 			$Inner = false;
-		
+
 			if ($this->Ext_GetFrm()=='odf') {
 				$MainTags = array('office:annotation', 'officeooo:annotation'); // officeooo:annotation is used in ODP Presentations
 			} else {
@@ -484,9 +483,9 @@ class clsOpenTBS extends clsTbsZip {
 					return 0;
 				}
 			}
-			
+
 			return $this->TbsDeleteComments($MainTags, $CommFiles, $CommTags, $Inner);
-		
+
 		}
 
 	}
@@ -546,7 +545,7 @@ class clsOpenTBS extends clsTbsZip {
 			return '(id='.$idx.')';
 		}
 	}
-	
+
 	function TbsDebug_Init(&$nl, &$sep, &$bull) {
 	// display the header of debug mode
 
@@ -569,28 +568,28 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		echo $nl.'* PHP version: '.PHP_VERSION;
 		echo $nl.'* Opened document: '.$this->ArchFile;
 		echo $nl.'* Activated features for document type: '.(($this->ExtInfo===false) ? '(none)' : $this->ExtInfo['frm'].'/'.$this->ExtInfo['ext']);
-		
+
 	}
-	
+
 	function TbsDebug_Info() {
 
 		$this->TbsDebug_Init($nl, $sep, $bull);
-	
+
 		if ($this->Ext_Get()==='xlsx') $this->MsExcel_SheetDebug($nl, $sep, $bull);
 		if ($this->Ext_Get()==='ods')  $this->OpenDoc_SheetDebug($nl, $sep, $bull);
-		
+
 
 		if ($this->Ext_GetFrm()==='openxml') {
 			$this->OpenXML_ChartDebug($nl, $sep, $bull);
 		}
-		
+
 	}
-	
+
 	function TbsDebug_Merge($XmlFormat = true) {
 	// display modified and added files
 
 		$this->TbsDebug_Init($nl, $sep, $bull);
-	
+
 		// scann files for collecting information
 		$mod_lst = ''; // id of modified files
 		$del_lst = ''; // id of deleted  files
@@ -874,7 +873,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return $res_lst;
 
 	}
-	
+
 	function TbsPicAdd(&$Value, &$PrmLst, &$Txt, &$Loc, $Prm) {
 	// Add a picture inside the archive, use parameters 'from' and 'as'.
 	// Argument $Prm is only used for error messages.
@@ -973,14 +972,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	// Check after the sheet process
 	function TbsSheetCheck() {
-		if (count($this->OtbsSheetDelete)>0) $this->RaiseError("Unable to delete the following sheets because they are not found in the workbook: ".(str_replace(array('i:','n:'),'',implode(', ',array_keys($this->OtbsSheetDelete)))).'.');
+		if (count($this->OtbsSheetDelete)>0) $this->RaiseError("Unable to delete the following sheets because they are not found in the workbook: ".(str_replace(array('i:','n:'),'',implode(', ',$this->OtbsSheetDelete))).'.');
 		if (count($this->OtbsSheetVisible)>0) $this->RaiseError("Unable to change visibility of the following sheets because they are not found in the workbook: ".(str_replace(array('i:','n:'),'',implode(', ',array_keys($this->OtbsSheetVisible)))).'.');
 	}
 
 	function TbsDeleteComments($MainTags, $CommFiles, $CommTags, $Inner) {
 
 		$nbr = 0;
-	
+
 		// Retrieve the Comment sub-file (OpenXML only)
 		if ($CommFiles!==false) {
 			$Files = $this->OpenXML_MapGetFiles($CommFiles);
@@ -991,11 +990,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					// we only empty the comment elements in case some comments are referenced in other special part of the document
 					$Txt = $this->TbsStoreGet($idx, "Delete Comments");
 					$nbr = $nbr + $this->XML_DeleteElements($Txt, $CommTags, $Inner);
-					$this->TbsStorePut($idx, $Txt);		
+					$this->TbsStorePut($idx, $Txt);
 				}
 			}
 		}
-		
+
 		// Retrieve the Main sub-file
 		if ($MainTags!==false) {
 			$idx = $this->FileGetIdx($this->ExtInfo['main']);
@@ -1006,11 +1005,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$this->TbsStorePut($idx, $Txt);
 			if ($CommFiles===false) $nbr = $nbr2;
 		}
-		
+
 		return $nbr;
-		
+
 	}
-	
+
 	function Ext_PrepareInfo($Ext=false) {
 		/* Extension Info must be an array with keys 'load', 'br', 'ctype' and 'pic_path'. Keys 'rpl_what' and 'rpl_with' are optional.
 		  load:     files in the archive to be automatically loaded by OpenTBS when the archive is loaded. Separate files with comma ';'.
@@ -1148,7 +1147,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		return $res;
 	}
-	
+
 	function XML_FoundTagStart($Txt, $Tag, $PosBeg) {
 	// Found the next tag of the asked type. (Not specific to MsWord, works for any XML)
 	// Tag must be prefixed with '<' or '</'.
@@ -1199,7 +1198,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		return $nbr_del;
 	}
-	
+
 	function OpenXML_RidPrepare($DocPath, $ImageName) {
 /* Return the RelationId if the image if it's already referenced in the Relation file in the archive.
 Otherwise, OpenTBS prepares info to add this information at the end of the merging.
@@ -1467,7 +1466,7 @@ It needs to be completed when a new picture file extension is added in the docum
 	function OpenXML_ChartInit() {
 
 		$this->OpenXmlCharts = array();
-		
+
 		foreach ($this->CdFileByName as $f => $i) {
 			if (strpos($f, '/charts/')!==false) {
 				$f = explode('/',$f);
@@ -1480,10 +1479,10 @@ It needs to be completed when a new picture file extension is added in the docum
 					}
 				}
 			}
-		}	
-		
-		
-		
+		}
+
+
+
 	}
 
 	function OpenXML_ChartDebug($nl, $sep, $bull) {
@@ -1493,7 +1492,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		echo $nl;
 		echo $nl."Charts inside the document:";
 		echo $nl."---------------------------";
-		
+
 		// list of supported charts
 		$nbr = 0;
 		foreach ($this->OpenXmlCharts as $key => $info) {
@@ -1504,7 +1503,7 @@ It needs to be completed when a new picture file extension is added in the docum
 			}
 			echo $bull."id: '".$key."' , number of series: ".$info['series_nbr'];
 		}
-		
+
 		if ($this->TbsCurrIdx===false) {
 			echo $bull."(unable to scann more because no subfile is loaded)";
 		} else {
@@ -1525,11 +1524,11 @@ It needs to be completed when a new picture file extension is added in the docum
 				}
 			}
 		}
-		
+
 		if ($nbr==0) echo $bull."(none)";
-				
+
 	}
-	
+
 	function OpenXML_ChartSeriesFound(&$Txt, $SeriesNameOrNum, $OnlyBounds=false) {
 
 		$IsNum = is_numeric($SeriesNameOrNum);
@@ -1579,8 +1578,8 @@ It needs to be completed when a new picture file extension is added in the docum
 		} else {
 			$res['leg_p'] = 0;
 			$res['leg_l'] = strlen($SeriesNameOrNum);
-		}	
-			
+		}
+
 		// Data X & Y, we assume that (X or Category) are always first and (Y or Value) are always second
 		for ($i=1; $i<=2; $i++) {
 			$p1 = strpos($x, '<c:ptCount ', $p);
@@ -1592,9 +1591,9 @@ It needs to be completed when a new picture file extension is added in the docum
 			$res['point'.$i.'_l'] = $p2 - $p1;
 			$p = $p2;
 		}
-		
+
 		return $res;
-		
+
 	}
 
 	function OpenXML_ChartChangeSeries($ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewLegend=false, $CopyFromSeries=false) {
@@ -1605,26 +1604,26 @@ It needs to be completed when a new picture file extension is added in the docum
 		$ref = ''.$ChartNameOrNum;
 		if (!isset($this->OpenXmlCharts[$ref])) $ref = 'chart'.$ref;
 		if (!isset($this->OpenXmlCharts[$ref])) return $this->RaiseError("(ChartChangeSeries) unable to found the chart corresponding to '".$ChartNameOrNum."'.");
-		
+
 		$chart =& $this->OpenXmlCharts[$ref];
 		$Txt = $this->TbsStoreGet($chart['idx'], 'ChartChangeSeries');
 		if ($Txt===false) return false;
-		
+
 		if (!$chart['clean']) {
 			// delete tags that refere to the XLSX file containing original data
 			//$this->XML_DeleteElements($Txt, array('c:externalData', 'c:f'));
 			$chart['nbr'] = substr_count($Txt, '<c:ser>');
 			$chart['clean'] = true;
 		}
-		
+
 		$Delete = ($NewValues===false);
 		$ser = $this->OpenXML_ChartSeriesFound($Txt, $SeriesNameOrNum, $Delete);
 		if ($ser===false) return $this->RaiseError("(ChartChangeSeries) unable to found series '".$SeriesNameOrNum."' in the chart '".$ref."'.");
-		
+
 		if ($Delete) {
 
 			$Txt = substr_replace($Txt, '', $ser['p'], $ser['l']);
-			
+
 		} else {
 
 
@@ -1660,7 +1659,7 @@ It needs to be completed when a new picture file extension is added in the docum
 			} 
 			$point1 = '<c:ptCount val="'.$i.'"/>'.$point1;
 			$point2 = '<c:ptCount val="'.$i.'"/>'.$point2;
-	
+
 			// change info in reverse order of placement in order to avoid exention problems
 			$p = $ser['p'];
 			$Txt = substr_replace($Txt, $point2, $p+$ser['point2_p'], $ser['point2_l']);
@@ -1671,7 +1670,7 @@ It needs to be completed when a new picture file extension is added in the docum
 			}
 
 		}
-		
+
 		$this->TbsStorePut($chart['idx'], $Txt, true);
 
 		return true;
@@ -1679,11 +1678,11 @@ It needs to be completed when a new picture file extension is added in the docum
 	}
 
 	function OpenXML_SharedStrings_Prepare() {
-		
+
 		$file = 'xl/sharedStrings.xml';
 		$idx = $this->FileGetIdx($file);
 		if ($idx===false) return;
-		
+
 		$Txt = $this->TbsStoreGet($idx, 'Excel SharedStrings');
 		if ($Txt===false) return false;
 		$this->TbsStorePut($idx, $Txt); // save for any further usage
@@ -1696,7 +1695,7 @@ It needs to be completed when a new picture file extension is added in the docum
 	function OpenXML_SharedStrings_GetVal($id) {
 	// this function return the XML content of the string and put previous met values in cache
 		if (!isset($this->OpenXmlSharedStr)) $this->OpenXML_SharedStrings_Prepare();
-		
+
 		$Txt =& $this->OpenXmlSharedSrc;
 
 		if (!isset($this->OpenXmlSharedStr[$id])) {
@@ -1721,9 +1720,9 @@ It needs to be completed when a new picture file extension is added in the docum
 		}
 
 		$str =& $this->OpenXmlSharedStr[$id];
-		
+
 		return substr($Txt, $str['beg'], $str['len']);
-		
+
 	}
 
 	function MsExcel_ConvertToRelative(&$Txt) {
@@ -1741,7 +1740,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		$closing = '</'.$Tag.'>';
 		$p = 0;
 		while (($p=clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true, $p, true, true))!==false) {
-			
+
 			$Loc->PrmPos = array();
 			$Loc->PrmLst = array();
 			$p2 = $p + $att_len + 2; // count the char '<' before and the char ' ' after
@@ -1782,7 +1781,7 @@ It needs to be completed when a new picture file extension is added in the docum
 				// nothing to change the item is already relative
 				$item_num++;
 			}
-			
+
 			if ($IsRow && ($Txt[$PosEnd-1]!=='/')) {
 				// It's a row item that may contain columns
 				$x_p = strpos($Txt, $closing, $PosEnd);
@@ -1796,11 +1795,11 @@ It needs to be completed when a new picture file extension is added in the docum
 			} else {
 				$p = $PosEnd;
 			}
-			
+
 		}
 
 	}
-	
+
     function MsExcel_ColNum($ColRef) {
     // return the column number from a reference like "B3"
         $num = 0;
@@ -1843,7 +1842,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		static $v2 = '</v>';
 		static $v2_len = 4;
 		static $notbs = array();
-		
+
 		// found position of the <c> element, and extract its contents
 		$p_close = strpos($Txt, $c, $PosEnd);
 		if ($p_close===false) return;
@@ -1856,7 +1855,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		$v2_p = strpos($x, $v2, $v1_p);
 		if ($v2_p==false) return false;
 		$v = substr($x, $v1_p+$v1_len, $v2_p - $v1_p - $v1_len);
-		
+
 		// extract the SharedString id, and retrieve the corresponding text
 		$v = intval($v);
 		if ($v==0) return false;
@@ -1878,12 +1877,12 @@ It needs to be completed when a new picture file extension is added in the docum
 		$Txt = substr_replace($Txt, $x, $p, $x_len);
 
 		$PosEnd = $p + strlen($x); // $PosEnd is used to search the next item, so we update it
-		
+
 	}
 
 	function MsExcel_ChangeCellType(&$Txt, &$Loc, $Ope) {
 	// change the type of a cell in an XLSX file
-		
+
 		$Loc->PrmLst['xlsxok'] = $Ope; // avoid the field to be processed twice
 
 		if ($Ope==='xlsxString') return true;
@@ -1915,40 +1914,40 @@ It needs to be completed when a new picture file extension is added in the docum
 
 		$middle_len = $p_is1 - $te - 1;
 		$middle = substr($Txt, $te + 1, $middle_len); // text bewteen <c...> and <is>
-		
+
 		// new tag to replace <is>...</is>
 		static $v = '<v>[]</v>';
 		$v_len = strlen($v);
 		$v_pos = strpos($v, '[]');
 
 		$x = $c_open.$middle.$v;
-		
+
 		$Txt = substr_replace($Txt, $x, $t0, $p_is2 - $t0);
-		
+
 		// move the TBS field
 		$p_fld = $t0 + strlen($c_open) + $middle_len + $v_pos;
 		$Loc->PosBeg = $p_fld;
 		$Loc->PosEnd = $p_fld +1;
 
 	}
-	
+
 	function MsExcel_SheetInit() {
-		
+
 		if (isset($this->MsExcel_Sheets)) return;
-		
+
 		$this->MsExcel_Sheets = array();   // sheet info sorted by location
 		$this->MsExcel_SheetsById = array(); // shorcut for ids
 		$this->MsExcel_SheetsByName = array(); // shorcut for names
-		
+
 		$name = 'xl/workbook.xml';
 		$idx = $this->FileGetIdx($name);
 		$this->MsExcel_Sheets_FileId = $idx;
 		if ($idx===false) return;
-		
+
 		$Txt = $this->TbsStoreGet($idx, 'SheetInfo'); // use the store, so the file will be available for editing if needed
 		if ($Txt===false) return false;
 		$this->TbsStorePut($idx, $Txt);
-		
+
 		// scann sheet list
 		$p = 0;
 		$idx = 0;
@@ -1968,7 +1967,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		// retrieve sheet files
 		$Txt = $this->FileRead('xl/_rels/workbook.xml.rels');
 		if ($Txt===false) return false;
-		
+
 		$p = 0;
 		while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, 'Relationship', true, $p, true, false, true, false) ) {
 			if (isset($loc->PrmLst['id']) && isset($loc->PrmLst['target']) ) {
@@ -1977,7 +1976,7 @@ It needs to be completed when a new picture file extension is added in the docum
 			}
 			$p = $loc->PosEnd;
 		}
-		
+
 	}
 
 	function MsExcel_SheetGet($IdOrName, $Caller, $CheckTarget=false) {
@@ -1987,13 +1986,13 @@ It needs to be completed when a new picture file extension is added in the docum
 		} elseif (isset($this->MsExcel_SheetsById[$IdOrName])) {
 			$loc = $this->MsExcel_SheetsById[$IdOrName];
 		} else {
-			return $this->RaiseError("($Caller) The sheet '$IdOrName' is not found inside the Workbook. Try command OPENTBS_DEBUG_INFO to check all sheets inside the current Workbook.");			
+			return $this->RaiseError("($Caller) The sheet '$IdOrName' is not found inside the Workbook. Try command OPENTBS_DEBUG_INFO to check all sheets inside the current Workbook.");
 		}
 		$loc = $this->MsExcel_SheetsById[$IdOrName];
 		if ($CheckTarget && (!isset($loc->xlsxTarget)) )  return $this->RaiseError("($Caller) Error with sheet '$IdOrName'. The corresponding XML subfile is not referenced.");
 		return $loc;
 	}
-	
+
 	function MsExcel_SheetDebug($nl, $sep, $bull) {
 
 		$this->MsExcel_SheetInit();
@@ -2007,7 +2006,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		}
 
 	}
-	
+
 	function MsExcel_SheetDeleteAndDisplay() {
 
 		if (!isset($this->OtbsSheetOk)) return;
@@ -2020,24 +2019,29 @@ It needs to be completed when a new picture file extension is added in the docum
 		$close_len = strlen($close);
 
 		$styles_to_edit = array();
+		$change = false;
+		$deleted = array();
 
-		// process sheet in rever order of their positions
+		// process sheet in reverse order of their positions
 		for ($idx = count($this->MsExcel_Sheets) - 1; $idx>=0; $idx--) {
 			$loc = $this->MsExcel_Sheets[$idx];
 			$id = 'i:'.$loc->PrmLst['sheetid'];
-			$name = 'n:'.$loc->PrmLst['name'];
+			$name = 'n:'.$loc->PrmLst['name']; // the value in the name attribute is XML protected
 			if ( isset($this->OtbsSheetDelete[$name]) || isset($this->OtbsSheetDelete[$id]) ) {
 				// Delete the sheet
 				$Txt = substr_replace($Txt, '', $loc->PosBeg, $loc->PosEnd - $loc->PosBeg +1);
 				$this->FileReplace($loc->xlsxTarget, false); // mark the target file to be deleted
+				$change = true;
+				$deleted[$loc->PrmLst['sheetid']] = $loc->PrmLst['name'];
 				unset($this->OtbsSheetDelete[$name]);
 				unset($this->OtbsSheetDelete[$id]);
 				unset($this->OtbsSheetVisible[$name]);
 				unset($this->OtbsSheetVisible[$id]);
 			} elseif ( isset($this->OtbsSheetVisible[$name]) || isset($this->OtbsSheetVisible[$id]) ) {
-				// Hide or dispay the sheet
+				// Hide or display the sheet
 				$visible = (isset($this->OtbsSheetVisible[$name])) ? $this->OtbsSheetVisible[$name] : $this->OtbsSheetVisible[$id];
 				$state = ($visible) ? 'visible' : 'hidden';
+				if (!$visible) $change = true;
 				if (isset($loc->PrmLst['state'])) {
 					$pi = $loc->PrmPos['state'];
 					$Txt = substr_replace($Txt, $pi[4].$state.$pi[4], $pi[2], $pi[3]-$pi[2]);
@@ -2049,14 +2053,53 @@ It needs to be completed when a new picture file extension is added in the docum
 				unset($this->OtbsSheetVisible[$id]);
 			}
 		}
+
+		// if they are deleted or hidden sheet, then it could be the active sheet, so we delete the active tab information
+		// note: activeTab attribute seems to not be a sheet id
+		if ($change){
+			$x = ' activeTab="';
+			$p1 = strpos($Txt, $x);
+			if ($p1!==false) {
+				$p2 = strpos($Txt, '"', $p1 + strlen($x));
+				if ($p2!==false) {
+					$Txt = substr_replace($Txt, '', $p1, $p2 - $p1 +1);
+				}
+			}
+		}
+
+		// delete <definedName> elements that refer to a deleted sheet
+		foreach ($deleted as $name) {
+			$name2 = str_replace(array('&quot;','\''), array('"','\'\''), $name);
+			do {
+				$p = strpos($Txt, "'".$name2."'");
+				if ($p!==false) {
+					$p2 = strpos($Txt, '>', $p);
+					$p1 = strrpos(substr($Txt, 0, $p), '<');
+					if ( ($p1!==false) && ($p2!==false) ) {
+						$Txt = substr_replace($Txt, '', $p1, $p2 - $p1 +1);
+					} else {
+						$p = false;
+					}
+				}
+			} while ($p!==false);
+			//<pivotCaches><pivotCache cacheId="1" r:id="rId5"/></pivotCaches>
+		}
+		$Txt = str_replace('<pivotCaches></pivotCaches>', '', $Txt); // can make Excel error, no problem with <definedNames>
 		
 		// store the result
 		$this->TbsStorePut($this->MsExcel_Sheets_FileId, $Txt);
 
-		$this->TbsSheetCheck();	
-	
+		$this->TbsSheetCheck();
+
+		// see http://ankushbhatia.wordpress.com/2010/02/11/how-to-delete-a-worksheet-from-excel-using-open-xml-sdk-2-0/
+		if (count($deleted)>0) {
+			// Delete the CalcChain file if any. Ms Excel display an error if this file contains bad referenced cells. But since the cells in this file may not all contain sheet id, it is better to delete the whole file (it is optional).
+			$idx = $this->FileGetIdx('xl/calcChain.xml');
+			if ($idx!==false) $this->FileReplace($idx, false);
+		}
+
 	}
-	
+
 	// Cleaning tags in MsWord
 
 	function MsWord_Clean(&$Txt) {
@@ -2066,18 +2109,18 @@ It needs to be completed when a new picture file extension is added in the docum
 		$this->MsWord_CleanRsID($Txt);
 		$this->MsWord_CleanDuplicatedLayout($Txt);
 	}
-	
+
 	function MsWord_CleanSystemBookmarks(&$Txt) {
 	// Delete GoBack hidden bookmarks that appear since Office 2010. Example: <w:bookmarkStart w:id="0" w:name="_GoBack"/><w:bookmarkEnd w:id="0"/>
 
 		$x = ' w:name="_GoBack"/><w:bookmarkEnd ';
 		$x_len = strlen($x);
-		
+
 		$b = '<w:bookmarkStart ';
 		$b_len = strlen($b);
-		
+
 		$nbr_del = 0;
-		
+
 		$p = 0;
 		while ( ($p=strpos($Txt, $x, $p))!==false ) {
 			$pe = strpos($Txt, '>', $p + $x_len);
@@ -2094,9 +2137,9 @@ It needs to be completed when a new picture file extension is added in the docum
 		}
 
 		return $nbr_del;
-		
+
 	}
-	
+
 	function MsWord_CleanRsID(&$Txt) {
 	/* Delete XML attributes relative to log of user modifications. Returns the number of deleted attributes.
 	In order to insert such information, MsWord do split TBS tags with XML elements.
@@ -2144,7 +2187,7 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	function MsWord_CleanDuplicatedLayout(&$Txt) {
 	// Return the number of deleted dublicates
-	
+
 		$wro = '<w:r';
 		$wro_len = strlen($wro);
 
@@ -2257,7 +2300,7 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	function OpenDoc_ChangeCellType(&$Txt, &$Loc, $Ope, $IsMerging, &$Value) {
 	// change the type of a cell in an ODS file
-	
+
 		$Loc->PrmLst['odsok'] = true; // avoid the field to be processed twice
 
 		if ($Ope==='odsStr') return true;
@@ -2267,7 +2310,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		$AttStr_len = strlen($AttStr);
 
 		if (!isset($OpeLst[$Ope])) return false;
-		
+
 		$t0 = clsTinyButStrong::f_Xml_FindTagStart($Txt, 'table:table-cell', true, $Loc->PosBeg, false, true);
 		if ($t0===false) return false; // error in the XML structure
 
@@ -2302,7 +2345,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		$p_att = $t0 + $p;
 		$p_fld = $p_att + strpos($att_new, '['); // new position of the fields in $Txt
 		$Txt = substr_replace($Txt, $att_new, $p_att, $AttStr_len);
-		
+
 		// move the TBS field
 		$Loc->PosBeg = $p_fld;
 		$Loc->PosEnd = $p_fld +1;
@@ -2326,11 +2369,11 @@ It needs to be completed when a new picture file extension is added in the docum
 		}
 
 	}
-	
+
 	function OpenDoc_SheetInit($force = false) {
-	
+
 		if (isset($this->OpenDoc_Sheets) && (!$force) ) return;
-	
+
 		$this->OpenDoc_Sheets = array();     // sheet info sorted by location
 
 		$idx = $this->FileGetIdx($this->ExtInfo['main']);
@@ -2339,7 +2382,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		if ($Txt===false) return false;
 		if ($this->LastReadNotStored) $this->TbsStorePut($idx, $Txt);
 		$this->OpenDoc_Sheets_FileId = $idx;
-		
+
 		// scann sheet list
 		$p = 0;
 		$idx = 0;
@@ -2348,7 +2391,7 @@ It needs to be completed when a new picture file extension is added in the docum
 			$idx++;
 			$p = $loc->PosEnd;
 		}
-	
+
 	}
 
 	function OpenDoc_SheetDeleteAndDisplay() {
@@ -2363,7 +2406,6 @@ It needs to be completed when a new picture file extension is added in the docum
 		$close_len = strlen($close);
 
 		$styles_to_edit = array();
-
 		// process sheet in rever order of their positions
 		for ($idx = count($this->OpenDoc_Sheets) - 1; $idx>=0; $idx--) {
 			$loc = $this->OpenDoc_Sheets[$idx];
@@ -2394,7 +2436,7 @@ It needs to be completed when a new picture file extension is added in the docum
 				unset($this->OtbsSheetVisible[$id]);
 			}
 		}
-		
+
 		// process styles to edit
 		if (count($styles_to_edit)>0) {
 			$close = '</style:style>';
@@ -2423,20 +2465,20 @@ It needs to be completed when a new picture file extension is added in the docum
 					}
 				}
 			}
-			
+
 		}
-		
+
 		// store the result
 		$this->TbsStorePut($this->OpenDoc_Sheets_FileId, $Txt);
 
 		$this->TbsSheetCheck();
-		
+
 	}
 
 	function OpenDoc_SheetDebug($nl, $sep, $bull) {
-		
+
 		$this->OpenDoc_SheetInit();
-		
+
 		echo $nl;
 		echo $nl."Sheets in the Workbook:";
 		echo $nl."-----------------------";
@@ -2445,11 +2487,11 @@ It needs to be completed when a new picture file extension is added in the docum
 		}
 
 	}
-	
+
 }
 
 /*
-TbsZip version 2.9 (2011-07-27)
+TbsZip version 2.10 (2011-08-13)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class is independent from any other classes and has been originally created for the OpenTbs plug-in
@@ -2508,7 +2550,7 @@ class clsTbsZip {
 		$this->CdFileByName = array();
 		$this->VisFileLst = array();
 		$this->ArchCancelModif();
-	}	
+	}
 
 	function ArchCancelModif() {
 		$this->LastReadComp = false; // compression of the last read file (1=compressed, 0=stored not compressed, -1= stored compressed but read uncompressed)
@@ -2616,7 +2658,7 @@ class clsTbsZip {
 	function Debug($FileHeaders=false) {
 
 		$this->DisplayError = true;
-		
+
 		echo "<br />\r\n";
 		echo "------------------<br/>\r\n";
 		echo "Central Directory:<br/>\r\n";
@@ -2627,8 +2669,8 @@ class clsTbsZip {
 		echo "-----------------------------------<br/>\r\n";
 		echo "File List in the Central Directory:<br/>\r\n";
 		echo "-----------------------------------<br/>\r\n";
-		print_r($this->CdFileLst);			
-		
+		print_r($this->CdFileLst);
+
 		if ($FileHeaders) {
 			echo "<br/>\r\n";
 			echo "------------------------------<br/>\r\n";
@@ -2644,13 +2686,13 @@ class clsTbsZip {
 			}
 			print_r($this->VisFileLst);
 		}
-		
+
 	}
 
 	function FileExists($NameOrIdx) {
 		return ($this->FileGetIdx($NameOrIdx)!==false);
 	}
-	
+
 	function FileGetIdx($NameOrIdx) {
 	// Check if a file name, or a file index exists in the Central Directory, and return its index
 		if (is_string($NameOrIdx)) {
@@ -2677,9 +2719,9 @@ class clsTbsZip {
 		}
 		return false;
 	}
-	
+
 	function FileRead($NameOrIdx, $Uncompress=true) {
-		
+
 		$this->LastReadComp = false; // means the file is not found
 		$this->LastReadIdx = false;
 
@@ -2718,9 +2760,9 @@ class clsTbsZip {
 
 	function _ReadFile($idx, $ReadData) {
 	// read the file header (and maybe the data ) in the archive, assuming the cursor in at a new file position
-	
+
 		$b = $this->_ReadData(30);
-		
+
 		$x = $this->_GetHex($b,0,4);
 		if ($x!=='h:04034b50') return $this->RaiseError('Signature of file information not found in the Data Section in position '.(ftell($this->ArchHnd)-30).' for file #'.$idx.'.');
 
@@ -2757,7 +2799,7 @@ class clsTbsZip {
 		} else {
 			$this->_MoveTo($len, SEEK_CUR);
 		}
-		
+
 		// Description information
 		$desc_ok = ($x['purp'][2+3]=='1');
 		if ($desc_ok) {
@@ -2778,7 +2820,7 @@ class clsTbsZip {
 		} else {
 			return true;
 		}
-		
+
 	}
 
 	function FileReplace($NameOrIdx, $Data, $DataType=TBSZIP_STRING, $Compress=true) {
@@ -2811,7 +2853,7 @@ class clsTbsZip {
 	function FileCancelModif($NameOrIdx, $ReplacedAndDeleted=true) {
 	// cancel added, modified or deleted modifications on a file in the archive
 	// return the number of cancels
-	
+
 		$nbr = 0;
 
 		if ($ReplacedAndDeleted) {
@@ -2826,16 +2868,16 @@ class clsTbsZip {
 				}
 			}
 		}
-		
-		// added files		
+
+		// added files
 		$idx = $this->FileGetIdxAdd($NameOrIdx);
 		if ($idx!==false) {
 			unset($this->InfoAdd[$idx]);
 			$nbr++;
 		}
-		
+
 		return $nbr;
-		
+
 	}
 
 	function Flush($Render=TBSZIP_DOWNLOAD, $File='', $ContentType='') {
@@ -2844,7 +2886,7 @@ class clsTbsZip {
 			$this->RaiseError('Method Flush() cannot overwrite the current opened archive: \''.$File.'\''); // this makes corrupted zip archives without PHP error.
 			return false;
 		}
-	
+
 		$ArchPos = 0;
 		$Delta = 0;
 		$FicNewPos = array();
@@ -2856,7 +2898,7 @@ class clsTbsZip {
 		$time  = $this->_MsDos_Time($now);
 
 		if (!$this->OutputOpen($Render, $File, $ContentType)) return false;
-		
+
 		// output modified zipped files and unmodified zipped files that are beetween them
 		ksort($this->ReplByPos);
 		foreach ($this->ReplByPos as $ReplPos => $ReplIdx) {
@@ -2907,15 +2949,15 @@ class clsTbsZip {
 			// Update the current pos in the archive
 			$ArchPos = $ReplPos + $info_old_len;
 		}
-		
+
 		// Ouput all the zipped files that remain before the Central Directory listing
 		if ($this->ArchHnd!==false) $this->OutputFromArch($ArchPos, $this->CdPos); // ArchHnd is false if CreateNew() has been called
 		$ArchPos = $this->CdPos;
 
 		// Output file to add
 		$AddNbr = count($this->AddInfo);
+		$AddDataLen = 0; // total len of added data (inlcuding file headers)
 		if ($AddNbr>0) {
-			$AddDataLen = 0; // total len of added data (inlcuding file headers)
 			$AddPos = $ArchPos + $Delta; // position of the start
 			$AddLst = array_keys($this->AddInfo);
 			foreach ($AddLst as $idx) {
@@ -2924,7 +2966,7 @@ class clsTbsZip {
 				$AddDataLen += $n;
 			}
 		}
-				
+
 		// Modifiy file information in the Central Directory for replaced files
 		$b2 = '';
 		$old_cd_len = 0;
@@ -2948,7 +2990,7 @@ class clsTbsZip {
 		$this->OutputFromString($b2);
 		$ArchPos += $old_cd_len;
  		$DeltaCdLen =  $DeltaCdLen + strlen($b2) - $old_cd_len;
- 		
+ 
 		// Output until Central Directory footer
 		if ($this->ArchHnd!==false) $this->OutputFromArch($ArchPos, $this->CdEndPos); // ArchHnd is false if CreateNew() has been called
 
@@ -2961,7 +3003,7 @@ class clsTbsZip {
 			$this->OutputFromString($b2);
 			$DeltaCdLen += strlen($b2);
 		}
-		
+
 		// Output Central Directory footer
 		$b2 = $this->CdInfo['bin'];
 		$DelNbr = count($DelLst);
@@ -2979,11 +3021,11 @@ class clsTbsZip {
 		}
 		$this->_PutDec($b2, $this->CdPos+$Delta , 16, 4); // p_cd  (offset of start of central directory with respect to the starting disk number)
 		$this->OutputFromString($b2);
-		
+
 		$this->OutputClose();
-		
+
 		return true;
-		
+
 	}
 
 	// ----------------
@@ -3021,9 +3063,9 @@ class clsTbsZip {
 				if ($Len!==false) header('Content-Length: '.$Len); 
 			}
 		}
-		
+
 		return true;
-		
+
 	}
 
 	function OutputFromArch($pos, $pos_stop) {
@@ -3132,7 +3174,7 @@ class clsTbsZip {
 		}
 		$txt = substr_replace($txt, $x, $pos, $len);
 	}
-	
+
 	function _MsDos_Date($Timestamp = false) {
 		// convert a date-time timstamp into the MS-Dos format
 		$d = ($Timestamp===false) ? getdate() : getdate($Timestamp);
@@ -3155,7 +3197,7 @@ class clsTbsZip {
 		$s = ($time & 31) * 2; // seconds have been rounded to an even number in order to save 1 bit
 		return $y.'-'.str_pad($m,2,'0',STR_PAD_LEFT).'-'.str_pad($d,2,'0',STR_PAD_LEFT).' '.str_pad($h,2,'0',STR_PAD_LEFT).':'.str_pad($i,2,'0',STR_PAD_LEFT).':'.str_pad($s,2,'0',STR_PAD_LEFT);
 	}
-	
+
 	function _DataOuputAddedFile($Idx, $PosLoc) {
 
 		$Ref =& $this->AddInfo[$Idx];
@@ -3187,7 +3229,7 @@ class clsTbsZip {
 		$this->OutputFromString($b.$Ref['data']);
 		$OutputLen = strlen($b) + $Ref['len_c']; // new position of the cursor
 		unset($Ref['data']); // save PHP memory
-		
+
 		// Information for file in the Central Directory
 		$b = 'PK'.chr(01).chr(02).str_repeat(' ',42); // signature
 		$this->_PutDec($b,20,4,2);  // vers_used = 20
@@ -3312,7 +3354,7 @@ class clsTbsZip {
 				$Len += $Ref['len_c'] + $Ref['diff'];
 			}
 		}
-		
+
 		// files to add
 		$i_lst = array_keys($this->AddInfo);
 		foreach ($i_lst as $i) {
@@ -3323,9 +3365,9 @@ class clsTbsZip {
 				$Len += $Ref['len_c'] + $Ref['diff'];
 			}
 		}
-		
+
 		return $Len;
-		
+
 	}
-	
+
 }
