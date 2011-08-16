@@ -14,8 +14,8 @@ Site: http://www.tinybutstrong.com/plugins.php
 [tt] command OPENTBS_SELECT_MAIN
 [ok] command OPENTBS_DELETE_ELEMENTS
 [ok] command OPENTBS_DELETE_COMMENTS
-[~~] command OPENTBS_DELETE_SHEETS
-[~~] command OPENTBS_DISPLAY_SHEETS
+[ok] command OPENTBS_DELETE_SHEETS
+[ok] command OPENTBS_DISPLAY_SHEETS
 [  ] command OPENTBS_SELECT_HEADER, OPENTBS_SELECT_FOOTER, OPENTBS_SELECT_COMMENTS
 */
 
