@@ -1,22 +1,13 @@
 <?php
 
-/* OpenTBS version 1.7.0b (2011-07-22)
+/* OpenTBS version 1.7.0 (2011-08-21)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
 Site: http://www.tinybutstrong.com/plugins.php
 */
 /*
-[ok] parameter 'changepic' optimized
-[ok] paramter 'adjust'
-[ok] command OPENTBS_DEBUG_INFO
-[ok] command OPENTBS_SELECT_SHEET
-[tt] command OPENTBS_SELECT_MAIN
-[ok] command OPENTBS_DELETE_ELEMENTS
-[ok] command OPENTBS_DELETE_COMMENTS
-[ok] command OPENTBS_DELETE_SHEETS
-[ok] command OPENTBS_DISPLAY_SHEETS
-[  ] command OPENTBS_SELECT_HEADER, OPENTBS_SELECT_FOOTER, OPENTBS_SELECT_COMMENTS
+[  ] command OPENTBS_SELECT_HEADER, OPENTBS_SELECT_FOOTER
 */
 
 // Constants to drive the plugin.
@@ -57,7 +48,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
 		if (!isset($TBS->OtbsConvertApostrophes)) $TBS->OtbsConvertApostrophes = true;
-		$this->Version = '1.7.0-beta-2011-07-22'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
+		$this->Version = '1.7.0'; // Version can be displayed using [onshow..tbs_info] since TBS 3.2.0
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
@@ -371,9 +362,10 @@ class clsOpenTBS extends clsTbsZip {
 			$CopyFromSeries = (is_null($x5)) ? false : $x5;
 			return $this->OpenXML_ChartChangeSeries($ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewLegend, $CopyFromSeries);
 
-		} elseif ($Cmd==OPENTBS_DEBUG_INFO) {
+		} elseif ( ($Cmd==OPENTBS_DEBUG_INFO) || ($Cmd==OPENTBS_DEBUG_CHART_LIST) ) {
 
-			$this->TbsDebug_Info();
+			if (is_null($x1)) $x1 = true;
+			$this->TbsDebug_Info($x1);
 
 		} elseif ($Cmd==OPENTBS_DEBUG_XML_SHOW) {
 
@@ -571,7 +563,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	function TbsDebug_Info() {
+	function TbsDebug_Info($Exit) {
 
 		$this->TbsDebug_Init($nl, $sep, $bull);
 
@@ -583,6 +575,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$this->OpenXML_ChartDebug($nl, $sep, $bull);
 		}
 
+		if ($Exit) exit;
+		
 	}
 
 	function TbsDebug_Merge($XmlFormat = true) {
@@ -2001,7 +1995,8 @@ It needs to be completed when a new picture file extension is added in the docum
 		echo $nl."Sheets in the Workbook:";
 		echo $nl."-----------------------";
 		foreach ($this->MsExcel_Sheets as $loc) {
-			echo $bull."id: ".$loc->PrmLst['sheetid'].", name: [".$loc->PrmLst['name']."]";
+			$name = str_replace(array('&amp;','&quot;','&lt;','&gt;'), array('&','"','<','>'), $loc->PrmLst['name']);
+			echo $bull."id: ".$loc->PrmLst['sheetid'].", name: [".$name."]";
 			if (isset($loc->PrmLst['state'])) echo ", state: ".$loc->PrmLst['state'];
 		}
 
@@ -2483,7 +2478,8 @@ It needs to be completed when a new picture file extension is added in the docum
 		echo $nl."Sheets in the Workbook:";
 		echo $nl."-----------------------";
 		foreach ($this->OpenDoc_Sheets as $idx => $loc) {
-			echo $bull."id: ".($idx+1).", name: [".$loc->PrmLst['table:name']."]";
+			$name = str_replace(array('&amp;','&quot;','&lt;','&gt;'), array('&','"','<','>'), $loc->PrmLst['table:name']);
+			echo $bull."id: ".($idx+1).", name: [".$name."]";
 		}
 
 	}

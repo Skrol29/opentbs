@@ -64,8 +64,8 @@ ul {
 
 <body>
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.7.0-beta, 2011-07-22, by Skrol29<br />
-  help file modified on 2011-07-22</div>
+<div>version 1.7.0, 2011-08-21, by Skrol29<br />
+  help file modified on 2011-08-21</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -274,41 +274,54 @@ ul {
   </table>
 </div>
 <h3><a name="modify_contents" id="modify2"></a>4.6. Manual modification in the contents</h3>
-<h4>&bull; Change the current Sheet of the Workbook:</h4>
-<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.7.0)</span>
-  <div class="code"> $TBS-&gt;PlugIn(OPENTBS_SELECT_SHEET, $SheetId); // $SheetId is typically 1, 2, 3...<br />
-  </div>
-  <p>In Ms Excel Workbooks   (xlsx), sheets are saved in different sub-file. This command is a short way for changing the current sub-file for another sheet.</p>
-  <p>If the current template is not a XLSX workbook, then this command has no effect. If it is an XLSX workbook but the asked sheet does not exist, then an error occurs.</p>
-  <p>Please note that on OpenOffice Workbooks (ODS), all sheets are saved in the same sub-file, so this command is useless. But it won't produce any error.</p>
-</div>
-<h4>&bull; Delete one or several XML Elements:</h4>
-<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.7.0)</span>
-  <div class="code"> $TBS-&gt;PlugIn(OPENTBS_DELETE_ELEMENTS, array('w:commentRangeStart', 'w:commentRangeEnd', 'w:commentReference') );<br />
-  </div>
-  <p>(currently writted)</p>
-</div>
-<h4>&bull; Delete one or several Sheets:</h4>
-<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.7.0)</span>
-  <div class="code"> // In this example, DOCX Comment Marks are deleted, so that comments becomes hidden.<br />
-$TBS-&gt;PlugIn(OPENTBS_DELETE_ELEMENTS, array('w:commentRangeStart', 'w:commentRangeEnd', 'w:commentReference') );<br />
-  </div>
-  <p>(currently writted)</p>
-</div>
-<h4>&bull; Delete one or several XML Elements:</h4>
-<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.7.0)</span>
-  <div class="code"> // In this example, DOCX Comment Marks are deleted, so that comments becomes hidden.<br />
-$TBS-&gt;PlugIn(OPENTBS_DELETE_ELEMENTS, array('w:commentRangeStart', 'w:commentRangeEnd', 'w:commentReference') );<br />
-  </div>
-  <p>(currently writted)</p>
-</div>
-<h4>&bull; Delete one or several XML Elements:</h4>
-<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.7.0)</span>
-  <div class="code"> // In this example, DOCX Comment Marks are deleted, so that comments becomes hidden.<br />
-$TBS-&gt;PlugIn(OPENTBS_DELETE_ELEMENTS, array('w:commentRangeStart', 'w:commentRangeEnd', 'w:commentReference') );<br />
-  </div>
-  <p>(currently writted)</p>
-</div>
+<p><span class="versioning">The following commands are supported since OpenTBS version 1.7.0</span>:</p>
+<table border="0" cellspacing="1" cellpadding="0">
+  <tr>
+    <th align="left">Command</th>
+    <th align="left">Desciption</th>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap"><span class="smallcode">$TBS-&gt;PlugIn(OPENTBS_SELECT_MAIN)</span></td>
+    <td>Select and load the main sub-file in the opened template. For example in a Writer document, or an Ms Word document, this command can bring you back from the merging of a header to the main body.</td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_SELECT_SHEET, $Sheet)</td>
+    <td><p>Select and load the sub-file corresponding to $Sheet.<br />
+      This command will raise an error if the opened template is not a Workbook (Ms Word or OpenOffice Calc).      This command is useless for an 
+    OpenOffice Calc workbook because all sheets are saved in single sub-file. Nevertheless using it  won't raise an error.<br />
+     <span class="smallcode">$Sheet</span> must be a sheet identifier.<br />
+     A sheet identifier can be 
+     either an integer corresponding to the index of the sheet, or a string corresponding to the name of the sheet.<br />
+    Use command <span class="smallcode">$TBS-&gt;PlugIn(<a href="#debugmode">OPENTBS_DEBUG_INFO</a>)</span> to list all id and name of sheets in current Workbook.</p></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DISPLAY_SHEETS, $Sheets[, $Visible])</td>
+    <td>Make one or several sheets visible or hidden.<br />
+      This command will raise an error if the opened template is not a Workbook.<br />
+      <span class="smallcode">$Sheets</span> must be an array of sheet identifier, or even a single sheet identifier. See command <span class="smallcode">OPENTBS_SELECT_SHEET</span> for more details about sheet identifiers.<br />
+      <span class="smallcode">$Visible</span> must be a boolean, default value is <span class="smallcode">true</span>.</td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DELETE_SHEETS, $Sheets[, $Delete])</td>
+    <td>Make on or several sheets deleted or not.<br />
+This command will raise an error if the opened template is not a Workbook.<br />
+<span class="smallcode">$Sheets</span> must be an array of sheet identifier, or even a single sheet identifier. See command <span class="smallcode">OPENTBS_SELECT_SHEET</span> for more details about sheet identifiers.<br />
+<span class="smallcode">$Delete</span> must be a boolean, default value is <span class="smallcode">true</span>.<br />
+<em>Please note that for now, you must not delete a sheet that contains a Pivot Table because  this will produce an error when the workbook is opened.</em></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DELETE_COMMENTS)</td>
+    <td>Delete all usual user comments in the opened template. </td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap"><span class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DELETE_ELEMENTS, $Elements)</span></td>
+    <td>Delete XML elements in the current sub-file.<br />
+      <span class="smallcode">$Elements</span> must be an array of strings. For example:<br />
+      <span class="smallcode">$Elements = array('w:bookmarkStart', 'w:bookmarkEnd')</span><br /> 
+      This will delete all bookmarks in an Ms Word document.
+</td>
+  </tr>
+</table>
 <h3><a name="modify_files" id="modify_files"></a>4.7. Manual modification of files in the archive</h3>
 <h4>&bull; Add any new file in the archive:</h4>
 <div class="shift"> <span class="versioning">(supported since OpenTBS version 1.3)</span>
@@ -350,20 +363,50 @@ $TBS-&gt;PlugIn(OPENTBS_DELETE_ELEMENTS, array('w:commentRangeStart', 'w:comment
   Run the following demo under PHP: <a href="http://www.tinybutstrong.com/plugins/opentbs/demo">OpenTBS demo</a></p>
 <h2><a name="debug" id="debug"></a>6. Debugging your template</h2>
 <p><a name="debugmode" id="debugmode2"></a>Since OpenTBS version 1.6.0, there are several commands for debugging. Please note that those commands do not exit the process.</p>
-<div class="shift code"> // Display XML contents of sub-files already opened and modified for merging. XML is indented to improve reading.<br />
-  $TBS-&gt;PlugIn(OPENTBS_DEBUG_XML_CURRENT);<br />
-  <br />
-  // Ends the merge process as if the final document was created. But instead of creating the document, displays<br />
-  // 
-  the XML contents of sub-files  modified for merging. XML is indented to improve reading.<br />
-  $TBS-&gt;PlugIn(OPENTBS_DEBUG_XML_SHOW);<br />
-  <br />
-  // Display information about existing charts in the opened document. (supported only with Ms Word for now)<br />
-  $TBS-&gt;PlugIn(OPENTBS_DEBUG_CHART_LIST);</div>
-<p>There is  also deprecated debug options available since  OpenTBS version 1.3.2:</p>
-<div class="shift code">$TBS-&gt;Show(OPENTBS_DEBUG_XML); // does the same as $TBS-&gt;PlugIn(OPENTBS_DEBUG_XML_SHOW);<br />
-  $TBS-&gt;Show(OPENTBS_DEBUG_XML+<span class="smallcode">OPENTBS_DEBUG_AVOIDAUTOFIELDS</span>); // avoid merging of [onload], [onshow] and [var]<br />
-  <span class="smallcode">$TBS-&gt;Render = OPENTBS_DEBUG_AVOIDAUTOFIELDS;</span> // work also in property Render</div>
+<table border="0" cellspacing="1" cellpadding="0">
+  <tr>
+    <th align="left">Command</th>
+    <th align="left">Desciption</th>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DEBUG_INFO [, $Exit])</td>
+    <td>Display technical information about the current loaded template, including sheet information if the template is a workbook, and chart information if the template have some.<br />
+      <span class="smallcode">$Exit</span> must be a boolean, default value is <span class="smallcode">true</span>.</td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DEBUG_XML_CURRENT)</td>
+    <td>Display XML contents of sub-files already opened and modified for merging. XML is indented in order to improve reading.</td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DEBUG_XML_SHOW)</td>
+    <td>Ends the merge process as if the final document was created. But instead of creating the document, displays  
+  the XML contents of sub-files  modified for merging. XML is indented in order to improve reading.</td>
+  </tr>
+</table>
+<p>There is  also deprecated debug options:</p>
+<table border="0" cellspacing="1" cellpadding="0">
+  <tr>
+    <th align="left">Command</th>
+    <th align="left">Desciption</th>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DEBUG_XML)</td>
+    <td>Does the same as <span class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DEBUG_XML_SHOW);</span><br />
+    <span class="versioning">Supported since OpenTBS version 1.3.2.</span></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DEBUG_XML+OPENTBS_DEBUG_AVOIDAUTOFIELDS)</td>
+    <td>Avoid merging of [onload], [onshow] and [var].<span class="versioning">Supported since OpenTBS version 1.3.2.</span></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;Render = OPENTBS_DEBUG_AVOIDAUTOFIELDS;</td>
+    <td> Work also in property Render.<span class="versioning">Supported since OpenTBS version 1.3.2.</span><br /></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DEBUG_CHART_LIST)</td>
+    <td>Does the same as <span class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DEBUG_INFO);</span><span class="versioning">Supported since OpenTBS version 1.6.0.</span></td>
+  </tr>
+</table>
 <p>Otherwise, here are some indications that may help for the issues you can met with merging:</p>
 <h3>a) The merged document is producing error messages when opened with its application (OpenOffice or Ms Office)</h3>
 <p>The most likely causes are:</p>
@@ -404,14 +447,18 @@ $TBS-&gt;PlugIn(OPENTBS_DELETE_ELEMENTS, array('w:commentRangeStart', 'w:comment
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
-<p>version 1.7.0-beta, on 2011-07-22<br />
-  - new parameter 'adjust'for changing picture size<br />
-  - new command OPENTBS_SELECT_SHEET <br />
-  - new command OPENTBS_DELETE_ELEMENTS <br />
-  - parameter 'changepic' is optimized<br />
-</p>
+<p>version 1.7.0, on 2011-08-21<br />
+  - new parameter 'adjust' for changing picture size<br />
+  - new command OPENTBS_DEBUG_INFO <br />
+  - new command OPENTBS_SELECT_MAIN <br />
+  - new command OPENTBS_SELECT_SHEET<br />
+  - new command OPENTBS_DISPLAY_SHEETS<br />
+  - new command OPENTBS_DELETE_SHEETS<br />
+  - new command OPENTBS_DELETE_COMMENTS  <br />
+  - new command OPENTBS_DELETE_ELEMENTS<br />
+  - parameter 'changepic' is optimized</p>
 <p>version 1.6.2, on 2011-07-12<br />
-  - fixed bug: Ms Excel cells could consider as error some formatted values such as  '0.00000000000000'.</p>
+- fixed bug: Ms Excel cells could consider as error some formatted values such as  '0.00000000000000'.</p>
 <p>version 1.6.1, on 2011-06-08<br />
   - fixed bug: some documents may be corrupted when created using OPENTBS_DOWNLOAD because of a PHP error <span class="warning">&quot;supplied argument is not a valid stream resource&quot;</span> or <span class="warning">&quot;Undefined property: clsOpenTBS::$OutputHandle&quot;</span>.<br />
   - fixed bug: using keyword &quot;xlsxNum&quot;, &quot;xlsxDate&quot; or &quot;xlsxBool&quot; inside a cell that is not merged can make a corrupted XLSX spreadsheet.<br />
