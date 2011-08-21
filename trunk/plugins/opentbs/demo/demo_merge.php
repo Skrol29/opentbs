@@ -20,12 +20,12 @@ if (file_exists('tbs_plugin_opentbs.php')) {
 $TBS = new clsTinyButStrong; // new instance of TBS
 $TBS->Plugin(TBS_INSTALL, OPENTBS_PLUGIN); // load OpenTBS plugin
 
-// Read parameters
+// Read user choices
 if (!isset($_POST['btn_go'])) exit("You must use demo.html");
 $suffix = (isset($_POST['suffix']) && (trim($_POST['suffix'])!=='') && ($_SERVER['SERVER_NAME']=='localhost')) ? trim($_POST['suffix']) : '';
 $debug = (isset($_POST['debug'])) ? intval($_POST['debug']) : 0;
 
-// Retrieve the template to use
+// Retrieve the template to open
 $template = (isset($_POST['tpl'])) ? $_POST['tpl'] : '';
 $template = basename($template);
 $x = pathinfo($template);
@@ -33,7 +33,7 @@ $template_ext = $x['extension'];
 if (substr($template,0,5)!=='demo_') exit("Wrong file.");
 if (!file_exists($template)) exit("File does not exist.");
 
-// Retrieve the name to display
+// Retrieve the user name to display
 $yourname = (isset($_POST['yourname'])) ? $_POST['yourname'] : '';
 $yourname = trim(''.$yourname);
 if ($yourname=='') $yourname = "(no name)";
@@ -64,27 +64,47 @@ if ($debug==2) { // debug mode 2
 // Merge data
 $TBS->MergeBlock('a,b', $data);
 
-// specific merges depending to the docuement
+// specific merges depending to the document
 if ($template_ext=='xlsx') {
+
 	// merge cells (exending columns)
 	$TBS->MergeBlock('cell1,cell2', $data);
+	
 	// change the current sheet
 	$TBS->PlugIn(OPENTBS_SELECT_SHEET, 2);
+	
 	// merge data in Sheet 2
 	$TBS->MergeBlock('cell1,cell2', 'num', 3);
 	$TBS->MergeBlock('b2', $data);
+	
+	// Delete a sheet
+	$TBS->PlugIn(OPENTBS_DELETE_SHEETS, 'Delete me');
+	
+	// Display a sheet
+	$TBS->PlugIn(OPENTBS_DISPLAY_SHEETS, 'Display me');
+	
 } elseif ($template_ext=='ods') {
-	// no need to change the current sheet, they are all stored in the same XLS subfile.
+
+	// no need to change the current sheet, they are all stored in the same XML subfile.
 	// merge data in Sheet 2
 	$TBS->MergeBlock('cell1,cell2', 'num', 3);
 	$TBS->MergeBlock('b2', $data);
+
+	// Delete a sheet
+	$TBS->PlugIn(OPENTBS_DELETE_SHEETS, 'Delete me');
+	
+	// Display a sheet
+	$TBS->PlugIn(OPENTBS_DISPLAY_SHEETS, 'Display me');
+	
 } elseif ($template_ext=='docx') {
+
 	// change chart series
 	$ChartNameOrNum = 'chart1';
 	$SeriesNameOrNum = 2;
 	$NewValues = array( array('Category A','Category B','Category C','Category D'), array(3, 1.1, 4.0, 3.3) );
 	$NewLegend = "New series 2";
 	$TBS->PlugIn(OPENTBS_CHART, $ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewLegend);
+	
 }
 
 // Define the name of the output file
