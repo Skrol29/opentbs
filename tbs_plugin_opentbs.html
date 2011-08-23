@@ -307,7 +307,7 @@ ul {
 This command will raise an error if the opened template is not a Workbook.<br />
 <span class="smallcode">$Sheets</span> must be an array of sheet identifier, or even a single sheet identifier. See command <span class="smallcode">OPENTBS_SELECT_SHEET</span> for more details about sheet identifiers.<br />
 <span class="smallcode">$Delete</span> must be a boolean, default value is <span class="smallcode">true</span>.<br />
-<em>Please note that for now, you must not delete a sheet that contains a Pivot Table because  this will produce an error when the workbook is opened.</em></td>
+<em class="warning">Please note that for now, you must not delete a sheet that contains a Pivot Table because  this will produce an error when the workbook is opened.</em></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DELETE_COMMENTS)</td>
