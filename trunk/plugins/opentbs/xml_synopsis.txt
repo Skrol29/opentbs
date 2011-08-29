@@ -157,6 +157,18 @@ Data are saved in "Object 1/contents.xml" in a table that groups data of all ser
 
 </table:table>
 
+Textboxes
+---------
+<text:p text:style-name="Standard">
+  <draw:frame draw:style-name="fr1" draw:name="Frame1" text:anchor-type="paragraph" svg:width="4.535cm" draw:z-index="0">
+    <draw:text-box fo:min-height="2.461cm">
+      <text:p text:style-name="Frame_20_contents">Message in a textbox</text:p>
+    </draw:text-box>
+  </draw:frame>
+  Usual text
+</text:p>
+
+
 Special to .ODF (OpenOffice Math Formula):
 ------------------------------------------
 Any comment in the formula must be entered between text delimiters which are the double quotes (").
