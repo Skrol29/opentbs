@@ -1,13 +1,10 @@
 <?php
 
-/* OpenTBS version 1.7.0 (2011-08-21)
+/* OpenTBS version 1.7.0 (2011-08-30)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
 Site: http://www.tinybutstrong.com/plugins.php
-*/
-/*
-[  ] command OPENTBS_SELECT_HEADER, OPENTBS_SELECT_FOOTER
 */
 
 // Constants to drive the plugin.
