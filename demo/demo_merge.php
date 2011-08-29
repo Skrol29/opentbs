@@ -50,6 +50,8 @@ $x_dt = mktime(13,0,0,2,15,2010);
 $x_bt = true;
 $x_bf = false;
 
+$x_delete = 1;
+
 // Load the template
 $TBS->LoadTemplate($template);
 
@@ -104,6 +106,14 @@ if ($template_ext=='xlsx') {
 	$NewValues = array( array('Category A','Category B','Category C','Category D'), array(3, 1.1, 4.0, 3.3) );
 	$NewLegend = "New series 2";
 	$TBS->PlugIn(OPENTBS_CHART, $ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewLegend);
+
+	// delete comments
+	$TBS->PlugIn(OPENTBS_DELETE_COMMENTS);
+
+} elseif ($template_ext=='odt') {
+
+	// delete comments
+	$TBS->PlugIn(OPENTBS_DELETE_COMMENTS);
 	
 }
 

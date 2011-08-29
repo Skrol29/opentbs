@@ -2137,7 +2137,7 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	function MsWord_CleanRsID(&$Txt) {
 	/* Delete XML attributes relative to log of user modifications. Returns the number of deleted attributes.
-	In order to insert such information, MsWord do split TBS tags with XML elements.
+	In order to insert such information, MsWord does split TBS tags with XML elements.
 	After such attributes are deleted, we can concatenate duplicated XML elements. */
 
 		$rs_lst = array('w:rsidR', 'w:rsidRPr');
