@@ -640,23 +640,26 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	function ConvXmlOnly($Txt, $ConvBr) {
 	// Used by TBS to convert special chars and new lines.
-	  $x = htmlspecialchars($Txt);
-	  if ($ConvBr) $this->ConvBr($x);
-	  return $x;
+		$x = htmlspecialchars($Txt);
+		if ($ConvBr) $this->ConvBr($x);
+		return $x;
 	}
 
 	function ConvXmlUtf8($Txt, $ConvBr) {
 	// Used by TBS to convert special chars and new lines.
-	  $x = htmlspecialchars(utf8_encode($Txt));
-	  if ($ConvBr) $this->ConvBr($x);
-	  return $x;
+		$x = htmlspecialchars(utf8_encode($Txt));
+		if ($ConvBr) $this->ConvBr($x);
+		return $x;
 	}
 
 	function ConvBr(&$x) {
-  	$z = $this->TBS->OtbsConvBr;
-  	if ($z===false) return;
-    $x = nl2br($x); // Convert any type of line break
-    $x = str_replace('<br />',$z ,$x);
+		$z = $this->TBS->OtbsConvBr;
+		if ($z===false) return;
+		$x = nl2br($x); // Convert any type of line break
+		$x = str_replace("\r", '' ,$x);
+		$x = str_replace("\n", '' ,$x);
+		$x = str_replace('<br />',$z ,$x);
+		
 	}
 
 	function XmlFormat($Txt) {
