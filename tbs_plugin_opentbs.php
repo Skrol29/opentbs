@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.7.0 (2011-08-30)
+/* OpenTBS version 1.7.1 (2011-10-07)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -193,7 +193,7 @@ class clsOpenTBS extends clsTbsZip {
 
 		if ($Debug) {
 			// Do the debug even if other options are used
-			$this->TbsDebug_Merge(true);
+			$this->TbsDebug_Merge(true, false);
 		} elseif (($Render & TBS_OUTPUT)==TBS_OUTPUT) { // notice that TBS_OUTPUT = OPENTBS_DOWNLOAD
 			// download
 			$ContentType = (isset($this->ExtInfo['ctype'])) ? $this->ExtInfo['ctype'] : '';
@@ -373,7 +373,7 @@ class clsOpenTBS extends clsTbsZip {
 			$this->TbsStorePark();
 			$this->DebugLst = array();
 			foreach ($this->TbsStoreLst as $idx=>$park) $this->DebugLst[$this->TbsGetFileName($idx)] = $park['src'];
-			$this->TbsDebug_Merge(true);
+			$this->TbsDebug_Merge(true, true);
 
 		} elseif($Cmd==OPENTBS_FORCE_DOCTYPE) {
 
@@ -535,7 +535,7 @@ class clsOpenTBS extends clsTbsZip {
 		}
 	}
 
-	function TbsDebug_Init(&$nl, &$sep, &$bull) {
+	function TbsDebug_Init(&$nl, &$sep, &$bull, $type) {
 	// display the header of debug mode
 
 		$nl = "\n";
@@ -552,6 +552,7 @@ merged Document will be corrupted when you use the OPENTBS_DOWNLOAD option. If t
 If they are blank spaces, line beaks, or other unexpected characters, then you have to check your code in order to avoid them.";
 		echo $nl;
 		echo $nl.$sep.$nl.'INFORMATION'.$nl.$sep;
+		echo $nl.'* Debug command: '.$type;
 		echo $nl.'* OpenTBS version: '.$this->Version;
 		echo $nl.'* TinyButStrong version: '.$this->TBS->Version;
 		echo $nl.'* PHP version: '.PHP_VERSION;
@@ -562,7 +563,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	function TbsDebug_Info($Exit) {
 
-		$this->TbsDebug_Init($nl, $sep, $bull);
+		$this->TbsDebug_Init($nl, $sep, $bull, 'OPENTBS_DEBUG_INFO');
 
 		if ($this->Ext_Get()==='xlsx') $this->MsExcel_SheetDebug($nl, $sep, $bull);
 		if ($this->Ext_Get()==='ods')  $this->OpenDoc_SheetDebug($nl, $sep, $bull);
@@ -576,10 +577,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		
 	}
 
-	function TbsDebug_Merge($XmlFormat = true) {
+	function TbsDebug_Merge($XmlFormat = true, $Current) {
 	// display modified and added files
 
-		$this->TbsDebug_Init($nl, $sep, $bull);
+		$this->TbsDebug_Init($nl, $sep, $bull, ($Current ? 'OPENTBS_DEBUG_XML_CURRENT' :'OPENTBS_DEBUG_XML_SHOW'));
 
 		// scann files for collecting information
 		$mod_lst = ''; // id of modified files
@@ -712,7 +713,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ($exit) {
 			if ($this->DebugLst!==false) {
 				if ($this->TbsCurrIdx!==false) $this->DebugLst[$this->TbsGetFileName($this->TbsCurrIdx)] = $this->TBS->Source;
-				$this->TbsDebug_Merge(true);
+				$this->TbsDebug_Merge(true, false);
 			}
 			exit;
 		}
@@ -1729,7 +1730,7 @@ It needs to be completed when a new picture file extension is added in the docum
 	function MsExcel_ConvertToRelative_Item(&$Txt, &$Loc, $Tag, $Att, $IsRow) {
 	// convert tags $Tag which have a position (defined with attribute $Att) into relatives tags without attribute $Att. Missing tags are added as empty tags.
 		$item_num = 0;
-		$att_len = strlen($Att);
+		$tag_len = strlen($Tag);
 		$missing = '<'.$Tag.' />';
 		$closing = '</'.$Tag.'>';
 		$p = 0;
@@ -1737,7 +1738,7 @@ It needs to be completed when a new picture file extension is added in the docum
 
 			$Loc->PrmPos = array();
 			$Loc->PrmLst = array();
-			$p2 = $p + $att_len + 2; // count the char '<' before and the char ' ' after
+			$p2 = $p + $tag_len + 2; // count the char '<' before and the char ' ' after
 			$PosEnd = strpos($Txt, '>', $p2);
 			clsTinyButStrong::f_Loc_PrmRead($Txt,$p2,true,'\'"','<','>',$Loc, $PosEnd, true); // read parameters
 			if (isset($Loc->PrmPos[$Att])) {
@@ -1848,11 +1849,11 @@ It needs to be completed when a new picture file extension is added in the docum
 		if ($v1_p==false) return false;
 		$v2_p = strpos($x, $v2, $v1_p);
 		if ($v2_p==false) return false;
-		$v = substr($x, $v1_p+$v1_len, $v2_p - $v1_p - $v1_len);
+		$vt = substr($x, $v1_p+$v1_len, $v2_p - $v1_p - $v1_len);
 
 		// extract the SharedString id, and retrieve the corresponding text
-		$v = intval($v);
-		if ($v==0) return false;
+		$v = intval($vt);
+		if (($v==0) && ($vt!='0')) return false;
 		if (isset($notbs[$v])) return true;
 		$s = $this->OpenXML_SharedStrings_GetVal($v);
 
