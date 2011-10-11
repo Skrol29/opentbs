@@ -64,8 +64,8 @@ ul {
 
 <body>
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.7.1, 2011-10-07, by Skrol29<br />
-  help file modified on 2011-10-07</div>
+<div>version 1.7.2, 2011-10-12, by Skrol29<br />
+  help file modified on 2011-10-12</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -447,8 +447,10 @@ This command will raise an error if the opened template is not a Workbook.<br />
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
+<p>version 1.7.2, on 2011-10-12<br />
+- fixed bug: error when using command OPENTBS_SELECT_SHEET with a sheet name: <span class="warning">Notice: Undefined index: xxx in xxx on line 1986</span>.</p>
 <p>version 1.7.1, on 2011-10-07<br />
-- fixed bug: first non empty cell of an Excel Spreadsheet is never merged if it contains a TBS field.<br />
+  - fixed bug: first non empty cell of an Excel Spreadsheet is never merged if it contains a TBS field.<br />
 - monir intrenal improvements.</p>
 <p>version 1.7.0, on 2011-08-21<br />
   - new parameter 'adjust' for changing picture size<br />
