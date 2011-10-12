@@ -1,5 +1,5 @@
 Synopsis of XML files stored in the archives supported by OpenTBS.
-Version 2011-02-02
+Version 2011-10-13
 
 Extensions:  odt, odg, ods, odf, odp, docx, xlsx and pptx
 
@@ -270,7 +270,24 @@ They exists only if header/footer is defined.
 There alos may have an optional couple of XML files for odd numbered pages (usually "/word/header2.xml" and "/word/footer2.xml").
 And an optional couple of files for the first page (usually "/word/header3.xml" and "/word/footer3.xml").
 
-But the actual locations are defined in the file "[Content_Types].xml", in the elements like:
+The actual type and locations of Headers and Footers are defined in the main document "/word/document.xml"
+Close to the bottom of it may have :
+<w:sectPr>
+  <w:headerReference w:type="default" r:id="rId13"/>
+  <w:footerReference w:type="default" r:id="rId14"/>
+  <w:headerReference w:type="first" r:id="rId15"/>
+  <w:footerReference w:type="first" r:id="rId16"/>
+  ...
+<w:sectPr>
+
+The information related to r:id are stored in the file "/word/_rels/document.xml.rels"
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId8" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.png"/>
+  <Relationship Id="rId13" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>
+  ...
+</Relationships>
+
+Locations are also appering in the file "[Content_Types].xml", in the elements like:
   <Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>
 and
   <Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>

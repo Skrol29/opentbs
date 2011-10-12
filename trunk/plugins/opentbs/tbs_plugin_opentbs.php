@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.7.2 (2011-10-12)
+/* OpenTBS version 1.7.3 (2011-10-13)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -45,7 +45,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
 		if (!isset($TBS->OtbsConvertApostrophes)) $TBS->OtbsConvertApostrophes = true;
-		$this->Version = '1.7.2';
+		$this->Version = '1.7.3';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
@@ -174,6 +174,7 @@ class clsOpenTBS extends clsTbsZip {
 			$TBS->Source = $this->TbsStoreLst[$idx]['src'];
 			$onshow = $this->TbsStoreLst[$idx]['onshow'];
 			unset($this->TbsStoreLst[$idx]); // save memory space
+			$TBS->OtbsCurrFile = $this->TbsGetFileName($idx); // usefull for TbsPicAdd()
 			$this->TbsCurrIdx = $idx; // usefull for debug mode
 			if ($TbsShow && $onshow) $TBS->Show(TBS_NOTHING);
 			if ($Debug) $this->DebugLst[$this->TbsGetFileName($idx)] = $TBS->Source;
@@ -1197,7 +1198,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	function OpenXML_RidPrepare($DocPath, $ImageName) {
 /* Return the RelationId if the image if it's already referenced in the Relation file in the archive.
 Otherwise, OpenTBS prepares info to add this information at the end of the merging.
-$ImageName must be the name of the image, wihtout path. This is because OpenXML needs links to be relatif to the active document. In our case, image files are always stored into subfolder 'media'.
+$ImageName must be the name of the image, without path. This is because OpenXML needs links to be relative to the active document. In our case, image files are always stored into subfolder 'media'.
 */
 
 		if (!isset($this->OpenXmlRid[$DocPath])) {
