@@ -118,6 +118,13 @@ The location of the chart is defined in the main subfile "contents.xml":
   </draw:frame>
 </text:p>
 
+An image preview is saved in the file "ObjectReplacements/Object 1", and this image will be displayed
+automatically instead of the real Chart view since until the chart is manually changed in the docuement.
+In order to avoi this preview, the followings must be deteled :
+- the file "ObjectReplacements/Object 1",
+- the reference <draw:image> in the "contents.xml" file,
+- the reference <draw:image> in the "META-INF/manifest.xml" file.
+
 Data and properties of the chart are saved into the corresponding subdirectory "Object 1".
 Data are saved in "Object 1/contents.xml" in a table that groups data of all series of the chart.
 
