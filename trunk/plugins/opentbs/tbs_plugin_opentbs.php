@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.7.3 (2011-10-13)
+/* OpenTBS version 1.7.4 (2011-10-21)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -45,7 +45,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
 		if (!isset($TBS->OtbsConvertApostrophes)) $TBS->OtbsConvertApostrophes = true;
-		$this->Version = '1.7.3';
+		$this->Version = '1.7.4';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
@@ -875,6 +875,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	// Argument $Prm is only used for error messages.
 
 		$TBS = &$this->TBS;
+$xxx = ''.substr($Txt, $Loc->PosBeg, $Loc->PosEnd - $Loc->PosBeg + 1);
 
 		// set the path where files should be taken
 		if (isset($PrmLst['from'])) {
@@ -883,7 +884,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		} else {
 			$FullPath = $Value;
 		}
-
 		if ( (!isset($PrmLst['pic_prepared'])) && isset($PrmLst['default']) ) $TBS->meth_Merge_AutoVar($PrmLst['default'],true); // merge automatic TBS fields in the path
 
 		$ok = true; // true if the picture file is actually inserted and ready to be changed
@@ -940,13 +940,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$Value = $Rid; // the Rid is used instead of the file name for the merging
 			}
 
-		} else {
-
-			$Value = '';
-
 		}
 
-		// change the dimensions of the picture
+		// Change the dimensions of the picture
 		if (isset($Loc->otbsDim)) {
 			if (isset($Loc->AttForward)) { // the field has been already moved by parameter att
 				if (!isset($Loc->otbsRealBeg)) { // save the real position of the field
@@ -959,6 +955,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			}
 			if ($ok) $this->TbsPicAdjust($Txt, $Loc, $FullPath);
 		}
+		
+		// Unchanged value (must be done after redim)
+		if (!$ok) $Value = substr($Txt, $Loc->PosBeg, $Loc->PosEnd - $Loc->PosBeg + 1);
 
 		$PrmLst['pic_prepared'] = true; // mark the locator as Picture prepared
 
