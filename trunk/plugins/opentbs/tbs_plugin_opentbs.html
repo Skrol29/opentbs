@@ -64,8 +64,8 @@ ul {
 
 <body>
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.7.4, 2011-10-20, by Skrol29<br />
-  help file modified on 2011-10-20</div>
+<div>version 1.7.4, 2011-10-26, by Skrol29<br />
+  help file modified on 2011-10-26</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -323,22 +323,52 @@ This command will raise an error if the opened template is not a Workbook.<br />
   </tr>
 </table>
 <h3><a name="modify_files" id="modify_files"></a>4.7. Manual modification of files in the archive</h3>
+<h4 style="display:inline">&bull; Check if a file does exists in the archive:</h4>
+<div class="shift">
+  <div class="code">$TBS-&gt;Plugin(OPENTBS_FILEEXISTS, $Name)
+</div>
+  <p>Return <span class="smallcode">true</span> or <span class="smallcode">false</span>. $Name must include the inner path.<br />
+  For example : $Name = 'META-INF/manifest.xml';</p>
+  <div class="versioning">(supported since OpenTBS version 1.7.4)</div>
+</div>
 <h4>&bull; Add any new file in the archive:</h4>
-<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.3)</span>
-  <div class="code">$TBS-&gt;Plugin(OPENTBS_ADDFILE, $Name, $Data, $DataType=TBSZIP_STRING, $Compress=true); // OpenTBS &gt;= 1.6.0<br />
-    $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_ADDFILE, $Name, $Data, $DataType=TBSZIP_STRING, $Compress=true);  // OpenTBS &lt;= 1.5.0</div>
-  <p>Add a new file in the archive. If $Data is false then the previously add file with the given name is canceled if any. $DataType accepts <span class="smallcode">TBSZIP_STRING</span> and <span class="smallcode">TBSZIP_FILE</span> ($Data must then be the path of the external file to insert). $Compress can be true, false or an array with keys ('meth','len_u','crc32') which means that the data is already previously compressed.</p>
+<div class="shift">
+  <div class="code">// OpenTBS &gt;= 1.6.0<br />
+    $TBS-&gt;Plugin(OPENTBS_ADDFILE, $Name, $Data, $DataType=OPENTBS_STRING, $Compress=true); <br />
+    <br />
+    // Deprecated since OpenTBS 1.6.0<br />
+    $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_ADDFILE, $Name, $Data, $DataType=OPENTBS_STRING, $Compress=true);  </div>
+  <p> If $Data is false then the previously add file with the given name is canceled if any.</p>
+<p> $DataType must be  <span class="smallcode">OPENTBS_STRING</span> if $Data is  the content to add ; it must be <span class="smallcode">OPENTBS_FILE</span> if $Data is the path of the external file to insert.</p>
+  <p> $Compress can be true, false or an array with keys ('meth','len_u','crc32') which means that the data is already previously compressed.</p>
+  <div class="versioning">(supported since OpenTBS version 1.3)</div>
+</div>
+<h4>&bull; Replace an existing file in the archive:</h4>
+<div class="shift"> 
+  <div class="code">$TBS-&gt;Plugin(OPENTBS_DELETEFILE, $Name, $Data, $DataType=OPENTBS_STRING, $Compress=true);
+  </div>
+  <p>The arguments are the same as command <span class="smallcode">OPENTBS_ADDFILE</span>.<br />
+    Please note that any TBS 
+  merge on a file in the archive will cancel previous or future replacements.</p>
+  <div class="versioning">(supported since OpenTBS version 1.7.4)</div>
 </div>
 <h4>&bull; Delete an existing file in the archive:</h4>
-<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.3)</span>
-  <div class="code">$TBS-&gt;Plugin(OPENTBS_DELETEFILE, $Name); // OpenTBS &gt;= 1.6.0<br />
-    $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_DELETEFILE, $Name); // OpenTBS &lt;= 1.5.0</div>
+<div class="shift"> 
+  <div class="code">// OpenTBS &gt;= 1.6.0<br />
+    $TBS-&gt;Plugin(OPENTBS_DELETEFILE, $Name);<br />
+    <br />
+// Deprecated since OpenTBS 1.6.0<br />
+    $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_DELETEFILE, $Name);</div>
   <p>Delete the existing file in the archive, or a file previously   added using the <span class="smallcode">OPENTBS_ADDFILE</span> command.</p>
+  <div class="versioning">(supported since OpenTBS version 1.3)</div>
 </div>
 <h4>&bull; Reset all modifications in the  archive:</h4>
-<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.1)</span>
-  <div class="code">$TBS-&gt;Plugin(OPENTBS_RESET); // OpenTBS &gt;= 1.6.0<br />
-    $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET); // OpenTBS &lt;= 1.5.0</div>
+<div class="shift"> 
+  <div class="code">// OpenTBS &gt;= 1.6.0<br />
+    $TBS-&gt;Plugin(OPENTBS_RESET);<br />
+    <br />
+// Deprecated since OpenTBS 1.6.0<br />
+    $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</div>
   <p>The automatic extension recognition is also applied as it was applied for the first load of the archive.</p>
 </div>
 <h3><a name="misc" id="misc"></a>4.8. Miscellaneous</h3>
@@ -346,17 +376,18 @@ This command will raise an error if the opened template is not a Workbook.<br />
 <div class="shift">
   <p> Both OpenOffice and Ms Office may automatically convert single quotes (') into typographic apostrophes (&rsquo;), depending to the auto-correction options. This may be annoying   when you need to code a TBS fields that have a single quote. That's why OpenTBS automatically convert by default all (&rsquo;) back to single quotes (') in documents.<br />
     If you want to stop this conversion, you can set <span class="smallcode">$TBS-&gt;OtbsConvertApostrophes = false;</span> and no apostrophes   will be converted. Note that you can avoid the auto-correction of single quotes (') in Ms Word using keys[ctrl]+[z], and in OpenOffice using the cancel button.<br />
-    <span class="versioning">Property OtbsConvertApostrophes is supported since OpenTBS version 1.6.0.</span></p>
+   </p> <div class="versioning">Property OtbsConvertApostrophes is supported since OpenTBS version 1.6.0.</div>
 </div>
 <h4><a name="force_doctype" id="demo4"></a>&bull; Forcing the document type recognition:</h4>
 <div class="shift">
   <p>You can force the document type recognition using command OPENTBS_FORCE_DOCTYPE. Example:</p>
   <div class="code"> $TBS-&gt;PlugIn(OPENTBS_FORCE_DOCTYPE, 'docx');</div>
-  <span class="versioning">This command is supported since OpenTBS version 1.6.0.</span> </div>
+  <p class="versioning">This command is supported since OpenTBS version 1.6.0.</p> </div>
 <h4>&bull; Retrieving the name of the current document:</h4>
 <div class="shift">
   <p> Property <span class="smallcode">$TBS-&gt;tbsCurrFile</span> indicates the name of the current file loaded from the archive. The value is false if no file is loaded yet from the archive.</p>
   <p> Other TinyButStrong methods and properties stay unchanged and are available for merging your template. </p>
+  <div class="versioning">(supported since OpenTBS version 1.1)</div>
 </div>
 <h2><a name="demo" id="demo"></a>5. Demo</h2>
 <p>The OpenTBS package includes a full set of runnable templates. Some templates can contain useful complementary information for designing.<br />
@@ -448,7 +479,10 @@ This command will raise an error if the opened template is not a Workbook.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
 <p>version 1.7.4, on 2011-10-20<br />
-- parameter &quot;defaut=current&quot; does not work and may build invalid  documents when the target image is missing.</p>
+- parameter &quot;defaut=current&quot; does not work and may build invalid  documents when the target image is missing.<br />
+- new command OPENTBS_REPLACEFILE<br />
+- new command OPENTBS_FILEEXISTS<br />
+</p>
 <p>version 1.7.3, on 2011-10-13<br />
   - fixed bug: in Ms Word documents, automatic fields (onload, onshow) placed in headers and footers with parameter &quot;ope=changepic&quot; are producing an erroneous merge. In Word 2010 the picture may by missing, in Word 2007 the docx file may be considered as corrupted.</p>
 version 1.7.2, on 2011-10-12<br />

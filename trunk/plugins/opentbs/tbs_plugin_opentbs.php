@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.7.4 (2011-10-21)
+/* OpenTBS version 1.7.4 (2011-10-26)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -11,14 +11,16 @@ Site: http://www.tinybutstrong.com/plugins.php
 define('OPENTBS_PLUGIN','clsOpenTBS');
 define('OPENTBS_DOWNLOAD',1);   // download (default) = TBS_OUTPUT
 define('OPENTBS_NOHEADER',4);   // option to use with DOWNLOAD: no header is sent
-define('OPENTBS_FILE',8);       // output to file
+define('OPENTBS_FILE',8);       // output to file   = TBSZIP_FILE
 define('OPENTBS_DEBUG_XML',16); // display the result of the current subfile
-define('OPENTBS_STRING',32);    // output to string
+define('OPENTBS_STRING',32);    // output to string = TBSZIP_STRING
 define('OPENTBS_DEBUG_AVOIDAUTOFIELDS',64); // avoit auto field merging during the Show() method
 define('OPENTBS_INFO','clsOpenTBS.Info');       // command to display the archive info
 define('OPENTBS_RESET','clsOpenTBS.Reset');      // command to reset the changes in the current archive
 define('OPENTBS_ADDFILE','clsOpenTBS.AddFile');    // command to add a new file in the archive
 define('OPENTBS_DELETEFILE','clsOpenTBS.DeleteFile'); // command to delete a file in the archive
+define('OPENTBS_REPLACEFILE','clsOpenTBS.ReplaceFile'); // command to replace a file in the archive
+define('OPENTBS_FILEEXISTS','clsOpenTBS.FileExists');
 define('OPENTBS_CHART','clsOpenTBS.Chart'); // command to delete a file in the archive
 define('OPENTBS_DEFAULT','');   // Charset
 define('OPENTBS_ALREADY_XML',false);
@@ -335,14 +337,19 @@ class clsOpenTBS extends clsTbsZip {
 			}
 			return true;
 
-		} elseif ($Cmd==OPENTBS_ADDFILE) {
+		} elseif ( ($Cmd==OPENTBS_ADDFILE) || ($Cmd==OPENTBS_REPLACEFILE) ) {
 
 			// Add a new file or cancel a previous add
 			$Name = (is_null($x1)) ? false : $x1;
 			$Data = (is_null($x2)) ? false : $x2;
 			$DataType = (is_null($x3)) ? TBSZIP_STRING : $x3;
 			$Compress = (is_null($x4)) ? true : $x4;
-			return $this->FileAdd($Name, $Data, $DataType, $Compress);
+			
+			if ($Cmd==OPENTBS_ADDFILE) {
+				return $this->FileAdd($Name, $Data, $DataType, $Compress);
+			} else {
+				return $this->FileReplace($Name, $Data, $DataType, $Compress);
+			}
 
 		} elseif ($Cmd==OPENTBS_DELETEFILE) {
 
@@ -350,6 +357,10 @@ class clsOpenTBS extends clsTbsZip {
 			$Name = (is_null($x1)) ? false : $x1;
 			$this->FileCancelModif($Name, false);    // cancel added files
 			return $this->FileReplace($Name, false); // mark the file as to be deleted
+
+		} elseif ($Cmd==OPENTBS_FILEEXISTS) {
+		
+			return $this->FileExists($x1);
 
 		} elseif ($Cmd==OPENTBS_CHART) {
 
@@ -1475,8 +1486,6 @@ It needs to be completed when a new picture file extension is added in the docum
 				}
 			}
 		}
-
-
 
 	}
 
