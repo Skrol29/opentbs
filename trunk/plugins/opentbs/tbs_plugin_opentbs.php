@@ -886,7 +886,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	// Argument $Prm is only used for error messages.
 
 		$TBS = &$this->TBS;
-$xxx = ''.substr($Txt, $Loc->PosBeg, $Loc->PosEnd - $Loc->PosBeg + 1);
 
 		// set the path where files should be taken
 		if (isset($PrmLst['from'])) {
