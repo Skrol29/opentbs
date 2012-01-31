@@ -31,6 +31,7 @@ Synopsis:
       <text:p text:style-name="Standard">
         Normal new lines are made with a new paragraphs <text:p>...</text:p>
         Simple new lines are made with <text:line-break/>
+		Tabs are made with <text:tab/>
         Page breaks are made with a new paragraph having a style which has the attribute {fo:break-before="page"}. 
         Local styles (bold, color,...) are made with <text:span text:style-name="T1">...</text:span>
       </text:p>
@@ -242,6 +243,8 @@ Synopsis of the main file "word/document.xml":
         Simple new lines are made with <w:br/>
         Page breaks can also be made with <w:br w:type="page"/> (way #2)
       </w:r>
+	  <w:tab/>
+	  <w:r>Tabs are placed between w:r elements.</w:r>
     </w:p> 
 
   </w:body>
