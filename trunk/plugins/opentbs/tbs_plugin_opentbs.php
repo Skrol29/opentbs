@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.7.4 (2011-10-26)
+/* OpenTBS version 1.7.5 (2012-02-14)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -47,9 +47,10 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
 		if (!isset($TBS->OtbsConvertApostrophes)) $TBS->OtbsConvertApostrophes = true;
-		$this->Version = '1.7.4';
+		$this->Version = '1.7.5';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
+		$TBS->TbsZip = &$this; // a shortcut
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
 	}
 
@@ -169,6 +170,7 @@ class clsOpenTBS extends clsTbsZip {
 
 		if (isset($this->OtbsSheetODS))   $this->OpenDoc_SheetDeleteAndDisplay();
 		if (isset($this->OtbsSheetXLSX))  $this->MsExcel_SheetDeleteAndDisplay();
+		if ($this->Ext_Get()=='docx')  $this->MsWord_RenumDocPr();
 
 		// Merges all modified subfiles
 		$idx_lst = array_keys($this->TbsStoreLst);
@@ -932,15 +934,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 			// preparation for others file in the archive
 			$Rid = false;
-			if ($this->ExtInfo!==false) {
-				if ($this->ExtInfo['frm']==='odf') {
-					// OpenOffice document
-					$this->OpenDoc_ManifestChange($InternalPath,'');
-				} elseif ($this->ExtInfo['frm']==='openxml') {
-					// Microsoft Office document
-					$this->OpenXML_CTypesPrepare($InternalPath, '');
-					$Rid = $this->OpenXml_RidPrepare($TBS->OtbsCurrFile, basename($InternalPath));
-				}
+			$Frm = $this->Ext_GetFrm();
+			if ($Frm==='odf') {
+				// OpenOffice document
+				$this->OpenDoc_ManifestChange($InternalPath,'');
+			} elseif ($Frm==='openxml') {
+				// Microsoft Office document
+				$this->OpenXML_CTypesPrepare($InternalPath, '');
+				$Rid = $this->OpenXml_RidPrepare($TBS->OtbsCurrFile, basename($InternalPath));
 			}
 
 			// change the value of the field for the merging process
@@ -2238,6 +2239,66 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 
+	function MsWord_RenumDocPr() {
+	/* Renumber attribute "id " of elements <wp:docPr> in order to ensure unicity.
+	   Such elements are used in objects.
+	*/
+
+		$file = $this->ExtInfo['main'];
+		$idx = $this->FileGetIdx($file);
+		if ($idx===false) return;
+
+		$Txt = $this->TbsStoreGet($idx, 'Word renume DocPr ids');
+		if ($Txt===false) return false;
+
+		$el = '<wp:docPr ';
+		$el_len = strlen($el);
+
+		$id = ' id="';
+		$id_len = strlen($id);
+
+		$nbr = 0;
+		$last_id = 0;
+
+		$p = 0;
+		while ($p!==false) {
+			// search the element
+			$p = strpos($Txt, $el, $p);
+			if ($p!==false) {
+				// attribute found, now seach tag bounds
+				$p = $p + $el_len -1; // don't take the space, it is used for the next search
+				$pc = strpos($Txt, '>', $p);
+				if ($pc!==false) {
+					$x = substr($Txt, $p, $pc - $p);
+					$pi = strpos($x, $id);
+					if ($pi!==false) {
+						$pi = $pi + $id_len;
+						$pq = strpos($x, '"', $pi);
+						if ($pq!==false) {
+							$i_len = $pq - $pi;
+							$i = intval(substr($x, $pi, $i_len));
+							if ($i>0) { // id="0" is erroneous
+								if ($i>$last_id) {
+									$last_id = $i; // nothing else to do
+								} else {
+									$last_id++;
+									$id_txt = ''.$last_id;
+									$Txt = substr_replace($Txt, $id_txt, $p + $pi, $i_len);
+									$nbr++;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if ($nbr>0) $this->TbsStorePut($idx, $Txt);
+
+		return $nbr;
+
+	}
+	
 	// OpenOffice documents
 
 	function OpenDoc_ManifestChange($Path, $Type) {
@@ -2495,7 +2556,7 @@ It needs to be completed when a new picture file extension is added in the docum
 }
 
 /*
-TbsZip version 2.10 (2011-08-13)
+TbsZip version 2.11 (2012-02-14)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class is independent from any other classes and has been originally created for the OpenTbs plug-in
@@ -2876,7 +2937,7 @@ class clsTbsZip {
 		// added files
 		$idx = $this->FileGetIdxAdd($NameOrIdx);
 		if ($idx!==false) {
-			unset($this->InfoAdd[$idx]);
+			unset($this->AddInfo[$idx]);
 			$nbr++;
 		}
 
