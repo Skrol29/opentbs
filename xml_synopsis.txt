@@ -31,7 +31,7 @@ Synopsis:
       <text:p text:style-name="Standard">
         Normal new lines are made with a new paragraphs <text:p>...</text:p>
         Simple new lines are made with <text:line-break/>
-		Tabs are made with <text:tab/>
+        Tabs are made with <text:tab/>
         Page breaks are made with a new paragraph having a style which has the attribute {fo:break-before="page"}. 
         Local styles (bold, color,...) are made with <text:span text:style-name="T1">...</text:span>
       </text:p>
@@ -198,9 +198,9 @@ Short synopsis of the control in the document:
     <draw:text-box ...>
       <text:p ...>
         <draw:a ...>
-			<draw:frame draw:style-name="fr1" draw:name="images1" text:anchor-type="paragraph" svg:width="0.847cm" svg:height="0.847cm" draw:z-index="0">
-				<draw:image xlink:href="Pictures/100000000000002000000020A0D29467.jpg" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
-			</draw:frame>
+           <draw:frame draw:style-name="fr1" draw:name="images1" text:anchor-type="paragraph" svg:width="0.847cm" svg:height="0.847cm" draw:z-index="0">
+              <draw:image xlink:href="Pictures/100000000000002000000020A0D29467.jpg" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
+           </draw:frame>
         </draw:a>
       </text:p>
     </draw:text-box>
@@ -232,8 +232,8 @@ Synopsis of the main file "word/document.xml":
         <w:rPr> Set of parameters for a Run </w:rPr>
         <w:sectPr>
           Start a new section. Sections are a set of page layout (margin, columns, ...) available until the next section.
-		  <w:type w:val="continuous"/> May be present whe the section is defined manually.
-		</w:sectPr>
+          <w:type w:val="continuous"/> May be present whe the section is defined manually.
+        </w:sectPr>
         <w:pageBreakBefore/> page break before the paragraph (way #1)
       </w:pPr>
       <w:r>
@@ -243,8 +243,8 @@ Synopsis of the main file "word/document.xml":
         Simple new lines are made with <w:br/>
         Page breaks can also be made with <w:br w:type="page"/> (way #2)
       </w:r>
-	  <w:tab/>
-	  <w:r>Tabs are placed between w:r elements.</w:r>
+      <w:tab/>
+      <w:r>Tabs are placed between w:r elements.</w:r>
     </w:p> 
 
   </w:body>
@@ -262,7 +262,10 @@ Synopsis of a table inserted in a Word document:
 
   <w:tbl>
     <w:tblPr></w:tblPr>
-    <w:tblGrid></w:tblGrid>
+    <w:tblGrid>
+      <w:gridCol ... /> principally define colmun widths
+      <w:gridCol ... />
+    </w:tblGrid>
     <w:tr>
       <w:tc> ... </w:tc>
       <w:tc> ... </w:tc>
@@ -542,7 +545,7 @@ They are two ways to insert a picture.
             <a:ln><a:noFill /></a:ln>
           </pic:spPr>
 
-	    </pic:pic>
+        </pic:pic>
       </a:graphicData>
     </a:graphic>
   </wp:inline>
