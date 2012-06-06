@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.7.5 (2012-02-14)
+/* OpenTBS version 1.7.6 (2012-06-06)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -47,7 +47,8 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
 		if (!isset($TBS->OtbsConvertApostrophes)) $TBS->OtbsConvertApostrophes = true;
-		$this->Version = '1.7.5';
+		if (!isset($TBS->OtbsSpacePreserve)) $TBS->OtbsSpacePreserve = true;
+		$this->Version = '1.7.6';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -2112,6 +2113,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		$this->MsWord_CleanSystemBookmarks($Txt);
 		$this->MsWord_CleanRsID($Txt);
 		$this->MsWord_CleanDuplicatedLayout($Txt);
+		if ($this->TBS->OtbsSpacePreserve) $this->MsWord_CleanSpacePreserve($Txt);
 	}
 
 	function MsWord_CleanSystemBookmarks(&$Txt) {
@@ -2239,6 +2241,20 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 
+	function MsWord_CleanSpacePreserve(&$Txt) {
+		// apply xml:space="preserve" by default for the entire document
+		// unfotunately, it doesn't work on headers (<w:hdr>) and footers (<w:ftr>)
+		$p = $this->XML_FoundTagStart($Txt, '<w:document', 0);
+		if ($p===false) return;
+		$pe = strpos($Txt, '>', $p);
+		$x = substr($Txt, $p, $pe-$p+1);
+		if (strpos($x, 'xml:space=')===false) {
+			// insert the default value
+			$Txt = substr_replace($Txt, ' xml:space="preserve"', $pe, 0);
+			$Txt = str_replace('<w:t xml:space="preserve">', '<w:t>', $Txt); // not obligatory but cleanner and save space
+		}
+	}
+	
 	function MsWord_RenumDocPr() {
 	/* Renumber attribute "id " of elements <wp:docPr> in order to ensure unicity.
 	   Such elements are used in objects.
