@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.7.6 (2012-06-06)
+/* OpenTBS version 1.8.0-beta-2012-06-16 (2012-06-16)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -48,7 +48,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
 		if (!isset($TBS->OtbsConvertApostrophes)) $TBS->OtbsConvertApostrophes = true;
 		if (!isset($TBS->OtbsSpacePreserve)) $TBS->OtbsSpacePreserve = true;
-		$this->Version = '1.7.6';
+		$this->Version = '1.8.0-beta-2012-06-16';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -125,6 +125,7 @@ class clsOpenTBS extends clsTbsZip {
 								$i = $this->ExtInfo;
 								if (isset($i['rpl_what'])) $TBS->Source = str_replace($i['rpl_what'], $i['rpl_with'], $TBS->Source); // auto replace strings in the loaded file
 								if (($i['ext']==='docx') && isset($TBS->OtbsClearMsWord) && $TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
+								if (($i['ext']==='pptx') && isset($TBS->OtbsClearMsPowerpoint) && $TBS->OtbsClearMsPowerpoint) $this->MsPowerpoint_Clean($TBS->Source);
 								if (($i['ext']==='xlsx') && isset($TBS->OtbsMsExcelConsistent) && isset($TBS->OtbsMsExcelConsistent) ) {
 									$this->MsExcel_DeleteFormulaResults($TBS->Source);
 									$this->MsExcel_ConvertToRelative($TBS->Source);
@@ -738,12 +739,13 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	function TbsPicFound($Txt, &$Loc) {
 	// Found the relevent attribute for the image source, and then add parameter 'att' to the TBS locator.
 		$att = false;
+		$backward = !(isset($Loc->PrmLst['search']) && ($Loc->PrmLst['search']=='forward'));
 		if (isset($this->ExtInfo['frm'])) {
 			if ($this->ExtInfo['frm']==='odf') {
 				$att = 'draw:image#xlink:href';
 				if (isset($Loc->PrmLst['adjust'])) $Loc->otbsDim = $this->TbsPicGetDim_ODF($Txt, $Loc->PosBeg);
 			} elseif ($this->ExtInfo['frm']==='openxml') {
-				$att = $this->OpenXML_FirstPicAtt($Txt, $Loc->PosBeg, true);
+				$att = $this->OpenXML_FirstPicAtt($Txt, $Loc->PosBeg, $backward);
 				if ($att===false) return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] has failed to found the picture.');
 				if (isset($Loc->PrmLst['adjust'])) {
 					if (strpos($att,'v:imagedata')!==false) { 
@@ -761,7 +763,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			if (isset($Loc->PrmLst['att'])) {
 				return $this->RaiseError('Parameter att is used with parameter ope=changepic in the field ['.$Loc->FullName.']. changepic will be ignored');
 			} else {
-				$Loc->PrmLst['att'] = $att;
+				$prefix = ($backward) ? '' : '+';
+				$Loc->PrmLst['att'] = $prefix.$att;
 			}
 		}
 
@@ -1056,6 +1059,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			// Microsoft Office documents
 			if (!isset($this->TBS->OtbsClearMsWord)) $this->TBS->OtbsClearMsWord = true;
 			if (!isset($this->TBS->OtbsMsExcelConsistent)) $this->TBS->OtbsMsExcelConsistent = true;
+			if (!isset($this->TBS->OtbsClearMsPowerpoint)) $this->TBS->OtbsClearMsPowerpoint = true;
 			$this->OpenXML_MapInit();
 			if ($this->TBS->OtbsConvertApostrophes) {
 				$x = array(chr(226) . chr(128) . chr(152), chr(226) . chr(128) . chr(153));
@@ -1206,10 +1210,37 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return $nbr_del;
 	}
 
+	// Delete attributes in an XML element. The XML element is located by $Pos.
+	// $Pos : start of the XML element.
+	// $AttLst : list of attributes to search an delete
+	// $AttLst : list of attributes to search an delete
+	// Return the new end of the element.
+	function XML_DeleteAttributes(&$Txt, $Pos, $AttLst, $StrLst)	{
+		$end = strpos($Txt, '>', $Pos); // end of the element
+		if ($end===false) return (strlen($Txt)-1);
+		$x_len = $end - $Pos + 1;
+		$x = substr($Txt, $Pos, $x_len);
+		// delete attributes
+		foreach ($AttLst as $att) {
+			$a = ' '.$att.'="';
+			$p1 = strpos($x, $a);
+			if ($p1!==false) {
+				$p2 = strpos($x, '"', $p1+strlen($a));
+				if ($p2!==false) $x = substr_replace($x, '', $p1, $p2-$p1+1);
+			}
+		}
+		// Delete strings
+		foreach ($StrLst as $str) $x = str_replace('', $str, $x);
+		$x_len2 = strlen($x);
+		if ($x_len2!=$x_len) $Txt = substr_replace($Txt, $x, $Pos, $x_len);
+		return $Pos + $x_len2;
+	}
+	
 	function OpenXML_RidPrepare($DocPath, $ImageName) {
 /* Return the RelationId if the image if it's already referenced in the Relation file in the archive.
 Otherwise, OpenTBS prepares info to add this information at the end of the merging.
-$ImageName must be the name of the image, without path. This is because OpenXML needs links to be relative to the active document. In our case, image files are always stored into subfolder 'media'.
+$ImageName must be the name of the image, without path. This is because OpenXML needs links to be relative to the active document.
+This feature doesn't work with MsExcel because images are not referenced in "slide1.xml.rels", but in "drawing1.xml.rels"
 */
 
 		if (!isset($this->OpenXmlRid[$DocPath])) {
@@ -1220,6 +1251,8 @@ $ImageName must be the name of the image, without path. This is because OpenXML 
 			$o->FicPath = str_replace($DocName,'_rels/'.$DocName.'.rels',$DocPath);
 			$o->FicType = false; // false = to check, 0 = exist in the archive, 1 = to add in the archive
 			$o->FicIdx = false; // in case of FicType=0
+			$zBackNbr = max(substr_count($DocPath, '/') - 1, 0); // docx=>"media/img.png", xlsx & pptx=>"../media/img.png"
+			$o->ImgPath = str_repeat('../', $zBackNbr).'media/';
 			$this->OpenXmlRid[$DocPath] = &$o;
 		} else {
 			$o = &$this->OpenXmlRid[$DocPath];
@@ -1236,7 +1269,7 @@ $ImageName must be the name of the image, without path. This is because OpenXML 
 				$Txt = $this->FileRead($FicIdx, true);
 				$o->FicTxt = $Txt;
 				// read existing Rid in the file
-				$zImg = ' Target="media/';
+				$zImg = ' Target="'.$o->ImgPath;
 				$zId  = ' Id="';
 				$p = -1;
 				while (($p = strpos($Txt, $zImg, $p+1))!==false) {
@@ -1244,7 +1277,7 @@ $ImageName must be the name of the image, without path. This is because OpenXML 
 					$p1 = $p + strlen($zImg);
 					$p2 = strpos($Txt, '"', $p1);
 					if ($p2===false) return $this->RaiseError("(OpenXML) end of attribute Target not found in position ".$p1." of subfile ".$o->FicPath);
-					$Img = substr($Txt, $p1, $p2 -$p1 -1);
+					$Img = substr($Txt, $p1, $p2 -$p1);
 					// Get the Id
 					$p1 = strrpos(substr($Txt,0,$p), '<');
 					if ($p1===false) return $this->RaiseError("(OpenXML) begining of tag not found in position ".$p." of subfile ".$o->FicPath);
@@ -1280,7 +1313,7 @@ $ImageName must be the name of the image, without path. This is because OpenXML 
 			// build the string to instert
 			$x = '';
 			foreach ($o->RidNew as $img=>$rid) {
-				$x .= '<Relationship Id="'.$rid.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/'.$img.'"/>';
+				$x .= '<Relationship Id="'.$rid.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="'.$o->ImgPath.$img.'"/>';
 			}
 			// insert
 			$o->FicTxt = substr_replace($o->FicTxt, $x, $p, 0);
@@ -2105,6 +2138,31 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 
+	// Cleaning tags in MsPowerpoint
+
+	function MsPowerpoint_Clean(&$Txt) {
+		$this->MsPowerpoint_CleanRpr($Txt, 'a:rPr');
+		$Txt = str_replace('<a:rPr/>', '', $Txt);
+		
+		$this->MsPowerpoint_CleanRpr($Txt, 'a:endParaRPr');
+		$Txt = str_replace('<a:endParaRPr/>', '', $Txt); // do not delete, can change layout
+		
+		// join split elements
+		$Txt = str_replace('</a:t><a:t>', '', $Txt);
+		$Txt = str_replace('</a:t></a:r><a:r><a:t>', '', $Txt); // this join TBS split tags
+		
+		// delete empty elements
+		$Txt = str_replace('<a:t></a:t>', '', $Txt);
+		$Txt = str_replace('<a:r></a:r>', '', $Txt);
+	}
+
+	function MsPowerpoint_CleanRpr(&$Txt, $elem) {
+		$pe = 0;
+		while (($p=$this->XML_FoundTagStart($Txt, '<'.$elem, $pe))!==false) {
+			$pe = $this->XML_DeleteAttributes($Txt, $p, array('noProof', 'lang', 'err', 'smtClean', 'dirty'), array());
+		}
+	}
+	
 	// Cleaning tags in MsWord
 
 	function MsWord_Clean(&$Txt) {
@@ -2113,9 +2171,8 @@ It needs to be completed when a new picture file extension is added in the docum
 		$this->MsWord_CleanSystemBookmarks($Txt);
 		$this->MsWord_CleanRsID($Txt);
 		$this->MsWord_CleanDuplicatedLayout($Txt);
-		if ($this->TBS->OtbsSpacePreserve) $this->MsWord_CleanSpacePreserve($Txt);
 	}
-
+	
 	function MsWord_CleanSystemBookmarks(&$Txt) {
 	// Delete GoBack hidden bookmarks that appear since Office 2010. Example: <w:bookmarkStart w:id="0" w:name="_GoBack"/><w:bookmarkEnd w:id="0"/>
 
