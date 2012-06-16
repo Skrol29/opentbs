@@ -64,8 +64,8 @@ ul {
 
 <body>
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.7.6, 2012-06-06, by Skrol29<br />
-  help file modified on 2012-06-06</div>
+<div>version 1.8.0, 2012-06-16, by Skrol29<br />
+  help file modified on 2012-06-16</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -221,30 +221,42 @@ ul {
 <h3><a name="pic" id="pic2"></a>4.5. Change pictures in the document</h3>
 <h4>&bull; Change an internal picture with a new one:</h4>
 <div class="shift"> <span class="versioning">(supported since OpenTBS version 1.4.0, for OpenOffice and MsOffice documents only)</span>
-  <div class="template">Example: [onshow.x;ope=changepic;from='../pic/[val].gif';as='[val].gif';default=current]</div>
-  <p>I the example above, $x is a PHP global variable containing the name or the path for an external picture file. But the feature  works simillary with items data merged with a TBS block.</p>
-  <p> When a TBS field having <span class="smallcode">&quot;ope=changepic&quot;</span> is merged in the template, then OpenTBS will search the first picture located before the field (to be more precise, the TBS field must be located somewhere inside or after the opening tag of the picture in the template source code), and then it will change the picture assuming that the value of the field is the path for a picture file on the server. You don't have to care about loading the picture file in the document, OpenTBS will manage this for you.</p>
-  <p>Note that parameter <span class="smallcode">&quot;ope=changepic&quot;</span> is  a feature provided by the OpenTBS plug-in, which extends the &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_ope">ope</a>&quot; parameter natively present with TBS.<br />
-    <br />
-    In order to 
-    simplify your coding, they are other complementary parameters that are provided for the <span class="smallcode">changepic</span> parameter: </p>
+  <div class="template">Example: [onshow.x;ope=changepic]</div>
+  <p>In the example above, $x is a PHP global variable containing the name of an external picture file (relative or absolute path). Of course you can use this feature on TBS fields merged with <a href="http://www.tinybutstrong.com/manual.php#php_mergeblock">MergeBlock()</a>.</p>
+  <p> When a TBS field having <span class="smallcode">&quot;ope=changepic&quot;</span> is merged in the template, then OpenTBS will search the first picture located before the field (or after using &quot;search=forward&quot;), and then it will change the picture assuming that the value of the field is the path for a picture file on the server. You don't have to care about loading the picture file in the document, OpenTBS will manage this for you.</p>
+  <p>Note that parameter <span class="smallcode">&quot;ope=changepic&quot;</span> is  a feature provided by the OpenTBS plug-in, which extends the &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_ope">ope</a>&quot; parameter natively present with TBS.</p>
+  <p>    In order to 
+    simplify your coding, they are other complementary optional parameters: </p>
   <table border="0" cellpadding="0" cellspacing="4" style="marging-left:20px;">
     <tr>
       <th align="left">Parameter</th>
       <th align="left">Description</th>
     </tr>
     <tr>
+      <td valign="top"><span class="smallcode">search</span></td>
+      <td><p>Supported values are &quot;<span class="smallcode">backward</span>&quot; and &quot;<span class="smallcode">forward</span>&quot;. This option indicates the direction for searching the picture.<br />
+        The default value is &quot;<span class="smallcode">search=backward</span>&quot;, it means that the TBS field (the one with &quot;<span class="smallcode">ope=changepic</span>&quot;) must be placed after the picture.</p>
+        <p>          Note that the picture is searched in the inner XML source of the document, and that the position of a picture in the XML may not be the same as in the viewed document. If OpenTBS says that the picture cannot be found, of if it changes an unexpected picture, you should use the <a href="#debug">debug mode</a> in order to check the inner XML.</p>
+        <p>If you choose to embed   the TBS field inside the property Title or Description of the image, then you should use &quot;<span class="smallcode">search=forward</span>&quot; with MsOffice, while   the default value is enough   for OpenOffice.</p>
+        <p> <span class="versioning">Parameter search is supported since OpenTBS version 1.8.0. Previsouly the picture was searched backward.</span></p></td>
+    </tr>
+    <tr>
       <td valign="top"><span class="smallcode">from</span></td>
-      <td>Reformulate the path of the picture to insert. The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file">file</a>&quot;. Parameter &quot;<span class="smallcode">from</span>&quot; is optional.</td>
+      <td>This option reformulates the path of the new picture to insert. The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file">file</a>&quot;.
+      <div class="template">Example: [onshow.x;ope=changepic;from='../pic/[val].gif']</div></td>
     </tr>
     <tr>
       <td valign="top"><span class="smallcode">as</span></td>
-      <td> Reformulate name of the picture that it will take inside the document. It is rare to need it, but it can help in some cases. Note that the external picture file is not renamed. The new   name must be defined without path.
-        The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file">file</a>&quot;. Parameter <span class="smallcode">&quot;as&quot;</span> is optional.</td>
+      <td> This option reformulates the name of the picture that it will take inside the document. It is rare to need it, but it can help in some cases. Note that the external picture file is not renamed. The new   name must be defined without path.
+        The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file">file</a>&quot;.
+        <div class="template">Example: [onshow.x;ope=changepic;as='[val].gif']</div></td>
     </tr>
     <tr>
       <td valign="top"><span class="smallcode">default</span></td>
-      <td>Define the picture that should be used when the expected one is not found. The parameter's value must be the path of a file on the server, or the keyword &quot;<span class="smallcode">current&quot;</span>. If you've set <span class="smallcode">&quot;default=current&quot;</span> then OpenTBS will let the picture of the template if the expected one is not found.</td>
+      <td>This option defines the picture that should be used when the expected one is not found. The parameter's value must be the path of a file on the server, or the keyword &quot;<span class="smallcode">current&quot;</span>.<br />
+If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS will let the current picture of the template if the new picture is not found.<br />
+<span class="versioning">Since OpenTBS version 1.8.0 the default value is &quot;current&quot;. In prior versions, there was no default value and an OpenTBS error message was prompted if the new image was not found.<br />
+</span></td>
     </tr>
     <tr>
       <td valign="top"><span class="smallcode">adjust</span></td>
@@ -478,8 +490,15 @@ This command will raise an error if the opened template is not a Workbook.<br />
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
-<p>version 1.7.6, on 2012-06-06<br />
-- Restore lost spaces around merged TBS fields in Ms Word  documents. The patch doesn't work for headers and footers, unfortunately.</p>
+<p>version 1.8.0, on 2012-06-16<br />
+-  fixed bug: parameter &quot;<span class="smallcode">ope=changepic</span>&quot; did not work in PPTX documents.<br />
+- new feature: automatically cleans up spelling in PPTX templates (such information may 
+  deconstruct the TBS tags). This feature can be disabled.<br />
+- new parameter &quot;<span class="smallcode">search</span>&quot; for defined the directin of the picture when using &quot;<span class="smallcode">ope=changepic</span>&quot;.<br />
+- when using &quot;<span class="smallcode">ope=changepic</span>&quot;, default value of parameter &quot;<span class="smallcode">default</span>&quot; is now &quot;<span class="smallcode">current</span>&quot;.<br />
+</p>
+<p> version 1.7.6, on 2012-06-06<br />
+  - Restore lost spaces around merged TBS fields in Ms Word  documents. The patch doesn't work for headers and footers, unfortunately.</p>
 <p> version 1.7.5, on 2012-02-14<br />
   - Avoid erroneous Ms Word merged documents when duplicating objects such as drawings and shapes.<br />
   - Based on TbZip version 2.11<br />

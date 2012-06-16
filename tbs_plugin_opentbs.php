@@ -43,11 +43,14 @@ class clsOpenTBS extends clsTbsZip {
 	function OnInstall() {
 		$TBS =& $this->TBS;
 
-		if (!isset($TBS->OtbsAutoLoad)) $TBS->OtbsAutoLoad = true; // TBS will load the subfile regarding to the extension of the archive
-		if (!isset($TBS->OtbsConvBr))   $TBS->OtbsConvBr = false;  // string for NewLine conversion
-		if (!isset($TBS->OtbsAutoUncompress)) $TBS->OtbsAutoUncompress = $this->Meth8Ok;
+		if (!isset($TBS->OtbsAutoLoad))           $TBS->OtbsAutoLoad = true; // TBS will load the subfile regarding to the extension of the archive
+		if (!isset($TBS->OtbsConvBr))             $TBS->OtbsConvBr = false;  // string for NewLine conversion
+		if (!isset($TBS->OtbsAutoUncompress))     $TBS->OtbsAutoUncompress = $this->Meth8Ok;
 		if (!isset($TBS->OtbsConvertApostrophes)) $TBS->OtbsConvertApostrophes = true;
-		if (!isset($TBS->OtbsSpacePreserve)) $TBS->OtbsSpacePreserve = true;
+		if (!isset($TBS->OtbsSpacePreserve))      $TBS->OtbsSpacePreserve = true;
+		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
+		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
+		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
 		$this->Version = '1.8.0-beta-2012-06-16';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
@@ -124,9 +127,9 @@ class clsOpenTBS extends clsTbsZip {
 							if ($this->ExtInfo!==false) {
 								$i = $this->ExtInfo;
 								if (isset($i['rpl_what'])) $TBS->Source = str_replace($i['rpl_what'], $i['rpl_with'], $TBS->Source); // auto replace strings in the loaded file
-								if (($i['ext']==='docx') && isset($TBS->OtbsClearMsWord) && $TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
-								if (($i['ext']==='pptx') && isset($TBS->OtbsClearMsPowerpoint) && $TBS->OtbsClearMsPowerpoint) $this->MsPowerpoint_Clean($TBS->Source);
-								if (($i['ext']==='xlsx') && isset($TBS->OtbsMsExcelConsistent) && isset($TBS->OtbsMsExcelConsistent) ) {
+								if (($i['ext']==='docx') && $TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
+								if (($i['ext']==='pptx') && $TBS->OtbsClearMsPowerpoint) $this->MsPowerpoint_Clean($TBS->Source);
+								if (($i['ext']==='xlsx') && $TBS->OtbsMsExcelConsistent) {
 									$this->MsExcel_DeleteFormulaResults($TBS->Source);
 									$this->MsExcel_ConvertToRelative($TBS->Source);
 								}
@@ -916,7 +919,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					$ok = $this->RaiseError('The default picture "'.$x.'" defined by parameter "default" of the field ['.$Loc->FullName.'] is not found.');
 				}
 			} else {
-				$ok = $this->RaiseError('The picture "'.$FullPath.'" that is supposed to be added because of parameter "'.$Prm.'" of the field ['.$Loc->FullName.'] is not found. You can use parameter default=current to cancel this message');
+				$ok = false;
 			}
 		}
 
@@ -945,7 +948,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			} elseif ($Frm==='openxml') {
 				// Microsoft Office document
 				$this->OpenXML_CTypesPrepare($InternalPath, '');
-				$Rid = $this->OpenXml_RidPrepare($TBS->OtbsCurrFile, basename($InternalPath));
+				$BackNbr = max(substr_count($TBS->OtbsCurrFile, '/') - 1, 0); // docx=>"media/img.png", xlsx & pptx=>"../media/img.png"
+				$TargetPath = str_repeat('../', $BackNbr).'media/';
+				$FileName = basename($InternalPath);
+				$Rid = $this->OpenXML_Rels_AddNew($TBS->OtbsCurrFile, $TargetPath, $FileName);
 			}
 
 			// change the value of the field for the merging process
@@ -1057,9 +1063,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$i['pic_ext'] = array('png' => 'png', 'bmp' => 'bmp', 'gif' => 'gif', 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'jpe' => 'jpeg', 'jfif' => 'jpeg', 'tif' => 'tiff', 'tiff' => 'tiff');
 		} elseif ($Frm==='openxml') {
 			// Microsoft Office documents
-			if (!isset($this->TBS->OtbsClearMsWord)) $this->TBS->OtbsClearMsWord = true;
-			if (!isset($this->TBS->OtbsMsExcelConsistent)) $this->TBS->OtbsMsExcelConsistent = true;
-			if (!isset($this->TBS->OtbsClearMsPowerpoint)) $this->TBS->OtbsClearMsPowerpoint = true;
 			$this->OpenXML_MapInit();
 			if ($this->TBS->OtbsConvertApostrophes) {
 				$x = array(chr(226) . chr(128) . chr(152), chr(226) . chr(128) . chr(153));
@@ -1236,69 +1239,77 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return $Pos + $x_len2;
 	}
 	
-	function OpenXML_RidPrepare($DocPath, $ImageName) {
-/* Return the RelationId if the image if it's already referenced in the Relation file in the archive.
-Otherwise, OpenTBS prepares info to add this information at the end of the merging.
-$ImageName must be the name of the image, without path. This is because OpenXML needs links to be relative to the active document.
-This feature doesn't work with MsExcel because images are not referenced in "slide1.xml.rels", but in "drawing1.xml.rels"
-*/
-
-		if (!isset($this->OpenXmlRid[$DocPath])) {
-			$o = (object) null;
-			$o->RidLst = array();
-			$o->RidNew = array();
-			$DocName = basename($DocPath);
-			$o->FicPath = str_replace($DocName,'_rels/'.$DocName.'.rels',$DocPath);
-			$o->FicType = false; // false = to check, 0 = exist in the archive, 1 = to add in the archive
-			$o->FicIdx = false; // in case of FicType=0
-			$zBackNbr = max(substr_count($DocPath, '/') - 1, 0); // docx=>"media/img.png", xlsx & pptx=>"../media/img.png"
-			$o->ImgPath = str_repeat('../', $zBackNbr).'media/';
-			$this->OpenXmlRid[$DocPath] = &$o;
-		} else {
+	/* Return an object that represents the informations of an .rels file.
+	* It stores Rids of files in a the $TargetPath path of the archive (image, ...).
+	*/
+	function OpenXML_Rels_GetObj($DocPath, $TargetPath) {
+	
+		if (isset($this->OpenXmlRid[$DocPath])) {
 			$o = &$this->OpenXmlRid[$DocPath];
+			if ($o->TargetPath!=$TargetPath) $this->RaiseError("(OpenXML) the Rels file $DocPath has previously been analyzed with TargetPath=$TargetPath.");
+			return $o;
 		}
+		
+		$o = (object) null;
+		$o->RidLst = array(); // Current Rids in the template
+		$o->RidNew = array(); // New Rids to add at the end of the merge
+		$o->TargetPath = $TargetPath;
+		
+		$DocName = basename($DocPath);
+		$o->FicPath = str_replace($DocName,'_rels/'.$DocName.'.rels',$DocPath);
+		
+		//$zBackNbr = max(substr_count($DocPath, '/') - 1, 0); // docx=>"media/img.png", xlsx & pptx=>"../media/img.png"
+		//$o->ImgPath = str_repeat('../', $zBackNbr).'media/';
 
-		if ($o->FicType===false) {
-			$FicIdx = $this->FileGetIdx($o->FicPath);
-			if ($FicIdx===false) {
-				$o->FicType = 1;
-				$o->FicTxt = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>';
-			} else {
-				$o->FicIdx = $FicIdx;
-				$o->FicType = 0;
-				$Txt = $this->FileRead($FicIdx, true);
-				$o->FicTxt = $Txt;
-				// read existing Rid in the file
-				$zImg = ' Target="'.$o->ImgPath;
-				$zId  = ' Id="';
-				$p = -1;
-				while (($p = strpos($Txt, $zImg, $p+1))!==false) {
-					// Get the image name
-					$p1 = $p + strlen($zImg);
+		$FicIdx = $this->FileGetIdx($o->FicPath);
+		if ($FicIdx===false) {
+			$o->FicType = 1;
+			$o->FicTxt = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>';
+		} else {
+			$o->FicIdx = $FicIdx;
+			$o->FicType = 0;
+			$Txt = $this->FileRead($FicIdx, true);
+			$o->FicTxt = $Txt;
+			// read existing Rid in the file
+			$zTarget = ' Target="'.$TargetPath;
+			$zId  = ' Id="';
+			$p = -1;
+			while (($p = strpos($Txt, $zTarget, $p+1))!==false) {
+				// Get the target name
+				$p1 = $p + strlen($zTarget);
+				$p2 = strpos($Txt, '"', $p1);
+				if ($p2===false) return $this->RaiseError("(OpenXML) end of attribute Target not found in position ".$p1." of subfile ".$o->FicPath);
+				$Target = substr($Txt, $p1, $p2 -$p1);
+				// Get the Id
+				$p1 = strrpos(substr($Txt,0,$p), '<');
+				if ($p1===false) return $this->RaiseError("(OpenXML) begining of tag not found in position ".$p." of subfile ".$o->FicPath);
+				$p1 = strpos($Txt, $zId, $p1);
+				if ($p1!==false) {
+					$p1 = $p1 + strlen($zId);
 					$p2 = strpos($Txt, '"', $p1);
-					if ($p2===false) return $this->RaiseError("(OpenXML) end of attribute Target not found in position ".$p1." of subfile ".$o->FicPath);
-					$Img = substr($Txt, $p1, $p2 -$p1);
-					// Get the Id
-					$p1 = strrpos(substr($Txt,0,$p), '<');
-					if ($p1===false) return $this->RaiseError("(OpenXML) begining of tag not found in position ".$p." of subfile ".$o->FicPath);
-					$p1 = strpos($Txt, $zId, $p1);
-					if ($p1!==false) {
-						$p1 = $p1 + strlen($zId);
-						$p2 = strpos($Txt, '"', $p1);
-						if ($p2===false) return $this->RaiseError("(OpenXML) end of attribute Id not found in position ".$p1." of subfile ".$o->FicPath);
-						$Rid = substr($Txt, $p1, $p2 -$p1 -1);
-						$o->RidLst[$Img] = $Rid;
-					}
+					if ($p2===false) return $this->RaiseError("(OpenXML) end of attribute Id not found in position ".$p1." of subfile ".$o->FicPath);
+					$Rid = substr($Txt, $p1, $p2 -$p1 -1);
+					$o->RidLst[$Target] = $Rid;
 				}
 			}
 		}
+			
+		$this->OpenXmlRid[$DocPath] = &$o;
+		return $o;
 
-		if (isset($o->RidLst[$ImageName])) return $o->RidLst[$ImageName];
+	}
+	
+	/* Add a new Rid in the file in the Rels file. Return the Rid.
+	* Rels files are attached to XML files and are listing, and gives all rids and their corresponding targets used in the XML file.
+	*/
+	function OpenXML_Rels_AddNew($DocPath, $TargetPath, $FileName) {
+		$o = &$this->OpenXML_Rels_GetObj($DocPath, $TargetPath);
+		if (isset($o->RidLst[$FileName])) return $o->RidLst[$FileName];
 
 		// Add the Rid in the information
 		$NewRid = 'opentbs'.(1+count($o->RidNew));
-		$o->RidLst[$ImageName] = $NewRid;
-		$o->RidNew[$ImageName] = $NewRid;
+		$o->RidLst[$FileName] = $NewRid;
+		$o->RidNew[$FileName] = $NewRid;
 
 		return $NewRid;
 
@@ -1312,8 +1323,8 @@ This feature doesn't work with MsExcel because images are not referenced in "sli
 			if ($p===false) return $this->RaiseError("(OpenXML) closing tag </Relationships> not found in subfile ".$o->FicPath);
 			// build the string to instert
 			$x = '';
-			foreach ($o->RidNew as $img=>$rid) {
-				$x .= '<Relationship Id="'.$rid.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="'.$o->ImgPath.$img.'"/>';
+			foreach ($o->RidNew as $file=>$rid) {
+				$x .= '<Relationship Id="'.$rid.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="'.$o->TargetPath.$file.'"/>';
 			}
 			// insert
 			$o->FicTxt = substr_replace($o->FicTxt, $x, $p, 0);
