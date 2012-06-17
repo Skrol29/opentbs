@@ -304,7 +304,7 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
      <span class="smallcode">$Sheet</span> must be a sheet identifier.<br />
      A sheet identifier can be 
      either an integer corresponding to the index of the sheet, or a string corresponding to the name of the sheet.<br />
-    Use command <span class="smallcode">$TBS-&gt;PlugIn(<a href="#debugmode">OPENTBS_DEBUG_INFO</a>)</span> to list all id and name of sheets in current Workbook.</p></td>
+    Use command <span class="smallcode">$TBS-&gt;PlugIn(<a href="#debugmode">OPENTBS_DEBUG_INFO</a>)</span> to list all id and name of sheets in the current Workbook.</p></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DISPLAY_SHEETS, $Sheets[, $Visible])</td>
@@ -320,6 +320,15 @@ This command will raise an error if the opened template is not a Workbook.<br />
 <span class="smallcode">$Sheets</span> must be an array of sheet identifier, or even a single sheet identifier. See command <span class="smallcode">OPENTBS_SELECT_SHEET</span> for more details about sheet identifiers.<br />
 <span class="smallcode">$Delete</span> must be a boolean, default value is <span class="smallcode">true</span>.<br />
 <em class="warning">Please note that for now, you must not delete a sheet that contains a Pivot Table because  this will produce an error when the workbook is opened.</em></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_SELECT_SLIDE, $Slide)</td>
+    <td><p>Select and load the sub-file corresponding to number $Slide.<br />
+      This command is useless for an 
+      OpenOffice Impress presentation because all slides are saved in single sub-file. Nevertheless using it  won't raise an error.<br />
+      <span class="smallcode">$Sheet</span> must be an integer.<br />
+      Use command <span class="smallcode">$TBS-&gt;PlugIn(<a href="#debugmode">OPENTBS_DEBUG_INFO</a>)</span> to list all slides in the current Presentation.<br />
+    <span class="versioning">Command OPENTBS_SELECT_SLIDE is supported since OpenTBS version 1.8.0.</span>    </p></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DELETE_COMMENTS)</td>
@@ -496,6 +505,7 @@ This command will raise an error if the opened template is not a Workbook.<br />
   deconstruct the TBS tags). This feature can be disabled.<br />
 - new parameter &quot;<span class="smallcode">search</span>&quot; for defined the directin of the picture when using &quot;<span class="smallcode">ope=changepic</span>&quot;.<br />
 - when using &quot;<span class="smallcode">ope=changepic</span>&quot;, default value of parameter &quot;<span class="smallcode">default</span>&quot; is now &quot;<span class="smallcode">current</span>&quot;.<br />
+- new command OPENTBS_SELECT_SLIDE <br />
 </p>
 <p> version 1.7.6, on 2012-06-06<br />
   - Restore lost spaces around merged TBS fields in Ms Word  documents. The patch doesn't work for headers and footers, unfortunately.</p>
