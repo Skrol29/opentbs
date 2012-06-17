@@ -32,6 +32,7 @@ define('OPENTBS_DEBUG_CHART_LIST','clsOpenTBS.DebugInfo'); // deprecated
 define('OPENTBS_FORCE_DOCTYPE','clsOpenTBS.ForceDocType');
 define('OPENTBS_DELETE_ELEMENTS','clsOpenTBS.DeleteElements');
 define('OPENTBS_SELECT_SHEET','clsOpenTBS.SelectSheet');
+define('OPENTBS_SELECT_SLIDE','clsOpenTBS.SelectSlide');
 define('OPENTBS_SELECT_MAIN','clsOpenTBS.SelectMain');
 define('OPENTBS_DISPLAY_SHEETS','clsOpenTBS.DisplaySheets');
 define('OPENTBS_DELETE_SHEETS','clsOpenTBS.DeleteSheets');
@@ -461,6 +462,19 @@ class clsOpenTBS extends clsTbsZip {
 				}
 			}
 
+		} elseif ($Cmd==OPENTBS_SELECT_SLIDE) {
+		
+			if ($this->Ext_Get()!='pptx') return false;
+			
+			$this->MsPowerpoint_InitSlideLst();
+	
+			if (isset($this->OpenXmlSlideLst[$x2])) {
+				$this->TBS->LoadTemplate('#'.$this->OpenXmlSlideLst[$x2]);
+				return true;
+			} else {
+				return $this->RaiseError("($Cmd) slide number $x2 is not found inside the Presentation.");
+			}
+		
 		} elseif ($Cmd==OPENTBS_DELETE_COMMENTS) {
 
 			// Default values
@@ -585,8 +599,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$this->TbsDebug_Init($nl, $sep, $bull, 'OPENTBS_DEBUG_INFO');
 
 		if ($this->Ext_Get()==='xlsx') $this->MsExcel_SheetDebug($nl, $sep, $bull);
+		if ($this->Ext_Get()==='pptx') $this->MsPowerpoint_SlideDebug($nl, $sep, $bull);
 		if ($this->Ext_Get()==='ods')  $this->OpenDoc_SheetDebug($nl, $sep, $bull);
-
 
 		if ($this->Ext_GetFrm()==='openxml') {
 			$this->OpenXML_ChartDebug($nl, $sep, $bull);
@@ -1251,15 +1265,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		
 		$o = (object) null;
-		$o->RidLst = array(); // Current Rids in the template
-		$o->RidNew = array(); // New Rids to add at the end of the merge
+		$o->RidLst = array();    // Current Rids in the template
+		$o->TargetLst = array(); // Current Targets in the template
+		$o->RidNew = array();    // New Rids to add at the end of the merge
 		$o->TargetPath = $TargetPath;
 		
+		// Found the Rels file
 		$DocName = basename($DocPath);
 		$o->FicPath = str_replace($DocName,'_rels/'.$DocName.'.rels',$DocPath);
-		
-		//$zBackNbr = max(substr_count($DocPath, '/') - 1, 0); // docx=>"media/img.png", xlsx & pptx=>"../media/img.png"
-		//$o->ImgPath = str_repeat('../', $zBackNbr).'media/';
 
 		$FicIdx = $this->FileGetIdx($o->FicPath);
 		if ($FicIdx===false) {
@@ -1288,8 +1301,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					$p1 = $p1 + strlen($zId);
 					$p2 = strpos($Txt, '"', $p1);
 					if ($p2===false) return $this->RaiseError("(OpenXML) end of attribute Id not found in position ".$p1." of subfile ".$o->FicPath);
-					$Rid = substr($Txt, $p1, $p2 -$p1 -1);
+					$Rid = substr($Txt, $p1, $p2 - $p1);
 					$o->RidLst[$Target] = $Rid;
+					$o->TargetLst[$Rid] = $Target;
 				}
 			}
 		}
@@ -2151,6 +2165,38 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	// Cleaning tags in MsPowerpoint
 
+	function MsPowerpoint_InitSlideLst() {
+	
+		if (isset($this->OpenXmlSlideLst)) return true;
+		
+		$PresFile = 'ppt/presentation.xml';
+		
+		$o = $this->OpenXML_Rels_GetObj('ppt/presentation.xml', 'slides/');
+		
+		$Txt = $this->FileRead($PresFile);
+		if ($Txt===false) return false;
+
+		$p = 0;
+		$i = 0;
+		$lst = array();
+		while ($loc = clsTbsXmlLoc::FindStartTag($Txt, 'p:sldId', $p)) {
+			$i++;
+			$rid = $loc->GetAttLazy('r:id');
+			if ($rid===false) {
+				$this->RaiseError("(Init Slide List) attribute 'r:id' is missing for slide #$i in 'ppt/presentation.xml'.");
+			} elseif (isset($o->TargetLst[$rid])) {
+				$lst[] = $o->TargetPath.$o->TargetLst[$rid];
+			} else {
+				$this->RaiseError("(Init Slide List) Slide corresponding to rid=$rid is not found in the Rels file of 'ppt/presentation.xml'.");
+			}
+			$p = $loc->PosEnd;
+		}
+		
+		$this->OpenXmlSlideLst = $lst;
+		return true;
+		
+	}
+	
 	function MsPowerpoint_Clean(&$Txt) {
 		$this->MsPowerpoint_CleanRpr($Txt, 'a:rPr');
 		$Txt = str_replace('<a:rPr/>', '', $Txt);
@@ -2172,6 +2218,19 @@ It needs to be completed when a new picture file extension is added in the docum
 		while (($p=$this->XML_FoundTagStart($Txt, '<'.$elem, $pe))!==false) {
 			$pe = $this->XML_DeleteAttributes($Txt, $p, array('noProof', 'lang', 'err', 'smtClean', 'dirty'), array());
 		}
+	}
+
+	function MsPowerpoint_SlideDebug($nl, $sep, $bull) {
+
+		$this->MsPowerpoint_InitSlideLst();
+
+		echo $nl;
+		echo $nl.count($this->OpenXmlSlideLst)." slide(s) in the Presentation:";
+		echo $nl."-------------------------------";
+		foreach ($this->OpenXmlSlideLst as $i => $file) {
+			echo $bull."#".($i+1).": ".basename($file);
+		}
+
 	}
 	
 	// Cleaning tags in MsWord
@@ -2637,6 +2696,95 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 
+}
+
+/*
+*/
+class clsTbsXmlLoc {
+
+  var $PosBeg;
+  var $PosEnd;
+  var $SelfClosing;
+  var $Txt;
+  
+  var $pST_PosEnd; // position of the end of the start tag
+  var $pST_Src = false;
+  
+  // Create an instance with the given parameters
+  function __construct(&$Txt, $PosBeg, $PosEnd, $SelfClosing = null) {
+    $this->Txt = &$Txt;
+    $this->PosBeg = $PosBeg;
+    $this->PosEnd = $PosEnd;
+    $this->pST_PosEnd = $PosEnd;
+    $this->SelfClosing = $SelfClosing;
+  }
+
+  // Return the len of the locator
+  function GetLen() {
+    return $this->PosEnd - $this->PosBeg + 1;
+  }
+  
+  // return the source of the locator
+  function GetSrc() {
+    return substr($this->Txt, $this->PosBeg, $this->GetLen() );
+  }
+  
+  // Get an attribut's value. Or false if the attribute is not found.
+  function GetAttLazy($Att) {
+	if ($this->pST_Src===false) $this->pST_Src = substr($this->Txt, $this->PosBeg, $this->pST_PosEnd - $this->PosBeg + 1 );
+	$a = ' '.$Att.'="';
+	$p1 = strpos($this->pST_Src, $a);
+	if ($p1!==false) {
+		$p1 = $p1 + strlen($a);
+		$p2 = strpos($this->pST_Src, '"', $p1);
+		if ($p2!==false) return substr($this->pST_Src, $p1, $p2-$p1);
+	}
+	return false;
+  }
+  
+  // Replace the source of the locator in the TXT contents
+  // Also update the locator's positions.
+  function ReplaceSrc($new) {
+    $len = $this->GetLen(); // avoid PHP error : Strict Standards: Only variables should be passed by reference
+    $this->Txt = substr_replace($this->Txt, $new, $this->PosBeg, $len);
+    $this->PosEnd = $this->PosEnd + strlen($new) - $len;
+	$this->pST_Src = $new;
+  }
+
+   // Search an start tag of an element in the TXT contents, and return an object if it is found.
+  static function FindStartTag(&$Txt, $Tag, $PosBeg, $Forward=true) {
+
+    $PosBeg = clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true , $PosBeg, $Forward, true);
+    if ($PosBeg===false) return false;
+    
+    $PosEnd = strpos($Txt, '>', $PosBeg);
+    if ($PosEnd===false) return false;
+    
+    return new clsTbsXmlLoc($Txt, $PosBeg, $PosEnd);
+
+  }
+
+  // Search an element in the TXT contents, and return an object if it is found
+  static function FindElement(&$Txt, $Tag, $PosBeg, $Forward=true) {
+
+    $XmlLoc = clsTbsXmlLoc::FindStartTag($Txt, $Tag, $PosBeg, $Forward);
+	if ($XmlLoc===false) return false;
+    
+	$pe = $XmlLoc->PosEnd;
+    $XmlLoc->SelfClosing = (substr($Txt, $pe-1, 1)=='/');
+	
+    if (!$XmlLoc->SelfClosing) {
+      $pe = clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, false, $pe, true , true);
+      if ($pe===false) return false;
+      $pe = strpos($Txt, '>', $pe);
+      if ($pe===false) return false;
+	  $XmlLoc->PosEnd = $pe;
+    }
+	
+    return $XmlLoc;
+
+  }
+  
 }
 
 /*
