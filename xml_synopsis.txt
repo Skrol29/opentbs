@@ -32,9 +32,13 @@ Synopsis:
         Normal new lines are made with a new paragraphs <text:p>...</text:p>
         Simple new lines are made with <text:line-break/>
         Tabs are made with <text:tab/>
-        Page breaks are made with a new paragraph having a style which has the attribute {fo:break-before="page"}. 
+        Page-breaks are made with a new paragraph having a style which has the attribute fo:break-before="page" or fo:break-after="page".
+		Note that the page-break does not work if the attribute is in the paragraph element. A "break-before" at the first page, or a "break-after" on the last page has no effect.
         Local styles (bold, color,...) are made with <text:span text:style-name="T1">...</text:span>
       </text:p>
+	  <text:h>...</text:h> A paragraph typed as Header
+	  <text:list>...</text:list> A list of items
+	  <table:table>...</table:table> A table
     </office:text>
   </office:body>
 </office:document-content>

@@ -1064,7 +1064,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$Frm = $this->Ext_GetFormat($Ext, false);
 		}
 
+		$TBS = &$this->TBS;
+		
 		$i = false;
+		$block_alias = false;
+		
 		if (isset($GLOBAL['_OPENTBS_AutoExt'][$Ext])) {
 			$i = $GLOBAL['_OPENTBS_AutoExt'][$Ext];
 		} elseif ($Frm==='odf') {
@@ -1075,10 +1079,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$ctype = array('t' => 'text', 's' => 'spreadsheet', 'g' => 'graphics', 'f' => 'formula', 'p' => 'presentation', 'm' => 'text-master');
 			$i['ctype'] .= $ctype[($Ext[2])];
 			$i['pic_ext'] = array('png' => 'png', 'bmp' => 'bmp', 'gif' => 'gif', 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'jpe' => 'jpeg', 'jfif' => 'jpeg', 'tif' => 'tiff', 'tiff' => 'tiff');
+			$block_alias = array(
+				'tbs:parag' => 'text:p',
+				'tbs:table' => 'table:table',
+				'tbs:row' => 'table:table-row',
+				'tbs:comment' => 'office:annotation',
+				'tbs:page' => array(&$this, 'OpenDoc_GetPage'),
+			);
 		} elseif ($Frm==='openxml') {
 			// Microsoft Office documents
 			$this->OpenXML_MapInit();
-			if ($this->TBS->OtbsConvertApostrophes) {
+			if ($TBS->OtbsConvertApostrophes) {
 				$x = array(chr(226) . chr(128) . chr(152), chr(226) . chr(128) . chr(153));
 			} else {
 				$x = null;
@@ -1088,6 +1099,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$i = array('br' => '<w:br/>', 'frm' => 'openxml', 'ctype' => $ctype . 'wordprocessingml.document', 'pic_path' => 'word/media/', 'rpl_what' => $x, 'rpl_with' => '\'');
 				$i['main'] = $this->OpenXML_MapGetMain('wordprocessingml.document.main+xml', 'word/document.xml');
 				$i['load'] = $this->OpenXML_MapGetFiles(array('wordprocessingml.header+xml', 'wordprocessingml.footer+xml'));
+				$block_alias = array(
+					'tbs:parag' => 'w:p',
+					'tbs:table' => 'w:tbl',
+					'tbs:row' => 'w:tr',
+					//'tbs:comment' => 'office:annotation',
+				);
 			} elseif ($Ext==='xlsx') {
 				$i = array('br' => false, 'frm' => 'openxml', 'ctype' => $ctype . 'spreadsheetml.sheet', 'pic_path' => 'xl/media/');
 				$i['main'] = $this->OpenXML_MapGetMain('spreadsheetml.worksheet+xml', 'xl/worksheets/sheet1.xml');
@@ -1104,6 +1121,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			if (!isset($i['load'])) $i['load'] = array();
 			$i['load'][] = $i['main']; // add to main file at the end of the files to load
 		}
+		
+		if ($block_alias!==false) $TBS->SetOption('block_alias', $block_alias);
+		
 		$this->ExtInfo = $i;
 		return (is_array($i)); // return true if the extension is suported
 	}
@@ -2696,9 +2716,128 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 
+	function OpenDoc_StylesInit() {
+
+		if (isset($this->OpenDoc_Styles)) return;
+
+		$this->OpenDoc_Styles = array();     // sheet info sorted by location
+
+		$Styles = array();
+
+		// Read styles in 'styles.xml'
+		$idx = $this->FileGetIdx('styles.xml');
+		if ($idx!==false) {
+			$Txt = $this->TbsStoreGet($idx, 'Style Init styles.xml');
+			if ($Txt==!false) $this->OpenDoc_StylesFeed($Styles, $Txt);
+		}
+
+		// Read styles in 'content.xml'
+		$idx = $this->FileGetIdx('content.xml');
+		if ($idx!==false){
+			$Txt = $this->TbsStoreGet($idx, 'Style Init content.xml');
+			if ($Txt!==false) $this->OpenDoc_StylesFeed($Styles, $Txt);
+		}
+
+		// define childs
+		foreach($Styles as $n => $s) {
+			if ( ($s->parentName!==false) && isset($Styles[$s->parentName]) ) $Styles[$s->parentName]->childs[$s->name] = &$s;
+		}
+		
+		// propagate page-break property to alla childs
+		$this->OpenDoc_StylesPropagate($Styles);
+
+		$this->OpenDoc_Styles = $Styles;
+	
+	}
+	
+	// Feed $Styles with styles found in $Txt
+	function OpenDoc_StylesFeed(&$Styles, $Txt) {
+		$p = 0;
+		while ($loc = clsTbsXmlLoc::FindElement($Txt, 'style:style', $p)) {
+			unset($o);
+			$o = (object) null;
+			$o->name = $loc->GetAttLazy('style:name');
+			$o->parentName = $loc->GetAttLazy('style:parent-style-name');
+			$o->childs = array();
+			$o->pbreak = false;
+			$o->ctrl = false;
+			$src = $loc->GetSrc();
+			if (strpos($src, ' fo:break-before="page"')!==false) $o->pbreak = 'before';
+			if (strpos($src, ' fo:break-after="page"')!==false) $o->pbreak = 'after';
+			if ($o->name!==false) $Styles[$o->name] = $o;
+			$p = $loc->PosEnd;
+		}
+	}
+	
+	function OpenDoc_StylesPropagate(&$Styles) {
+		foreach ($Styles as $i => $s) {
+			if (!$s->ctrl) {
+				$o->ctrl = true; // avoid circular reference
+				if ($s->pbreak!==false) {
+					foreach ($s->childs as $j => $c) {
+						if ($c->pbreak!==false) $c->pbreak = $s->pbreak;
+						$this->OpenDoc_StylesPropagate($c);
+					}
+				}
+				$s->childs = false;
+			}
+		}
+	}
+	
+	function OpenDoc_GetPage($Tag, $Txt, $Pos, $Forward, $LevelStop) {
+		
+		$this->OpenDoc_StylesInit();
+		
+		$p = $Pos;
+		
+		while (	($loc = clsTbsXmlLoc::FindStartTagHavingAtt($Txt, 'text:style-name', $p, $Forward))!==false) {
+		
+			$style = $loc->GetAttLazy('text:style-name');
+			
+			if ( ($style!==false) && isset($this->OpenDoc_Styles[$style]) ) {
+				$pbreak = $this->OpenDoc_Styles[$style]->pbreak;
+				if ($pbreak!==false) {
+					if ($Forward) {
+						// Forward
+						if ($pbreak==='before') {
+							return $loc->PosBeg -1; // note that the page-break is not in the block
+						} else {
+							$loc->FindEndTag();
+							return $loc->PosEnd;
+						}
+					} else {
+						// Backward
+						if ($pbreak==='before') {
+							return $loc->PosBeg;
+						} else {
+							$loc->FindEndTag();
+							return $loc->PosEnd+1; // note that the page-break is not in the block
+						}
+					}
+				}
+			}
+			
+			$p = ($Forward) ? $loc->PosEnd : $loc->PosBeg; 
+			
+		}
+		
+		// If we are here, then no tag is found, we return the boud of the main element
+		if ($Forward) {
+			$p = strpos($Txt, '</office:text');
+			if ($p===false) return false;
+			return $p-1;
+		} else {
+			$loc = clsTbsXmlLoc::FindStartTag($Txt, 'office:text', $Pos, false);
+			if ($loc===false) return false;
+			return $loc->PosEnd + 1;
+		}
+		
+	}
+	
 }
 
 /*
+Wrapper to find XML entities
 */
 class clsTbsXmlLoc {
 
@@ -2706,13 +2845,15 @@ class clsTbsXmlLoc {
   var $PosEnd;
   var $SelfClosing;
   var $Txt;
+  var $Name = ''; 
   
   var $pST_PosEnd; // position of the end of the start tag
   var $pST_Src = false;
   
   // Create an instance with the given parameters
-  function __construct(&$Txt, $PosBeg, $PosEnd, $SelfClosing = null) {
+  function __construct(&$Txt, $Name, $PosBeg, $PosEnd, $SelfClosing = null) {
     $this->Txt = &$Txt;
+    $this->Name = $Name;
     $this->PosBeg = $PosBeg;
     $this->PosEnd = $PosEnd;
     $this->pST_PosEnd = $PosEnd;
@@ -2751,6 +2892,32 @@ class clsTbsXmlLoc {
 	$this->pST_Src = $new;
   }
 
+  // Find the name of the element
+  function FindName() {
+	if ($this->Name==='') {
+		$p = $this->PosBeg;
+		do {
+			$p++;
+			$z = $this->Txt[$p];
+		} while ( ($z!==' ') && ($z!=="\r") && ($z!=="\n") && ($z!=='>') && ($z!=='/') );
+		$this->Name = substr($this->Txt, $this->PosBeg + 1, $p - $this->PosBeg + 1);
+	}
+	return $this->Name;
+  }
+
+  // Find the ending tag of the object
+  function FindEndTag() {
+	$pe = $this->PosEnd;
+	$this->SelfClosing = (substr($this->Txt, $pe-1, 1)=='/');
+	if (!$this->SelfClosing) {
+	  $pe = clsTinyButStrong::f_Xml_FindTagStart($this->Txt, $this->FindName(), false, $pe, true , true);
+	  if ($pe===false) return false;
+	  $pe = strpos($this->Txt, '>', $pe);
+	  if ($pe===false) return false;
+	  $this->PosEnd = $pe;
+	}
+  }
+  
    // Search an start tag of an element in the TXT contents, and return an object if it is found.
   static function FindStartTag(&$Txt, $Tag, $PosBeg, $Forward=true) {
 
@@ -2760,27 +2927,52 @@ class clsTbsXmlLoc {
     $PosEnd = strpos($Txt, '>', $PosBeg);
     if ($PosEnd===false) return false;
     
-    return new clsTbsXmlLoc($Txt, $PosBeg, $PosEnd);
+	return new clsTbsXmlLoc($Txt, $Tag, $PosBeg, $PosEnd);
 
   }
 
-  // Search an element in the TXT contents, and return an object if it is found
+  // Search an element in the TXT contents, and return an object if it is found.
   static function FindElement(&$Txt, $Tag, $PosBeg, $Forward=true) {
-
+  
     $XmlLoc = clsTbsXmlLoc::FindStartTag($Txt, $Tag, $PosBeg, $Forward);
 	if ($XmlLoc===false) return false;
+	
+    $XmlLoc->FindEndTag();
+    return $XmlLoc;
+
+  }
+
+  // Search an element in the TXT contents which has the asked attribute, and return an object if it is found.
+  // Note that the element found has an unknwown name until FindEndTag() is called.
+  static function FindStartTagHavingAtt(&$Txt, $Att, $PosBeg, $Forward=true) {
+  
+	$p = $PosBeg - (($Forward) ? 1 : -1);
+	$x = (strpos($Att, '=')===false) ? $Att : (' '.$Att.'="'); // get the item more precise if not yet done
+	$search = true;
+	do {
+		if ($Forward) $p = strpos($Txt, $x, $p+1);  else $p = strrpos(substr($Txt, 0, $p+1), $x);
+		if ($p===false) return false;
+		do {
+		  $p = $p - 1;
+		  if ($p<0) return false;
+		  $z = $Txt[$p];
+		} while ( ($z!=='<') && ($z!=='>') );
+		if ($z==='<') $search = false;
+	} while ($search);
+	
+    $PosEnd = strpos($Txt, '>', $p);
+    if ($PosEnd===false) return false;
     
-	$pe = $XmlLoc->PosEnd;
-    $XmlLoc->SelfClosing = (substr($Txt, $pe-1, 1)=='/');
+	return new clsTbsXmlLoc($Txt, '', $p, $PosEnd);
 	
-    if (!$XmlLoc->SelfClosing) {
-      $pe = clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, false, $pe, true , true);
-      if ($pe===false) return false;
-      $pe = strpos($Txt, '>', $pe);
-      if ($pe===false) return false;
-	  $XmlLoc->PosEnd = $pe;
-    }
+  }
+
+  static function FindElementHavingAtt(&$Txt, $Att, $PosBeg, $Forward=true) {
+  
+    $XmlLoc = clsTbsXmlLoc::FindStartTagHavingAtt($Txt, $Att, $PosBeg, $Forward);
+	if ($XmlLoc===false) return false;
 	
+    $XmlLoc->FindEndTag();
     return $XmlLoc;
 
   }
