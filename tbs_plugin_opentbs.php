@@ -1188,7 +1188,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					'tbs:parag' => 'w:p',
 					'tbs:table' => 'w:tbl',
 					'tbs:row' => 'w:tr',
-				);
+					'tbs:page' => array(&$this, 'MsWord_GetPage'),
+				);  
 			} elseif ( ($Ext==='xlsx') || ($Ext==='xlsm')) {
 				$i = array('br' => false, 'frm' => 'openxml', 'equiv'=>'xlsx', 'ctype' => $ctype . 'spreadsheetml.sheet', 'pic_path' => 'xl/media/');
 				$i['main'] = $this->OpenXML_MapGetMain('spreadsheetml.worksheet+xml', 'xl/worksheets/sheet1.xml');
@@ -2589,7 +2590,57 @@ It needs to be completed when a new picture file extension is added in the docum
 		return $nbr;
 
 	}
-	
+
+	// Alias of block: 'tbs:page'
+	function MsWord_GetPage($Tag, $Txt, $Pos, $Forward, $LevelStop) {
+		
+		// Search the two possible tags for having a page-break
+		$loc1 = clsTbsXmlLoc::FindStartTagHavingAtt($Txt, 'w:type="page"', $Pos, $Forward);
+		$loc2 = clsTbsXmlLoc::FindStartTag($Txt, 'w:pageBreakBefore', $Pos, $Forward);
+		
+		// Define the position of start for the corresponding paragraph 
+		if ( ($loc1===false) && ($loc2===false) ) {
+			if ($Forward) {
+				// End of the last paragraph of the document.
+				// We don't use clsTbsXmlLoc because <w:p> elements can be embeded
+				$x = '</w:p>';
+				$p = strrpos($Txt, $x);
+				if ($p===false) return false;
+				return $p + strlen($x)-1;
+			} else {
+				// start of the first paragraph of the document
+				$loc = clsTbsXmlLoc::FindStartTag($Txt, 'w:p', 0, true);
+				if ($loc===false) return false;
+				return $loc->PosBeg;
+			}
+		}
+		
+		//var_export($loc1); // false
+		//var_export($loc2); // 
+		//exit;
+		
+		// Take care that <w:p> elements can be sef-embeded.
+		// 	That's why we assume that there is no page-break in an embeded paragraph while it is useless but possible.
+		if ($loc1===false) {
+			$s = $loc2->PosBeg;
+		} elseif($loc2===false) {
+			$s = $loc1->PosBeg;
+		} else {
+			if ($Forward) {
+				$s = ($loc1->PosBeg < $loc2->PosBeg) ? $loc1->PosBeg : $loc2->PosBeg;
+			} else {
+				$s = ($loc1->PosBeg > $loc2->PosBeg) ? $loc1->PosBeg : $loc2->PosBeg;
+			}
+		}
+		$loc = clsTbsXmlLoc::FindStartTag($Txt, 'w:p', $s, false);
+		
+		$p = $loc->PosBeg;
+		if ($Forward) $p--; // if it's forward, we stop the block before the paragraph with page-break
+		return $p;
+		
+		
+	}
+			
 	// OpenOffice documents
 
 	function OpenDoc_ManifestChange($Path, $Type) {
@@ -3073,10 +3124,11 @@ class clsTbsXmlLoc {
   // Search an element in the TXT contents which has the asked attribute, and return an object if it is found.
   // Note that the element found has an unknwown name until FindEndTag() is called.
   static function FindStartTagHavingAtt(&$Txt, $Att, $PosBeg, $Forward=true) {
-  
+
 	$p = $PosBeg - (($Forward) ? 1 : -1);
-	$x = (strpos($Att, '=')===false) ? $Att : (' '.$Att.'="'); // get the item more precise if not yet done
+	$x = (strpos($Att, '=')===false) ? (' '.$Att.'="') : $Att; // get the item more precise if not yet done
 	$search = true;
+
 	do {
 		if ($Forward) $p = strpos($Txt, $x, $p+1);  else $p = strrpos(substr($Txt, 0, $p+1), $x);
 		if ($p===false) return false;
