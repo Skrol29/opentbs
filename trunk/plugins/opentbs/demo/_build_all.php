@@ -9,7 +9,6 @@ $template_lst = array(
 	'demo_ms_word.docx',
 	'demo_oo_formula.odf' => 'simple',
 	'demo_oo_graph.odg' => 'simple',
-	'demo_oo_master.odm' => 'simple',
 	'demo_oo_presentation.odp' => 'simple',
 	'demo_oo_spreadsheet.ods',
 	'demo_oo_text.odt' => 'simple',

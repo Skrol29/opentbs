@@ -64,8 +64,8 @@ ul {
 
 <body>
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.8.0, 2012-06-16, by Skrol29<br />
-  help file modified on 2012-06-16</div>
+<div>version 1.8.0, 2012-07-15, by Skrol29<br />
+  help file modified on 2012-07-15</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -89,11 +89,9 @@ ul {
   <li><a href="#license">License</a></li>
 </ol>
 <h2><a name="intro" id="intro"></a>1. Introduction</h2>
-<p>OpenTBS is a plug-in for the <a href="http://www.tinybutstrong.com">TinyButStrong</a> Template Engine. <br />
-  <br />
-  TinyButStrong is a  PHP Template Engine which has  special template syntax and allows you to design templates in their natural editing tools. But it normally works only for  Text files, including XML and HTML. <br />
-  <br />
-  With TinyButStrong and its plug-in OpenTBS, you can use the template engine to  merge <strong>OpenOffice</strong> documents and <strong>Ms Office </strong> documents with lot of facilities.   All <strong>OpenDocument Format</strong> (ODF) and <strong> Office Open XML</strong> (OOXML) can be merged with OpenTBS, and also XPS files (XPS is a PDF competitor provided by Microsoft). In fact, all zip archives containing Xml/Html/Text files can be merged with OpenTBS.</p>
+<p>OpenTBS is a plug-in for the <a href="http://www.tinybutstrong.com">TinyButStrong</a> Template Engine. </p>
+<p>  TinyButStrong is a  PHP Template Engine which has  special template syntax and allows you to design templates in their natural editing tools. But it normally works only for  Text files, including XML and HTML.</p>
+<p>  With TinyButStrong and its plug-in OpenTBS, you can use the template engine to  merge <strong>OpenOffice</strong> documents and <strong>Ms Office </strong> documents with lot of facilities.   All <strong>OpenDocument Format</strong> (ODF) and <strong> Office Open XML</strong> (OOXML) can be merged with OpenTBS, and also XPS files (XPS is a PDF competitor provided by Microsoft). In fact, all zip archives containing Xml/Html/Text files can be merged with OpenTBS.</p>
 <h5>What is special to OpenTBS:</h5>
 <ul>
   <li>Design your templates directly with OpenOffice or MS Office.</li>
@@ -118,11 +116,10 @@ ul {
 <p>It is important to figure out that OpenOffice and Ms Office (since version 2007) documents are technically zip archives containing XML files, even if the extension of the document is not &quot;.zip&quot;. Those zip archives can contain other file types like pictures or sounds, but the document structure and the text contents are saved as  XML files. The <a href="xml_synopsis.txt">XML Synopsis</a> summarizes the key entities of XML sub-files contained in OpenOffice and Ms Office documents.</p>
 <p>TinyButStrong can merge XML files, but cannot read zip archives by itself. The plug-in OpenTBS extends the TinyButStrong methods <a href="http://www.tinybutstrong.com/manual.php#php_loadtemplate">LoadTemplate()</a> and <a href="http://www.tinybutstrong.com/manual.php#php_show">Show()</a> to make them working with zip archives. <span id="result_box"><span title="">But you   do not have to bother with it because OpenTBS is managing archives  in a way that is invisible for you.</span></span></p>
 <p> When the OpenTBS plugin is installed, the LoadTemplate() method becomes able to first load a zip archive (an OpenOffice or Ms Office document), and then to load the contents of any XML or Text files stored in the archive. You can then merge the contents of XML or Text files with all features of the TinyButStrong template engine. At the end, the Show() method does render the entire zip archive including  modified stored files. The render can be done as an HTTP download, a news file on the server's disk, or in a PHP string.</p>
-<p>Since OpenTBS version 1.3, you can also add and delete files in the archive. Before this version you could only modify existing files in the archive.<br />
-</p>
-<p> <a name="extension" id="extension"></a>OpenTBS has <strong>automatic extension recognition</strong>. When you load a document which has one of the following extensions { odt, odg, ods, odf, odp, odm, docx, xlsx, pptx }, then the main XML file of the archive are automatically  loaded, and some special character conversion are preset. For example, for all OpenDocument  files, the stored file  &quot;content.xml&quot; is automatically loaded.<br />
+<p>Since OpenTBS version 1.3, you can also add and delete files in the archive. Before this version you could only modify existing files in the archive.</p>
+<p><a name="extension" id="extension"></a>OpenTBS has <strong>automatic extension recognition</strong>. When you load a document which has one of the following extensions { odt, odg, ods, odf, odp, odm, docx, xlsx, pptx }, then the main XML file of the archive are automatically  loaded, and some special character conversion are preset. For example, for all OpenDocument  files, the stored file  &quot;content.xml&quot; is automatically loaded.<br />
   Since  version 1.6.0, 
-  if the extension is not recognized then OpenTBS also try to find the document by the sub-file presence. And if all fails, then you can force the document type using a <a href="#force_doctype">special command</a>.</p>
+if the extension is not recognized then OpenTBS also try to find the document by the sub-file presence. And if all fails, then you can force the document type using a <a href="#force_doctype">special command</a>.</p>
 <h2><a name="coding" id="coding"></a>4. Synopsis and code examples</h2>
 <h3><a name="preparation" id="preparation"></a>4.1. Preparation of TinyButStrong Template Engine with the OpenTBS plug-in</h3>
 <div class="shift code">include_once('tbs_class.php');<br />
@@ -326,8 +323,11 @@ This command will raise an error if the opened template is not a Workbook.<br />
 <em class="warning">Please note that for now, you must not delete a sheet that contains a Pivot Table because  this will produce an error when the workbook is opened.</em></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_PREPARE_IMAGES)</td>
-    <td>Actually makes something only for Ms Excel workbooks. This command makes automatic fields ([onload] and [onshow]) merged in images embeded in the current selected worksheet. This can be useful for changing pictures in Ms Excel.</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_MERGE_SPECIAL_ITEMS)</td>
+    <td><p>Merge special items realtivelly to the current sub-file.<br />
+      
+    For now, it only works with Ms Excel workbooks. This command makes automatic fields ([onload] and [onshow]) merged in pictures embeded in the current selected sheet. This can be useful for changing pictures in Ms Excel.<br />
+    <span class="versioning">Command OPENTBS_MERGE_SPECIAL_ITEMS is supported since OpenTBS version 1.8.0.</span></p></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_SELECT_SLIDE, $Slide)</td>
@@ -515,7 +515,7 @@ This command will raise an error if the opened template is not a Workbook.<br />
 - new parameter &quot;<span class="smallcode">tagpos</span>&quot; to define the position of the TBS tag realtively to the image (when using &quot;<span class="smallcode">ope=changepic</span>&quot;).<br />
 - when using &quot;<span class="smallcode">ope=changepic</span>&quot;, default value of parameter &quot;<span class="smallcode">default</span>&quot; is now &quot;<span class="smallcode">current</span>&quot;.<br />
 - new command OPENTBS_SELECT_SLIDE<br />
-- new command OPENTBS_PREPARE_IMAGES
+- new command OPENTBS_MERGE_SPECIAL_ITEMS
 <br />
 </p>
 <p> version 1.7.6, on 2012-06-06<br />

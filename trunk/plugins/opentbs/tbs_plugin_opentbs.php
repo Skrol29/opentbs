@@ -37,7 +37,7 @@ define('OPENTBS_SELECT_MAIN','clsOpenTBS.SelectMain');
 define('OPENTBS_DISPLAY_SHEETS','clsOpenTBS.DisplaySheets');
 define('OPENTBS_DELETE_SHEETS','clsOpenTBS.DeleteSheets');
 define('OPENTBS_DELETE_COMMENTS','clsOpenTBS.DeleteComments');
-define('OPENTBS_PREPARE_IMAGES','clsOpenTBS.PrepareImages');
+define('OPENTBS_MERGE_SPECIAL_ITEMS','clsOpenTBS.MergeSpecialItems');
 
 
 class clsOpenTBS extends clsTbsZip {
@@ -129,10 +129,11 @@ class clsOpenTBS extends clsTbsZip {
 						if ($this->LastReadComp<=0) { // the contents is not compressed
 							if ($this->ExtInfo!==false) {
 								$i = $this->ExtInfo;
+								$e = $this->Ext_GetEquiv();
 								if (isset($i['rpl_what'])) $TBS->Source = str_replace($i['rpl_what'], $i['rpl_with'], $TBS->Source); // auto replace strings in the loaded file
-								if (($i['ext']==='docx') && $TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
-								if (($i['ext']==='pptx') && $TBS->OtbsClearMsPowerpoint) $this->MsPowerpoint_Clean($TBS->Source);
-								if (($i['ext']==='xlsx') && $TBS->OtbsMsExcelConsistent) {
+								if (($e==='docx') && $TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
+								if (($e==='pptx') && $TBS->OtbsClearMsPowerpoint) $this->MsPowerpoint_Clean($TBS->Source);
+								if (($e==='xlsx') && $TBS->OtbsMsExcelConsistent) {
 									$this->MsExcel_DeleteFormulaResults($TBS->Source);
 									$this->MsExcel_ConvertToRelative($TBS->Source);
 								}
@@ -173,7 +174,7 @@ class clsOpenTBS extends clsTbsZip {
 
 		if (isset($this->OtbsSheetODS))   $this->OpenDoc_SheetDeleteAndDisplay();
 		if (isset($this->OtbsSheetXLSX))  $this->MsExcel_SheetDeleteAndDisplay();
-		if ($this->Ext_Get()=='docx')  $this->MsWord_RenumDocPr();
+		if ($this->Ext_GetEquiv()=='docx')  $this->MsWord_RenumDocPr();
 
 		// Merges all modified subfiles
 		$idx_lst = array_keys($this->TbsStoreLst);
@@ -414,7 +415,7 @@ class clsOpenTBS extends clsTbsZip {
 		} elseif ($Cmd==OPENTBS_SELECT_SHEET) {
 
 			// Only XLSX files have sheets in separated subfiles.
-			if ($this->Ext_Get()==='xlsx') {
+			if ($this->Ext_GetEquiv()==='xlsx') {
 				$loc = $this->MsExcel_SheetGet($x1, $Cmd, true);
 				if ($loc==false) return;
 				if ($this->FileExists($loc->xlsxTarget)) {
@@ -430,7 +431,7 @@ class clsOpenTBS extends clsTbsZip {
 			if (is_null($x2)) $x2 = true; // default value
 			$delete = ($Cmd==OPENTBS_DELETE_SHEETS);
 
-			$ext = $this->Ext_Get();
+			$ext = $this->Ext_GetEquiv();
 			if (!isset($this->OtbsSheetOk)) {
 				if ($ext=='xlsx') $this->OtbsSheetXLSX = true;
 				if ($ext=='ods') $this->OtbsSheetODS = true;
@@ -459,15 +460,15 @@ class clsOpenTBS extends clsTbsZip {
 				}
 			}
 
-		} elseif ($Cmd==OPENTBS_PREPARE_IMAGES) {
+		} elseif ($Cmd==OPENTBS_MERGE_SPECIAL_ITEMS) {
 		
-			if ($this->Ext_Get()!='xlsx') return 0;
+			if ($this->Ext_GetEquiv()!='xlsx') return 0;
 			$lst = $this->MsExcel_GetDrawingLst();
 			$this->TbsQuickLoad($lst);
 		
 		} elseif ($Cmd==OPENTBS_SELECT_SLIDE) {
 		
-			if ($this->Ext_Get()!='pptx') return false;
+			if ($this->Ext_GetEquiv()!='pptx') return false;
 			
 			$this->MsPowerpoint_InitSlideLst();
 	
@@ -486,10 +487,10 @@ class clsOpenTBS extends clsTbsZip {
 			$CommTags = false;
 			$Inner = false;
 
-			if ($this->Ext_GetFrm()=='odf') {
+			if ($this->Ext_GetType()=='odf') {
 				$MainTags = array('office:annotation', 'officeooo:annotation'); // officeooo:annotation is used in ODP Presentations
 			} else {
-				switch ($this->Ext_Get()) {
+				switch ($this->Ext_GetEquiv()) {
 				case 'docx':
 					$MainTags = array('w:commentRangeStart', 'w:commentRangeEnd', 'w:commentReference');
 					$CommFiles = array('wordprocessingml.comments+xml');
@@ -670,11 +671,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$this->TbsDebug_Init($nl, $sep, $bull, 'OPENTBS_DEBUG_INFO');
 
-		if ($this->Ext_Get()==='xlsx') $this->MsExcel_SheetDebug($nl, $sep, $bull);
-		if ($this->Ext_Get()==='pptx') $this->MsPowerpoint_SlideDebug($nl, $sep, $bull);
-		if ($this->Ext_Get()==='ods')  $this->OpenDoc_SheetDebug($nl, $sep, $bull);
+		if ($this->Ext_GetEquiv()==='xlsx') $this->MsExcel_SheetDebug($nl, $sep, $bull);
+		if ($this->Ext_GetEquiv()==='pptx') $this->MsPowerpoint_SlideDebug($nl, $sep, $bull);
+		if ($this->Ext_GetEquiv()==='ods')  $this->OpenDoc_SheetDebug($nl, $sep, $bull);
 
-		if ($this->Ext_GetFrm()==='openxml') {
+		if ($this->Ext_GetType()==='openxml') {
 			$this->OpenXML_ChartDebug($nl, $sep, $bull);
 		}
 
@@ -1035,11 +1036,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 			// preparation for others file in the archive
 			$Rid = false;
-			$Frm = $this->Ext_GetFrm();
-			if ($Frm==='odf') {
+			$Type = $this->Ext_GetType();
+			if ($Type==='odf') {
 				// OpenOffice document
 				$this->OpenDoc_ManifestChange($InternalPath,'');
-			} elseif ($Frm==='openxml') {
+			} elseif ($Type==='openxml') {
 				// Microsoft Office document
 				$this->OpenXML_CTypesPrepare($InternalPath, '');
 				$BackNbr = max(substr_count($TBS->OtbsCurrFile, '/') - 1, 0); // docx=>"media/img.png", xlsx & pptx=>"../media/img.png"
@@ -1138,10 +1139,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$Ext = basename($this->ArchFile);
 			$p = strrpos($Ext, '.');
 			$Ext = ($p===false) ? '' : strtolower(substr($Ext, $p + 1));
-			$Frm = $this->Ext_GetFormat($Ext, true);
+			$Frm = $this->Ext_DeductFormat($Ext, true);
 		} else {
 			// The extension is forced
-			$Frm = $this->Ext_GetFormat($Ext, false);
+			$Frm = $this->Ext_DeductFormat($Ext, false);
 		}
 
 		$TBS = &$this->TBS;
@@ -1156,15 +1157,19 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$i = array('main' => 'content.xml', 'br' => '<text:line-break/>', 'frm' => 'odf', 'ctype' => 'application/vnd.oasis.opendocument.', 'pic_path' => 'Pictures/', 'rpl_what' => '&apos;', 'rpl_with' => '\'');
 			if ($this->FileExists('styles.xml')) $i['load'] = array('styles.xml'); // styles.xml may contain header/footer contents
 			if ($Ext==='odf') $i['br'] = false;
+			if ($Ext==='odm') $i['equiv'] = 'odt';
 			$ctype = array('t' => 'text', 's' => 'spreadsheet', 'g' => 'graphics', 'f' => 'formula', 'p' => 'presentation', 'm' => 'text-master');
 			$i['ctype'] .= $ctype[($Ext[2])];
 			$i['pic_ext'] = array('png' => 'png', 'bmp' => 'bmp', 'gif' => 'gif', 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'jpe' => 'jpeg', 'jfif' => 'jpeg', 'tif' => 'tiff', 'tiff' => 'tiff');
 			$block_alias = array(
-				'tbs:parag' => 'text:p',
-				'tbs:table' => 'table:table',
-				'tbs:row' => 'table:table-row',
+				'tbs:parag' => 'text:p',          // ODT
+				'tbs:table' => 'table:table',     // ODT (sheet for ODS)
+				'tbs:row' => 'table:table-row',   // ODT+ODS
+				'tbs:cell' => 'table:table-cell', // ODT+ODS
 				'tbs:comment' => 'office:annotation',
-				'tbs:page' => array(&$this, 'OpenDoc_GetPage'),
+				'tbs:page' => array(&$this, 'OpenDoc_GetPage'), // ODT
+				'tbs:slide' => 'draw:page',       // ODP
+				'tbs:sheet' => 'table:table',     // ODS (table for ODT)
 			);
 		} elseif ($Frm==='openxml') {
 			// Microsoft Office documents
@@ -1183,21 +1188,31 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					'tbs:parag' => 'w:p',
 					'tbs:table' => 'w:tbl',
 					'tbs:row' => 'w:tr',
-					//'tbs:comment' => 'office:annotation',
 				);
-			} elseif ($Ext==='xlsx') {
-				$i = array('br' => false, 'frm' => 'openxml', 'ctype' => $ctype . 'spreadsheetml.sheet', 'pic_path' => 'xl/media/');
+			} elseif ( ($Ext==='xlsx') || ($Ext==='xlsm')) {
+				$i = array('br' => false, 'frm' => 'openxml', 'equiv'=>'xlsx', 'ctype' => $ctype . 'spreadsheetml.sheet', 'pic_path' => 'xl/media/');
 				$i['main'] = $this->OpenXML_MapGetMain('spreadsheetml.worksheet+xml', 'xl/worksheets/sheet1.xml');
+				$block_alias = array(
+					'tbs:row' => 'row',
+					'tbs:cell' => 'c',
+				);
 			} elseif ($Ext==='pptx') {
 				$i = array('br' => false, 'frm' => 'openxml', 'ctype' => $ctype . 'presentationml.presentation', 'pic_path' => 'ppt/media/', 'rpl_what' => $x, 'rpl_with' => '\'');
 				$i['main'] = $this->OpenXML_MapGetMain('presentationml.slide+xml', 'ppt/slides/slide1.xml');
 				$i['load'] = $this->OpenXML_MapGetFiles(array('presentationml.notesSlide+xml'));
+				$block_alias = array(
+					'tbs:parag' => 'a:p',
+					'tbs:table' => 'a:tbl',
+					'tbs:row' => 'a:tr',
+					'tbs:cell' => 'a:tc',
+				);
 			}
 			$i['pic_ext'] = array('png' => 'png', 'bmp' => 'bmp', 'gif' => 'gif', 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'jpe' => 'jpeg', 'tif' => 'tiff', 'tiff' => 'tiff', 'ico' => 'x-icon', 'svg' => 'svg+xml');
 		}
 
 		if ($i!==false) {
 			$i['ext'] = $Ext;
+			if (!isset($i['equiv'])) $i['equiv'] = $Ext;
 			if (!isset($i['load'])) $i['load'] = array();
 			$i['load'][] = $i['main']; // add to main file at the end of the files to load
 		}
@@ -1209,9 +1224,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	// Return the type of document corresponding to the given extension.
-	function Ext_GetFormat(&$Ext, $Search) {
+	function Ext_DeductFormat(&$Ext, $Search) {
 		if (strpos(',odt,ods,odg,odf,odp,odm,ott,ots,otg,otp,', ',' . $Ext . ',') !== false) return 'odf';
-		if (strpos(',docx,xlsx,pptx,', ',' . $Ext . ',') !== false) return 'openxml';
+		if (strpos(',docx,xlsx,xlsm,pptx,', ',' . $Ext . ',') !== false) return 'openxml';
 		if (!$Search) return false;
 		if ($this->FileExists('content.xml')) {
 			// OpenOffice documents
@@ -1235,17 +1250,16 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return false;
 	}
 
-	// Return the extension of the current document (docx, xlsx, odt, ods, ...)
-	function Ext_Get() {
-		if ( ($this->ExtInfo!==false) && isset($this->ExtInfo['ext']) ) {
-			return $this->ExtInfo['ext'];
-		} else {
-			return false;
-		}
+	// Return the equivalent extension of the current document (docx, xlsx, odt, ods, ...) or false
+	function Ext_GetEquiv() {
+		if ($this->ExtInfo===false) return false;
+		if (isset($this->ExtInfo['equiv'])) return $this->ExtInfo['equiv'];
+		if (isset($this->ExtInfo['ext'])) return $this->ExtInfo['ext'];
+		return false;
 	}
 
 	// Return the type of the current document : 'odf', 'openxml' or false
-	function Ext_GetFrm() {
+	function Ext_GetType() {
 		if ( ($this->ExtInfo!==false) && isset($this->ExtInfo['frm']) ) {
 			return $this->ExtInfo['frm'];
 		} else {
