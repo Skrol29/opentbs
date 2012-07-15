@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.8.0-beta-2012-06-16 (2012-06-16)
+/* OpenTBS version 1.8.0-beta-2012-07-15 (2012-07-15)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -37,6 +37,7 @@ define('OPENTBS_SELECT_MAIN','clsOpenTBS.SelectMain');
 define('OPENTBS_DISPLAY_SHEETS','clsOpenTBS.DisplaySheets');
 define('OPENTBS_DELETE_SHEETS','clsOpenTBS.DeleteSheets');
 define('OPENTBS_DELETE_COMMENTS','clsOpenTBS.DeleteComments');
+define('OPENTBS_PREPARE_IMAGES','clsOpenTBS.PrepareImages');
 
 
 class clsOpenTBS extends clsTbsZip {
@@ -52,7 +53,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
 		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
-		$this->Version = '1.8.0-beta-2012-06-16';
+		$this->Version = '1.8.0-beta-2012-07-15';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -83,10 +84,12 @@ class clsOpenTBS extends clsTbsZip {
 				$SubFileLst = $this->ExtInfo['load'];
 				$TBS->OtbsConvBr = $this->ExtInfo['br'];
 			}
+			// Initialize other archive informations
 			$TBS->OtbsCurrFile = false;
 			$TBS->OtbsSubFileLst = $SubFileLst;
 			$this->TbsStoreLst = array();
 			$this->TbsCurrIdx = false;
+			$this->TbsNoField = array(); // idx of sub-file having no TBS fields
 		} elseif ($this->ArchFile==='') {
 			$this->RaiseError('Cannot read file(s) "'.$SubFileLst.'" because no archive is opened.');
 		}
@@ -102,16 +105,15 @@ class clsOpenTBS extends clsTbsZip {
 			}
 		}
 
-		$TbsLoadTemplate = (($TBS->Render & OPENTBS_DEBUG_AVOIDAUTOFIELDS)!=OPENTBS_DEBUG_AVOIDAUTOFIELDS);
+		$MergeAutoFields = $this->TbsMergeAutoFields();
 
 		// Load the subfile(s)
 		if (($SubFileLst!=='') && ($SubFileLst!==false)) {
 
 			if (is_string($SubFileLst)) $SubFileLst = explode(';',$SubFileLst);
 
-			$ModeSave = $TBS->_Mode;
-			$TBS->_Mode++;    // deactivate TplVars[] reset and Charset reset.
-			$TBS->Plugin(-4); // deactivate other plugins
+			// configuration to prevent from other plug-ins
+			$this->TbsSwitchMode(true);
 
 			foreach ($SubFileLst as $SubFile) {
 
@@ -122,7 +124,7 @@ class clsOpenTBS extends clsTbsZip {
 					// Save the current loaded subfile if any
 					$this->TbsStorePark();
 					// load the subfile
-					$TBS->Source = $this->TbsStoreGet($idx, false);
+					$this->TbsStoreLoad($idx, $SubFile);
 					if ($this->LastReadNotStored) {
 						if ($this->LastReadComp<=0) { // the contents is not compressed
 							if ($this->ExtInfo!==false) {
@@ -136,20 +138,15 @@ class clsOpenTBS extends clsTbsZip {
 								}
 							}
 							// apply default TBS behaviors on the uncompressed content: other plug-ins + [onload] fields
-							if ($TbsLoadTemplate) $TBS->LoadTemplate(null,'+');
+							if ($MergeAutoFields) $TBS->LoadTemplate(null,'+');
 						}
 					}
-
-					$TBS->OtbsCurrFile = $SubFile;
-					$this->TbsCurrIdx = $idx;
-
 				}
 
 			}
 
 			// Reactivate default configuration
-			$TBS->_Mode = $ModeSave;
-			$TBS->Plugin(-10); // reactivate other plugins
+			$this->TbsSwitchMode(false);
 
 		}
 
@@ -462,6 +459,12 @@ class clsOpenTBS extends clsTbsZip {
 				}
 			}
 
+		} elseif ($Cmd==OPENTBS_PREPARE_IMAGES) {
+		
+			if ($this->Ext_Get()!='xlsx') return 0;
+			$lst = $this->MsExcel_GetDrawingLst();
+			$this->TbsQuickLoad($lst);
+		
 		} elseif ($Cmd==OPENTBS_SELECT_SLIDE) {
 		
 			if ($this->Ext_Get()!='pptx') return false;
@@ -511,9 +514,27 @@ class clsOpenTBS extends clsTbsZip {
 		}
 
 	}
+	
+	// Return true if automatic fields must be merged
+	function TbsMergeAutoFields() {
+		return (($this->TBS->Render & OPENTBS_DEBUG_AVOIDAUTOFIELDS)!=OPENTBS_DEBUG_AVOIDAUTOFIELDS);
+	}
+	
+	function TbsSwitchMode($PluginMode) {
+		$TBS = &$this->TBS;
+		if ($PluginMode) {
+			$this->_ModeSave = $TBS->_Mode;
+			$TBS->_Mode++;    // deactivate TplVars[] reset and Charset reset.
+			$TBS->Plugin(-4); // deactivate other plugins
+		} else {
+			// Reactivate default configuration
+			$TBS->_Mode = $this->_ModeSave;
+			$TBS->Plugin(-10); // reactivate other plugins
+		}
+	}
 
+	// Save the last opened subfile into the store, and close the subfile
 	function TbsStorePark() {
-		// save the last opened subfile into the store, and close the subfile
 		if ($this->TbsCurrIdx!==false) {
 			$this->TbsStoreLst[$this->TbsCurrIdx] = array('src'=>$this->TBS->Source, 'onshow'=>true);
 			$this->TBS->Source = '';
@@ -521,8 +542,16 @@ class clsOpenTBS extends clsTbsZip {
 		}
 	}
 
+	// Load a subfile from the store to be the current subfile
+	function TbsStoreLoad($idx, $file=false) {
+		$this->TBS->Source = $this->TbsStoreGet($idx, false);
+		$this->TbsCurrIdx = $idx;
+		if ($file===false) $file = $this->TbsGetFileName($idx);
+		$this->TBS->OtbsCurrFile = $file;
+	}
+
+	// Save a given source in the store. If $onshow is null, then the 'onshow' option stays unchanged
 	function TbsStorePut($idx, $src, $onshow = null) {
-		// Save a given source in the store. If $onshow is null, then it stay unchanged
 		if ($idx===$this->TbsCurrIdx) {
 			$this->TBS->Source = $src;
 		} else {
@@ -537,9 +566,9 @@ class clsOpenTBS extends clsTbsZip {
 		}
 	}
 
+	// retrieve a source from the current merging, the store, or the archive
+	// the file is not stored yet if it comes from the archive
 	function TbsStoreGet($idx, $caller) {
-		// retrieve a source from the merging, the store, or the archive
-		// the file is not stored yet if it comes from the archive
 		$this->LastReadNotStored = false;
 		if ($idx===$this->TbsCurrIdx) {
 			return $this->TBS->Source;
@@ -560,6 +589,49 @@ class clsOpenTBS extends clsTbsZip {
 		}
 	}
 
+	// Load a list of sub-files, but only if they have TBS fields.
+	// This is in order to merge automatic fields in special XML sub-files that are not usually loaded manually.
+	function TbsQuickLoad($NameLst) {
+	
+		if (!is_array($NameLst)) $NameLst = array($NameLst);
+		$nbr = 0;
+		$TBS = &$this->TBS;
+		
+		foreach ($NameLst as $FileName) {
+			$idx = $this->FileGetIdx($FileName);
+			if ( (!isset($this->TbsStoreLst[$idx])) && (!isset($this->TbsNoField[$idx])) ) {
+				$txt = $this->FileRead($idx, true);
+				if (strpos($txt, $TBS->_ChrOpen)!==false) {
+					// merge
+					$nbr++;
+					if ($nbr==1) {
+						$MergeAutoFields = $this->TbsMergeAutoFields();
+						$SaveIdx = $this->TbsCurrIdx; // save the index of sub-file before the QuickLoad
+						$SaveName = $TBS->OtbsCurrFile;
+						$this->TbsSwitchMode(true);
+					}
+					$this->TbsStorePark(); // save the current file in the store
+					$TBS->Source = $txt;
+					unset($txt);
+					$TBS->OtbsCurrFile = $FileName; // may be needed for [onload] parameters
+					$this->TbsCurrIdx = $idx;
+					if ($MergeAutoFields) $TBS->LoadTemplate(null,'+');
+				} else {
+					$this->TbsNoField[$idx] = true;
+				}
+			}
+		}
+		
+		if ($nbr>0) {
+			$this->TbsSwitchMode(false);
+			$this->TbsStorePark(); // save the current file in the store
+			$this->TbsStoreLoad($SaveIdx, $SaveName); // restore the sub-file as before the QuickLoad
+		}
+		
+		return $nbr;
+		
+	}
+	
 	function TbsGetFileName($idx) {
 		if (isset($this->CdFileLst[$idx])) {
 			return $this->CdFileLst[$idx]['v_name'];
@@ -756,7 +828,15 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	function TbsPicFound($Txt, &$Loc) {
 	// Found the relevent attribute for the image source, and then add parameter 'att' to the TBS locator.
 		$att = false;
-		$backward = !(isset($Loc->PrmLst['search']) && ($Loc->PrmLst['search']=='forward'));
+		$backward = true;
+		if (isset($Loc->PrmLst['tagpos'])) {
+			$s = $Loc->PrmLst['tagpos'];
+			if ($s=='before') {
+				$backward = false;
+			} elseif ($s=='inside') {
+				if ($this->ExtInfo['frm']=='openxml') $backward = false;
+			}
+		}
 		if (isset($this->ExtInfo['frm'])) {
 			if ($this->ExtInfo['frm']==='odf') {
 				$att = 'draw:image#xlink:href';
@@ -963,9 +1043,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				// Microsoft Office document
 				$this->OpenXML_CTypesPrepare($InternalPath, '');
 				$BackNbr = max(substr_count($TBS->OtbsCurrFile, '/') - 1, 0); // docx=>"media/img.png", xlsx & pptx=>"../media/img.png"
-				$TargetPath = str_repeat('../', $BackNbr).'media/';
+				$TargetDir = str_repeat('../', $BackNbr).'media/';
 				$FileName = basename($InternalPath);
-				$Rid = $this->OpenXML_Rels_AddNew($TBS->OtbsCurrFile, $TargetPath, $FileName);
+				$Rid = $this->OpenXML_Rels_AddNew($TBS->OtbsCurrFile, $TargetDir, $FileName);
 			}
 
 			// change the value of the field for the merging process
@@ -1128,6 +1208,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return (is_array($i)); // return true if the extension is suported
 	}
 
+	// Return the type of document corresponding to the given extension.
 	function Ext_GetFormat(&$Ext, $Search) {
 		if (strpos(',odt,ods,odg,odf,odp,odm,ott,ots,otg,otp,', ',' . $Ext . ',') !== false) return 'odf';
 		if (strpos(',docx,xlsx,pptx,', ',' . $Ext . ',') !== false) return 'openxml';
@@ -1154,6 +1235,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return false;
 	}
 
+	// Return the extension of the current document (docx, xlsx, odt, ods, ...)
 	function Ext_Get() {
 		if ( ($this->ExtInfo!==false) && isset($this->ExtInfo['ext']) ) {
 			return $this->ExtInfo['ext'];
@@ -1162,6 +1244,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 	}
 
+	// Return the type of the current document : 'odf', 'openxml' or false
 	function Ext_GetFrm() {
 		if ( ($this->ExtInfo!==false) && isset($this->ExtInfo['frm']) ) {
 			return $this->ExtInfo['frm'];
@@ -1273,38 +1356,50 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return $Pos + $x_len2;
 	}
 	
-	/* Return an object that represents the informations of an .rels file.
-	* It stores Rids of files in a the $TargetPath path of the archive (image, ...).
+	/* Return an object that represents the informations of an .rels file, but for optimization, targets are scanned only for asked directories.
+	* The function stores Rids of files existing in a the $TargetDir directory of the archive (image, ...).
 	*/
-	function OpenXML_Rels_GetObj($DocPath, $TargetPath) {
+	function OpenXML_Rels_GetObj($DocPath, $TargetDir) {
 	
-		if (isset($this->OpenXmlRid[$DocPath])) {
+		// Create the object if it does not exist yet
+		if (!isset($this->OpenXmlRid[$DocPath])) {
+		
+			$o = (object) null;
+			$o->RidLst = array();    // Current Rids in the template
+			$o->TargetLst = array(); // Current Targets in the template
+			$o->RidNew = array();    // New Rids to add at the end of the merge
+			$o->DirLst = array();    // Processed target dir
+			
+			$DocName = basename($DocPath);
+			$o->FicPath = str_replace($DocName,'_rels/'.$DocName.'.rels',$DocPath);
+
+			$FicIdx = $this->FileGetIdx($o->FicPath);
+			if ($FicIdx===false) {
+				$o->FicType = 1;
+				$Txt = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>';
+			} else {
+				$o->FicIdx = $FicIdx;
+				$o->FicType = 0;
+				$Txt = $this->FileRead($FicIdx, true);
+			}
+			$o->FicTxt = $Txt;
+
+			$this->OpenXmlRid[$DocPath] = &$o;
+
+		} else {
+		
 			$o = &$this->OpenXmlRid[$DocPath];
-			if ($o->TargetPath!=$TargetPath) $this->RaiseError("(OpenXML) the Rels file $DocPath has previously been analyzed with TargetPath=$TargetPath.");
-			return $o;
+			$Txt = &$o->FicTxt;
+			
 		}
 		
-		$o = (object) null;
-		$o->RidLst = array();    // Current Rids in the template
-		$o->TargetLst = array(); // Current Targets in the template
-		$o->RidNew = array();    // New Rids to add at the end of the merge
-		$o->TargetPath = $TargetPath;
+		// Feed the Rid and Target lists for the asked directory
+		if (!isset($o->DirLst[$TargetDir])) {
 		
-		// Found the Rels file
-		$DocName = basename($DocPath);
-		$o->FicPath = str_replace($DocName,'_rels/'.$DocName.'.rels',$DocPath);
+			$o->DirLst[$TargetDir] = true;
 
-		$FicIdx = $this->FileGetIdx($o->FicPath);
-		if ($FicIdx===false) {
-			$o->FicType = 1;
-			$o->FicTxt = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>';
-		} else {
-			$o->FicIdx = $FicIdx;
-			$o->FicType = 0;
-			$Txt = $this->FileRead($FicIdx, true);
-			$o->FicTxt = $Txt;
 			// read existing Rid in the file
-			$zTarget = ' Target="'.$TargetPath;
+			$zTarget = ' Target="'.$TargetDir;
 			$zId  = ' Id="';
 			$p = -1;
 			while (($p = strpos($Txt, $zTarget, $p+1))!==false) {
@@ -1312,7 +1407,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$p1 = $p + strlen($zTarget);
 				$p2 = strpos($Txt, '"', $p1);
 				if ($p2===false) return $this->RaiseError("(OpenXML) end of attribute Target not found in position ".$p1." of subfile ".$o->FicPath);
-				$Target = substr($Txt, $p1, $p2 -$p1);
+				$Target = $TargetDir.substr($Txt, $p1, $p2 -$p1);
 				// Get the Id
 				$p1 = strrpos(substr($Txt,0,$p), '<');
 				if ($p1===false) return $this->RaiseError("(OpenXML) begining of tag not found in position ".$p." of subfile ".$o->FicPath);
@@ -1326,9 +1421,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					$o->TargetLst[$Rid] = $Target;
 				}
 			}
+
 		}
-			
-		$this->OpenXmlRid[$DocPath] = &$o;
+
 		return $o;
 
 	}
@@ -1336,19 +1431,23 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	/* Add a new Rid in the file in the Rels file. Return the Rid.
 	* Rels files are attached to XML files and are listing, and gives all rids and their corresponding targets used in the XML file.
 	*/
-	function OpenXML_Rels_AddNew($DocPath, $TargetPath, $FileName) {
-		$o = &$this->OpenXML_Rels_GetObj($DocPath, $TargetPath);
-		if (isset($o->RidLst[$FileName])) return $o->RidLst[$FileName];
+	function OpenXML_Rels_AddNew($DocPath, $TargetDir, $FileName) {
+	
+		$o = &$this->OpenXML_Rels_GetObj($DocPath, $TargetDir);
+		$Target = $TargetDir.$FileName;
+		
+		if (isset($o->RidLst[$Target])) return $o->RidLst[$Target];
 
 		// Add the Rid in the information
 		$NewRid = 'opentbs'.(1+count($o->RidNew));
-		$o->RidLst[$FileName] = $NewRid;
-		$o->RidNew[$FileName] = $NewRid;
+		$o->RidLst[$Target] = $NewRid;
+		$o->RidNew[$Target] = $NewRid;
 
 		return $NewRid;
 
 	}
 
+	// Save the changes in the rels files (works only for images for now)
 	function OpenXML_RidCommit ($Debug) {
 
 		foreach ($this->OpenXmlRid as $o) {
@@ -1358,7 +1457,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			// build the string to instert
 			$x = '';
 			foreach ($o->RidNew as $file=>$rid) {
-				$x .= '<Relationship Id="'.$rid.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="'.$o->TargetPath.$file.'"/>';
+				$x .= '<Relationship Id="'.$rid.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="'.$file.'"/>';
 			}
 			// insert
 			$o->FicTxt = substr_replace($o->FicTxt, $x, $p, 0);
@@ -2183,8 +2282,22 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 
-	// Cleaning tags in MsPowerpoint
+	// Return the list of images in the current sheet
+	function MsExcel_GetDrawingLst() {
+	
+		$lst = array();
+	
+		$dir = '../drawings/';
+		$dir_len = strlen($dir);
+		$o = $this->OpenXML_Rels_GetObj($this->TBS->OtbsCurrFile, $dir);
+		foreach($o->TargetLst as $t) {
+			if ( (substr($t, 0, $dir_len)===$dir) && (substr($t, -4)==='.xml') ) $lst[] = 'xl/drawings/'.substr($t, $dir_len);
+		}
 
+		return $lst;
+	}
+	
+	// Return the list of slides in the Ms Powerpoint presentation
 	function MsPowerpoint_InitSlideLst() {
 	
 		if (isset($this->OpenXmlSlideLst)) return true;
@@ -2205,7 +2318,7 @@ It needs to be completed when a new picture file extension is added in the docum
 			if ($rid===false) {
 				$this->RaiseError("(Init Slide List) attribute 'r:id' is missing for slide #$i in 'ppt/presentation.xml'.");
 			} elseif (isset($o->TargetLst[$rid])) {
-				$lst[] = $o->TargetPath.$o->TargetLst[$rid];
+				$lst[] = $o->TargetLst[$rid];
 			} else {
 				$this->RaiseError("(Init Slide List) Slide corresponding to rid=$rid is not found in the Rels file of 'ppt/presentation.xml'.");
 			}
@@ -2217,6 +2330,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		
 	}
 	
+	// Clean tags in an Ms Powerpoint slide
 	function MsPowerpoint_Clean(&$Txt) {
 		$this->MsPowerpoint_CleanRpr($Txt, 'a:rPr');
 		$Txt = str_replace('<a:rPr/>', '', $Txt);
