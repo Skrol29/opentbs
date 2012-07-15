@@ -23,26 +23,30 @@ body,td,th {
 
 <body>
 <p align="center"><span class="title1">OpenTBS</span> <span class="title1">demo</span><br />
-  OpenTBS is a PHP tool that produce any OpenOffice and Ms Office documents with the technic of template<br />
+  OpenTBS is a PHP tool that produces any OpenOffice and Ms Office documents with the technic of template<br />
   <br />
 </p>
-<p>OpenTBS can merge any OpenDocument and Open XML  files. It autommatically reconize extensions: <strong>odt</strong>, <strong>ods</strong>, <strong>odg</strong>, <strong>odf</strong>, <strong>odm</strong>, <strong>odp</strong>, <strong>ott</strong>, <strong>ots</strong>, <strong>otg</strong>, <strong>otp</strong>, <strong>docx</strong>, <strong>xlsx</strong>, <strong>pptx</strong>.<br />
-In fact it can merge any XML or Text file saved in a zip container (which is the case for both OpenDocuments and OpenXML documents).</p>
-<p>- No temporary files needed.<br />
-  - Creates a new document directly as a download, a physical file, or a binary PHP string.<br />
-  - Works with both PHP 4 and PHP 5.<br />
-- No PHP extension required (but easier to use if <a href="http://www.php.net/manual/en/book.zlib.php">ZLib</a> is enabled) <br />
-Help file : <a href="http://www.tinybutstrong.com/plugins/opentbs/tbs_plugin_opentbs.html">tbs_plugin_opentbs.html</a></p>
+<h2>Presentation</h2>
+<p>OpenTBS can merge any OpenDocument and Open XML  files. It autommatically reconize extensions: <strong>odt</strong>, <strong>ods</strong>, <strong>odg</strong>, <strong>odf</strong>, <strong>odm</strong>, <strong>odp</strong>, <strong>ott</strong>, <strong>ots</strong>, <strong>otg</strong>, <strong>otp</strong>, <strong>docx</strong>, <strong>xlsx, xlsm</strong>, <strong>pptx</strong>.</p>
+<p> In fact it can merge any XML or Text file saved in a zip container (which is the case for both OpenDocuments and OpenXML documents).</p>
+<p><span id="result_box" lang="en" xml:lang="en">In addition to the usual merging operations, m</span>any other oprerations can be done on documents, such as: feed a table, delete or display paragraphs, change pictures, delete sheets, change data in graphs, ... and much more.</p>
+<h2>Characteristics</h2>
+<ul>
+  <li> No temporary files needed.</li>
+  <li> Creates a new document directly as a download, a physical file, or a binary PHP string.</li>
+  <li> Works with both PHP 4 and PHP 5.</li>
+  <li> No PHP extension required (but easier to use if <a href="http://www.php.net/manual/en/book.zlib.php">ZLib</a> is enabled)</li>
+</ul>
+<h2>Demo</h2>
 <form id="form1" name="form1" method="post" action="demo_merge.php">
   Enter a name:
     <input name="yourname" type="text" id="yourname" size="10" />, choose a template:
   <select name="tpl" id="tpl">
     <option value="demo_oo_text.odt">OpenOffice Writer Document (.odt)</option>
     <option value="demo_oo_spreadsheet.ods">OpenOffice Calc Spreadsheet (.ods)</option>
+    <option value="demo_oo_presentation.odp">OpenOffice Impress Presentation (.odp)</option>
     <option value="demo_oo_graph.odg">OpenOffice Draw Graphic (.odg)</option>
     <option value="demo_oo_formula.odf">OpenOffice Math Formula (.odf)</option>
-    <option value="demo_oo_master.odm">OpenOffice Master (.odm)</option>
-    <option value="demo_oo_presentation.odp">OpenOffice Impress Presentation (.odp)</option>
     <option value="demo_ms_word.docx">Ms Word Document (.docx)</option>
     <option value="demo_ms_excel.xlsx">Ms Excel SpreadSheet (.xlsx)</option>
     <option value="demo_ms_powerpoint.pptx">Ms PowerPoint Presentation (.pptx)</option>
@@ -59,12 +63,16 @@ Help file : <a href="http://www.tinybutstrong.com/plugins/opentbs/tbs_plugin_ope
   (let empty for download),</div>
   <input type="submit" name="btn_go" id="btn_go" value="and go" />
 </form>
-<p>-&gt; See the selected <a href="javascript:download_template()">template</a><br />
-  <br />
-  -&gt; 
-  See the <a href="demo_merge.php?source">source code of the PHP script.</a><br />
-  -&gt; Discover the <a href="http://www.tinybutstrong.com">TinyButStrong</a> template engine for PHP<br />
--&gt; Go to <a href="http://www.tinybutstrong.com/plugins.php">OpenTBS download</a> page </p>
+<ul>
+  <li>See the selected <a href="javascript:download_template()">template</a></li>
+  <li>See the <a href="demo_merge.php?source">source code of the PHP script</a></li>
+</ul>
+<h2>More</h2>
+<ul>
+  <li> OpenTBS help file : <a href="http://www.tinybutstrong.com/plugins/opentbs/tbs_plugin_opentbs.html">tbs_plugin_opentbs.html</a></li>
+  <li>  Discover the <a href="http://www.tinybutstrong.com">TinyButStrong</a> template engine for PHP</li>
+  <li> Go to <a href="http://www.tinybutstrong.com/plugins.php">OpenTBS download</a> page </li>
+</ul>
 </body>
 <script type="text/javascript">
 	// enable the option for savegin as a file, the PHP script will test if it is running on localhost anyway.
