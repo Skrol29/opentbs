@@ -223,7 +223,7 @@ ul {
 <div class="shift"> <span class="versioning">(supported since OpenTBS version 1.4.0, for OpenOffice and MsOffice documents only)</span>
   <div class="template">Example: [onshow.x;ope=changepic]</div>
   <p>In the example above, $x is a PHP global variable containing the name of an external picture file (relative or absolute path). Of course you can use this feature on TBS fields merged with <a href="http://www.tinybutstrong.com/manual.php#php_mergeblock">MergeBlock()</a>.</p>
-  <p> When a TBS field having <span class="smallcode">&quot;ope=changepic&quot;</span> is merged in the template, then OpenTBS will search the first picture located before the field (or after using &quot;search=forward&quot;), and then it will change the picture assuming that the value of the field is the path for a picture file on the server. You don't have to care about loading the picture file in the document, OpenTBS will manage this for you.</p>
+  <p> When a TBS field having <span class="smallcode">&quot;ope=changepic&quot;</span> is merged in the template, then OpenTBS will search the first picture located before the field (see parameter <span class="smallcode">tagpos</span> below for another position), and then it will change the picture assuming that the value of the field is the path for a picture file on the server. You don't have to care about loading the picture file in the document, OpenTBS will manage this for you.</p>
   <p>Note that parameter <span class="smallcode">&quot;ope=changepic&quot;</span> is  a feature provided by the OpenTBS plug-in, which extends the &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_ope">ope</a>&quot; parameter natively present with TBS.</p>
   <p>    In order to 
     simplify your coding, they are other complementary optional parameters: </p>
@@ -233,12 +233,16 @@ ul {
       <th align="left">Description</th>
     </tr>
     <tr>
-      <td valign="top"><span class="smallcode">search</span></td>
-      <td><p>Supported values are &quot;<span class="smallcode">backward</span>&quot; and &quot;<span class="smallcode">forward</span>&quot;. This option indicates the direction for searching the picture.<br />
-        The default value is &quot;<span class="smallcode">search=backward</span>&quot;, it means that the TBS field (the one with &quot;<span class="smallcode">ope=changepic</span>&quot;) must be placed after the picture.</p>
-        <p>          Note that the picture is searched in the inner XML source of the document, and that the position of a picture in the XML may not be the same as in the viewed document. If OpenTBS says that the picture cannot be found, of if it changes an unexpected picture, you should use the <a href="#debug">debug mode</a> in order to check the inner XML.</p>
-        <p>If you choose to embed   the TBS field inside the property Title or Description of the image, then you should use &quot;<span class="smallcode">search=forward</span>&quot; with MsOffice, while   the default value is enough   for OpenOffice.</p>
-        <p> <span class="versioning">Parameter search is supported since OpenTBS version 1.8.0. Previsouly the picture was searched backward.</span></p></td>
+      <td valign="top"><span class="smallcode">tagpos</span></td>
+      <td><p>Supported values are &quot;<span class="smallcode">after</span>&quot;, &quot;<span class="smallcode">before</span>&quot; and &quot;<span class="smallcode">inside</span>&quot;. This option indicates the position of the TBS tag relativelly to the  target picture.<br />
+        The default value is &quot;<span class="smallcode">after</span>&quot;, it means that the TBS tag (the one with &quot;<span class="smallcode">ope=changepic</span>&quot;) must be placed after the picture.</p>
+        <p>          You can use &quot;<span class="smallcode">tagpos=inside</span>&quot; when you put the TBS field in the Description or Title of the image (LibreOffice/OpenOffice or Ms Office). </p>
+        <ul>
+          <li>This option won't work if you put the TBS tag inside the property Name of an image in LibreOffice/OpenOffice.</li>
+          <li> In Ms Word 2007, property Description and Title are supported but not available for editing, but you can use the URL or Toolipt of a Link on the image.</li>
+          <li> In Ms Excel, you must use &quot;tagpos=inside&quot; because pictures are not saved in the sheet, they are not positioned relativelly to cells.</li>
+        </ul>
+      <p> <span class="versioning">Parameter tagpos is supported since OpenTBS version 1.8.0. Previsouly the TBS tag had to be placed  after the picture.</span></p></td>
     </tr>
     <tr>
       <td valign="top"><span class="smallcode">from</span></td>
@@ -499,13 +503,16 @@ This command will raise an error if the opened template is not a Workbook.<br />
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
-<p>version 1.8.0, on 2012-06-16<br />
+<p>version 1.8.0, on 2012-07-15<br />
 -  fixed bug: parameter &quot;<span class="smallcode">ope=changepic</span>&quot; did not work in PPTX documents.<br />
+- fixed bug: parameter &quot;<span class="smallcode">ope=changepic</span>&quot; did not work with <span class="smallcode">[onload]</span> fields in Ms Office.<br />
 - new feature: automatically cleans up spelling in PPTX templates (such information may 
   deconstruct the TBS tags). This feature can be disabled.<br />
-- new parameter &quot;<span class="smallcode">search</span>&quot; for defined the directin of the picture when using &quot;<span class="smallcode">ope=changepic</span>&quot;.<br />
+- new parameter &quot;<span class="smallcode">tagpos</span>&quot; to define the position of the TBS tag realtively to the image (when using &quot;<span class="smallcode">ope=changepic</span>&quot;).<br />
 - when using &quot;<span class="smallcode">ope=changepic</span>&quot;, default value of parameter &quot;<span class="smallcode">default</span>&quot; is now &quot;<span class="smallcode">current</span>&quot;.<br />
-- new command OPENTBS_SELECT_SLIDE <br />
+- new command OPENTBS_SELECT_SLIDE<br />
+- new command OPENTBS_PREPARE_IMAGES
+<br />
 </p>
 <p> version 1.7.6, on 2012-06-06<br />
   - Restore lost spaces around merged TBS fields in Ms Word  documents. The patch doesn't work for headers and footers, unfortunately.</p>

@@ -56,10 +56,12 @@ Table in a document:
 --------------------
 <table:table>
   <table:table-column ... />
+  <table:table-column ... />
+  <table:table-column ... />
   <table:table-row>
     <table:table-cell> ... </table:table-cell>
     <table:table-cell> ... </table:table-cell>
-    ...
+    <table:table-cell> ... </table:table-cell>
   </table:table-row>
 </table:table>
 
@@ -117,9 +119,11 @@ Charts:
 The location of the chart is defined in the main subfile "contents.xml":
 
 <text:p text:style-name="Standard">
-  <draw:frame draw:name="Object1" text:anchor-type="paragraph" svg:x="2.401cm" svg:y="1.379cm" svg:width="14.102cm" svg:height="7.622cm" draw:z-index="0">
+  <draw:frame draw:name="My name" text:anchor-type="paragraph" svg:x="2.401cm" svg:y="1.379cm" svg:width="14.102cm" svg:height="7.622cm" draw:z-index="0">
     <draw:object xlink:href="./Object 1" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad" />
     <draw:image xlink:href="./ObjectReplacements/Object 1" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad" />
+    <svg:title>My title</svg:title>
+    <svg:desc>My description</svg:desc>
   </draw:frame>
 </text:p>
 
@@ -531,6 +535,10 @@ They are two ways to insert a picture.
 <w:drawing> 
   <wp:inline ...>
     <wp:extent cx="1130400" cy="1512000" /> // this element gives the size of the shape box that contains the picture
+	<wp:docPr id="1" name="Image 1" descr="My description" title="My title"/> // this optional element gives the description and title of the image
+	<wp:docPr id="1" name="Image 0" descr="2884414-my_picture.jpg">
+	  <a:hlinkClick xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" r:id="rId4" tooltip="My tooltip"/> // this optional element gives the URL and tooltip of the link if any. In Word 2007 you cannot customize the title and desciption
+	</wp:docPr>
     <a:graphic ...>
       <a:graphicData ...>
         <pic:pic ...>
@@ -560,16 +568,21 @@ Powerpoint:
 
 (short synopsis)
 <p:pic>
-  <p:blipFill>
-    <a:blip r:embed="rId2">
-    </a:blip>
-  </p:blipFill>
-  <p:spPr>
-    <a:xfrm>
-      <a:off x="2667000" y="4365104" />
-      <a:ext cx="3810000" cy="1200150" />
-    </a:xfrm>
-  </p:spPr>
+	<p:nvPicPr>
+	  <p:cNvPr id="4" name="Image 3" descr="My description" title="My title">  // this optional element gives the description and title of the image
+		<a:hlinkClick r:id="rId2" action="ppaction://hlinkfile" tooltip="My toolip"/>
+	  </p:cNvPr>
+	</p:nvPicPr>
+	<p:blipFill>
+		<a:blip r:embed="rId2">
+		</a:blip>
+	</p:blipFill>
+	<p:spPr>
+		<a:xfrm>
+			<a:off x="2667000" y="4365104" />
+			<a:ext cx="3810000" cy="1200150" />
+		</a:xfrm>
+	</p:spPr>
 </p:pic>
 
 Excel:
@@ -590,10 +603,13 @@ All pictures of a sheet are finally references in a third XML file.
 * File "xl\drawings\drawing1.xml"
 (short synopsis, one entity per picture in the sheet)
 <xdr:twoCellAnchor ...>
-  <xdr:pic>
-    <xdr:blipFill>
-      <a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="rId1">
-      </a:blip>
-    </xdr:blipFill>
-  </xdr:pic>
+	<xdr:pic>
+		<xdr:nvPicPr>
+			<xdr:cNvPr id="2" name="Image 1" descr="xxx my description" title="xxx my title"/>
+		</xdr:nvPicPr>
+		<xdr:blipFill>
+			<a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="rId1">
+			</a:blip>
+		</xdr:blipFill>
+	</xdr:pic>
 </xdr:twoCellAnchor>
