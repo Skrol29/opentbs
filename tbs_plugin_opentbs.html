@@ -326,6 +326,10 @@ This command will raise an error if the opened template is not a Workbook.<br />
 <em class="warning">Please note that for now, you must not delete a sheet that contains a Pivot Table because  this will produce an error when the workbook is opened.</em></td>
   </tr>
   <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_PREPARE_IMAGES)</td>
+    <td>Actually makes something only for Ms Excel workbooks. This command makes automatic fields ([onload] and [onshow]) merged in images embeded in the current selected worksheet. This can be useful for changing pictures in Ms Excel.</td>
+  </tr>
+  <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_SELECT_SLIDE, $Slide)</td>
     <td><p>Select and load the sub-file corresponding to number $Slide.<br />
       This command is useless for an 
