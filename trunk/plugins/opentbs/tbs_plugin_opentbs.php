@@ -1217,8 +1217,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			if (!isset($i['load'])) $i['load'] = array();
 			$i['load'][] = $i['main']; // add to main file at the end of the files to load
 		}
-		
-		if ($block_alias!==false) $TBS->SetOption('block_alias', $block_alias);
+		  
+		if ( ($block_alias!==false) && method_exists($TBS, 'SetOption') ) $TBS->SetOption('block_alias', $block_alias);
 		
 		$this->ExtInfo = $i;
 		return (is_array($i)); // return true if the extension is suported
