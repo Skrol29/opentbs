@@ -841,15 +841,15 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if (isset($this->ExtInfo['frm'])) {
 			if ($this->ExtInfo['frm']==='odf') {
 				$att = 'draw:image#xlink:href';
-				if (isset($Loc->PrmLst['adjust'])) $Loc->otbsDim = $this->TbsPicGetDim_ODF($Txt, $Loc->PosBeg);
+				if (isset($Loc->PrmLst['adjust'])) $Loc->otbsDim = $this->TbsPicGetDim_ODF($Txt, $Loc->PosBeg, !$backward);
 			} elseif ($this->ExtInfo['frm']==='openxml') {
 				$att = $this->OpenXML_FirstPicAtt($Txt, $Loc->PosBeg, $backward);
 				if ($att===false) return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] has failed to found the picture.');
 				if (isset($Loc->PrmLst['adjust'])) {
 					if (strpos($att,'v:imagedata')!==false) { 
-						$Loc->otbsDim = $this->TbsPicGetDim_OpenXML_vml($Txt, $Loc->PosBeg);
+						$Loc->otbsDim = $this->TbsPicGetDim_OpenXML_vml($Txt, $Loc->PosBeg, !$backward);
 					} else {
-						$Loc->otbsDim = $this->TbsPicGetDim_OpenXML_dml($Txt, $Loc->PosBeg);
+						$Loc->otbsDim = $this->TbsPicGetDim_OpenXML_dml($Txt, $Loc->PosBeg, !$backward);
 					}
 				}
 			}
@@ -927,61 +927,79 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 	}
 
-	function TbsPicGetDim_ODF($Txt, $Pos) {
+	function TbsPicGetDim_ODF($Txt, $Pos, $Forward) {
 	// Found the attributes for the image dimensions, in an ODF file
 		// unit (can be: mm, cm, in, pi, pt)
-		$dim = $this->TbsPicGetDim_Any($Txt, $Pos, 'draw:frame', 'svg:width="', 'svg:height="', 3, false);
+		$dim = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, 'draw:frame', 'svg:width="', 'svg:height="', 3, false, false);
 		return array($dim);
 	}
 
-	function TbsPicGetDim_OpenXML_vml($Txt, $Pos) {
-		$dim = $this->TbsPicGetDim_Any($Txt, $Pos, 'v:shape', 'width:', 'height:', 2, false);
+	function TbsPicGetDim_OpenXML_vml($Txt, $Pos, $Forward) {
+		$dim = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, 'v:shape', 'width:', 'height:', 2, false, false);
 		return array($dim);
 	}
 
-	function TbsPicGetDim_OpenXML_dml($Txt, $Pos) {
-		$dim_shape = $this->TbsPicGetDim_Any($Txt, $Pos, 'wp:extent', 'cx="', 'cy="', 0, 12700);
-		$dim_inner = $this->TbsPicGetDim_Any($Txt, $Pos, 'a:ext'    , 'cx="', 'cy="', 0, 12700);
+	function TbsPicGetDim_OpenXML_dml($Txt, $Pos, $Forward) {
+		$dim_shape = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, 'wp:extent', 'cx="', 'cy="', 0, 12700, false);
+		$dim_inner = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, 'a:ext'    , 'cx="', 'cy="', 0, 12700, 'uri="');
 		if ( ($dim_inner!==false) && ($dim_inner['wb']<$dim_shape['wb']) ) $dim_inner = false; // <a:ext> isoptional but must always be after the corresponding <wp:extent>, otherwise it may be the <a:ext> of another picture
-		return array($dim_inner, $dim_shape); // dims must be soerted in reverse order of location
+		return array($dim_inner, $dim_shape); // dims must be sorted in reverse order of location
 	}
 
-	function TbsPicGetDim_Any($Txt, $Pos, $Element, $AttW, $AttH, $AllowedDec, $CoefToPt) {
+	function TbsPicGetDim_Any($Txt, $Pos, $Forward, $Element, $AttW, $AttH, $AllowedDec, $CoefToPt, $IgnoreIfAtt) {
 	// Found the attributes for the image dimensions, in an ODF file
-		$p = clsTinyButStrong::f_Xml_FindTagStart($Txt, $Element, true, $Pos, false, true);
-		if ($p===false) return false;
-		$pe = strpos($Txt, '>', $p);
-		if ($pe===false) return false;
-		$x = substr($Txt, $p, $pe -$p);
-		$att_lst = array('w'=>$AttW, 'h'=>$AttH);
-		$res_lst = array();
-		foreach ($att_lst as $i=>$att) {
-				$l = strlen($att);
-				$b = strpos($x, $att);
-				if ($b===false) return false;
-				$b = $b + $l;
-				$e = strpos($x, '"', $b);
-				$e2 = strpos($x, ';', $b); // in case of VML format, width and height are styles separted by ;
-				if ($e2!==false) $e = min($e, $e2);
-				if ($e===false) return false;
-				$lt = $e - $b;
-				$t = substr($x, $b, $lt);
-				$pu = $lt; // unit first char
-				while ( ($pu>1) && (!is_numeric($t[$pu-1])) ) $pu--;
-				$u = ($pu>=$lt) ? '' : substr($t, $pu);
-				$v = floatval(substr($t, 0, $pu));
-				$res_lst[$i.'b'] = ($p+$b); // start
-				$res_lst[$i.'l'] = $lt; // length of the text
-				$res_lst[$i.'u'] = $u; // unit
-				$res_lst[$i.'v'] = $v; // value
-				$res_lst[$i.'t'] = $t; // text
+	
+		while (true) {
+		
+			$p = clsTinyButStrong::f_Xml_FindTagStart($Txt, $Element, true, $Pos, $Forward, true);
+			if ($p===false) return false;
+			
+			$pe = strpos($Txt, '>', $p);
+			if ($pe===false) return false;
+			
+			$x = substr($Txt, $p, $pe -$p);
+			
+			if ( ($IgnoreIfAtt===false) || (strpos($x, $IgnoreIfAtt)===false) ) {
+			
+				$att_lst = array('w'=>$AttW, 'h'=>$AttH);
+				$res_lst = array();
+				
+				foreach ($att_lst as $i=>$att) {
+						$l = strlen($att);
+						$b = strpos($x, $att);
+						if ($b===false) return false;
+						$b = $b + $l;
+						$e = strpos($x, '"', $b);
+						$e2 = strpos($x, ';', $b); // in case of VML format, width and height are styles separted by ;
+						if ($e2!==false) $e = min($e, $e2);
+						if ($e===false) return false;
+						$lt = $e - $b;
+						$t = substr($x, $b, $lt);
+						$pu = $lt; // unit first char
+						while ( ($pu>1) && (!is_numeric($t[$pu-1])) ) $pu--;
+						$u = ($pu>=$lt) ? '' : substr($t, $pu);
+						$v = floatval(substr($t, 0, $pu));
+						$res_lst[$i.'b'] = ($p+$b); // start
+						$res_lst[$i.'l'] = $lt; // length of the text
+						$res_lst[$i.'u'] = $u; // unit
+						$res_lst[$i.'v'] = $v; // value
+						$res_lst[$i.'t'] = $t; // text
+				}
+
+				$res_lst['r'] = ($res_lst['hv']==0) ? 0.0 : $res_lst['wv']/$res_lst['hv']; // ratio W/H
+				$res_lst['dec'] = $AllowedDec; // save the allowed decimal for this attribute
+				$res_lst['cpt'] = $CoefToPt;
+
+				return $res_lst;
+				
+			} else {
+			
+				// Next try
+				$Pos = $p + (($Forward) ? +1 : -1);
+			
+			}
+			
 		}
-
-		$res_lst['r'] = ($res_lst['hv']==0) ? 0.0 : $res_lst['wv']/$res_lst['hv']; // ratio W/H
-		$res_lst['dec'] = $AllowedDec; // save the allowed decimal for this attribute
-		$res_lst['cpt'] = $CoefToPt;
-
-		return $res_lst;
 
 	}
 
