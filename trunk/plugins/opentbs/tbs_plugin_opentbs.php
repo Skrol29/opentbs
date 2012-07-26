@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.8.0-beta-2012-07-15 (2012-07-15)
+/* OpenTBS version 1.8.0-beta-2012-07-27 (2012-07-27)
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -53,7 +53,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
 		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
-		$this->Version = '1.8.0-beta-2012-07-15';
+		$this->Version = '1.8.0-beta-2012-07-27';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -915,6 +915,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 							$unit = 'pt';
 						}
 					}
+					$new = $new + $tDim[$what.'o']; // add the offset (xlsx only)
 					$new = number_format($new, $tDim['dec'], '.', '').$unit;
 					$Txt = substr_replace($Txt, $new, $beg, $len);
 					if ($Loc->PosBeg>$beg) $delta = $delta + strlen($new) - $len;
@@ -943,7 +944,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$dim_shape = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, 'wp:extent', 'cx="', 'cy="', 0, 12700, false);
 		$dim_inner = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, 'a:ext'    , 'cx="', 'cy="', 0, 12700, 'uri="');
 		if ( ($dim_inner!==false) && ($dim_inner['wb']<$dim_shape['wb']) ) $dim_inner = false; // <a:ext> isoptional but must always be after the corresponding <wp:extent>, otherwise it may be the <a:ext> of another picture
-		return array($dim_inner, $dim_shape); // dims must be sorted in reverse order of location
+		$dim_drawing = $this->TbsPicGetDim_Drawings($Txt, $Pos, $dim_inner);
+		//var_export($dim_drawing); exit;
+		return array($dim_inner, $dim_shape, $dim_drawing); // dims must be sorted in reverse order of location
 	}
 
 	function TbsPicGetDim_Any($Txt, $Pos, $Forward, $Element, $AttW, $AttH, $AllowedDec, $CoefToPt, $IgnoreIfAtt) {
@@ -984,6 +987,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 						$res_lst[$i.'u'] = $u; // unit
 						$res_lst[$i.'v'] = $v; // value
 						$res_lst[$i.'t'] = $t; // text
+						$res_lst[$i.'o'] = 0; // offset
 				}
 
 				$res_lst['r'] = ($res_lst['hv']==0) ? 0.0 : $res_lst['wv']/$res_lst['hv']; // ratio W/H
@@ -1003,6 +1007,49 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	// Get Dim in a OpenXML Drawing (pictires in an XLSX)
+	function TbsPicGetDim_Drawings($Txt, $Pos, $dim_inner) {
+		
+		if ($dim_inner===false) return false;
+		if (strpos($this->TBS->OtbsCurrFile, 'xl/drawings/')!==0) return false;
+		
+		$cx = $dim_inner['wv'];
+		$cy = $dim_inner['hv'];
+		
+		$loc = clsTbsXmlLoc::FindStartTag($Txt, 'xdr:twoCellAnchor', $Pos, false);
+		if ($loc===false) return false;
+		$loc = clsTbsXmlLoc::FindStartTag($Txt, 'xdr:to', $loc->PosBeg, true);
+		if ($loc===false) return false;
+		$p = $loc->PosBeg;
+		
+		$res = array();
+
+		$loc = clsTbsXmlLoc::FindElement($Txt, 'xdr:colOff', $p, true);
+		if ($loc===false) return false;
+		$res['wb'] = $loc->GetInnerStart();
+		$res['wl'] = $loc->GetInnerLen();
+		$res['wu'] = '';
+		$res['wv'] = $cx;
+		$res['wt'] = $loc->GetInnertSrc();
+		$res['wo'] = intval($res['wt']) - $cx;
+
+		$loc = clsTbsXmlLoc::FindElement($Txt, 'xdr:rowOff', $p, true);
+		if ($loc===false) return false;
+		$res['hb'] = $loc->GetInnerStart();
+		$res['hl'] = $loc->GetInnerLen();
+		$res['hu'] = '';
+		$res['hv'] = $cy;
+		$res['ht'] = $loc->GetInnertSrc();
+		$res['ho'] = intval($res['ht']) - $cy;
+		
+		$res['r'] = ($res['hv']==0) ? 0.0 : $res['wv']/$res['hv']; // ratio W/H;
+		$res['dec'] = 0;
+		$res['cpt'] = 12700;
+		
+		return $res;
+		
+	}
+	
 	function TbsPicAdd(&$Value, &$PrmLst, &$Txt, &$Loc, $Prm) {
 	// Add a picture inside the archive, use parameters 'from' and 'as'.
 	// Argument $Prm is only used for error messages.
@@ -2958,7 +3005,7 @@ It needs to be completed when a new picture file extension is added in the docum
 			$o->childs = array();
 			$o->pbreak = false;
 			$o->ctrl = false;
-			$src = $loc->GetSrc();
+			$src = $loc->GetOuterSrc();
 			if (strpos($src, ' fo:break-before="page"')!==false) $o->pbreak = 'before';
 			if (strpos($src, ' fo:break-after="page"')!==false) $o->pbreak = 'after';
 			if ($o->name!==false) $Styles[$o->name] = $o;
@@ -3044,8 +3091,9 @@ class clsTbsXmlLoc {
   var $Txt;
   var $Name = ''; 
   
-  var $pST_PosEnd; // position of the end of the start tag
+  var $pST_PosEnd = false; // position of the end of the start tag
   var $pST_Src = false;
+  var $pET_PosBeg = false; // position of the begining of the end tag
   
   // Create an instance with the given parameters
   function __construct(&$Txt, $Name, $PosBeg, $PosEnd, $SelfClosing = null) {
@@ -3063,8 +3111,23 @@ class clsTbsXmlLoc {
   }
   
   // return the source of the locator
-  function GetSrc() {
+  function GetOuterSrc() {
     return substr($this->Txt, $this->PosBeg, $this->GetLen() );
+  }
+  
+  // return the start of the inner content, or false if it's a self-closing tag 
+  function GetInnerStart() {
+	return ($this->pST_PosEnd===false) ? false : $this->pST_PosEnd + 1;
+  }
+  
+  // return the length of the inner content, or false if it's a self-closing tag 
+  function GetInnerLen() {
+	return ($this->pET_PosBeg===false) ? false : $this->pET_PosBeg - $this->pST_PosEnd - 1;
+  }
+
+  // return the length of the inner content, or false if it's a self-closing tag 
+  function GetInnertSrc() {
+	return ($this->pET_PosBeg===false) ? false : substr($this->Txt, $this->pST_PosEnd + 1, $this->pET_PosBeg - $this->pST_PosEnd - 1 );
   }
   
   // Get an attribut's value. Or false if the attribute is not found.
@@ -3109,6 +3172,7 @@ class clsTbsXmlLoc {
 	if (!$this->SelfClosing) {
 	  $pe = clsTinyButStrong::f_Xml_FindTagStart($this->Txt, $this->FindName(), false, $pe, true , true);
 	  if ($pe===false) return false;
+	  $this->pET_PosBeg = $pe;
 	  $pe = strpos($this->Txt, '>', $pe);
 	  if ($pe===false) return false;
 	  $this->PosEnd = $pe;
