@@ -1,6 +1,6 @@
 <?php
 
-/* OpenTBS version 1.8.0-beta-2012-07-27 (2012-07-27)
+/* OpenTBS version 1.8.0-beta-2012-08-13
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
@@ -53,7 +53,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
 		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
-		$this->Version = '1.8.0-beta-2012-07-27';
+		$this->Version = '1.8.0-beta-2012-08-13';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -1235,6 +1235,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				'tbs:page' => array(&$this, 'OpenDoc_GetPage'), // ODT
 				'tbs:slide' => 'draw:page',       // ODP
 				'tbs:sheet' => 'table:table',     // ODS (table for ODT)
+				'tbs:draw' => array(&$this, 'OpenDoc_GetDraw'),
+				'tbs:drawgroup' => 'draw:g',
+				'tbs:drawitem' => array(&$this, 'OpenDoc_GetDraw'),
 			);
 		} elseif ($Frm==='openxml') {
 			// Microsoft Office documents
@@ -1254,6 +1257,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					'tbs:table' => 'w:tbl',
 					'tbs:row' => 'w:tr',
 					'tbs:page' => array(&$this, 'MsWord_GetPage'),
+					'tbs:draw' => 'mc:AlternateContent',
+					'tbs:drawgroup' => 'mc:AlternateContent',
+					'tbs:drawitem' => 'wps:wsp',
 				);  
 			} elseif ( ($Ext==='xlsx') || ($Ext==='xlsm')) {
 				$i = array('br' => false, 'frm' => 'openxml', 'equiv'=>'xlsx', 'ctype' => $ctype . 'spreadsheetml.sheet', 'pic_path' => 'xl/media/');
@@ -1261,6 +1267,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$block_alias = array(
 					'tbs:row' => 'row',
 					'tbs:cell' => 'c',
+					'tbs:draw' => 'xdr:twoCellAnchor',
+					'tbs:drawgroup' => 'xdr:twoCellAnchor',
+					'tbs:drawitem' => 'xdr:sp',
 				);
 			} elseif ($Ext==='pptx') {
 				$i = array('br' => false, 'frm' => 'openxml', 'ctype' => $ctype . 'presentationml.presentation', 'pic_path' => 'ppt/media/', 'rpl_what' => $x, 'rpl_with' => '\'');
@@ -1271,6 +1280,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					'tbs:table' => 'a:tbl',
 					'tbs:row' => 'a:tr',
 					'tbs:cell' => 'a:tc',
+					'tbs:draw' => 'p:sp',
+					'tbs:drawgroup' => 'p:grpSp',
+					'tbs:drawitem' => 'p:sp',
 				);
 			}
 			$i['pic_ext'] = array('png' => 'png', 'bmp' => 'bmp', 'gif' => 'gif', 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'jpe' => 'jpeg', 'tif' => 'tiff', 'tiff' => 'tiff', 'ico' => 'x-icon', 'svg' => 'svg+xml');
@@ -1333,32 +1345,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 	}
 
-	function XML_GetInnerVal($Txt, $Tag, $Concat=false) {
-		$res = '';
-		$p3 = 0;
-		$close = '</'.$Tag.'>';
-		$close_len = strlen($close);
-		$nbr = 0;
-		while ( ($p = $this->XML_FoundTagStart($Txt, $Tag, $p3))!==false ) {
-			$nbr++;
-			$p2 = strpos($Txt, '>', $p);
-			if ($p2==false) return $this->RaiseError('(XML) the end of tag '.$Tag.' is not found.');
-			$p2++;
-			$p3 = strpos($Txt, $close, $p2);
-			if ($p3==false) exit("strpos($Txt, $close, $p2) p=$p ; nbr=$nbr");
-			if ($p3==false) return $this->RaiseError('(XML) the closing tag '.$Tag.' is not found.');
-			$x = substr($Txt, $p2, $p3-$p2);
-			if ($Concat===false) {
-				return $x;
-			} elseif ($res!=='') {
-				$res .= $Concat;
-			}
-			$res .= $x;
-			$p3 = $p3 + $close_len;
-		}
-		return $res;
-	}
-
 	function XML_FoundTagStart($Txt, $Tag, $PosBeg) {
 	// Found the next tag of the asked type. (Not specific to MsWord, works for any XML)
 	// Tag must be prefixed with '<' or '</'.
@@ -1410,11 +1396,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return $nbr_del;
 	}
 
-	// Delete attributes in an XML element. The XML element is located by $Pos.
-	// $Pos : start of the XML element.
-	// $AttLst : list of attributes to search an delete
-	// $AttLst : list of attributes to search an delete
-	// Return the new end of the element.
+	/**
+     * Delete attributes in an XML element. The XML element is located by $Pos.
+	 * @param string $Txt Text containing XML elements.
+	 * @param int    $Pos Start of the XML element.
+	 * @param array  $AttLst List of attributes to search an delete
+	 * @param array  $StrLst List of strings to search an delete
+	 * @return int The new end of the element.
+	 */
 	function XML_DeleteAttributes(&$Txt, $Pos, $AttLst, $StrLst)	{
 		$end = strpos($Txt, '>', $Pos); // end of the element
 		if ($end===false) return (strlen($Txt)-1);
@@ -1434,6 +1423,23 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$x_len2 = strlen($x);
 		if ($x_len2!=$x_len) $Txt = substr_replace($Txt, $x, $Pos, $x_len);
 		return $Pos + $x_len2;
+	}
+	
+	/* Function used by Block Alias
+	 * The first start tag on the left is supposed to be the good one.
+	 * Note: encapuslation is not yet supported in this version.
+	 */
+	function XML_BlockAlias_Prefix($TagPrefix, $Txt, $PosBeg, $Forward, $LevelStop) {
+
+		$loc = clsTbsXmlLoc::FindStartTagByPrefix($Txt, $TagPrefix, $PosBeg, false);
+		
+		if ($Forward) {
+			$loc->FindEndTag();
+			return $loc->PosEnd;
+		} else {
+			return $loc->PosBeg;
+		}
+	
 	}
 	
 	/* Return an object that represents the informations of an .rels file, but for optimization, targets are scanned only for asked directories.
@@ -3016,7 +3022,7 @@ It needs to be completed when a new picture file extension is added in the docum
 	function OpenDoc_StylesPropagate(&$Styles) {
 		foreach ($Styles as $i => $s) {
 			if (!$s->ctrl) {
-				$o->ctrl = true; // avoid circular reference
+				$s->ctrl = true; // avoid circular reference
 				if ($s->pbreak!==false) {
 					foreach ($s->childs as $j => $c) {
 						if ($c->pbreak!==false) $c->pbreak = $s->pbreak;
@@ -3028,6 +3034,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		}
 	}
 	
+	// TBS Block Alias for pages
 	function OpenDoc_GetPage($Tag, $Txt, $Pos, $Forward, $LevelStop) {
 		
 		$this->OpenDoc_StylesInit();
@@ -3076,6 +3083,11 @@ It needs to be completed when a new picture file extension is added in the docum
 			return $loc->PosEnd + 1;
 		}
 		
+	}
+
+	// TBS Block Alias for draws
+	function OpenDoc_GetDraw($Tag, $Txt, $Pos, $Forward, $LevelStop) {
+		return $this->XML_BlockAlias_Prefix('draw:', $Txt, $Pos, $Forward, $LevelStop);
 	}
 	
 }
@@ -3179,7 +3191,7 @@ class clsTbsXmlLoc {
 	}
   }
   
-   // Search an start tag of an element in the TXT contents, and return an object if it is found.
+   // Search a start tag of an element in the TXT contents, and return an object if it is found.
   static function FindStartTag(&$Txt, $Tag, $PosBeg, $Forward=true) {
 
     $PosBeg = clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true , $PosBeg, $Forward, true);
@@ -3192,6 +3204,39 @@ class clsTbsXmlLoc {
 
   }
 
+  // Search a start tag by the prefix of the element
+  static function FindStartTagByPrefix(&$Txt, $TagPrefix, $PosBeg, $Forward=true) {
+
+	$x = '<'.$TagPrefix;
+	$xl = strlen($x);
+	
+	if ($Forward) {
+		$PosBeg = strpos($Txt, $x, $PosBeg);
+	} else {
+		$PosBeg = strrpos(substr($Txt, 0, $PosBeg+2), $x);
+	}
+	if ($PosBeg===false) return false;
+	
+    $PosEnd = strpos($Txt, '>', $PosBeg);
+    if ($PosEnd===false) return false;
+	
+	// Read the actual tag name
+	$Tag = $TagPrefix;
+	$p = $PosBeg + $xl;
+	do {
+		$z = substr($Txt,$p,1);
+		if ( ($z!==' ') && ($z!=="\r") && ($z!=="\n") && ($z!=='>') && ($z!=='/') ) {
+			$Tag .= $z;
+			$p++;
+		} else {
+			$p = false;
+		}
+	} while ($p!==false);
+	
+	return new clsTbsXmlLoc($Txt, $Tag, $PosBeg, $PosEnd);
+
+  }
+  
   // Search an element in the TXT contents, and return an object if it is found.
   static function FindElement(&$Txt, $Tag, $PosBeg, $Forward=true) {
   
