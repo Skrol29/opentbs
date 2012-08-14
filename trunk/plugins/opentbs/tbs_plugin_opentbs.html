@@ -57,6 +57,12 @@ ul {
 .warning {
 	color: #F30;
 }
+.yes {
+	color: #060;
+}
+.no {
+	color: #C30;
+}
 -->
 </style>
 <meta name="Keywords" content="openxml, odf, template" />
@@ -77,9 +83,10 @@ ul {
       <li>4.3. <a href="#show">Method Show()</a></li>
       <li>4.4. <a href="#chart">Change data of series in charts</a></li>
       <li>4.5. <a href="#pic">Change pictures in the document</a></li>
-      <li>4.6. <a href="#modify_contents">Manual modification in the contents</a></li>
-      <li>4.7. <a href="#modify_files">Manual modification of files in the archive</a></li>
-      <li>4.8. <a href="#misc">Miscellaneous</a></li>
+      <li>4.6. <a href="#blockalias">Block Alias</a></li>
+      <li>4.7. <a href="#modify_contents">Manual modification in the contents</a></li>
+      <li>4.8. <a href="#modify_files">Manual modification of files in the archive</a></li>
+      <li>4.9. <a href="#misc">Miscellaneous</a></li>
     </ul>
   </li>
   <li><a href="#demo">Demo</a></li>
@@ -286,7 +293,142 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
     </tr>
   </table>
 </div>
-<h3><a name="modify_contents" id="modify2"></a>4.6. Manual modification in the contents</h3>
+<h3><a name="blockalias" id="modify"></a>4.6. Block alias</h3>
+<p><span class="versioning">Block Alias are supported since OpenTBS version 1.8.0, they can work only with TBS 3.8.0 or higher</span>.</p>
+<p>&nbsp;</p>
+<table border="0" cellspacing="1" cellpadding="4">
+  <tr>
+    <th rowspan="2" align="left">Alias</th>
+    <th rowspan="2" align="left">Desciption</th>
+    <th colspan="3" align="center">LibreOffice</th>
+    <th colspan="3" align="center">Ms Office</th>
+  </tr>
+  <tr>
+    <th align="center">Writer<br>
+      (odt)</th>
+    <th align="center">Calc<br />
+    (ods)</th>
+    <th align="center">Impress<br />
+      (odp)</th>
+    <th align="center">Word<br />
+    (docx)</th>
+    <th align="center">Excel<br />
+    (xlsx)</th>
+    <th align="center">PowerPoint<br />
+    (pptx)</th>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">tbs:parag</td>
+    <td>A paragraph.</td>
+    <td align="center" class="yes">yes</td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">tbs:table</td>
+    <td>A table inserted in the document.</td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><em>a sheet</em></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">tbs:row</td>
+    <td>A row of a table.</td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">tbs:cell</td>
+    <td>A cell of a table.</td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">tbs:comment</td>
+    <td>A comment.</td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="no">no</span></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">tbs:page</td>
+    <td>A page defined by an explicit page break before a paragraph.</td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="no">no</span></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">tbs:slide</td>
+    <td>A slide.</td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center" class="no">no</td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">tbs:sheet</td>
+    <td>A worksheet.</td>
+    <td align="center"><em>a table</em></td>
+    <td align="center" class="yes">yes</td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="no">no</span></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">tbs:draw</td>
+    <td>A single draw, or set of draws (Ms Word)</td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">tbs:drawgroup</td>
+    <td>A group of draws.</td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">tbs:drawitem</td>
+    <td>A single draw item among a set of items.</td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+  </tr>
+</table>
+<h3><a name="modify_contents" id="modify2"></a>4.7. Manual modification in the contents</h3>
 <p><span class="versioning">The following commands are supported since OpenTBS version 1.7.0</span>:</p>
 <table border="0" cellspacing="1" cellpadding="0">
   <tr>
@@ -351,7 +493,7 @@ This command will raise an error if the opened template is not a Workbook.<br />
 </td>
   </tr>
 </table>
-<h3><a name="modify_files" id="modify_files"></a>4.7. Manual modification of files in the archive</h3>
+<h3><a name="modify_files" id="modify_files"></a>4.8. Manual modification of files in the archive</h3>
 <h4 style="display:inline">&bull; Check if a file does exists in the archive:</h4>
 <div class="shift">
   <div class="code">$TBS-&gt;Plugin(OPENTBS_FILEEXISTS, $Name)
@@ -400,7 +542,7 @@ This command will raise an error if the opened template is not a Workbook.<br />
     $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</div>
   <p>The automatic extension recognition is also applied as it was applied for the first load of the archive.</p>
 </div>
-<h3><a name="misc" id="misc"></a>4.8. Miscellaneous</h3>
+<h3><a name="misc" id="misc"></a>4.9. Miscellaneous</h3>
 <h4>&bull; Dealing with apostrophes:</h4>
 <div class="shift">
   <p> Both OpenOffice and Ms Office may automatically convert single quotes (') into typographic apostrophes (&rsquo;), depending to the auto-correction options. This may be annoying   when you need to code a TBS fields that have a single quote. That's why OpenTBS automatically convert by default all (&rsquo;) back to single quotes (') in documents.<br />
