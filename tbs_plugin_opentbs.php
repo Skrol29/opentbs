@@ -265,7 +265,7 @@ class clsOpenTBS extends clsTbsZip {
 	}
 
 	function OnOperation($FieldName,&$Value,&$PrmLst,&$Txt,$PosBeg,$PosEnd,&$Loc) {
-    // in this event, ope is exploded, there is one function call for each ope command
+	// in this event, ope is exploded, there is one function call for each ope command
 		$ope = $PrmLst['ope'];
 		if ($ope==='addpic') {
 			$this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=addpic');
@@ -1397,7 +1397,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-     * Delete attributes in an XML element. The XML element is located by $Pos.
+	 * Delete attributes in an XML element. The XML element is located by $Pos.
 	 * @param string $Txt Text containing XML elements.
 	 * @param int    $Pos Start of the XML element.
 	 * @param array  $AttLst List of attributes to search an delete
@@ -2068,24 +2068,24 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 
-    function MsExcel_ColNum($ColRef) {
-    // return the column number from a reference like "B3"
-        $num = 0;
-        $rank = 0;
-        for ($i=strlen($ColRef)-1;$i>=0;$i--) {
-            $l = $ColRef[$i];
-            if (!is_numeric($l)) {
-                $l = ord(strtoupper($l)) -64;
-                if ($l>0 && $l<27) {
-                    $num = $num + $l*pow(26,$rank);
-                } else {
-                    return $this->RaiseError('(Excel Consistency) Reference of cell \''.$ColRef.'\' cannot be recognized.');
-                }
-                $rank++;
-            }
-        }
-        return $num;
-    }
+	function MsExcel_ColNum($ColRef) {
+	// return the column number from a reference like "B3"
+		$num = 0;
+		$rank = 0;
+		for ($i=strlen($ColRef)-1;$i>=0;$i--) {
+			$l = $ColRef[$i];
+			if (!is_numeric($l)) {
+				$l = ord(strtoupper($l)) -64;
+				if ($l>0 && $l<27) {
+					$num = $num + $l*pow(26,$rank);
+				} else {
+					return $this->RaiseError('(Excel Consistency) Reference of cell \''.$ColRef.'\' cannot be recognized.');
+				}
+				$rank++;
+			}
+		}
+		return $num;
+	}
 
 	function MsExcel_DeleteFormulaResults(&$Txt) {
 	// In order to refresh the formula results when the merged XLSX is opened, then we delete all <v> elements having a formula.
@@ -3011,7 +3011,7 @@ It needs to be completed when a new picture file extension is added in the docum
 			$o->childs = array();
 			$o->pbreak = false;
 			$o->ctrl = false;
-			$src = $loc->GetOuterSrc();
+			$src = $loc->GetSrc();
 			if (strpos($src, ' fo:break-before="page"')!==false) $o->pbreak = 'before';
 			if (strpos($src, ' fo:break-after="page"')!==false) $o->pbreak = 'after';
 			if ($o->name!==false) $Styles[$o->name] = $o;
@@ -3093,197 +3093,209 @@ It needs to be completed when a new picture file extension is added in the docum
 }
 
 /*
-Wrapper to find XML entities
+ Wrapper to search and replace in XML entities.
 */
 class clsTbsXmlLoc {
 
-  var $PosBeg;
-  var $PosEnd;
-  var $SelfClosing;
-  var $Txt;
-  var $Name = ''; 
-  
-  var $pST_PosEnd = false; // position of the end of the start tag
-  var $pST_Src = false;
-  var $pET_PosBeg = false; // position of the begining of the end tag
-  
-  // Create an instance with the given parameters
-  function __construct(&$Txt, $Name, $PosBeg, $PosEnd, $SelfClosing = null) {
-    $this->Txt = &$Txt;
-    $this->Name = $Name;
-    $this->PosBeg = $PosBeg;
-    $this->PosEnd = $PosEnd;
-    $this->pST_PosEnd = $PosEnd;
-    $this->SelfClosing = $SelfClosing;
-  }
-
-  // Return the len of the locator
-  function GetLen() {
-    return $this->PosEnd - $this->PosBeg + 1;
-  }
-  
-  // return the source of the locator
-  function GetOuterSrc() {
-    return substr($this->Txt, $this->PosBeg, $this->GetLen() );
-  }
-  
-  // return the start of the inner content, or false if it's a self-closing tag 
-  function GetInnerStart() {
-	return ($this->pST_PosEnd===false) ? false : $this->pST_PosEnd + 1;
-  }
-  
-  // return the length of the inner content, or false if it's a self-closing tag 
-  function GetInnerLen() {
-	return ($this->pET_PosBeg===false) ? false : $this->pET_PosBeg - $this->pST_PosEnd - 1;
-  }
-
-  // return the length of the inner content, or false if it's a self-closing tag 
-  function GetInnertSrc() {
-	return ($this->pET_PosBeg===false) ? false : substr($this->Txt, $this->pST_PosEnd + 1, $this->pET_PosBeg - $this->pST_PosEnd - 1 );
-  }
-  
-  // Get an attribut's value. Or false if the attribute is not found.
-  function GetAttLazy($Att) {
-	if ($this->pST_Src===false) $this->pST_Src = substr($this->Txt, $this->PosBeg, $this->pST_PosEnd - $this->PosBeg + 1 );
-	$a = ' '.$Att.'="';
-	$p1 = strpos($this->pST_Src, $a);
-	if ($p1!==false) {
-		$p1 = $p1 + strlen($a);
-		$p2 = strpos($this->pST_Src, '"', $p1);
-		if ($p2!==false) return substr($this->pST_Src, $p1, $p2-$p1);
-	}
-	return false;
-  }
-  
-  // Replace the source of the locator in the TXT contents
-  // Also update the locator's positions.
-  function ReplaceSrc($new) {
-    $len = $this->GetLen(); // avoid PHP error : Strict Standards: Only variables should be passed by reference
-    $this->Txt = substr_replace($this->Txt, $new, $this->PosBeg, $len);
-    $this->PosEnd = $this->PosEnd + strlen($new) - $len;
-	$this->pST_Src = $new;
-  }
-
-  // Find the name of the element
-  function FindName() {
-	if ($this->Name==='') {
-		$p = $this->PosBeg;
-		do {
-			$p++;
-			$z = $this->Txt[$p];
-		} while ( ($z!==' ') && ($z!=="\r") && ($z!=="\n") && ($z!=='>') && ($z!=='/') );
-		$this->Name = substr($this->Txt, $this->PosBeg + 1, $p - $this->PosBeg + 1);
-	}
-	return $this->Name;
-  }
-
-  // Find the ending tag of the object
-  function FindEndTag() {
-	$pe = $this->PosEnd;
-	$this->SelfClosing = (substr($this->Txt, $pe-1, 1)=='/');
-	if (!$this->SelfClosing) {
-	  $pe = clsTinyButStrong::f_Xml_FindTagStart($this->Txt, $this->FindName(), false, $pe, true , true);
-	  if ($pe===false) return false;
-	  $this->pET_PosBeg = $pe;
-	  $pe = strpos($this->Txt, '>', $pe);
-	  if ($pe===false) return false;
-	  $this->PosEnd = $pe;
-	}
-  }
-  
-   // Search a start tag of an element in the TXT contents, and return an object if it is found.
-  static function FindStartTag(&$Txt, $Tag, $PosBeg, $Forward=true) {
-
-    $PosBeg = clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true , $PosBeg, $Forward, true);
-    if ($PosBeg===false) return false;
-    
-    $PosEnd = strpos($Txt, '>', $PosBeg);
-    if ($PosEnd===false) return false;
-    
-	return new clsTbsXmlLoc($Txt, $Tag, $PosBeg, $PosEnd);
-
-  }
-
-  // Search a start tag by the prefix of the element
-  static function FindStartTagByPrefix(&$Txt, $TagPrefix, $PosBeg, $Forward=true) {
-
-	$x = '<'.$TagPrefix;
-	$xl = strlen($x);
+	var $PosBeg;
+	var $PosEnd;
+	var $SelfClosing;
+	var $Txt;
+	var $Name = ''; 
 	
-	if ($Forward) {
-		$PosBeg = strpos($Txt, $x, $PosBeg);
-	} else {
-		$PosBeg = strrpos(substr($Txt, 0, $PosBeg+2), $x);
+	var $pST_PosEnd = false; // position of the end of the start tag
+	var $pST_Src = false;
+	var $pET_PosBeg = false; // position of the begining of the end tag
+	
+	// Create an instance with the given parameters
+	function __construct(&$Txt, $Name, $PosBeg, $PosEnd, $SelfClosing = null) {
+		$this->Txt = &$Txt;
+		$this->Name = $Name;
+		$this->PosBeg = $PosBeg;
+		$this->PosEnd = $PosEnd;
+		$this->pST_PosEnd = $PosEnd;
+		$this->SelfClosing = $SelfClosing;
 	}
-	if ($PosBeg===false) return false;
+
+	// Return the len of the locator
+	function GetLen() {
+		return $this->PosEnd - $this->PosBeg + 1;
+	}
 	
-    $PosEnd = strpos($Txt, '>', $PosBeg);
-    if ($PosEnd===false) return false;
+	// return the source of the locator
+	function GetSrc() {
+		return substr($this->Txt, $this->PosBeg, $this->GetLen() );
+	}
 	
-	// Read the actual tag name
-	$Tag = $TagPrefix;
-	$p = $PosBeg + $xl;
-	do {
-		$z = substr($Txt,$p,1);
-		if ( ($z!==' ') && ($z!=="\r") && ($z!=="\n") && ($z!=='>') && ($z!=='/') ) {
-			$Tag .= $z;
-			$p++;
-		} else {
-			$p = false;
+	// return the start of the inner content, or false if it's a self-closing tag 
+	function GetInnerStart() {
+		return ($this->pST_PosEnd===false) ? false : $this->pST_PosEnd + 1;
+	}
+
+	// return the length of the inner content, or false if it's a self-closing tag 
+	function GetInnerLen() {
+		return ($this->pET_PosBeg===false) ? false : $this->pET_PosBeg - $this->pST_PosEnd - 1;
+	}
+
+	// return the length of the inner content, or false if it's a self-closing tag 
+	function GetInnertSrc() {
+		return ($this->pET_PosBeg===false) ? false : substr($this->Txt, $this->pST_PosEnd + 1, $this->pET_PosBeg - $this->pST_PosEnd - 1 );
+	}
+
+	// Get an attribut's value. Or false if the attribute is not found.
+	function GetAttLazy($Att) {
+		if ($this->pST_Src===false) $this->pST_Src = substr($this->Txt, $this->PosBeg, $this->pST_PosEnd - $this->PosBeg + 1 );
+		$a = ' '.$Att.'="';
+		$p1 = strpos($this->pST_Src, $a);
+		if ($p1!==false) {
+			$p1 = $p1 + strlen($a);
+			$p2 = strpos($this->pST_Src, '"', $p1);
+			if ($p2!==false) return substr($this->pST_Src, $p1, $p2-$p1);
 		}
-	} while ($p!==false);
-	
-	return new clsTbsXmlLoc($Txt, $Tag, $PosBeg, $PosEnd);
+		return false;
+	}
 
-  }
-  
-  // Search an element in the TXT contents, and return an object if it is found.
-  static function FindElement(&$Txt, $Tag, $PosBeg, $Forward=true) {
-  
-    $XmlLoc = clsTbsXmlLoc::FindStartTag($Txt, $Tag, $PosBeg, $Forward);
-	if ($XmlLoc===false) return false;
-	
-    $XmlLoc->FindEndTag();
-    return $XmlLoc;
+	/*
+	Replace the source of the locator in the TXT contents
+	Also update the locator's positions.
+	*/
+	function ReplaceSrc($new) {
+		$len = $this->GetLen(); // avoid PHP error : Strict Standards: Only variables should be passed by reference
+		$this->Txt = substr_replace($this->Txt, $new, $this->PosBeg, $len);
+		$this->PosEnd += strlen($new) - $len;
+		$this->pST_Src = $new;
+	}
 
-  }
+	// Replace the inner source of the locator in the TXT contents
+	// Also update the locator's positions.
+	function ReplaceInnerSrc($new) {
+		$len = $this->GetInnerLen();
+		if ($len===false) return false;
+		$this->Txt = substr_replace($this->Txt, $new, $this->pST_PosEnd + 1, $len);
+		$this->PosEnd += strlen($new) - $len;
+		$this->pET_PosBeg += strlen($new) - $len;
+	}
 
-  // Search an element in the TXT contents which has the asked attribute, and return an object if it is found.
-  // Note that the element found has an unknwown name until FindEndTag() is called.
-  static function FindStartTagHavingAtt(&$Txt, $Att, $PosBeg, $Forward=true) {
+	// Find the name of the element
+	function FindName() {
+		if ($this->Name==='') {
+			$p = $this->PosBeg;
+			do {
+				$p++;
+				$z = $this->Txt[$p];
+			} while ( ($z!==' ') && ($z!=="\r") && ($z!=="\n") && ($z!=='>') && ($z!=='/') );
+			$this->Name = substr($this->Txt, $this->PosBeg + 1, $p - $this->PosBeg + 1);
+		}
+		return $this->Name;
+	}
 
-	$p = $PosBeg - (($Forward) ? 1 : -1);
-	$x = (strpos($Att, '=')===false) ? (' '.$Att.'="') : $Att; // get the item more precise if not yet done
-	$search = true;
+	// Find the ending tag of the object
+	function FindEndTag() {
+		$pe = $this->PosEnd;
+		$this->SelfClosing = (substr($this->Txt, $pe-1, 1)=='/');
+		if (!$this->SelfClosing) {
+			$pe = clsTinyButStrong::f_Xml_FindTagStart($this->Txt, $this->FindName(), false, $pe, true , true);
+			if ($pe===false) return false;
+			$this->pET_PosBeg = $pe;
+			$pe = strpos($this->Txt, '>', $pe);
+			if ($pe===false) return false;
+			$this->PosEnd = $pe;
+		}
+	}
 
-	do {
-		if ($Forward) $p = strpos($Txt, $x, $p+1);  else $p = strrpos(substr($Txt, 0, $p+1), $x);
-		if ($p===false) return false;
+	// Search a start tag of an element in the TXT contents, and return an object if it is found.
+	static function FindStartTag(&$Txt, $Tag, $PosBeg, $Forward=true) {
+
+		$PosBeg = clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true , $PosBeg, $Forward, true);
+		if ($PosBeg===false) return false;
+
+		$PosEnd = strpos($Txt, '>', $PosBeg);
+		if ($PosEnd===false) return false;
+
+		return new clsTbsXmlLoc($Txt, $Tag, $PosBeg, $PosEnd);
+
+	}
+
+	// Search a start tag by the prefix of the element
+	static function FindStartTagByPrefix(&$Txt, $TagPrefix, $PosBeg, $Forward=true) {
+
+		$x = '<'.$TagPrefix;
+		$xl = strlen($x);
+		
+		if ($Forward) {
+			$PosBeg = strpos($Txt, $x, $PosBeg);
+		} else {
+			$PosBeg = strrpos(substr($Txt, 0, $PosBeg+2), $x);
+		}
+		if ($PosBeg===false) return false;
+		
+		$PosEnd = strpos($Txt, '>', $PosBeg);
+		if ($PosEnd===false) return false;
+		
+		// Read the actual tag name
+		$Tag = $TagPrefix;
+		$p = $PosBeg + $xl;
 		do {
-		  $p = $p - 1;
-		  if ($p<0) return false;
-		  $z = $Txt[$p];
-		} while ( ($z!=='<') && ($z!=='>') );
-		if ($z==='<') $search = false;
-	} while ($search);
-	
-    $PosEnd = strpos($Txt, '>', $p);
-    if ($PosEnd===false) return false;
-    
-	return new clsTbsXmlLoc($Txt, '', $p, $PosEnd);
-	
-  }
+			$z = substr($Txt,$p,1);
+			if ( ($z!==' ') && ($z!=="\r") && ($z!=="\n") && ($z!=='>') && ($z!=='/') ) {
+				$Tag .= $z;
+				$p++;
+			} else {
+				$p = false;
+			}
+		} while ($p!==false);
+		
+		return new clsTbsXmlLoc($Txt, $Tag, $PosBeg, $PosEnd);
 
-  static function FindElementHavingAtt(&$Txt, $Att, $PosBeg, $Forward=true) {
-  
-    $XmlLoc = clsTbsXmlLoc::FindStartTagHavingAtt($Txt, $Att, $PosBeg, $Forward);
-	if ($XmlLoc===false) return false;
-	
-    $XmlLoc->FindEndTag();
-    return $XmlLoc;
+	}
 
-  }
-  
+	// Search an element in the TXT contents, and return an object if it is found.
+	static function FindElement(&$Txt, $Tag, $PosBeg, $Forward=true) {
+
+		$XmlLoc = clsTbsXmlLoc::FindStartTag($Txt, $Tag, $PosBeg, $Forward);
+		if ($XmlLoc===false) return false;
+	
+		$XmlLoc->FindEndTag();
+		return $XmlLoc;
+
+	}
+
+	// Search an element in the TXT contents which has the asked attribute, and return an object if it is found.
+	// Note that the element found has an unknwown name until FindEndTag() is called.
+	static function FindStartTagHavingAtt(&$Txt, $Att, $PosBeg, $Forward=true) {
+
+		$p = $PosBeg - (($Forward) ? 1 : -1);
+		$x = (strpos($Att, '=')===false) ? (' '.$Att.'="') : $Att; // get the item more precise if not yet done
+		$search = true;
+
+		do {
+			if ($Forward) $p = strpos($Txt, $x, $p+1);  else $p = strrpos(substr($Txt, 0, $p+1), $x);
+			if ($p===false) return false;
+			do {
+			  $p = $p - 1;
+			  if ($p<0) return false;
+			  $z = $Txt[$p];
+			} while ( ($z!=='<') && ($z!=='>') );
+			if ($z==='<') $search = false;
+		} while ($search);
+		
+		$PosEnd = strpos($Txt, '>', $p);
+		if ($PosEnd===false) return false;
+		
+		return new clsTbsXmlLoc($Txt, '', $p, $PosEnd);
+		
+	}
+
+	static function FindElementHavingAtt(&$Txt, $Att, $PosBeg, $Forward=true) {
+
+		$XmlLoc = clsTbsXmlLoc::FindStartTagHavingAtt($Txt, $Att, $PosBeg, $Forward);
+		if ($XmlLoc===false) return false;
+		
+		$XmlLoc->FindEndTag();
+		return $XmlLoc;
+
+	}
+
 }
 
 /*
@@ -3785,8 +3797,8 @@ class clsTbsZip {
 		}
 		$this->OutputFromString($b2);
 		$ArchPos += $old_cd_len;
- 		$DeltaCdLen =  $DeltaCdLen + strlen($b2) - $old_cd_len;
- 
+		$DeltaCdLen =  $DeltaCdLen + strlen($b2) - $old_cd_len;
+
 		// Output until Central Directory footer
 		if ($this->ArchHnd!==false) $this->OutputFromArch($ArchPos, $this->CdEndPos); // ArchHnd is false if CreateNew() has been called
 
