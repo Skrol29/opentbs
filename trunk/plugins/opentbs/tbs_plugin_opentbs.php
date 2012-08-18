@@ -49,6 +49,7 @@ define('OPENTBS_MERGE_SPECIAL_ITEMS','clsOpenTBS.MergeSpecialItems');
 
 /**
  * Main class which is a TinyButStrong plug-in.
+ * It is also a extension of clsTbsZip so it can directly manage the archive underlying the template.
  */
 class clsOpenTBS extends clsTbsZip {
 
