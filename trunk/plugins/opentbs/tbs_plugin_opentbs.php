@@ -1,13 +1,21 @@
 <?php
 
-/* OpenTBS version 1.8.0-beta-2012-08-13
-Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
-Licence : LGPL
-This class can open a zip file, read the central directory, and retrieve the content of a zipped file which is not compressed.
-Site: http://www.tinybutstrong.com/plugins.php
-*/
+/**
+ * @file
+ * OpenTBS 
+ *
+ * This TBS plug-in can open a zip file, read the central directory,
+ * and retrieve the content of a zipped file which is not compressed.
+ *
+ * @version 1.8.0-beta-2012-08-13
+ * @see     http://www.tinybutstrong.com/plugins.php
+ * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
+ * @license LGPL
+ */
 
-// Constants to drive the plugin.
+/**
+ * Constants to drive the plugin.
+ */
 define('OPENTBS_PLUGIN','clsOpenTBS');
 define('OPENTBS_DOWNLOAD',1);   // download (default) = TBS_OUTPUT
 define('OPENTBS_NOHEADER',4);   // option to use with DOWNLOAD: no header is sent
@@ -39,7 +47,9 @@ define('OPENTBS_DELETE_SHEETS','clsOpenTBS.DeleteSheets');
 define('OPENTBS_DELETE_COMMENTS','clsOpenTBS.DeleteComments');
 define('OPENTBS_MERGE_SPECIAL_ITEMS','clsOpenTBS.MergeSpecialItems');
 
-
+/**
+ * Main class which is a TinyButStrong plug-in.
+ */
 class clsOpenTBS extends clsTbsZip {
 
 	function OnInstall() {
@@ -3092,9 +3102,10 @@ It needs to be completed when a new picture file extension is added in the docum
 	
 }
 
-/*
- Wrapper to search and replace in XML entities.
-*/
+/**
+ * clsTbsXmlLoc
+ * Wrapper to search and replace in XML entities.
+ */
 class clsTbsXmlLoc {
 
 	var $PosBeg;
@@ -3117,31 +3128,48 @@ class clsTbsXmlLoc {
 		$this->SelfClosing = $SelfClosing;
 	}
 
-	// Return the len of the locator
+	// Return the outer len of the locator.
 	function GetLen() {
 		return $this->PosEnd - $this->PosBeg + 1;
 	}
 	
-	// return the source of the locator
+	// Return the outer source of the locator.
 	function GetSrc() {
 		return substr($this->Txt, $this->PosBeg, $this->GetLen() );
 	}
+
+	// Replace the source of the locator in the TXT contents. Update the locator's positions.
+	function ReplaceSrc($new) {
+		$len = $this->GetLen(); // avoid PHP error : Strict Standards: Only variables should be passed by reference
+		$this->Txt = substr_replace($this->Txt, $new, $this->PosBeg, $len);
+		$this->PosEnd += strlen($new) - $len;
+		$this->pST_Src = $new;
+	}
 	
-	// return the start of the inner content, or false if it's a self-closing tag 
+	// Return the start of the inner content, or false if it's a self-closing tag 
 	function GetInnerStart() {
 		return ($this->pST_PosEnd===false) ? false : $this->pST_PosEnd + 1;
 	}
 
-	// return the length of the inner content, or false if it's a self-closing tag 
+	// Return the length of the inner content, or false if it's a self-closing tag 
 	function GetInnerLen() {
 		return ($this->pET_PosBeg===false) ? false : $this->pET_PosBeg - $this->pST_PosEnd - 1;
 	}
 
-	// return the length of the inner content, or false if it's a self-closing tag 
+	// Return the length of the inner content, or false if it's a self-closing tag 
 	function GetInnertSrc() {
 		return ($this->pET_PosBeg===false) ? false : substr($this->Txt, $this->pST_PosEnd + 1, $this->pET_PosBeg - $this->pST_PosEnd - 1 );
 	}
 
+	// Replace the inner source of the locator in the TXT contents. Update the locator's positions.
+	function ReplaceInnerSrc($new) {
+		$len = $this->GetInnerLen();
+		if ($len===false) return false;
+		$this->Txt = substr_replace($this->Txt, $new, $this->pST_PosEnd + 1, $len);
+		$this->PosEnd += strlen($new) - $len;
+		$this->pET_PosBeg += strlen($new) - $len;
+	}
+	
 	// Get an attribut's value. Or false if the attribute is not found.
 	function GetAttLazy($Att) {
 		if ($this->pST_Src===false) $this->pST_Src = substr($this->Txt, $this->PosBeg, $this->pST_PosEnd - $this->PosBeg + 1 );
@@ -3153,27 +3181,6 @@ class clsTbsXmlLoc {
 			if ($p2!==false) return substr($this->pST_Src, $p1, $p2-$p1);
 		}
 		return false;
-	}
-
-	/*
-	Replace the source of the locator in the TXT contents
-	Also update the locator's positions.
-	*/
-	function ReplaceSrc($new) {
-		$len = $this->GetLen(); // avoid PHP error : Strict Standards: Only variables should be passed by reference
-		$this->Txt = substr_replace($this->Txt, $new, $this->PosBeg, $len);
-		$this->PosEnd += strlen($new) - $len;
-		$this->pST_Src = $new;
-	}
-
-	// Replace the inner source of the locator in the TXT contents
-	// Also update the locator's positions.
-	function ReplaceInnerSrc($new) {
-		$len = $this->GetInnerLen();
-		if ($len===false) return false;
-		$this->Txt = substr_replace($this->Txt, $new, $this->pST_PosEnd + 1, $len);
-		$this->PosEnd += strlen($new) - $len;
-		$this->pET_PosBeg += strlen($new) - $len;
 	}
 
 	// Find the name of the element
@@ -3298,14 +3305,17 @@ class clsTbsXmlLoc {
 
 }
 
-/*
-TbsZip version 2.11 (2012-02-14)
-Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
-Licence : LGPL
-This class is independent from any other classes and has been originally created for the OpenTbs plug-in
-for TinyButStrong Template Engine (TBS). OpenTbs makes TBS able to merge OpenOffice and Ms Office documents.
-Visit http://www.tinybutstrong.com
-*/
+/**
+ * TbsZip
+ *
+ * This class is independent from any other classes and has been originally created for the OpenTbs plug-in
+ * for TinyButStrong Template Engine (TBS). OpenTbs makes TBS able to merge OpenOffice and Ms Office documents.
+ *
+ * @version 2.11 (2012-02-14)
+ * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
+ * @licence LGPL
+ * @see     http://www.tinybutstrong.com
+ */
 
 define('TBSZIP_DOWNLOAD',1);   // download (default)
 define('TBSZIP_NOHEADER',4);   // option to use with DOWNLOAD: no header is sent
