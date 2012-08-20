@@ -327,7 +327,11 @@ class clsOpenTBS extends clsTbsZip {
 				// do nothing
 			}
 		} elseif(substr($ope,0,3)==='ods') {
+			// odsNum, odsCurr, odsPercent, ...
 			if (!isset($Loc->PrmLst['odsok'])) $this->OpenDoc_ChangeCellType($Txt, $Loc, $ope, true, $Value);
+		} elseif ($ope==='delcol') {
+			$this->TbsDeleteColumns($Txt, $Value, $PrmLst, $PosBeg, $PosEnd);
+			return false; // prevent TBS from merging the field
 		}
 	}
 
@@ -1196,6 +1200,90 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return $nbr;
 
 	}
+	
+	/**
+	 * Replace var fields in a Parameter of a block.
+	 * @param  string $PrmVal The parameter value.
+	 * @param  string $FldVal The value of the field that holds the value.
+	 * @return string The merged value of the parameter.
+	 */
+	function TbsMergeVarFields($PrmVal, $FldVal) {
+		$this->TBS->meth_Merge_AutoVar($PrmVal, true);
+		$PrmVal = str_replace($this->TBS->_ChrVal, $FldVal, $PrmVal);
+		return $PrmVal;
+	}
+	
+	function TbsDeleteColumns(&$Txt, $Value, $PrmLst, $PosBeg, $PosEnd) {
+	
+		$ext = $this->Ext_GetEquiv();
+		if ($ext==='docx') {
+			$el_table = 'w:tbl';
+			$el_delete = array(
+				array('p'=>'w:tblGrid', 'c'=>'w:gridCol', 's'=>false),
+				array('p'=>'w:tr', 'c'=>'w:tc', 's'=>false),
+			);
+		} elseif ($ext==='odt') {
+			$el_table = 'table:table';
+			$el_delete = array(
+				array('p'=>false, 'c'=>'table:table-column', 's'=>'table:number-columns-repeated'),
+				array('p'=>'table:table-row', 'c'=>'table:table-cell', 's'=>false),
+			);
+		} else {
+			return false;
+		}
+	
+		if (is_array($Value)) $Value = implode(',', $Value);
+		
+		// Retreive the list of columns id to delete
+		$col_lst = $this->TbsMergeVarFields($PrmLst['colnum'], $Value);
+		$col_lst = str_replace(' ', '', $col_lst);
+		if ( ($col_lst=='') || ($col_lst=='0') ) return false; // there is nothing to do
+		$col_lst = explode(',', $col_lst);
+		$col_nbr = count($col_lst);
+		for ($c=0; $c<$col_nbr; $c++) $col_lst[$c] = intval($col_lst[$c]); // Conversion into numerical
+	
+		// Add columns by shifting
+		if (isset($PrmLst['colshift'])) {
+			$col_shift = intval($this->TbsMergeVarFields($PrmLst['colshift'], $Value));
+			if ($col_shift<>0) {
+				$step = ($col_shift>0) ? -1 : +1;
+				for ($s = $col_shift; $s<>0; $s = $s + $step) {
+					for ($c=0; $c<$col_nbr; $c++) $col_lst[] = $col_lst[$c] + $s;
+				}
+			}
+		}
+		
+		// prepare column info
+		$col_lst = array_unique($col_lst, SORT_NUMERIC); // Delete duplicated columns
+		sort($col_lst, SORT_NUMERIC); // Sort colmun id in order
+		$col_max = $col_lst[(count($col_lst)-1)]; // Last column to delete
+
+		// Delete the TBS tag
+		$Txt = substr_replace($Txt, '', $PosBeg, $PosEnd - $PosBeg + 1);
+
+		// Look for the source of the table
+		$Loc = clsTbsXmlLoc::FindElement($Txt, $el_table, $PosBeg, false);
+		if ($Loc===false) return false;
+
+		$Src = $Loc->GetSrc();
+		
+		foreach ($el_delete as $info) {
+			if ($info['p']===false) {
+				$this->XML_DeleteColumnElements($Src, $info['c'], $info['s'], $col_lst, $col_max);
+			} else {
+				$ParentPos = 0;
+				while ($ParentLoc = clsTbsXmlLoc::FindElement($Src, $info['p'], $ParentPos, true)) {
+					$ParentSrc = $ParentLoc->GetSrc();
+					$ModifNbr = $this->XML_DeleteColumnElements($ParentSrc, $info['c'], $info['s'], $col_lst, $col_max);
+					if ($ModifNbr>0) $ParentLoc->ReplaceSrc($ParentSrc);
+					$ParentPos = $ParentLoc->PosEnd + 1;
+				}
+			}
+		}
+
+		$Loc->ReplaceSrc($Src);
+
+	}
 
 	function Ext_PrepareInfo($Ext=false) {
 		/* Extension Info must be an array with keys 'load', 'br', 'ctype' and 'pic_path'. Keys 'rpl_what' and 'rpl_with' are optional.
@@ -1407,6 +1495,51 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return $nbr_del;
 	}
 
+	/**
+	 * Delete all column elements  according to their position.
+	 * Return the number of deleted elements.
+	 */
+	function XML_DeleteColumnElements(&$Txt, $Tag, $SpanAtt, $ColLst, $ColMax) {
+	
+		$ColNum = 0;
+		$ColPos = 0;
+		$ColQty = 1;
+		$Continue = true;
+		$ModifNbr = 0;
+		
+		while ($Continue && ($Loc = clsTbsXmlLoc::FindElement($Txt, $Tag, $ColPos, true)) ) {
+		
+			// get colmun quantity covered by the element (1 by default)
+			if ($SpanAtt!==false) {
+				$ColQty = $Loc->GetAttLazy($SpanAtt);
+				$ColQty = ($ColQty===false) ? 1 : intval($ColQty);
+			}
+			// count column to keep
+			$KeepQty = 0;
+			for ($i=1; $i<=$ColQty ;$i++) {
+				if (array_search($ColNum+$i, $ColLst)===false) $KeepQty++;
+			}
+			if ($KeepQty==0) {
+				// delete the tag
+				$Loc->ReplaceSrc('');
+				$ModifNbr++;
+			} else {
+				if ($KeepQty!=$ColQty) {
+					// edit the attribute
+					$Loc->ReplaceAtt($SpanAtt, $KeepQty);
+					$ModifNbr++;
+				}
+				$ColPos = $Loc->PosEnd + 1;
+			}
+
+			$ColNum += $ColQty;
+			if ($ColNum>$ColMax) $Continue = false;
+		}
+
+		return $ModifNbr;
+		
+	}
+	
 	/**
 	 * Delete attributes in an XML element. The XML element is located by $Pos.
 	 * @param string $Txt Text containing XML elements.
@@ -3106,6 +3239,8 @@ It needs to be completed when a new picture file extension is added in the docum
 /**
  * clsTbsXmlLoc
  * Wrapper to search and replace in XML entities.
+ * The object represents only the opening tag until method FindEndTag() is called.
+ * Then is represents the complete entity.
  */
 class clsTbsXmlLoc {
 
@@ -3115,9 +3250,9 @@ class clsTbsXmlLoc {
 	var $Txt;
 	var $Name = ''; 
 	
-	var $pST_PosEnd = false; // position of the end of the start tag
-	var $pST_Src = false;
-	var $pET_PosBeg = false; // position of the begining of the end tag
+	var $pST_PosEnd = false; // start tag: position of the end
+	var $pST_Src = false;    // start tag: source
+	var $pET_PosBeg = false; // end tag: position of the begining
 	
 	// Create an instance with the given parameters
 	function __construct(&$Txt, $Name, $PosBeg, $PosEnd, $SelfClosing = null) {
@@ -3127,6 +3262,21 @@ class clsTbsXmlLoc {
 		$this->PosEnd = $PosEnd;
 		$this->pST_PosEnd = $PosEnd;
 		$this->SelfClosing = $SelfClosing;
+	}
+
+	// Return an array of (val_pos, val_len, very_sart, very_len) of the attribute. Return false if the attribute is not found.
+	// Positions are relative to $this->PosBeg.
+	// This method is lazy because it assumes the attribute is separated by a space and its value is deleimited by double-quote.
+	function _GetAttValPos($Att) {
+		if ($this->pST_Src===false) $this->pST_Src = substr($this->Txt, $this->PosBeg, $this->pST_PosEnd - $this->PosBeg + 1 );
+		$a = ' '.$Att.'="';
+		$p0 = strpos($this->pST_Src, $a);
+		if ($p0!==false) {
+			$p1 = $p0 + strlen($a);
+			$p2 = strpos($this->pST_Src, '"', $p1);
+			if ($p2!==false) return array($p1, $p2-$p1, $p0, $p2-$p0+1);
+		}
+		return false;
 	}
 
 	// Return the outer len of the locator.
@@ -3139,12 +3289,13 @@ class clsTbsXmlLoc {
 		return substr($this->Txt, $this->PosBeg, $this->GetLen() );
 	}
 
-	// Replace the source of the locator in the TXT contents. Update the locator's positions.
+	// Replace the source of the locator in the TXT contents.
+	// Update the locator's ending position.
+	// Too complicated to update other information, given that it can be deleted.
 	function ReplaceSrc($new) {
 		$len = $this->GetLen(); // avoid PHP error : Strict Standards: Only variables should be passed by reference
 		$this->Txt = substr_replace($this->Txt, $new, $this->PosBeg, $len);
 		$this->PosEnd += strlen($new) - $len;
-		$this->pST_Src = $new;
 	}
 	
 	// Return the start of the inner content, or false if it's a self-closing tag 
@@ -3152,17 +3303,20 @@ class clsTbsXmlLoc {
 		return ($this->pST_PosEnd===false) ? false : $this->pST_PosEnd + 1;
 	}
 
-	// Return the length of the inner content, or false if it's a self-closing tag 
+	// Return the length of the inner content, or false if it's a self-closing tag
+	// Assume FindEndTag() is previsouly called.
 	function GetInnerLen() {
 		return ($this->pET_PosBeg===false) ? false : $this->pET_PosBeg - $this->pST_PosEnd - 1;
 	}
 
 	// Return the length of the inner content, or false if it's a self-closing tag 
+	// Assume FindEndTag() is previsouly called.
 	function GetInnertSrc() {
 		return ($this->pET_PosBeg===false) ? false : substr($this->Txt, $this->pST_PosEnd + 1, $this->pET_PosBeg - $this->pST_PosEnd - 1 );
 	}
 
 	// Replace the inner source of the locator in the TXT contents. Update the locator's positions.
+	// Assume FindEndTag() is previsouly called.
 	function ReplaceInnerSrc($new) {
 		$len = $this->GetInnerLen();
 		if ($len===false) return false;
@@ -3172,18 +3326,32 @@ class clsTbsXmlLoc {
 	}
 	
 	// Get an attribut's value. Or false if the attribute is not found.
+	// It's a lazy way becuase the attribute is search wuth the patern {attribute="value" }
 	function GetAttLazy($Att) {
-		if ($this->pST_Src===false) $this->pST_Src = substr($this->Txt, $this->PosBeg, $this->pST_PosEnd - $this->PosBeg + 1 );
-		$a = ' '.$Att.'="';
-		$p1 = strpos($this->pST_Src, $a);
-		if ($p1!==false) {
-			$p1 = $p1 + strlen($a);
-			$p2 = strpos($this->pST_Src, '"', $p1);
-			if ($p2!==false) return substr($this->pST_Src, $p1, $p2-$p1);
-		}
-		return false;
+		$z = $this->_GetAttValPos($Att);
+		if ($z===false) return false;
+		return substr($this->pST_Src, $z[0], $z[1]);
 	}
 
+	function ReplaceAtt($Att, $Value) {
+	
+		$z = $this->_GetAttValPos($Att);
+		if ($z===false) return false;
+
+		$Value = ''.$Value;
+		$this->Txt = substr_replace($this->Txt, $Value, $this->PosBeg + $z[0], $z[1]);
+		
+		// update info
+		$Diff = strlen($Value) - $z[1];
+		$this->pST_PosEnd += $Diff;
+		$this->PosEnd += $Diff;
+		if ($this->pET_PosBeg!==false) $this->pET_PosBeg += $Diff;
+		$this->pST_Src = false;
+		
+		return true;
+
+	}
+	
 	// Find the name of the element
 	function FindName() {
 		if ($this->Name==='') {
@@ -3199,15 +3367,17 @@ class clsTbsXmlLoc {
 
 	// Find the ending tag of the object
 	function FindEndTag() {
-		$pe = $this->PosEnd;
-		$this->SelfClosing = (substr($this->Txt, $pe-1, 1)=='/');
-		if (!$this->SelfClosing) {
-			$pe = clsTinyButStrong::f_Xml_FindTagStart($this->Txt, $this->FindName(), false, $pe, true , true);
-			if ($pe===false) return false;
-			$this->pET_PosBeg = $pe;
-			$pe = strpos($this->Txt, '>', $pe);
-			if ($pe===false) return false;
-			$this->PosEnd = $pe;
+		if (is_null($this->SelfClosing)) {
+			$pe = $this->PosEnd;
+			$this->SelfClosing = (substr($this->Txt, $pe-1, 1)=='/');
+			if (!$this->SelfClosing) {
+				$pe = clsTinyButStrong::f_Xml_FindTagStart($this->Txt, $this->FindName(), false, $pe, true , true);
+				if ($pe===false) return false;
+				$this->pET_PosBeg = $pe;
+				$pe = strpos($this->Txt, '>', $pe);
+				if ($pe===false) return false;
+				$this->PosEnd = $pe;
+			}
 		}
 	}
 
