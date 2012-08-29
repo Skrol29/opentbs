@@ -70,8 +70,8 @@ ul {
 
 <body>
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.8.0, 2012-07-15, by Skrol29<br />
-  help file modified on 2012-07-15</div>
+<div>version 1.8.0, 2012-08-29, by Skrol29<br />
+  help file modified on 2012-08-29</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -649,16 +649,18 @@ This command will raise an error if the opened template is not a Workbook.<br />
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
-<h3>version 1.8.0, on 2012-07-15</h3>
+<h3>version 1.8.0, on 2012-08-29</h3>
 <ul>
-  <li>   fixed bug: parameter &quot;<span class="smallcode">ope=changepic</span>&quot; did not work in PPTX documents.</li>
-  <li> fixed bug: parameter &quot;<span class="smallcode">ope=changepic</span>&quot; did not work with <span class="smallcode">[onload]</span> fields in Ms Office.</li>
-  <li> new feature: automatically cleans up spelling in PPTX templates (such information may 
+  <li>    new feature: automatically cleans up spelling in PPTX templates (such information may 
   deconstruct the TBS tags). This feature can be disabled.</li>
   <li> new parameter &quot;<span class="smallcode">tagpos</span>&quot; to define the position of the TBS tag realtively to the image (when using &quot;<span class="smallcode">ope=changepic</span>&quot;).</li>
+  <li>new parameter &quot;<span class="smallcode">delcol</span>&quot; to delete columns in  tables.</li>
   <li> when using &quot;<span class="smallcode">ope=changepic</span>&quot;, default value of parameter &quot;<span class="smallcode">default</span>&quot; is now &quot;<span class="smallcode">current</span>&quot;.</li>
   <li> new command OPENTBS_SELECT_SLIDE</li>
   <li> new command OPENTBS_MERGE_SPECIAL_ITEMS </li>
+  <li>fixed bug: parameter &quot;<span class="smallcode">ope=changepic</span>&quot; did not work in PPTX documents.</li>
+  <li> fixed bug: parameter &quot;<span class="smallcode">ope=changepic</span>&quot; did not work with <span class="smallcode">[onload]</span> fields in Ms Office.</li>
+  <li>fixed bug: parameter &quot;<span class="smallcode">default=current</span>&quot; did not work when using MergeField() instead of MergeBlock().</li>
   <li> requires TBS 3.8.0 </li>
 </ul>
 <h3> version 1.7.6, on 2012-06-06</h3>
