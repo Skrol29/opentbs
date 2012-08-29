@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.0-beta-2012-08-13
+ * @version 1.8.0-beta-2012-08-29
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -1070,7 +1070,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	// Argument $Prm is only used for error messages.
 
 		$TBS = &$this->TBS;
-
+		
 		// set the path where files should be taken
 		if (isset($PrmLst['from'])) {
 			if (!isset($PrmLst['pic_prepared'])) $TBS->meth_Merge_AutoVar($PrmLst['from'],true); // merge automatic TBS fields in the path
@@ -1153,8 +1153,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		
 		// Unchanged value (must be done after redim)
-		if (!$ok) $Value = substr($Txt, $Loc->PosBeg, $Loc->PosEnd - $Loc->PosBeg + 1);
-
+		if (!$ok) {
+			if (isset($PrmLst['att'])) {
+				// can happen when using MergeField()
+				unset($PrmLst['att']);
+				$Value = '';
+			} else {
+				// parameter att already applied during Field caching
+				$Value = substr($Txt, $Loc->PosBeg, $Loc->PosEnd - $Loc->PosBeg + 1);
+			}
+		}
+		
 		$PrmLst['pic_prepared'] = true; // mark the locator as Picture prepared
 
 		return $ok;
