@@ -21,7 +21,7 @@ $file_lst = array(
   'demo_oo_text.odt'
 , 'demo_oo_formula.odf'
 , 'demo_oo_graph.odg'
-, 'demo_oo_master.odm'
+//, 'demo_oo_master.odm'
 , 'demo_oo_presentation.odp'
 , 'demo_oo_spreadsheet.ods'
 );
