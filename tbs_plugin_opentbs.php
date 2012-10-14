@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.0-beta-2012-08-29
+ * @version 1.8.0-beta-2012-10-14
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -64,7 +64,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
 		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
-		$this->Version = '1.8.0-beta-2012-08-13';
+		$this->Version = '1.8.0-beta-2012-10-14';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -242,10 +242,11 @@ class clsOpenTBS extends clsTbsZip {
 
 		if (isset($Loc->PrmLst['ope'])) {
 
-			// Prepare to change picture
 			$ope_lst = explode(',', $Loc->PrmLst['ope']); // in this event, ope is not exploded
+
+			// Prepare to change picture
 			if (in_array('changepic', $ope_lst)) {
-				$this->TbsPicFound($Txt, $Loc); // add parameter "att" which will be processed just after this event, when the field is cached
+				$this->TbsPicFound($Txt, $Loc, true); // add parameter "att" which will be processed just after this event, when the field is cached
 				$Loc->PrmLst['pic_change'] = true;
 			}
 
@@ -282,7 +283,7 @@ class clsOpenTBS extends clsTbsZip {
 			$this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=addpic');
 		} elseif ($ope==='changepic') {
 			if (!isset($PrmLst['pic_change'])) {
-				$this->TbsPicFound($Txt, $Loc);  // add parameter "att" which will be processed just before the value is merged
+				$this->TbsPicFound($Txt, $Loc, false);  // add parameter "att" which will be processed just before the value is merged
 				$PrmLst['pic_change'] = true;
 			}
 			$this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=changepic');
@@ -841,10 +842,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return false;
 	}
 
-	function TbsPicFound($Txt, &$Loc) {
+	function TbsPicFound($Txt, &$Loc, $IsCaching) {
 	// Found the relevent attribute for the image source, and then add parameter 'att' to the TBS locator.
+
 		$att = false;
 		$backward = true;
+
 		if (isset($Loc->PrmLst['tagpos'])) {
 			$s = $Loc->PrmLst['tagpos'];
 			if ($s=='before') {
@@ -853,18 +856,22 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				if ($this->ExtInfo['frm']=='openxml') $backward = false;
 			}
 		}
+
+		// In caching mode, the tag will be moved before the merging by parameter att. Thus Dim info must considerate the tbs tag as length zero.
+		$shift = ($IsCaching && (!$backward) ) ? ($Loc->PosEnd-$Loc->PosBeg+1) : 0;
+		
 		if (isset($this->ExtInfo['frm'])) {
 			if ($this->ExtInfo['frm']==='odf') {
 				$att = 'draw:image#xlink:href';
-				if (isset($Loc->PrmLst['adjust'])) $Loc->otbsDim = $this->TbsPicGetDim_ODF($Txt, $Loc->PosBeg, !$backward);
+				if (isset($Loc->PrmLst['adjust'])) $Loc->otbsDim = $this->TbsPicGetDim_ODF($Txt, $Loc->PosBeg, !$backward, $shift);
 			} elseif ($this->ExtInfo['frm']==='openxml') {
-				$att = $this->OpenXML_FirstPicAtt($Txt, $Loc->PosBeg, $backward);
+				$att = $this->OpenXML_FirstPicAtt($Txt, $Loc->PosBeg, $backward, $shift);
 				if ($att===false) return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] has failed to found the picture.');
 				if (isset($Loc->PrmLst['adjust'])) {
 					if (strpos($att,'v:imagedata')!==false) { 
-						$Loc->otbsDim = $this->TbsPicGetDim_OpenXML_vml($Txt, $Loc->PosBeg, !$backward);
+						$Loc->otbsDim = $this->TbsPicGetDim_OpenXML_vml($Txt, $Loc->PosBeg, !$backward, $shift);
 					} else {
-						$Loc->otbsDim = $this->TbsPicGetDim_OpenXML_dml($Txt, $Loc->PosBeg, !$backward);
+						$Loc->otbsDim = $this->TbsPicGetDim_OpenXML_dml($Txt, $Loc->PosBeg, !$backward, $shift);
 					}
 				}
 			}
@@ -880,7 +887,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$Loc->PrmLst['att'] = $prefix.$att;
 			}
 		}
-
+		
 		return true;
 
 	}
@@ -943,28 +950,28 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 	}
 
-	function TbsPicGetDim_ODF($Txt, $Pos, $Forward) {
+	function TbsPicGetDim_ODF($Txt, $Pos, $Forward, $Shift) {
 	// Found the attributes for the image dimensions, in an ODF file
 		// unit (can be: mm, cm, in, pi, pt)
-		$dim = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, 'draw:frame', 'svg:width="', 'svg:height="', 3, false, false);
+		$dim = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $Shift, 'draw:frame', 'svg:width="', 'svg:height="', 3, false, false);
 		return array($dim);
 	}
 
-	function TbsPicGetDim_OpenXML_vml($Txt, $Pos, $Forward) {
-		$dim = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, 'v:shape', 'width:', 'height:', 2, false, false);
+	function TbsPicGetDim_OpenXML_vml($Txt, $Pos, $Forward, $Shift) {
+		$dim = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $Shift, 'v:shape', 'width:', 'height:', 2, false, false);
 		return array($dim);
 	}
 
-	function TbsPicGetDim_OpenXML_dml($Txt, $Pos, $Forward) {
-		$dim_shape = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, 'wp:extent', 'cx="', 'cy="', 0, 12700, false);
-		$dim_inner = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, 'a:ext'    , 'cx="', 'cy="', 0, 12700, 'uri="');
+	function TbsPicGetDim_OpenXML_dml($Txt, $Pos, $Forward, $Shift) {
+		$dim_shape = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $Shift, 'wp:extent', 'cx="', 'cy="', 0, 12700, false);
+		$dim_inner = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $Shift, 'a:ext'    , 'cx="', 'cy="', 0, 12700, 'uri="');
 		if ( ($dim_inner!==false) && ($dim_inner['wb']<$dim_shape['wb']) ) $dim_inner = false; // <a:ext> isoptional but must always be after the corresponding <wp:extent>, otherwise it may be the <a:ext> of another picture
 		$dim_drawing = $this->TbsPicGetDim_Drawings($Txt, $Pos, $dim_inner);
 		//var_export($dim_drawing); exit;
 		return array($dim_inner, $dim_shape, $dim_drawing); // dims must be sorted in reverse order of location
 	}
 
-	function TbsPicGetDim_Any($Txt, $Pos, $Forward, $Element, $AttW, $AttH, $AllowedDec, $CoefToPt, $IgnoreIfAtt) {
+	function TbsPicGetDim_Any($Txt, $Pos, $Forward, $Shift, $Element, $AttW, $AttH, $AllowedDec, $CoefToPt, $IgnoreIfAtt) {
 	// Found the attributes for the image dimensions, in an ODF file
 	
 		while (true) {
@@ -997,7 +1004,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 						while ( ($pu>1) && (!is_numeric($t[$pu-1])) ) $pu--;
 						$u = ($pu>=$lt) ? '' : substr($t, $pu);
 						$v = floatval(substr($t, 0, $pu));
-						$res_lst[$i.'b'] = ($p+$b); // start
+						$res_lst[$i.'b'] = ($p+$b-$Shift); // start
 						$res_lst[$i.'l'] = $lt; // length of the text
 						$res_lst[$i.'u'] = $u; // unit
 						$res_lst[$i.'v'] = $v; // value
@@ -1022,7 +1029,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	// Get Dim in a OpenXML Drawing (pictires in an XLSX)
+	// Get Dim in a OpenXML Drawing (pictures in an XLSX)
 	function TbsPicGetDim_Drawings($Txt, $Pos, $dim_inner) {
 		
 		if ($dim_inner===false) return false;
@@ -1335,7 +1342,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$i['ctype'] .= $ctype[($Ext[2])];
 			$i['pic_ext'] = array('png' => 'png', 'bmp' => 'bmp', 'gif' => 'gif', 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'jpe' => 'jpeg', 'jfif' => 'jpeg', 'tif' => 'tiff', 'tiff' => 'tiff');
 			$block_alias = array(
-				'tbs:parag' => 'text:p',          // ODT
+				'tbs:p' => 'text:p',              // ODT
 				'tbs:table' => 'table:table',     // ODT (sheet for ODS)
 				'tbs:row' => 'table:table-row',   // ODT+ODS
 				'tbs:cell' => 'table:table-cell', // ODT+ODS
@@ -1361,7 +1368,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$i['main'] = $this->OpenXML_MapGetMain('wordprocessingml.document.main+xml', 'word/document.xml');
 				$i['load'] = $this->OpenXML_MapGetFiles(array('wordprocessingml.header+xml', 'wordprocessingml.footer+xml'));
 				$block_alias = array(
-					'tbs:parag' => 'w:p',
+					'tbs:p' => 'w:p',
 					'tbs:table' => 'w:tbl',
 					'tbs:row' => 'w:tr',
 					'tbs:page' => array(&$this, 'MsWord_GetPage'),
@@ -1384,7 +1391,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$i['main'] = $this->OpenXML_MapGetMain('presentationml.slide+xml', 'ppt/slides/slide1.xml');
 				$i['load'] = $this->OpenXML_MapGetFiles(array('presentationml.notesSlide+xml'));
 				$block_alias = array(
-					'tbs:parag' => 'a:p',
+					'tbs:p' => 'a:p',
 					'tbs:table' => 'a:tbl',
 					'tbs:row' => 'a:tr',
 					'tbs:cell' => 'a:tc',
@@ -2839,10 +2846,6 @@ It needs to be completed when a new picture file extension is added in the docum
 			}
 		}
 		
-		//var_export($loc1); // false
-		//var_export($loc2); // 
-		//exit;
-		
 		// Take care that <w:p> elements can be sef-embeded.
 		// 	That's why we assume that there is no page-break in an embeded paragraph while it is useless but possible.
 		if ($loc1===false) {
@@ -2981,7 +2984,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		$Loc->PosEnd = $p_fld +1;
 
 		if ($IsMerging) {
-			// the field is currently beeing merged
+			// the field is currently being merged
 			if ($type==='boolean') {
 				if ($Value) {
 					$Value = 'true';
