@@ -70,8 +70,8 @@ ul {
 
 <body>
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.8.0, 2012-08-29, by Skrol29<br />
-  help file modified on 2012-08-29</div>
+<div>version 1.8.0, 2012-10-17, by Skrol29<br />
+  help file modified on 2012-10-17</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -295,7 +295,11 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
 </div>
 <h3><a name="blockalias" id="modify"></a>4.6. Block alias</h3>
 <p><span class="versioning">Block Alias are supported since OpenTBS version 1.8.0, they can work only with TBS 3.8.0 or higher</span>.</p>
-<p>&nbsp;</p>
+<p>The block alias are wrappers for defining TBS blocks on  usual Libre Office and Ms Office entities.<br />
+  This helps to not referring directly to XML entities and to harmonize block definitions between types of documents.<br />
+For example:  you can use  <span class="smallcode">block=tbs:row</span> instead of <span class="smallcode">block=table:table-row</span>.</p>
+<p> Some block alias, such as <span class="smallcode">tbs:page</span>, are also defining an entity that you cannot have with normal XML entities.</p>
+<h5>Block alias available according to the type of document :</h5>
 <table border="0" cellspacing="1" cellpadding="4">
   <tr>
     <th rowspan="2" align="left">Alias</th>
@@ -326,6 +330,26 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
     <td align="center"><span class="yes">yes</span></td>
     <td align="center"><span class="no">no</span></td>
     <td align="center"><span class="yes">yes</span></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">tbs:title</td>
+    <td>A title.</td>
+    <td align="center" class="yes">yes</td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">tbs:section</td>
+    <td>A section of text.</td>
+    <td align="center" class="yes">yes</td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="no">no</span></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">tbs:table</td>
@@ -425,6 +449,16 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
     <td align="center"><span class="yes">yes</span></td>
     <td align="center"><span class="yes">yes</span></td>
     <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">tbs:listitem</td>
+    <td>An item of a bullet list.</td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="no">no</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="no">no</span></td>
     <td align="center"><span class="yes">yes</span></td>
   </tr>
 </table>
