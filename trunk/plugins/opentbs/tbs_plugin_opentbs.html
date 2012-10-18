@@ -81,12 +81,13 @@ ul {
       <li>4.1. <a href="#preparation">Preparation of TinyButStrong Template Engine with the OpenTBS plug-in</a></li>
       <li>4.2. <a href="#loadtemplate">Method LoadTemplate()</a></li>
       <li>4.3. <a href="#show">Method Show()</a></li>
-      <li>4.4. <a href="#chart">Change data of series in charts</a></li>
-      <li>4.5. <a href="#pic">Change pictures in the document</a></li>
-      <li>4.6. <a href="#blockalias">Block Alias</a></li>
-      <li>4.7. <a href="#modify_contents">Manual modification in the contents</a></li>
-      <li>4.8. <a href="#modify_files">Manual modification of files in the archive</a></li>
-      <li>4.9. <a href="#misc">Miscellaneous</a></li>
+      <li>4.4. <a href="#blockalias">Block Alias</a></li>
+      <li>4.5. <a href="#chart">Change data of series in charts</a></li>
+      <li>4.6. <a href="#pic">Change pictures in the document</a></li>
+      <li>4.7. <a href="#delcol">Delete columns in tables</a></li>
+      <li>4.8. <a href="#modify_contents">Manual modification in the contents</a></li>
+      <li>4.9. <a href="#modify_files">Manual modification of files in the archive</a></li>
+      <li>4.10. <a href="#misc">Miscellaneous</a></li>
     </ul>
   </li>
   <li><a href="#demo">Demo</a></li>
@@ -180,125 +181,12 @@ if the extension is not recognized then OpenTBS also try to find the document by
     $string = $TBS-&gt;Source; </div>
   <p>When you use <span class="smallcode">OPENTBS_STRING</span> then there is no output for the client. But instead, the binary source of the archive is placed into property $TBS-&gt;Source. This feature can be useful, for example, when you want to place the merged document into an email as an attached file.</p>
 </div>
-<h3><a name="chart" id="chart"></a>4.4. Change data of series in charts</h3>
-<h4>&bull; Change series in charts:</h4>
-<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.6.0, for Ms Word only)</span>
-  <div class="code">Example: $TBS-&gt;PlugIn(OPENTBS_CHART, $ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewLegend=false)</div>
-  <p>This command changes the values of a series in a Chart of the document. The chart will be automatically actualized when the merged document is opened because OpenTBS also breaks the link between the chart and its cached view.<br />
-    The result is <span class="smallcode">true</span> if the series is modified with success, otherwise the result is <span class="smallcode">false</span>. <br />
-  </p>
-  <table width="100%" border="0" cellspacing="2" cellpadding="0">
-    <tr>
-      <th align="left" valign="top">Argument</th>
-      <th align="left">Description</th>
-    </tr>
-    <tr>
-      <td valign="top" class="smallcode">$CharteNameOrNum</td>
-      <td>Internal name of the XML file that contains the chart definition (with or without the extension), or the  order number of the chart in the document (first is number 1).<br />
-        You can use the command <a href="#debugmode">OPENTBS_DEBUG_CHART_LIST</a> in order to view all chart internal names in the document.<br />
-        <span class="smallcode">$CarteNameOrNum</span> is typically <span class="smallcode">'chart1'</span> or <span class="smallcode">1</span>.</td>
-    </tr>
-    <tr>
-      <td valign="top" class="smallcode">$SeriesNumOrName</td>
-      <td>Exact caption of the series in the chart, or its number (first is number 1). Typically <span class="smallcode">'Series 1'</span> or <span class="smallcode">1</span>. </td>
-    </tr>
-    <tr>
-      <td valign="top" class="smallcode">$NewValues</td>
-      <td>The new data of the series. Must be an array, or value <span class="smallcode">false</span> if you want to delete the series.<br />
-        The array can store data with 2 possibilities:<br />
-        <span class="code">$NewValues = array( array('cat1', 'cat2', 'cat3', ...), array(val1, val2, val3, ...) );</span><br />
-        or <br />
-        <span class="code">$NewValues = array('cat1'=&gt;val1,  'cat2'=&gt;val2, 'cat3'=&gt;val3, ...);</span><br />
-        If the chart type is &quot;X Y (Scatter)&quot; then you must use only the  first data store type.</td>
-    </tr>
-    <tr>
-      <td valign="top" class="smallcode">$NewLegend</td>
-      <td>Optional. The new caption of the series. </td>
-    </tr>
-  </table>
-  <h5>Please note:</h5>
-  <ul>
-    <li>The type of the chart won't be changed.</li>
-    <li>Some charts may not be recognized by this feature when the Word document is created with Word &lt;= 2007 or is saved with a Compatibility Mode. You have to convert charts to have it work (right on the chart and choose &quot;Convert&quot;). You can use the command <a href="#debugmode">OPENTBS_DEBUG_CHART_LIST</a> in order to view all unsupported   charts in the document.</li>
-  </ul>
-</div>
-<h3><a name="pic" id="pic2"></a>4.5. Change pictures in the document</h3>
-<h4>&bull; Change an internal picture with a new one:</h4>
-<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.4.0, for OpenOffice and MsOffice documents only)</span>
-  <div class="template">Example: [onshow.x;ope=changepic]</div>
-  <p>In the example above, $x is a PHP global variable containing the name of an external picture file (relative or absolute path). Of course you can use this feature on TBS fields merged with <a href="http://www.tinybutstrong.com/manual.php#php_mergeblock">MergeBlock()</a>.</p>
-  <p> When a TBS field having <span class="smallcode">&quot;ope=changepic&quot;</span> is merged in the template, then OpenTBS will search the first picture located before the field (see parameter <span class="smallcode">tagpos</span> below for another position), and then it will change the picture assuming that the value of the field is the path for a picture file on the server. You don't have to care about loading the picture file in the document, OpenTBS will manage this for you.</p>
-  <p>Note that parameter <span class="smallcode">&quot;ope=changepic&quot;</span> is  a feature provided by the OpenTBS plug-in, which extends the &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_ope">ope</a>&quot; parameter natively present with TBS.</p>
-  <p>    In order to 
-    simplify your coding, they are other complementary optional parameters: </p>
-  <table border="0" cellpadding="0" cellspacing="4" style="marging-left:20px;">
-    <tr>
-      <th align="left">Parameter</th>
-      <th align="left">Description</th>
-    </tr>
-    <tr>
-      <td valign="top"><span class="smallcode">tagpos</span></td>
-      <td><p>Supported values are &quot;<span class="smallcode">after</span>&quot;, &quot;<span class="smallcode">before</span>&quot; and &quot;<span class="smallcode">inside</span>&quot;. This option indicates the position of the TBS tag relativelly to the  target picture.<br />
-        The default value is &quot;<span class="smallcode">after</span>&quot;, it means that the TBS tag (the one with &quot;<span class="smallcode">ope=changepic</span>&quot;) must be placed after the picture.</p>
-        <p>          You can use &quot;<span class="smallcode">tagpos=inside</span>&quot; when you put the TBS field in the Description or Title of the image (LibreOffice/OpenOffice or Ms Office). </p>
-        <ul>
-          <li>This option won't work if you put the TBS tag inside the property Name of an image in LibreOffice/OpenOffice.</li>
-          <li> In Ms Word 2007, property Description and Title are supported but not available for editing, but you can use the URL or Toolipt of a Link on the image.</li>
-          <li> In Ms Excel, you must use &quot;tagpos=inside&quot; because pictures are not saved in the sheet, they are not positioned relativelly to cells.</li>
-        </ul>
-      <p> <span class="versioning">Parameter tagpos is supported since OpenTBS version 1.8.0. Previsouly the TBS tag had to be placed  after the picture.</span></p></td>
-    </tr>
-    <tr>
-      <td valign="top"><span class="smallcode">from</span></td>
-      <td>This option reformulates the path of the new picture to insert. The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file">file</a>&quot;.
-      <div class="template">Example: [onshow.x;ope=changepic;from='../pic/[val].gif']</div></td>
-    </tr>
-    <tr>
-      <td valign="top"><span class="smallcode">as</span></td>
-      <td> This option reformulates the name of the picture that it will take inside the document. It is rare to need it, but it can help in some cases. Note that the external picture file is not renamed. The new   name must be defined without path.
-        The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file">file</a>&quot;.
-        <div class="template">Example: [onshow.x;ope=changepic;as='[val].gif']</div></td>
-    </tr>
-    <tr>
-      <td valign="top"><span class="smallcode">default</span></td>
-      <td>This option defines the picture that should be used when the expected one is not found. The parameter's value must be the path of a file on the server, or the keyword &quot;<span class="smallcode">current&quot;</span>.<br />
-If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS will let the current picture of the template if the new picture is not found.<br />
-<span class="versioning">Since OpenTBS version 1.8.0 the default value is &quot;current&quot;. In prior versions, there was no default value and an OpenTBS error message was prompted if the new image was not found.<br />
-</span></td>
-    </tr>
-    <tr>
-      <td valign="top"><span class="smallcode">adjust</span></td>
-      <td>Adjust the size of the picture in the document. This parameter requires that PHP is configured with the <a href="http://www.php.net/manual/en/book.image.php">GD</a> extension, which is usually the case.<br />
-        Values can be on of the followings:<br />
-        <table border="0" cellspacing="0" cellpadding="3">
-          <tr>
-            <td valign="top"><span class="smallcode">adjust</span> (or <span class="smallcode">adjust=inside</span>)</td>
-            <td>The picture is adjusted to enter into the picture bounds of the template.</td>
-          </tr>
-          <tr>
-            <td valign="top"><span class="smallcode">adjust=samewidth</span><br /></td>
-            <td>The picture is adjusted to have the same width than the picture of the template.</td>
-          </tr>
-          <tr>
-            <td valign="top" class="smallcode">adjust=sameheigth</td>
-            <td>The picture is adjusted to have the same height than the picture of the template.</td>
-          </tr>
-          <tr>
-            <td valign="top"><span class="smallcode">adjust=100%</span> (or 
-              another pourcentage) </td>
-            <td>The picture is adjusted to be  proportional to the originial size.</td>
-          </tr>
-        </table>
-        <span class="versioning">Parameter adjust is supported since OpenTBS version 1.7.0.</span></td>
-    </tr>
-  </table>
-</div>
-<h3><a name="blockalias" id="modify"></a>4.6. Block alias</h3>
+<h3><a name="blockalias" id="modify"></a>4.4. Block alias</h3>
 <p><span class="versioning">Block Alias are supported since OpenTBS version 1.8.0, they can work only with TBS 3.8.0 or higher</span>.</p>
-<p>The block alias are wrappers for defining TBS blocks on  usual Libre Office and Ms Office entities.<br />
+<p>The Block Alias are wrappers for defining TBS blocks on  usual Libre Office and Ms Office entities.<br />
   This helps to not referring directly to XML entities and to harmonize block definitions between types of documents.<br />
-For example:  you can use  <span class="smallcode">block=tbs:row</span> instead of <span class="smallcode">block=table:table-row</span>.</p>
-<p> Some block alias, such as <span class="smallcode">tbs:page</span>, are also defining an entity that you cannot have with normal XML entities.</p>
+  For example:  you can use <span class="smallcode">block=tbs:row</span> instead of <span class="smallcode">block=table:table-row</span>.</p>
+<p> Some Block Alias, such as <span class="smallcode">tbs:page</span> and <span class="smallcode">tbs:section</span>, are also defining an entity that you cannot have with normal XML entities.</p>
 <h5>Block alias available according to the type of document :</h5>
 <table border="0" cellspacing="1" cellpadding="4">
   <tr>
@@ -308,18 +196,18 @@ For example:  you can use  <span class="smallcode">block=tbs:row</span> instead 
     <th colspan="3" align="center">Ms Office</th>
   </tr>
   <tr>
-    <th align="center">Writer<br>
+    <th align="center">Writer<br />
       (odt)</th>
     <th align="center">Calc<br />
-    (ods)</th>
+      (ods)</th>
     <th align="center">Impress<br />
       (odp)</th>
     <th align="center">Word<br />
-    (docx)</th>
+      (docx)</th>
     <th align="center">Excel<br />
-    (xlsx)</th>
+      (xlsx)</th>
     <th align="center">PowerPoint<br />
-    (pptx)</th>
+      (pptx)</th>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">tbs:p</td>
@@ -462,7 +350,139 @@ For example:  you can use  <span class="smallcode">block=tbs:row</span> instead 
     <td align="center"><span class="yes">yes</span></td>
   </tr>
 </table>
-<h3><a name="modify_contents" id="modify2"></a>4.7. Manual modification in the contents</h3>
+<h3><a name="chart" id="chart"></a>4.5. Change data of series in charts</h3>
+<h4>&bull; Change series in charts:</h4>
+<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.6.0, for Ms Word only)</span>
+  <div class="code">Example: $TBS-&gt;PlugIn(OPENTBS_CHART, $ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewLegend=false)</div>
+  <p>This command changes the values of a series in a Chart of the document. The chart will be automatically actualized when the merged document is opened because OpenTBS also breaks the link between the chart and its cached view.<br />
+    The result is <span class="smallcode">true</span> if the series is modified with success, otherwise the result is <span class="smallcode">false</span>. <br />
+  </p>
+  <table width="100%" border="0" cellspacing="2" cellpadding="0">
+    <tr>
+      <th align="left" valign="top">Argument</th>
+      <th align="left">Description</th>
+    </tr>
+    <tr>
+      <td valign="top" class="smallcode">$CharteNameOrNum</td>
+      <td>Internal name of the XML file that contains the chart definition (with or without the extension), or the  order number of the chart in the document (first is number 1).<br />
+        You can use the command <a href="#debugmode">OPENTBS_DEBUG_CHART_LIST</a> in order to view all chart internal names in the document.<br />
+        <span class="smallcode">$CarteNameOrNum</span> is typically <span class="smallcode">'chart1'</span> or <span class="smallcode">1</span>.</td>
+    </tr>
+    <tr>
+      <td valign="top" class="smallcode">$SeriesNumOrName</td>
+      <td>Exact caption of the series in the chart, or its number (first is number 1). Typically <span class="smallcode">'Series 1'</span> or <span class="smallcode">1</span>. </td>
+    </tr>
+    <tr>
+      <td valign="top" class="smallcode">$NewValues</td>
+      <td>The new data of the series. Must be an array, or value <span class="smallcode">false</span> if you want to delete the series.<br />
+        The array can store data with 2 possibilities:<br />
+        <span class="code">$NewValues = array( array('cat1', 'cat2', 'cat3', ...), array(val1, val2, val3, ...) );</span><br />
+        or <br />
+        <span class="code">$NewValues = array('cat1'=&gt;val1,  'cat2'=&gt;val2, 'cat3'=&gt;val3, ...);</span><br />
+        If the chart type is &quot;X Y (Scatter)&quot; then you must use only the  first data store type.</td>
+    </tr>
+    <tr>
+      <td valign="top" class="smallcode">$NewLegend</td>
+      <td>Optional. The new caption of the series. </td>
+    </tr>
+  </table>
+  <h5>Please note:</h5>
+  <ul>
+    <li>The type of the chart won't be changed.</li>
+    <li>Some charts may not be recognized by this feature when the Word document is created with Word &lt;= 2007 or is saved with a Compatibility Mode. You have to convert charts to have it work (right on the chart and choose &quot;Convert&quot;). You can use the command <a href="#debugmode">OPENTBS_DEBUG_CHART_LIST</a> in order to view all unsupported   charts in the document.</li>
+  </ul>
+</div>
+<h3><a name="pic" id="pic2"></a>4.6. Change pictures in the document</h3>
+<h4>&bull; Change an internal picture with a new one:</h4>
+<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.4.0, for OpenOffice and MsOffice documents only)</span>
+  <div class="template">Example: [onshow.x;ope=changepic]</div>
+  <p>In the example above, $x is a PHP global variable containing the name of an external picture file (relative or absolute path). Of course you can use this feature on TBS fields merged with <a href="http://www.tinybutstrong.com/manual.php#php_mergeblock">MergeBlock()</a>.</p>
+  <p> When a TBS field having <span class="smallcode">&quot;ope=changepic&quot;</span> is merged in the template, then OpenTBS will search the first picture located before the field (see parameter <span class="smallcode">tagpos</span> below for another position), and then it will change the picture assuming that the value of the field is the path for a picture file on the server. You don't have to care about loading the picture file in the document, OpenTBS will manage this for you.</p>
+  <p>Note that parameter <span class="smallcode">&quot;ope=changepic&quot;</span> is  a feature provided by the OpenTBS plug-in, which extends the &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_ope">ope</a>&quot; parameter natively present with TBS.</p>
+  <p>    In order to 
+    simplify your coding, they are other complementary optional parameters: </p>
+  <table border="0" cellpadding="0" cellspacing="4" style="marging-left:20px;">
+    <tr>
+      <th align="left">Parameter</th>
+      <th align="left">Description</th>
+    </tr>
+    <tr>
+      <td valign="top"><span class="smallcode">tagpos</span></td>
+      <td><p>Supported values are &quot;<span class="smallcode">after</span>&quot;, &quot;<span class="smallcode">before</span>&quot; and &quot;<span class="smallcode">inside</span>&quot;. This option indicates the position of the TBS tag relativelly to the  target picture.<br />
+        The default value is &quot;<span class="smallcode">after</span>&quot;, it means that the TBS tag (the one with &quot;<span class="smallcode">ope=changepic</span>&quot;) must be placed after the picture.</p>
+        <p>          You can use &quot;<span class="smallcode">tagpos=inside</span>&quot; when you put the TBS field in the Description or Title of the image (LibreOffice/OpenOffice or Ms Office). </p>
+        <ul>
+          <li>This option won't work if you put the TBS tag inside the property Name of an image in LibreOffice/OpenOffice.</li>
+          <li> In Ms Word 2007, property Description and Title are supported but not available for editing, but you can use the URL or Toolipt of a Link on the image.</li>
+          <li> In Ms Excel, you must use &quot;tagpos=inside&quot; because pictures are not saved in the sheet, they are not positioned relativelly to cells.</li>
+        </ul>
+      <p> <span class="versioning">Parameter tagpos is supported since OpenTBS version 1.8.0. Previsouly the TBS tag had to be placed  after the picture.</span></p></td>
+    </tr>
+    <tr>
+      <td valign="top"><span class="smallcode">from</span></td>
+      <td>This option reformulates the path of the new picture to insert. The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file">file</a>&quot;.
+      <div class="template">Example: [onshow.x;ope=changepic;from='../pic/[val].gif']</div></td>
+    </tr>
+    <tr>
+      <td valign="top"><span class="smallcode">as</span></td>
+      <td> This option reformulates the name of the picture that it will take inside the document. It is rare to need it, but it can help in some cases. Note that the external picture file is not renamed. The new   name must be defined without path.
+        The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file">file</a>&quot;.
+        <div class="template">Example: [onshow.x;ope=changepic;as='[val].gif']</div></td>
+    </tr>
+    <tr>
+      <td valign="top"><span class="smallcode">default</span></td>
+      <td>This option defines the picture that should be used when the expected one is not found. The parameter's value must be the path of a file on the server, or the keyword &quot;<span class="smallcode">current&quot;</span>.<br />
+If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS will let the current picture of the template if the new picture is not found.<br />
+<span class="versioning">Since OpenTBS version 1.8.0 the default value is &quot;current&quot;. In prior versions, there was no default value and an OpenTBS error message was prompted if the new image was not found.<br />
+</span></td>
+    </tr>
+    <tr>
+      <td valign="top"><span class="smallcode">adjust</span></td>
+      <td>Adjust the size of the picture in the document. This parameter requires that PHP is configured with the <a href="http://www.php.net/manual/en/book.image.php">GD</a> extension, which is usually the case.<br />
+        Values can be on of the followings:<br />
+        <table border="0" cellspacing="0" cellpadding="3">
+          <tr>
+            <td valign="top"><span class="smallcode">adjust</span> (or <span class="smallcode">adjust=inside</span>)</td>
+            <td>The picture is adjusted to enter into the picture bounds of the template.</td>
+          </tr>
+          <tr>
+            <td valign="top"><span class="smallcode">adjust=samewidth</span><br /></td>
+            <td>The picture is adjusted to have the same width than the picture of the template.</td>
+          </tr>
+          <tr>
+            <td valign="top" class="smallcode">adjust=sameheigth</td>
+            <td>The picture is adjusted to have the same height than the picture of the template.</td>
+          </tr>
+          <tr>
+            <td valign="top"><span class="smallcode">adjust=100%</span> (or 
+              another pourcentage) </td>
+            <td>The picture is adjusted to be  proportional to the originial size.</td>
+          </tr>
+        </table>
+        <span class="versioning">Parameter adjust is supported since OpenTBS version 1.7.0.</span></td>
+    </tr>
+  </table>
+</div>
+<h3><a name="delcol" id="modify3"></a>4.7. Delete columns in a table</h3>
+<p><span class="versioning">This feature is  supported since OpenTBS version 1.8.0</span>.</p>
+<p>Enables you to delete the columns you want in any table of an Ms Word Document. It doe work for Libre Office for now.<br />
+You have to put a TBS field anywhere inside the table with the following parameters:<br />
+</p>
+<ul>
+  <li> <span class="template">ope</span> = delcol</li>
+  <li> <span class="template">colnum</span> = the column numbers to delete, separated with commas (first colmun is number 1).</li>
+  <li> <span class="template">colshift</span> = (optional) if parameter &quot;colnum&quot; has only on value then &quot;colshift&quot; extends the number of columns to delete to the left of to the rigth.</li>
+</ul>
+<p> Both parameters &quot;colnum&quot; and &quot;colshift&quot; can contain  [val] and [var] fields.<br />
+When the TBS field is merged, the specified columns will be deleted and the TBS field is erased.</p>
+<h5>  Examples:</h5>
+<ul>
+  <li><span class="template">[onload;ope=delcol;colnum=2,4,6]</span> =&gt; will delete columns {2,5,6}</li>
+  <li> <span class="template">[onload;ope=delcol;colnum=2;colshift=2]</span> =&gt; will delete columns {2,3,4}</li>
+  <li> <span class="template">[onload;ope=delcol;colnum=2;colshift=-1]</span> =&gt; will delete columns {1,2}</li>
+  <li><span class="template">[onload.col_to_delete;ope=delcol;colnum=[val];colshift=2]</span> =&gt; will delete 3 colmuns staring to column number $col_to_delete</li>
+</ul>
+<h3><a name="modify_contents" id="modify2"></a>4.8. Manual modification in the contents</h3>
 <p><span class="versioning">The following commands are supported since OpenTBS version 1.7.0</span>:</p>
 <table border="0" cellspacing="1" cellpadding="0">
   <tr>
@@ -527,7 +547,7 @@ This command will raise an error if the opened template is not a Workbook.<br />
 </td>
   </tr>
 </table>
-<h3><a name="modify_files" id="modify_files"></a>4.8. Manual modification of files in the archive</h3>
+<h3><a name="modify_files" id="modify_files"></a>4.9. Manual modification of files in the archive</h3>
 <h4 style="display:inline">&bull; Check if a file does exists in the archive:</h4>
 <div class="shift">
   <div class="code">$TBS-&gt;Plugin(OPENTBS_FILEEXISTS, $Name)
@@ -576,7 +596,7 @@ This command will raise an error if the opened template is not a Workbook.<br />
     $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</div>
   <p>The automatic extension recognition is also applied as it was applied for the first load of the archive.</p>
 </div>
-<h3><a name="misc" id="misc"></a>4.9. Miscellaneous</h3>
+<h3><a name="misc" id="misc"></a>4.10. Miscellaneous</h3>
 <h4>&bull; Dealing with apostrophes:</h4>
 <div class="shift">
   <p> Both OpenOffice and Ms Office may automatically convert single quotes (') into typographic apostrophes (&rsquo;), depending to the auto-correction options. This may be annoying   when you need to code a TBS fields that have a single quote. That's why OpenTBS automatically convert by default all (&rsquo;) back to single quotes (') in documents.<br />
@@ -687,6 +707,7 @@ This command will raise an error if the opened template is not a Workbook.<br />
 <ul>
   <li>    new feature: automatically cleans up spelling in PPTX templates (such information may 
   deconstruct the TBS tags). This feature can be disabled.</li>
+  <li>new feature: Block Alias helps to define TBS blocks <span id="result_box2" lang="en" xml:lang="en">easily</span> on pages, sections,....</li>
   <li> new parameter &quot;<span class="smallcode">tagpos</span>&quot; to define the position of the TBS tag realtively to the image (when using &quot;<span class="smallcode">ope=changepic</span>&quot;).</li>
   <li>new parameter &quot;<span class="smallcode">delcol</span>&quot; to delete columns in  tables.</li>
   <li> when using &quot;<span class="smallcode">ope=changepic</span>&quot;, default value of parameter &quot;<span class="smallcode">default</span>&quot; is now &quot;<span class="smallcode">current</span>&quot;.</li>
