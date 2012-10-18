@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.0-beta-2012-10-14
+ * @version 1.8.0-beta-2012-10-17
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -64,7 +64,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
 		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
-		$this->Version = '1.8.0-beta-2012-10-14';
+		$this->Version = '1.8.0-beta-2012-10-17';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -1342,7 +1342,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$i['ctype'] .= $ctype[($Ext[2])];
 			$i['pic_ext'] = array('png' => 'png', 'bmp' => 'bmp', 'gif' => 'gif', 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'jpe' => 'jpeg', 'jfif' => 'jpeg', 'tif' => 'tiff', 'tiff' => 'tiff');
 			$block_alias = array(
-				'tbs:p' => 'text:p',              // ODT
+				'tbs:p' => 'text:p',              // ODT+ODP
+				'tbs:title' => 'text:h',          // ODT+ODP
+				'tbs:section' => 'text:section',  // ODT
 				'tbs:table' => 'table:table',     // ODT (sheet for ODS)
 				'tbs:row' => 'table:table-row',   // ODT+ODS
 				'tbs:cell' => 'table:table-cell', // ODT+ODS
@@ -1353,6 +1355,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				'tbs:draw' => array(&$this, 'OpenDoc_GetDraw'),
 				'tbs:drawgroup' => 'draw:g',
 				'tbs:drawitem' => array(&$this, 'OpenDoc_GetDraw'),
+				'tbs:listitem' => 'text:list-item', // ODT+ODP
 			);
 		} elseif ($Frm==='openxml') {
 			// Microsoft Office documents
@@ -1369,12 +1372,15 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$i['load'] = $this->OpenXML_MapGetFiles(array('wordprocessingml.header+xml', 'wordprocessingml.footer+xml'));
 				$block_alias = array(
 					'tbs:p' => 'w:p',
+					'tbs:title' => 'w:p',
+					'tbs:section' => array(&$this, 'MsWord_GetSection'),
 					'tbs:table' => 'w:tbl',
 					'tbs:row' => 'w:tr',
 					'tbs:page' => array(&$this, 'MsWord_GetPage'),
 					'tbs:draw' => 'mc:AlternateContent',
 					'tbs:drawgroup' => 'mc:AlternateContent',
 					'tbs:drawitem' => 'wps:wsp',
+					'tbs:listitem' => 'w:p',
 				);  
 			} elseif ( ($Ext==='xlsx') || ($Ext==='xlsm')) {
 				$i = array('br' => false, 'frm' => 'openxml', 'equiv'=>'xlsx', 'ctype' => $ctype . 'spreadsheetml.sheet', 'pic_path' => 'xl/media/');
@@ -1392,12 +1398,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$i['load'] = $this->OpenXML_MapGetFiles(array('presentationml.notesSlide+xml'));
 				$block_alias = array(
 					'tbs:p' => 'a:p',
+					'tbs:title' => 'a:p',
 					'tbs:table' => 'a:tbl',
 					'tbs:row' => 'a:tr',
 					'tbs:cell' => 'a:tc',
 					'tbs:draw' => 'p:sp',
 					'tbs:drawgroup' => 'p:grpSp',
 					'tbs:drawitem' => 'p:sp',
+					'tbs:listitem' => 'a:p',
 				);
 			}
 			$i['pic_ext'] = array('png' => 'png', 'bmp' => 'bmp', 'gif' => 'gif', 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'jpe' => 'jpeg', 'tif' => 'tiff', 'tiff' => 'tiff', 'ico' => 'x-icon', 'svg' => 'svg+xml');
@@ -2867,6 +2875,63 @@ It needs to be completed when a new picture file extension is added in the docum
 		
 		
 	}
+	
+	/**
+	 * Alias of block: 'tbs:section'
+	 * In Docx, section-breaks <w:sectPr> can be saved in the last <w:p> of the section, or just after the last <w:p> of the section.
+	 * In practice, there is always at least one sectin-break and only the last section-break is saved outside the <w:p>.
+	 */ 
+	function MsWord_GetSection($Tag, $Txt, $Pos, $Forward, $LevelStop) {
+		
+		// First we check if the TBS tag is inside a <w:p> and if this <w:p> has a <w:sectPr>
+		$case = false;
+		$locP = clsTbsXmlLoc::FindStartTag($Txt, 'w:p', $Pos, false);
+		if ($locP!==false) {
+			$locP->FindEndTag(true);
+			if ($locP->PosEnd>$Pos) {
+				$src = $locP->GetSrc();
+				$loc = clsTbsXmlLoc::FindStartTag($src, 'w:sectPr', 0, true);
+				if ($loc!==false) $case = true;
+			}
+		}
+		
+		if ($case && $Forward) return $locP->PosEnd;
+
+		// Look for the next section-break
+		$p = ($Forward) ? $locP->PosEnd : $locP->PosBeg;
+		$locS = clsTbsXmlLoc::FindStartTag($Txt, 'w:sectPr', $p, $Forward);
+		
+		if ($locS===false) {
+			if ($Forward) {
+				// end of the body
+				$p = strpos($Txt, '</w:body>', $Pos);
+				return ($p===false) ? false : $p - 1;
+			} else {
+				// start of the body
+				$loc2 = clsTbsXmlLoc::FindStartTag($Txt, 'w:body', 0, true);
+				return ($loc2===false) ? false : $loc2->PosEnd + 1;
+			}
+		}
+		
+		// is <w:sectPr> inside a <w:p> ?
+		$ewp = '</w:p>';
+		$inside = false;
+		$p = strpos($Txt, $ewp, $locS->PosBeg);
+		if ($p!==false) {
+			$loc2 = clsTbsXmlLoc::FindStartTag($Txt, 'w:p', $locS->PosBeg, true);
+			if ( ($loc2===false) || ($loc2->PosBeg>$p) ) $inside = true;
+		}
+		
+		$offset = ($Forward) ? 0 : 1;
+		if ($inside) {
+			return $p + strlen($ewp) - 1 + $offset;
+		} else {
+			// not inside
+			$locS->FindEndTag();
+			return $locS->PosEnd + $offset;
+		}
+		
+	}
 			
 	// OpenOffice documents
 
@@ -3378,19 +3443,30 @@ class clsTbsXmlLoc {
 	}
 
 	// Find the ending tag of the object
-	function FindEndTag() {
+	// Use $Encaps=true if the element can be self encapsulated (like <div>).
+	// Return true if the end is funf
+	function FindEndTag($Encaps=false) {
 		if (is_null($this->SelfClosing)) {
 			$pe = $this->PosEnd;
-			$this->SelfClosing = (substr($this->Txt, $pe-1, 1)=='/');
-			if (!$this->SelfClosing) {
-				$pe = clsTinyButStrong::f_Xml_FindTagStart($this->Txt, $this->FindName(), false, $pe, true , true);
-				if ($pe===false) return false;
-				$this->pET_PosBeg = $pe;
-				$pe = strpos($this->Txt, '>', $pe);
-				if ($pe===false) return false;
-				$this->PosEnd = $pe;
+			$SelfClosing = (substr($this->Txt, $pe-1, 1)=='/');
+			if (!$SelfClosing) {
+				if ($Encaps) {
+					$loc = clsTinyButStrong::f_Xml_FindTag($this->Txt , $this->FindName(), null, $pe, true, -1, false, false);
+					if ($loc===false) return false;
+					$this->pET_PosBeg = $loc->PosBeg;
+					$this->PosEnd = $loc->PosEnd;
+				} else {
+					$pe = clsTinyButStrong::f_Xml_FindTagStart($this->Txt, $this->FindName(), false, $pe, true , true);
+					if ($pe===false) return false;
+					$this->pET_PosBeg = $pe;
+					$pe = strpos($this->Txt, '>', $pe);
+					if ($pe===false) return false;
+					$this->PosEnd = $pe;
+				}
 			}
+			$this->SelfClosing = $SelfClosing;
 		}
+		return true;
 	}
 
 	// Search a start tag of an element in the TXT contents, and return an object if it is found.
