@@ -352,7 +352,7 @@ if the extension is not recognized then OpenTBS also try to find the document by
 </table>
 <h3><a name="chart" id="chart"></a>4.5. Change data of series in charts</h3>
 <h4>&bull; Change series in charts:</h4>
-<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.6.0, for Ms Word only)</span>
+<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.6.0, for Ms Word and Ms Powerpoint only)</span>
   <div class="code">Example: $TBS-&gt;PlugIn(OPENTBS_CHART, $ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewLegend=false)</div>
   <p>This command changes the values of a series in a Chart of the document. The chart will be automatically actualized when the merged document is opened because OpenTBS also breaks the link between the chart and its cached view.<br />
     The result is <span class="smallcode">true</span> if the series is modified with success, otherwise the result is <span class="smallcode">false</span>. <br />
