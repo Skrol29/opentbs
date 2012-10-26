@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.0-beta-2012-10-17
+ * @version 1.8.0-beta-2012-10-23
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -64,7 +64,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
 		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
-		$this->Version = '1.8.0-beta-2012-10-17';
+		$this->Version = '1.8.0-beta-2012-10-23';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -1687,7 +1687,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	*/
 	function OpenXML_Rels_AddNew($DocPath, $TargetDir, $FileName) {
 	
-		$o = &$this->OpenXML_Rels_GetObj($DocPath, $TargetDir);
+		$o = $this->OpenXML_Rels_GetObj($DocPath, $TargetDir);
 		$Target = $TargetDir.$FileName;
 		
 		if (isset($o->RidLst[$Target])) return $o->RidLst[$Target];
