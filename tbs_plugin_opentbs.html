@@ -471,16 +471,14 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
 </div>
 <h3><a name="delcol" id="modify3"></a>4.7. Delete columns in a table</h3>
 <p><span class="versioning">This feature is  supported since OpenTBS version 1.8.0</span>.</p>
-<p>Enables you to delete the columns you want in any table of an Ms Word Document. It doe work for Libre Office for now.<br />
-You have to put a TBS field anywhere inside the table with the following parameters:<br />
-</p>
+<p>Enables you to delete the columns you want in any table of an Ms Word Document. It doesn't work for Libre Office for now.</p>
+<p> You have to put a TBS field anywhere inside the table with the following parameters:</p>
 <ul>
   <li> <span class="template">ope</span> = delcol</li>
   <li> <span class="template">colnum</span> = the column numbers to delete, separated with commas (first colmun is number 1).</li>
   <li> <span class="template">colshift</span> = (optional) if parameter &quot;colnum&quot; has only on value then &quot;colshift&quot; extends the number of columns to delete to the left of to the rigth.</li>
 </ul>
-<p> Both parameters &quot;colnum&quot; and &quot;colshift&quot; can contain  [val] and [var] fields.<br />
-When the TBS field is merged, the specified columns will be deleted and the TBS field is erased.</p>
+<p> Both parameters &quot;colnum&quot; and &quot;colshift&quot; can contain  [val] and [var] fields. When the TBS field is merged, the specified columns will be deleted and the TBS field is erased.</p>
 <h5>  Examples:</h5>
 <ul>
   <li><span class="template">[onload;ope=delcol;colnum=2,4,6]</span> =&gt; will delete columns {2,5,6}</li>
