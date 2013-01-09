@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.0-beta-2013-01-03
+ * @version 1.8.0-beta-2013-01-08
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -66,7 +66,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
 		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
-		$this->Version = '1.8.0-beta-2012-10-23';
+		$this->Version = '1.8.0-beta-2013-01-08';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -388,12 +388,12 @@ class clsOpenTBS extends clsTbsZip {
 
 		} elseif ($Cmd==OPENTBS_CHART) {
 
-			$ChartNameOrNum = $x1;
+			$ChartRef = $x1;
 			$SeriesNameOrNum = $x2;
 			$NewValues = (is_null($x3)) ? false : $x3;
 			$NewLegend = (is_null($x4)) ? false : $x4;
 			$CopyFromSeries = (is_null($x5)) ? false : $x5;
-			return $this->OpenXML_ChartChangeSeries($ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewLegend, $CopyFromSeries);
+			return $this->OpenXML_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend, $CopyFromSeries);
 
 		} elseif ( ($Cmd==OPENTBS_DEBUG_INFO) || ($Cmd==OPENTBS_DEBUG_CHART_LIST) ) {
 
@@ -411,6 +411,8 @@ class clsOpenTBS extends clsTbsZip {
 			foreach ($this->TbsStoreLst as $idx=>$park) $this->DebugLst[$this->TbsGetFileName($idx)] = $park['src'];
 			$this->TbsDebug_Merge(true, true);
 
+			if (is_null($x1) || $x1) exit();
+			
 		} elseif($Cmd==OPENTBS_FORCE_DOCTYPE) {
 
 			return $this->Ext_PrepareInfo($x1);
@@ -545,6 +547,7 @@ class clsOpenTBS extends clsTbsZip {
 			$tag = "[$name;ope=changepic;tagpos=inside;default=$default;adjust=$adjust]";
 			
 			$nbr = false;
+			$TBS =& $this->TBS; 
 			$TBS->Source = str_replace($code, $tag, $TBS->Source, $nbr); // argument $nbr supported buy PHP >= 5
 			if ($nbr!==0) $TBS->MergeField($name, $file);
 			
@@ -2072,14 +2075,18 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 
-	function OpenXML_ChartChangeSeries($ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewLegend=false, $CopyFromSeries=false) {
+	function OpenXML_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend=false, $CopyFromSeries=false) {
 
 		if (!isset($this->OpenXmlCharts)) $this->OpenXML_ChartInit();
 
 		// search the chart
-		$ref = ''.$ChartNameOrNum;
-		if (!isset($this->OpenXmlCharts[$ref])) $ref = 'chart'.$ref;
-		if (!isset($this->OpenXmlCharts[$ref])) return $this->RaiseError("(ChartChangeSeries) unable to found the chart corresponding to '".$ChartNameOrNum."'.");
+		$ref = ''.$ChartRef;
+		if (!isset($this->OpenXmlCharts[$ref])) $ref = 'chart'.$ref; // try with $ChartRef as number
+		if (!isset($this->OpenXmlCharts[$ref])) { // try with $ChartRef as name of the file
+			$charts = $this->OpenXML_ChartGetInfoInCurrFile();
+			foreach($charts as $c) if ($c['title']===$ChartRef) $ref = $c['name']; // try with $ChartRef as title
+			if (!isset($this->OpenXmlCharts[$ref])) return $this->RaiseError("(ChartChangeSeries) '$ChartRef' : unable to found the chart corresponding to '".$ChartRef."'.");
+		}
 
 		$chart =& $this->OpenXmlCharts[$ref];
 		$Txt = $this->TbsStoreGet($chart['idx'], 'ChartChangeSeries');
@@ -2093,8 +2100,9 @@ It needs to be completed when a new picture file extension is added in the docum
 		}
 
 		$Delete = ($NewValues===false);
+		if (is_array($SeriesNameOrNum)) return $this->RaiseError("(ChartChangeSeries) '$ChartRef' : The series reference is an array, a string or a number is expected. ".$ChartRef."'."); // usual mistake in arguments
 		$ser = $this->OpenXML_ChartSeriesFound($Txt, $SeriesNameOrNum, $Delete);
-		if ($ser===false) return $this->RaiseError("(ChartChangeSeries) unable to found series '".$SeriesNameOrNum."' in the chart '".$ref."'.");
+		if ($ser===false) return $this->RaiseError("(ChartChangeSeries) '$ChartRef' : unable to found series '".$SeriesNameOrNum."' in the chart '".$ref."'.");
 
 		if ($Delete) {
 
@@ -2177,7 +2185,7 @@ It needs to be completed when a new picture file extension is added in the docum
 				$title = false;
 				$descr = false;
 				$parent = clsTbsXmlLoc::FindStartTag($Txt, 'wp:inline', $t->PosBeg, false); // docx
-				if ($parent===false) clsTbsXmlLoc::FindStartTag($Txt, 'p:nvGraphicFramePr', $t->PosBeg, false); // pptx
+				if ($parent===false) $parent = clsTbsXmlLoc::FindStartTag($Txt, 'p:nvGraphicFramePr', $t->PosBeg, false); // pptx
 				if ($parent!==false) {
 					$parent->FindEndTag();
 					$src = $parent->GetInnerSrc();
@@ -2697,6 +2705,7 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	function MsPowerpoint_SlideDebug($nl, $sep, $bull) {
 
+		// List of slides
 		$this->MsPowerpoint_InitSlideLst();
 
 		echo $nl;
@@ -2706,6 +2715,25 @@ It needs to be completed when a new picture file extension is added in the docum
 			echo $bull."#".($i+1).": ".basename($file);
 		}
 		if (count($this->OpenXmlSlideLst)==0) echo $bull."(none)";
+
+		// List of charts
+		echo $nl;
+		echo $nl."Charts found in slides:";
+		echo $nl."-------------------------";
+
+		$nbr = 0;
+		for ($s=1; $s <= count($this->OpenXmlSlideLst); $s++) {
+			$this->OnCommand(OPENTBS_SELECT_SLIDE, $s);
+			$ChartLst = $this->OpenXML_ChartGetInfoInCurrFile();
+			foreach ($ChartLst as $i=>$c) {
+				$name = ($c['name']===false) ? '(not found)' : $c['name'];
+				$title = ($c['title']===false) ? '(not found)' : var_export($c['title'], true);
+				echo $bull."slide: $s, chart name: '$name', title: $title";
+				if ($c['descr']!==false) echo ", description: ".$c['descr'];
+				$nbr++;
+			}
+		}
+		if ($nbr==0) echo $bull."(none)";
 		
 	}
 	

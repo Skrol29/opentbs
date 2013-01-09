@@ -1,5 +1,5 @@
 Synopsis of XML files stored in the archives supported by OpenTBS.
-Version 2011-10-13
+Version 2013-01-08
 
 Extensions:  odt, odg, ods, odf, odp, docx, xlsx and pptx
 
