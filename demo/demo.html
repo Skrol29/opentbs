@@ -53,13 +53,13 @@ body,td,th {
   </select>
   ,  debug:
   <select name="debug" id="debug">
-    <option value="0" selected="selected">No</option>
-    <option value="1">General Information</option>
-    <option value="2">During merge</option>
-    <option value="3">After merge</option>
+    <option value="" selected="selected">No</option>
+    <option value="info">General Information</option>
+    <option value="current">During merge</option>
+    <option value="show">After merge</option>
   </select>
   <div id="save_as_file" style="display:none;">, save as file with suffix: 
-    <input name="suffix" type="text" id="suffix" size="10" />
+    <input name="suffix" type="text" id="save_as" size="10" />
   (let empty for download),</div>
   <input type="submit" name="btn_go" id="btn_go" value="and go" />
 </form>

@@ -5,13 +5,6 @@ if (isset($_GET['source'])) exit('<!DOCTYPE HTML><html><head><meta http-equiv="C
 
 // Read user choices
 if (!isset($_POST['btn_go'])) exit("You must use demo.html");
-$suffix = (isset($_POST['suffix']) && (trim($_POST['suffix'])!=='') && ($_SERVER['SERVER_NAME']=='localhost')) ? trim($_POST['suffix']) : '';
-$debug = (isset($_POST['debug'])) ? intval($_POST['debug']) : 0;
-
-// Retrieve the user name to display
-$yourname = (isset($_POST['yourname'])) ? $_POST['yourname'] : '';
-$yourname = trim(''.$yourname);
-if ($yourname=='') $yourname = "(no name)";
 
 // Retrieve the template to open
 $template = (isset($_POST['tpl'])) ? $_POST['tpl'] : '';
