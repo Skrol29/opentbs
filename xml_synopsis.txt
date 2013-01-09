@@ -52,6 +52,10 @@ Sections:
   </text:section>
 <text:p> ... </text:p>
 
+Slides in a presentation
+<draw:page ....>
+</draw:page>
+
 Table in a document:
 --------------------
 <table:table>
