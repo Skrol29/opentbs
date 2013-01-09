@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.0-beta-2012-10-23
+ * @version 1.8.0-beta-2013-01-03
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -46,6 +46,8 @@ define('OPENTBS_DISPLAY_SHEETS','clsOpenTBS.DisplaySheets');
 define('OPENTBS_DELETE_SHEETS','clsOpenTBS.DeleteSheets');
 define('OPENTBS_DELETE_COMMENTS','clsOpenTBS.DeleteComments');
 define('OPENTBS_MERGE_SPECIAL_ITEMS','clsOpenTBS.MergeSpecialItems');
+define('OPENTBS_CHANGE_PICTURE','clsOpenTBS.ChangePicture');
+define('OPENTBS_COUNT_SLIDES','clsOpenTBS.CountSlides');
 
 /**
  * Main class which is a TinyButStrong plug-in.
@@ -487,12 +489,13 @@ class clsOpenTBS extends clsTbsZip {
 			if ($this->Ext_GetEquiv()!='pptx') return false;
 			
 			$this->MsPowerpoint_InitSlideLst();
-	
-			if (isset($this->OpenXmlSlideLst[$x2])) {
-				$this->TBS->LoadTemplate('#'.$this->OpenXmlSlideLst[$x2]);
+
+			$idx = intval($x1)-1;
+			if (isset($this->OpenXmlSlideLst[$idx])) {
+				$this->TBS->LoadTemplate('#'.$this->OpenXmlSlideLst[$idx]);
 				return true;
 			} else {
-				return $this->RaiseError("($Cmd) slide number $x2 is not found inside the Presentation.");
+				return $this->RaiseError("($Cmd) slide number $x1 is not found inside the Presentation.");
 			}
 		
 		} elseif ($Cmd==OPENTBS_DELETE_COMMENTS) {
@@ -528,6 +531,36 @@ class clsOpenTBS extends clsTbsZip {
 
 			return $this->TbsDeleteComments($MainTags, $CommFiles, $CommTags, $Inner);
 
+		} elseif ($Cmd==OPENTBS_CHANGE_PICTURE) {
+		
+			static $img_num = 0;
+		
+			$code = $x1;
+			$file = $x2;
+			$default = (is_null($x2)) ? 'current' : $x2;
+			$adjust = (is_null($x2)) ? 'inside' : $x2;
+			
+			$img_num++;
+			$name = 'tbs_changepic_'.$img_num;
+			$tag = "[$name;ope=changepic;tagpos=inside;default=$default;adjust=$adjust]";
+			
+			$nbr = false;
+			$TBS->Source = str_replace($code, $tag, $TBS->Source, $nbr); // argument $nbr supported buy PHP >= 5
+			if ($nbr!==0) $TBS->MergeField($name, $file);
+			
+			return $nbr;
+		
+		} elseif ($Cmd==OPENTBS_COUNT_SLIDES) {
+		
+			if ($this->Ext_GetEquiv()=='pptx') {
+				$this->MsPowerpoint_InitSlideLst();
+				return count($this->OpenXmlSlideLst);
+			} elseif ($this->Ext_GetEquiv()=='odp') {
+				return substr_count($TBS->Source, '</draw:page>');
+			} else {
+				return 0;
+			}
+		
 		}
 
 	}
@@ -687,6 +720,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$this->TbsDebug_Init($nl, $sep, $bull, 'OPENTBS_DEBUG_INFO');
 
+		if ($this->Ext_GetEquiv()==='docx') $this->MsWord_DocDebug($nl, $sep, $bull);
 		if ($this->Ext_GetEquiv()==='xlsx') $this->MsExcel_SheetDebug($nl, $sep, $bull);
 		if ($this->Ext_GetEquiv()==='pptx') $this->MsPowerpoint_SlideDebug($nl, $sep, $bull);
 		if ($this->Ext_GetEquiv()==='ods')  $this->OpenDoc_SheetDebug($nl, $sep, $bull);
@@ -1052,7 +1086,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$res['wl'] = $loc->GetInnerLen();
 		$res['wu'] = '';
 		$res['wv'] = $cx;
-		$res['wt'] = $loc->GetInnertSrc();
+		$res['wt'] = $loc->GetInnerSrc();
 		$res['wo'] = intval($res['wt']) - $cx;
 
 		$loc = clsTbsXmlLoc::FindElement($Txt, 'xdr:rowOff', $p, true);
@@ -1061,7 +1095,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$res['hl'] = $loc->GetInnerLen();
 		$res['hu'] = '';
 		$res['hv'] = $cy;
-		$res['ht'] = $loc->GetInnertSrc();
+		$res['ht'] = $loc->GetInnerSrc();
 		$res['ho'] = intval($res['ht']) - $cy;
 		
 		$res['r'] = ($res['hv']==0) ? 0.0 : $res['wv']/$res['hv']; // ratio W/H;
@@ -1394,8 +1428,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				);
 			} elseif ($Ext==='pptx') {
 				$i = array('br' => false, 'frm' => 'openxml', 'ctype' => $ctype . 'presentationml.presentation', 'pic_path' => 'ppt/media/', 'rpl_what' => $x, 'rpl_with' => '\'');
-				$i['main'] = $this->OpenXML_MapGetMain('presentationml.slide+xml', 'ppt/slides/slide1.xml');
-				$i['load'] = $this->OpenXML_MapGetFiles(array('presentationml.notesSlide+xml'));
+				$this->MsPowerpoint_InitSlideLst();
+				$i['main'] = (isset($this->OpenXmlSlideLst[0])) ? $this->OpenXmlSlideLst[0] : 'ppt/slides/slide1.xml';
+				$i['load'] = $this->OpenXML_MapGetFiles(array('presentationml.notesSlide+xml')); // auto-load comments
 				$block_alias = array(
 					'tbs:p' => 'a:p',
 					'tbs:title' => 'a:p',
@@ -1610,19 +1645,24 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	
 	}
 	
-	/* Return an object that represents the informations of an .rels file, but for optimization, targets are scanned only for asked directories.
-	* The function stores Rids of files existing in a the $TargetDir directory of the archive (image, ...).
-	*/
-	function OpenXML_Rels_GetObj($DocPath, $TargetDir) {
+	/**
+	 * Return an object that represents the informations of an .rels file, but for optimization, targets are scanned only for asked directories.
+	 * The result is stored in a cache so that a second call will not compute again.
+	 * The function stores Rids of files existing in a the $TargetPrefix directory of the archive (image, ...).
+	 * @param $DocPath      Full path of the sub-file in the archive
+	 * @param $TargetPrefix Prefix of the 'Target' attribute. For example $TargetPrefix='../drawings/'
+	 */
+	function OpenXML_Rels_GetObj($DocPath, $TargetPrefix) {
 	
 		// Create the object if it does not exist yet
 		if (!isset($this->OpenXmlRid[$DocPath])) {
 		
 			$o = (object) null;
-			$o->RidLst = array();    // Current Rids in the template
-			$o->TargetLst = array(); // Current Targets in the template
+			$o->RidLst = array();    // Current Rids in the template ($Target=>$Rid)
+			$o->TargetLst = array(); // Current Targets in the template ($Rid=>$Target)
 			$o->RidNew = array();    // New Rids to add at the end of the merge
 			$o->DirLst = array();    // Processed target dir
+			$o->ChartLst = false;    // Chart list, computed in another method
 			
 			$DocName = basename($DocPath);
 			$o->FicPath = str_replace($DocName,'_rels/'.$DocName.'.rels',$DocPath);
@@ -1648,12 +1688,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		
 		// Feed the Rid and Target lists for the asked directory
-		if (!isset($o->DirLst[$TargetDir])) {
+		if (!isset($o->DirLst[$TargetPrefix])) {
 		
-			$o->DirLst[$TargetDir] = true;
+			$o->DirLst[$TargetPrefix] = true;
 
 			// read existing Rid in the file
-			$zTarget = ' Target="'.$TargetDir;
+			$zTarget = ' Target="'.$TargetPrefix;
 			$zId  = ' Id="';
 			$p = -1;
 			while (($p = strpos($Txt, $zTarget, $p+1))!==false) {
@@ -1661,7 +1701,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$p1 = $p + strlen($zTarget);
 				$p2 = strpos($Txt, '"', $p1);
 				if ($p2===false) return $this->RaiseError("(OpenXML) end of attribute Target not found in position ".$p1." of subfile ".$o->FicPath);
-				$Target = $TargetDir.substr($Txt, $p1, $p2 -$p1);
+				$Target = $TargetPrefix.substr($Txt, $p1, $p2 -$p1);
 				// Get the Id
 				$p1 = strrpos(substr($Txt,0,$p), '<');
 				if ($p1===false) return $this->RaiseError("(OpenXML) begining of tag not found in position ".$p." of subfile ".$o->FicPath);
@@ -1926,8 +1966,8 @@ It needs to be completed when a new picture file extension is added in the docum
 		if (!isset($this->OpenXmlCharts)) $this->OpenXML_ChartInit();
 
 		echo $nl;
-		echo $nl."Charts inside the document:";
-		echo $nl."---------------------------";
+		echo $nl."Charts technically stored in the document:";
+		echo $nl."------------------------------------------";
 
 		// list of supported charts
 		$nbr = 0;
@@ -1937,7 +1977,7 @@ It needs to be completed when a new picture file extension is added in the docum
 				$txt = $this->FileRead($info['idx'], true);
 				$info['series_nbr'] = substr_count($txt, '<c:ser>');
 			}
-			echo $bull."id: '".$key."' , number of series: ".$info['series_nbr'];
+			echo $bull."name: '".$key."' , number of series: ".$info['series_nbr'];
 		}
 
 		if ($this->TbsCurrIdx===false) {
@@ -2113,6 +2153,53 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 
+	/**
+	 * Return the list of all charts in the current sub-file, with title and description if any.
+	 */
+	function OpenXML_ChartGetInfoInCurrFile() {
+		
+		$idx = $this->TbsCurrIdx;
+		if ($idx===false) return false;
+		
+		$file = $this->CdFileLst[$idx]['v_name'];
+		$relative = (substr_count($file, '/')==1) ? '' : '../';
+		$o = $this->OpenXML_Rels_GetObj($file, $relative.'charts/');
+		
+		if ($o->ChartLst===false) {
+		
+			$Txt =& $this->TBS->Source;
+			$o->ChartLst = array();
+			
+			$p = 0;
+			while ($t = clsTbsXmlLoc::FindStartTag($Txt, 'c:chart', $p)) {
+				$rid = $t->GetAttLazy('r:id');
+				$name = false;
+				$title = false;
+				$descr = false;
+				$parent = clsTbsXmlLoc::FindStartTag($Txt, 'wp:inline', $t->PosBeg, false); // docx
+				if ($parent===false) clsTbsXmlLoc::FindStartTag($Txt, 'p:nvGraphicFramePr', $t->PosBeg, false); // pptx
+				if ($parent!==false) {
+					$parent->FindEndTag();
+					$src = $parent->GetInnerSrc();
+					$el = clsTbsXmlLoc::FindStartTagHavingAtt($src, 'title', 0);
+					if ($el!==false) $title = $el->GetAttLazy('title');
+					$el = clsTbsXmlLoc::FindStartTagHavingAtt($src, 'descr', 0);
+					if ($el!==false) $descr = $el->GetAttLazy('descr');
+				}
+
+				if (isset($o->TargetLst[$rid])) {
+					$name = basename($o->TargetLst[$rid]);
+					if (substr($name,-4)==='.xml') $name = substr($name,0,strlen($name)-4);
+				}
+				$o->ChartLst[] = array('rid'=>$rid, 'title'=>$title, 'descr'=>$descr, 'name'=>$name);
+				$p = $t->PosEnd;
+			}
+			
+		}
+		
+		return $o->ChartLst;
+		
+	}
 	function OpenXML_SharedStrings_Prepare() {
 
 		$file = 'xl/sharedStrings.xml';
@@ -2572,7 +2659,7 @@ It needs to be completed when a new picture file extension is added in the docum
 			if ($rid===false) {
 				$this->RaiseError("(Init Slide List) attribute 'r:id' is missing for slide #$i in 'ppt/presentation.xml'.");
 			} elseif (isset($o->TargetLst[$rid])) {
-				$lst[] = $o->TargetLst[$rid];
+				$lst[] = 'ppt/'.$o->TargetLst[$rid];
 			} else {
 				$this->RaiseError("(Init Slide List) Slide corresponding to rid=$rid is not found in the Rels file of 'ppt/presentation.xml'.");
 			}
@@ -2618,7 +2705,8 @@ It needs to be completed when a new picture file extension is added in the docum
 		foreach ($this->OpenXmlSlideLst as $i => $file) {
 			echo $bull."#".($i+1).": ".basename($file);
 		}
-
+		if (count($this->OpenXmlSlideLst)==0) echo $bull."(none)";
+		
 	}
 	
 	// Cleaning tags in MsWord
@@ -2932,7 +3020,23 @@ It needs to be completed when a new picture file extension is added in the docum
 		}
 		
 	}
-			
+	
+	function MsWord_DocDebug($nl, $sep, $bull) {
+	
+		$ChartLst = $this->OpenXML_ChartGetInfoInCurrFile();
+
+		echo $nl;
+		echo $nl."Charts found in the body:";
+		echo $nl."-------------------------";
+		foreach ($ChartLst as $i=>$c) {
+			$name = ($c['name']===false) ? '(not found)' : $c['name'];
+			$title = ($c['title']===false) ? '(not found)' : var_export($c['title'], true);
+			echo $bull."name: '$name', title: $title";
+			if ($c['descr']!==false) echo ", description: ".$c['descr'];
+		}
+		
+	}
+	
 	// OpenOffice documents
 
 	function OpenDoc_ManifestChange($Path, $Type) {
@@ -3388,7 +3492,7 @@ class clsTbsXmlLoc {
 
 	// Return the length of the inner content, or false if it's a self-closing tag 
 	// Assume FindEndTag() is previsouly called.
-	function GetInnertSrc() {
+	function GetInnerSrc() {
 		return ($this->pET_PosBeg===false) ? false : substr($this->Txt, $this->pST_PosEnd + 1, $this->pET_PosBeg - $this->pST_PosEnd - 1 );
 	}
 
@@ -3403,7 +3507,7 @@ class clsTbsXmlLoc {
 	}
 	
 	// Get an attribut's value. Or false if the attribute is not found.
-	// It's a lazy way becuase the attribute is search wuth the patern {attribute="value" }
+	// It's a lazy way because the attribute is searched with the patern {attribute="value" }
 	function GetAttLazy($Att) {
 		$z = $this->_GetAttValPos($Att);
 		if ($z===false) return false;
