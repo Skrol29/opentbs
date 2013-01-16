@@ -48,6 +48,7 @@ define('OPENTBS_DELETE_COMMENTS','clsOpenTBS.DeleteComments');
 define('OPENTBS_MERGE_SPECIAL_ITEMS','clsOpenTBS.MergeSpecialItems');
 define('OPENTBS_CHANGE_PICTURE','clsOpenTBS.ChangePicture');
 define('OPENTBS_COUNT_SLIDES','clsOpenTBS.CountSlides');
+define('OPENTBS_SEARCH_IN_SLIDES','clsOpenTBS.SearchInSlides');
 
 /**
  * Main class which is a TinyButStrong plug-in.
@@ -117,51 +118,11 @@ class clsOpenTBS extends clsTbsZip {
 				$TBS->LoadTemplate('', array(&$this,'ConvXmlUtf8')); // Define the function for string conversion
 			}
 		}
-
-		$MergeAutoFields = $this->TbsMergeAutoFields();
-
+		
 		// Load the subfile(s)
 		if (($SubFileLst!=='') && ($SubFileLst!==false)) {
-
 			if (is_string($SubFileLst)) $SubFileLst = explode(';',$SubFileLst);
-
-			// configuration to prevent from other plug-ins
-			$this->TbsSwitchMode(true);
-
-			foreach ($SubFileLst as $SubFile) {
-
-				$idx = $this->FileGetIdx($SubFile);
-				if ($idx===false) {
-					$this->RaiseError('The file "'.$SubFile.'" is not found in the archive "'.$this->ArchFile.'".');
-				} elseif ($idx!==$this->TbsCurrIdx) {
-					// Save the current loaded subfile if any
-					$this->TbsStorePark();
-					// load the subfile
-					$this->TbsStoreLoad($idx, $SubFile);
-					if ($this->LastReadNotStored) {
-						if ($this->LastReadComp<=0) { // the contents is not compressed
-							if ($this->ExtInfo!==false) {
-								$i = $this->ExtInfo;
-								$e = $this->Ext_GetEquiv();
-								if (isset($i['rpl_what'])) $TBS->Source = str_replace($i['rpl_what'], $i['rpl_with'], $TBS->Source); // auto replace strings in the loaded file
-								if (($e==='docx') && $TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
-								if (($e==='pptx') && $TBS->OtbsClearMsPowerpoint) $this->MsPowerpoint_Clean($TBS->Source);
-								if (($e==='xlsx') && $TBS->OtbsMsExcelConsistent) {
-									$this->MsExcel_DeleteFormulaResults($TBS->Source);
-									$this->MsExcel_ConvertToRelative($TBS->Source);
-								}
-							}
-							// apply default TBS behaviors on the uncompressed content: other plug-ins + [onload] fields
-							if ($MergeAutoFields) $TBS->LoadTemplate(null,'+');
-						}
-					}
-				}
-
-			}
-
-			// Reactivate default configuration
-			$this->TbsSwitchMode(false);
-
+			$this->TbsLoadSubFileAsTemplate($SubFileLst);
 		}
 
 		if ($FilePath!=='') $TBS->_LastFile = $FilePath;
@@ -426,7 +387,7 @@ class clsOpenTBS extends clsTbsZip {
 		} elseif ($Cmd==OPENTBS_SELECT_MAIN) {
 
 			if ( ($this->ExtInfo!==false) && isset($this->ExtInfo['main']) ) {
-				$this->TBS->LoadTemplate('#'.$this->ExtInfo['main']);
+				$this->TbsLoadSubFileAsTemplate($this->ExtInfo['main']);
 				return true;
 			} else {
 				return false;
@@ -439,7 +400,7 @@ class clsOpenTBS extends clsTbsZip {
 				$loc = $this->MsExcel_SheetGet($x1, $Cmd, true);
 				if ($loc==false) return;
 				if ($this->FileExists($loc->xlsxTarget)) {
-					$this->TBS->LoadTemplate('#'.$loc->xlsxTarget);
+					$this->TbsLoadSubFileAsTemplate($loc->xlsxTarget);
 				} else {
 					return $this->RaiseError("($Cmd) sub-file '".$loc->xlsxTarget."' is not found inside the Workbook.");
 				}
@@ -492,9 +453,9 @@ class clsOpenTBS extends clsTbsZip {
 			
 			$this->MsPowerpoint_InitSlideLst();
 
-			$idx = intval($x1)-1;
-			if (isset($this->OpenXmlSlideLst[$idx])) {
-				$this->TBS->LoadTemplate('#'.$this->OpenXmlSlideLst[$idx]);
+			$s = intval($x1)-1;
+			if (isset($this->OpenXmlSlideLst[$s])) {
+				$this->TbsLoadSubFileAsTemplate($this->OpenXmlSlideLst[$s]['idx']);
 				return true;
 			} else {
 				return $this->RaiseError("($Cmd) slide number $x1 is not found inside the Presentation.");
@@ -550,9 +511,9 @@ class clsOpenTBS extends clsTbsZip {
 			$TBS =& $this->TBS; 
 			$TBS->Source = str_replace($code, $tag, $TBS->Source, $nbr); // argument $nbr supported buy PHP >= 5
 			if ($nbr!==0) $TBS->MergeField($name, $file);
-			
+
 			return $nbr;
-		
+
 		} elseif ($Cmd==OPENTBS_COUNT_SLIDES) {
 		
 			if ($this->Ext_GetEquiv()=='pptx') {
@@ -563,9 +524,76 @@ class clsOpenTBS extends clsTbsZip {
 			} else {
 				return 0;
 			}
+
+		} elseif ($Cmd==OPENTBS_SEARCH_IN_SLIDES) {
 		
+			if ($this->Ext_GetEquiv()=='pptx') {
+				$returnFirstFound = (is_null($x2)) ? true : $x2;
+				$find = $this->MsPowerpoint_SearchInSlides($x1, $returnFirstFound);
+				if ($returnFirstFound) {
+					return ($find['key']);
+				} else {
+					$res = array();
+					foreach($find as $f) $res[] = $f['key'];
+					return $res;
+				}
+			} elseif ($this->Ext_GetEquiv()=='odp') {
+				// Only for compatibility
+				$p = instr($TBS->Source, $str);
+				return ($p===false) ? false : 1;
+			} else {
+				return false;
+			}
+
+		}
+	}
+	
+	/**
+	 * Load one or several sub-files of the archive as the current template.
+	 * If a sub-template is loaded for the first time, then automatic merges and clean-up are performed.
+	 * @param $SubFileLst Can be a and index or a name or a file, or an array of such values.
+	 */
+	function TbsLoadSubFileAsTemplate($SubFileLst) {
+	
+		if (!is_array($SubFileLst)) $SubFileLst = array($SubFileLst);
+	
+		$this->TbsSwitchMode(true); // Configuration which prevents from other plug-ins when calling LoadTemplate()
+		$MergeAutoFields = $this->TbsMergeAutoFields();
+		$TBS =& $this->TBS;
+		
+		foreach ($SubFileLst as $SubFile) {
+
+			$idx = $this->FileGetIdx($SubFile);
+			if ($idx===false) {
+				$this->RaiseError('The file "'.$SubFile.'" is not found in the archive "'.$this->ArchFile.'".');
+			} elseif ($idx!==$this->TbsCurrIdx) {
+				// Save the current loaded subfile if any
+				$this->TbsStorePark();
+				// load the subfile
+				$this->TbsStoreLoad($idx, $SubFile);
+				if ($this->LastReadNotStored) {
+					if ($this->LastReadComp<=0) { // the contents is not compressed
+						if ($this->ExtInfo!==false) {
+							$i = $this->ExtInfo;
+							$e = $this->Ext_GetEquiv();
+							if (isset($i['rpl_what'])) $TBS->Source = str_replace($i['rpl_what'], $i['rpl_with'], $TBS->Source); // auto replace strings in the loaded file
+							if (($e==='docx') && $TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
+							if (($e==='pptx') && $TBS->OtbsClearMsPowerpoint) $this->MsPowerpoint_Clean($TBS->Source);
+							if (($e==='xlsx') && $TBS->OtbsMsExcelConsistent) {
+								$this->MsExcel_DeleteFormulaResults($TBS->Source);
+								$this->MsExcel_ConvertToRelative($TBS->Source);
+							}
+						}
+						// apply default TBS behaviors on the uncompressed content: other plug-ins + [onload] fields
+						if ($MergeAutoFields) $TBS->LoadTemplate(null,'+');
+					}
+				}
+			}
+
 		}
 
+		$this->TbsSwitchMode(false); // Reactivate default configuration
+		
 	}
 	
 	// Return true if automatic fields must be merged
@@ -598,12 +626,14 @@ class clsOpenTBS extends clsTbsZip {
 	// Load a subfile from the store to be the current subfile
 	function TbsStoreLoad($idx, $file=false) {
 		$this->TBS->Source = $this->TbsStoreGet($idx, false);
+		// TODO: is it relevant here to clear the stored content in order to save memory ?
 		$this->TbsCurrIdx = $idx;
 		if ($file===false) $file = $this->TbsGetFileName($idx);
 		$this->TBS->OtbsCurrFile = $file;
 	}
 
-	// Save a given source in the store. If $onshow is null, then the 'onshow' option stays unchanged
+	// Save a given source in the store.
+	// If $onshow is null, then the 'onshow' option stays unchanged.
 	function TbsStorePut($idx, $src, $onshow = null) {
 		if ($idx===$this->TbsCurrIdx) {
 			$this->TBS->Source = $src;
@@ -619,8 +649,8 @@ class clsOpenTBS extends clsTbsZip {
 		}
 	}
 
-	// retrieve a source from the current merging, the store, or the archive
-	// the file is not stored yet if it comes from the archive
+	// Return a source from the current merging, the store, or the archive.
+	// If the source it taken from the archive, the is is not saved in the store.
 	function TbsStoreGet($idx, $caller) {
 		$this->LastReadNotStored = false;
 		if ($idx===$this->TbsCurrIdx) {
@@ -1214,6 +1244,70 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	/**
+	 * Search a string in a list if several sub-file in the archive.
+	 * @param $files An associated array of sub-files to scann. Structure: $key => IdxOrName
+	 * @param $str   The string to search.
+	 * @param $returnFirstFind  true to return only the first record fund.
+	 * @return a single record or a recordset structured like: array('key'=>, 'idx'=>, 'src'=>, 'pos'=>, 'curr'=>)
+	 */
+	function TbsSearchInFiles($files, $str, $returnFirstFound = true) {
+
+		$keys_ok = array();
+	
+		// transform the list of files into a list of available idx
+		$keys_todo = array();
+		$idx_keys = array();
+		foreach($files as $k=>$f) {
+			$idx = $this->FileGetIdx($f);
+			if ($idx!==false) {
+				$keys_todo[$k] = $idx;
+				$idx_keys[$idx] = $k;
+			}
+		}
+	
+		// Search in the current sub-file
+		if ( ($this->TbsCurrIdx!==false) && isset($idx_keys[$this->TbsCurrIdx]) ) {
+			$key = $idx_keys[$this->TbsCurrIdx];
+			$p = strpos($this->TBS->Source, $str);
+			if ($p!==false) {
+				$keys_ok[] = array('key' => $key, 'idx' => $this->TbsCurrIdx, 'src' => &$this->TBS->Source, 'pos' => $p, 'curr'=>true);
+				if ($returnFirstFound) return $keys_ok[0];
+			}
+			unset($keys_todo[$key]);
+		}
+		
+		// Search in the store
+		foreach($this->TbsStoreLst as $idx => $s) {
+			if ( ($idx!==$this->TbsCurrIdx) && isset($idx_keys[$idx]) ) {
+				$key = $idx_keys[$idx];
+				$p = strpos($s['src'], $str);
+				if ($p!==false) {
+					$keys_ok[] = array('key' => $key, 'idx' => $idx, 'src' => &$s['src'], 'pos' => $p, 'curr'=>false);
+					if ($returnFirstFound) return $keys_ok[0];
+				}
+				unset($keys_todo[$key]);
+			}
+		}
+		
+		// Search in other sub-files (never opened)
+		foreach ($keys_todo as $key => $idx) {
+			$txt = $this->FileRead($idx);
+			$p = strpos($txt, $str);
+			if ($p!==false) {
+				$keys_ok[] = array('key' => $key, 'idx' => $idx, 'src' => $txt, 'pos' => $p, 'curr'=>false);
+				if ($returnFirstFound) return $keys_ok[0];
+			}
+		}
+		
+		if ($returnFirstFound) {
+			return  array('key'=>false, 'idx'=>false, 'src'=>false, 'pos'=>false, 'curr'=>false);
+		} else {
+			return $keys_ok;
+		}
+	
+	}
+	
 	// Check after the sheet process
 	function TbsSheetCheck() {
 		if (count($this->OtbsSheetDelete)>0) $this->RaiseError("Unable to delete the following sheets because they are not found in the workbook: ".(str_replace(array('i:','n:'),'',implode(', ',$this->OtbsSheetDelete))).'.');
@@ -1432,7 +1526,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			} elseif ($Ext==='pptx') {
 				$i = array('br' => false, 'frm' => 'openxml', 'ctype' => $ctype . 'presentationml.presentation', 'pic_path' => 'ppt/media/', 'rpl_what' => $x, 'rpl_with' => '\'');
 				$this->MsPowerpoint_InitSlideLst();
-				$i['main'] = (isset($this->OpenXmlSlideLst[0])) ? $this->OpenXmlSlideLst[0] : 'ppt/slides/slide1.xml';
+				$i['main'] = (isset($this->OpenXmlSlideLst[0])) ? $this->OpenXmlSlideLst[0]['file'] : 'ppt/slides/slide1.xml';
 				$i['load'] = $this->OpenXML_MapGetFiles(array('presentationml.notesSlide+xml')); // auto-load comments
 				$block_alias = array(
 					'tbs:p' => 'a:p',
@@ -1506,6 +1600,15 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 	}
 
+	// Return the idx of the main document, if any.
+	function Ext_GetMainIdx() {
+		if ( ($this->ExtInfo!==false) && isset($this->ExtInfo['main']) ) {
+			return $this->FileGetIdx($this->ExtInfo['main']);
+		} else {
+			return false;
+		}
+	}
+	
 	function XML_FoundTagStart($Txt, $Tag, $PosBeg) {
 	// Found the next tag of the asked type. (Not specific to MsWord, works for any XML)
 	// Tag must be prefixed with '<' or '</'.
@@ -2082,10 +2185,18 @@ It needs to be completed when a new picture file extension is added in the docum
 		// search the chart
 		$ref = ''.$ChartRef;
 		if (!isset($this->OpenXmlCharts[$ref])) $ref = 'chart'.$ref; // try with $ChartRef as number
-		if (!isset($this->OpenXmlCharts[$ref])) { // try with $ChartRef as name of the file
-			$charts = $this->OpenXML_ChartGetInfoInCurrFile();
+		if (!isset($this->OpenXmlCharts[$ref])) {
+			// try with $ChartRef as name of the file
+			$charts = array();
+			if ($this->Ext_GetEquiv()=='pptx') {
+				// search in slides
+				$find = $this->MsPowerpoint_SearchInSlides(' title="'.$ChartRef.'"');
+				if ($find['idx']!==false) $charts = $this->OpenXML_ChartGetInfoFromFile($find['idx']);
+			} else {
+				$charts = $this->OpenXML_ChartGetInfoFromFile($this->Ext_GetMainIdx());
+			}
 			foreach($charts as $c) if ($c['title']===$ChartRef) $ref = $c['name']; // try with $ChartRef as title
-			if (!isset($this->OpenXmlCharts[$ref])) return $this->RaiseError("(ChartChangeSeries) '$ChartRef' : unable to found the chart corresponding to '".$ChartRef."'.");
+			if (!isset($this->OpenXmlCharts[$ref])) return $this->RaiseError("(ChartChangeSeries) : unable to found the chart corresponding to '".$ChartRef."'.");
 		}
 
 		$chart =& $this->OpenXmlCharts[$ref];
@@ -2164,9 +2275,8 @@ It needs to be completed when a new picture file extension is added in the docum
 	/**
 	 * Return the list of all charts in the current sub-file, with title and description if any.
 	 */
-	function OpenXML_ChartGetInfoInCurrFile() {
+	function OpenXML_ChartGetInfoFromFile($idx, $Txt=false) {
 		
-		$idx = $this->TbsCurrIdx;
 		if ($idx===false) return false;
 		
 		$file = $this->CdFileLst[$idx]['v_name'];
@@ -2175,7 +2285,8 @@ It needs to be completed when a new picture file extension is added in the docum
 		
 		if ($o->ChartLst===false) {
 		
-			$Txt =& $this->TBS->Source;
+			if ($Txt===false) $Txt = $this->TbsStoreGet($idx, 'OpenXML_ChartGetInfoFromFile');
+			
 			$o->ChartLst = array();
 			
 			$p = 0;
@@ -2208,6 +2319,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		return $o->ChartLst;
 		
 	}
+
 	function OpenXML_SharedStrings_Prepare() {
 
 		$file = 'xl/sharedStrings.xml';
@@ -2667,7 +2779,8 @@ It needs to be completed when a new picture file extension is added in the docum
 			if ($rid===false) {
 				$this->RaiseError("(Init Slide List) attribute 'r:id' is missing for slide #$i in 'ppt/presentation.xml'.");
 			} elseif (isset($o->TargetLst[$rid])) {
-				$lst[] = 'ppt/'.$o->TargetLst[$rid];
+				$f = 'ppt/'.$o->TargetLst[$rid];
+				$lst[] = array('file' => $f, 'idx' => $this->FileGetIdx($f) );
 			} else {
 				$this->RaiseError("(Init Slide List) Slide corresponding to rid=$rid is not found in the Rels file of 'ppt/presentation.xml'.");
 			}
@@ -2703,16 +2816,34 @@ It needs to be completed when a new picture file extension is added in the docum
 		}
 	}
 
+	/**
+	 * Search a string in all slides of the Presentation.
+	 */
+	function MsPowerpoint_SearchInSlides($str, $returnFirstFound = true) {
+
+		// init the list of slides
+		$this->MsPowerpoint_InitSlideLst(); // List of slides
+		
+		// build the list of files in the expected structure
+		$files = array();
+		foreach($this->OpenXmlSlideLst as $i=>$s) $files[$i+1] = $s['idx'];
+		
+		// search
+		$find = $this->TbsSearchInFiles($files, $str, $returnFirstFound);
+	
+		return $find;
+
+	}
+	
 	function MsPowerpoint_SlideDebug($nl, $sep, $bull) {
 
-		// List of slides
-		$this->MsPowerpoint_InitSlideLst();
+		$this->MsPowerpoint_InitSlideLst(); // List of slides
 
 		echo $nl;
 		echo $nl.count($this->OpenXmlSlideLst)." slide(s) in the Presentation:";
 		echo $nl."-------------------------------";
-		foreach ($this->OpenXmlSlideLst as $i => $file) {
-			echo $bull."#".($i+1).": ".basename($file);
+		foreach ($this->OpenXmlSlideLst as $i => $s) {
+			echo $bull."#".($i+1).": ".basename($s['file']);
 		}
 		if (count($this->OpenXmlSlideLst)==0) echo $bull."(none)";
 
@@ -2724,7 +2855,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		$nbr = 0;
 		for ($s=1; $s <= count($this->OpenXmlSlideLst); $s++) {
 			$this->OnCommand(OPENTBS_SELECT_SLIDE, $s);
-			$ChartLst = $this->OpenXML_ChartGetInfoInCurrFile();
+			$ChartLst = $this->OpenXML_ChartGetInfoFromFile($this->TbsCurrIdx);
 			foreach ($ChartLst as $i=>$c) {
 				$name = ($c['name']===false) ? '(not found)' : $c['name'];
 				$title = ($c['title']===false) ? '(not found)' : var_export($c['title'], true);
@@ -3051,7 +3182,7 @@ It needs to be completed when a new picture file extension is added in the docum
 	
 	function MsWord_DocDebug($nl, $sep, $bull) {
 	
-		$ChartLst = $this->OpenXML_ChartGetInfoInCurrFile();
+		$ChartLst = $this->OpenXML_ChartGetInfoFromFile($this->Ext_GetMainIdx());
 
 		echo $nl;
 		echo $nl."Charts found in the body:";
