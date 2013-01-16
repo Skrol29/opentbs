@@ -49,14 +49,17 @@ if (isset($_POST['debug']) && ($_POST['debug']=='show'))    $TBS->Plugin(OPENTBS
 // Merging and other operations on the template
 // --------------------------------------------
 
-// Merge data in the first slide of the presentation
-$TBS->MergeBlock('a,b', $data);
-
 // Select slide #2
 $TBS->Plugin(OPENTBS_SELECT_SLIDE, 2);
-
-// Change a pitcure using the command (it can also be done at the template side using parameter "ope=changepic")
+// Change a picture using the command (it can also be done at the template side using parameter "ope=changepic")
 $TBS->Plugin(OPENTBS_CHANGE_PICTURE, '#merge_me#', 'pic_1234f.png');
+
+// Merge a chart
+$ChartTitle = 'my_chart';
+$SeriesNameOrNum = 1;
+$NewValues = array( array('Cat. A','Cat. B','Cat. C','Cat. D'), array(0.7, 1.0, 3.2, 4.8) );
+$NewLegend = "Merged";
+$TBS->PlugIn(OPENTBS_CHART, $ChartTitle, $SeriesNameOrNum, $NewValues, $NewLegend);
 
 
 // -----------------

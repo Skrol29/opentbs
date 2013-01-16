@@ -38,10 +38,10 @@ body,td,th {
   <li> No PHP extension required (but easier to use if <a href="http://www.php.net/manual/en/book.zlib.php">ZLib</a> is enabled)</li>
 </ul>
 <h2>Demo</h2>
-<form id="form1" name="form1" method="post" action="demo_merge.php">
+<form id="form1" method="post" action="demo_merge.php">
   Enter a name:
-    <input name="yourname" type="text" id="yourname" size="10" />, choose a template:
-  <select name="tpl" id="tpl">
+    <input name="yourname" type="text" size="10" />, choose a template:
+  <select name="tpl">
     <option value="demo_oo_text.odt">OpenOffice Writer Document (.odt)</option>
     <option value="demo_oo_spreadsheet.ods">OpenOffice Calc Spreadsheet (.ods)</option>
     <option value="demo_oo_presentation.odp">OpenOffice Impress Presentation (.odp)</option>
@@ -52,16 +52,16 @@ body,td,th {
     <option value="demo_ms_powerpoint.pptx">Ms PowerPoint Presentation (.pptx)</option>
   </select>
   ,  debug:
-  <select name="debug" id="debug">
+  <select name="debug">
     <option value="" selected="selected">No</option>
     <option value="info">General Information</option>
     <option value="current">During merge</option>
     <option value="show">After merge</option>
   </select>
   <div id="save_as_file" style="display:none;">, save as file with suffix: 
-    <input name="suffix" type="text" id="save_as" size="10" />
+    <input name="save_as" type="text" size="10" />
   (let empty for download),</div>
-  <input type="submit" name="btn_go" id="btn_go" value="and go" />
+  <input type="submit" name="btn_go" value="and go" />
 </form>
 <ul>
   <li>See the selected <a href="javascript:download_template()">template</a></li>
