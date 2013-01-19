@@ -6,11 +6,11 @@ $TBS->Plugin(OPENTBS_SELECT_SLIDE, 2);
 $TBS->Plugin(OPENTBS_CHANGE_PICTURE, '#merge_me#', 'pic_1234f.png');
 
 // Merge a chart
-$ChartTitle = 'my_chart';
+$ChartRef = 'my_chart';
 $SeriesNameOrNum = 1;
 $NewValues = array( array('Cat. A','Cat. B','Cat. C','Cat. D'), array(0.7, 1.0, 3.2, 4.8) );
 $NewLegend = "Merged";
-$TBS->PlugIn(OPENTBS_CHART, $ChartTitle, $SeriesNameOrNum, $NewValues, $NewLegend);
+$TBS->PlugIn(OPENTBS_CHART, $ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend);
 
 
 
