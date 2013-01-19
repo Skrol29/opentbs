@@ -49,6 +49,9 @@ define('OPENTBS_MERGE_SPECIAL_ITEMS','clsOpenTBS.MergeSpecialItems');
 define('OPENTBS_CHANGE_PICTURE','clsOpenTBS.ChangePicture');
 define('OPENTBS_COUNT_SLIDES','clsOpenTBS.CountSlides');
 define('OPENTBS_SEARCH_IN_SLIDES','clsOpenTBS.SearchInSlides');
+define('OPENTBS_FIRST',1);
+define('OPENTBS_GO',2);
+define('OPENTBS_ALL',4);
 
 /**
  * Main class which is a TinyButStrong plug-in.
@@ -497,14 +500,14 @@ class clsOpenTBS extends clsTbsZip {
 		} elseif ($Cmd==OPENTBS_CHANGE_PICTURE) {
 		
 			static $img_num = 0;
-		
+
 			$code = $x1;
 			$file = $x2;
-			$default = (is_null($x2)) ? 'current' : $x2;
-			$adjust = (is_null($x2)) ? 'inside' : $x2;
-			
+			$default = (is_null($x3)) ? 'current' : $x3;
+			$adjust = (is_null($x4)) ? 'inside' : $x4;
+
 			$img_num++;
-			$name = 'tbs_changepic_'.$img_num;
+			$name = 'OpenTBS_Change_Picture_'.$img_num;
 			$tag = "[$name;ope=changepic;tagpos=inside;default=$default;adjust=$adjust]";
 			
 			$nbr = false;
@@ -528,10 +531,13 @@ class clsOpenTBS extends clsTbsZip {
 		} elseif ($Cmd==OPENTBS_SEARCH_IN_SLIDES) {
 		
 			if ($this->Ext_GetEquiv()=='pptx') {
-				$returnFirstFound = (is_null($x2)) ? true : $x2;
+				$option = (is_null($x2)) ? OPENTBS_FIRST : $x2;
+				$returnFirstFound = (($option & TBS_ALL)!=TBS_ALL);
 				$find = $this->MsPowerpoint_SearchInSlides($x1, $returnFirstFound);
 				if ($returnFirstFound) {
-					return ($find['key']);
+					$slide = $find['key']
+					if ( ($slide!==false) && (($option & TBS_GO)!=TBS_GO) ) $this->OnCommand(OPENTBS_SELECT_SLIDE, $slide);
+					return ($slide);
 				} else {
 					$res = array();
 					foreach($find as $f) $res[] = $f['key'];
@@ -570,6 +576,7 @@ class clsOpenTBS extends clsTbsZip {
 				// Save the current loaded subfile if any
 				$this->TbsStorePark();
 				// load the subfile
+				if (!is_string($SubFile)) $SubFile = $this->TbsGetFileName($idx);
 				$this->TbsStoreLoad($idx, $SubFile);
 				if ($this->LastReadNotStored) {
 					if ($this->LastReadComp<=0) { // the contents is not compressed
