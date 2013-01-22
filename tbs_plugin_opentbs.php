@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.0-beta-2013-01-08
+ * @version 1.8.0-beta-2013-01-22
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -49,6 +49,7 @@ define('OPENTBS_MERGE_SPECIAL_ITEMS','clsOpenTBS.MergeSpecialItems');
 define('OPENTBS_CHANGE_PICTURE','clsOpenTBS.ChangePicture');
 define('OPENTBS_COUNT_SLIDES','clsOpenTBS.CountSlides');
 define('OPENTBS_SEARCH_IN_SLIDES','clsOpenTBS.SearchInSlides');
+define('OPENTBS_DELETE_SLIDES','clsOpenTBS.DeleteSlides');
 define('OPENTBS_FIRST',1);
 define('OPENTBS_GO',2);
 define('OPENTBS_ALL',4);
@@ -70,7 +71,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
 		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
-		$this->Version = '1.8.0-beta-2013-01-08';
+		$this->Version = '1.8.0-beta-2013-01-22';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -151,6 +152,7 @@ class clsOpenTBS extends clsTbsZip {
 
 		if (isset($this->OtbsSheetODS))   $this->OpenDoc_SheetDeleteAndDisplay();
 		if (isset($this->OtbsSheetXLSX))  $this->MsExcel_SheetDeleteAndDisplay();
+		if (isset($this->OtbsSlideXLSX))  $this->MsPowerpoint_SlideDelete();
 		if ($this->Ext_GetEquiv()=='docx')  $this->MsWord_RenumDocPr();
 
 		// Merges all modified subfiles
@@ -535,7 +537,7 @@ class clsOpenTBS extends clsTbsZip {
 				$returnFirstFound = (($option & TBS_ALL)!=TBS_ALL);
 				$find = $this->MsPowerpoint_SearchInSlides($x1, $returnFirstFound);
 				if ($returnFirstFound) {
-					$slide = $find['key']
+					$slide = $find['key'];
 					if ( ($slide!==false) && (($option & TBS_GO)!=TBS_GO) ) $this->OnCommand(OPENTBS_SELECT_SLIDE, $slide);
 					return ($slide);
 				} else {
@@ -551,6 +553,40 @@ class clsOpenTBS extends clsTbsZip {
 				return false;
 			}
 
+		} elseif ($Cmd==OPENTBS_DELETE_SLIDES) {
+		
+			if (is_null($x2)) $x2 = true; // default value
+			$delete = ($Cmd==OPENTBS_DELETE_SLIDES);
+
+			$ext = $this->Ext_GetEquiv();
+			if (!isset($this->OtbsSheetOk)) {
+				if ($ext=='pptx') $this->OtbsSlideXLSX = true;
+				if ($ext=='odp') $this->OtbsSlideODP = true;
+				$this->OtbsSlideDelete = array();
+				$this->OtbsSlideVisible = array();
+				$this->OtbsSlideOk = true;
+			}
+
+			$x2 = (boolean) $x2;
+			if (!is_array($x1)) $x1 = array($x1);
+
+			foreach ($x1 as $slide=>$action) {
+				if (!is_bool($action)) {
+					$slide = $action;
+					$action = $x2;
+				}
+				$slide_ref = (is_string($slide)) ? 'n:'.htmlspecialchars($slide) : 'i:'.$slide; // help to make the difference beetween id and name
+				if ($delete) {
+					if ($x2) {
+						$this->OtbsSlideDelete[$slide_ref] = $slide;
+					} else {
+						unset($this->OtbsSlideVisible[$slide_ref]);
+					}
+				} else {
+					$this->OtbsSlideVisible[$slide_ref] = $x2;
+				}
+			}
+		
 		}
 	}
 	
@@ -633,7 +669,6 @@ class clsOpenTBS extends clsTbsZip {
 	// Load a subfile from the store to be the current subfile
 	function TbsStoreLoad($idx, $file=false) {
 		$this->TBS->Source = $this->TbsStoreGet($idx, false);
-		// TODO: is it relevant here to clear the stored content in order to save memory ?
 		$this->TbsCurrIdx = $idx;
 		if ($file===false) $file = $this->TbsGetFileName($idx);
 		$this->TBS->OtbsCurrFile = $file;
@@ -656,14 +691,20 @@ class clsOpenTBS extends clsTbsZip {
 		}
 	}
 
-	// Return a source from the current merging, the store, or the archive.
-	// If the source it taken from the archive, the is is not saved in the store.
+	/**
+	 * Return a source from the current merging, the store, or the archive.
+	 * Take care that if the source it taken from the archive, then it is not saved in the store.
+	 * @param {integer} $idx The index of the file to read.
+	 * @param {string|false} $caller A text describing the calling function, for error reporting purpose. If caller=false it means TbsStoreLoad().
+	 */
 	function TbsStoreGet($idx, $caller) {
 		$this->LastReadNotStored = false;
 		if ($idx===$this->TbsCurrIdx) {
 			return $this->TBS->Source;
 		} elseif (isset($this->TbsStoreLst[$idx])) {
-			return $this->TbsStoreLst[$idx]['src'];
+			$txt = $this->TbsStoreLst[$idx]['src'];
+			if ($caller===false) $this->TbsStoreLst[$idx]['src'] = ''; // save memory space
+			return $txt;
 		} else {
 			$this->LastReadNotStored = true;
 			$txt = $this->FileRead($idx, true);
@@ -1759,6 +1800,15 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 	
 	/**
+	 * Return the path of the Rel file in the archive for a given XML document.
+	 * @param $DocPath      Full path of the sub-file in the archive
+	 */
+	function OpenXML_Rels_GetPath($DocPath) {
+		$DocName = basename($DocPath);
+		return str_replace($DocName,'_rels/'.$DocName.'.rels',$DocPath);
+	}
+	
+	/**
 	 * Return an object that represents the informations of an .rels file, but for optimization, targets are scanned only for asked directories.
 	 * The result is stored in a cache so that a second call will not compute again.
 	 * The function stores Rids of files existing in a the $TargetPrefix directory of the archive (image, ...).
@@ -1777,8 +1827,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$o->DirLst = array();    // Processed target dir
 			$o->ChartLst = false;    // Chart list, computed in another method
 			
-			$DocName = basename($DocPath);
-			$o->FicPath = str_replace($DocName,'_rels/'.$DocName.'.rels',$DocPath);
+			$o->FicPath = $this->OpenXML_Rels_GetPath($DocPath);
 
 			$FicIdx = $this->FileGetIdx($o->FicPath);
 			if ($FicIdx===false) {
@@ -2657,6 +2706,7 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 
+	// Actally delete, display of hide sheet marked for this operations.
 	function MsExcel_SheetDeleteAndDisplay() {
 
 		if (!isset($this->OtbsSheetOk)) return;
@@ -2787,7 +2837,7 @@ It needs to be completed when a new picture file extension is added in the docum
 				$this->RaiseError("(Init Slide List) attribute 'r:id' is missing for slide #$i in 'ppt/presentation.xml'.");
 			} elseif (isset($o->TargetLst[$rid])) {
 				$f = 'ppt/'.$o->TargetLst[$rid];
-				$lst[] = array('file' => $f, 'idx' => $this->FileGetIdx($f) );
+				$lst[] = array('file' => $f, 'idx' => $this->FileGetIdx($f), 'rid' => $rid);
 			} else {
 				$this->RaiseError("(Init Slide List) Slide corresponding to rid=$rid is not found in the Rels file of 'ppt/presentation.xml'.");
 			}
@@ -2872,6 +2922,51 @@ It needs to be completed when a new picture file extension is added in the docum
 			}
 		}
 		if ($nbr==0) echo $bull."(none)";
+		
+	}
+	
+	function MsPowerpoint_SlideDelete() {
+		
+		if (!isset($this->OtbsSlideOk)) return;
+		if ( (count($this->OtbsSlideDelete)==0) && (count($this->OtbsSlideVisible)==0) ) return;
+
+		$this->MsPowerpoint_InitSlideLst();
+		
+		$xml_file = 'ppt/presentation.xml';
+		$xml_idx = $this->FileGetIdx($xml_file);
+		$rel_idx = $this->FileGetIdx($this->OpenXML_Rels_GetPath($xml_file));
+		
+		$xml_txt = $this->TbsStoreGet($xml_idx, 'Slide Delete and Display / XML');
+		$rel_txt = $this->TbsStoreGet($rel_idx, 'Slide Delete and Display / REL');
+
+		$del_lst = array();
+		foreach ($this->OpenXmlSlideLst as $i=>$s) {
+			$ref = 'i:'.($i+1);
+			if (isset($this->OtbsSlideDelete[$ref]) && $this->OtbsSlideDelete[$ref] ) {
+			
+				$x = clsTbsXmlLoc::FindElementHavingAtt($xml_txt, 'r:id="'.$s['rid'].'"', 0);
+				if ($x!==false) $x->ReplaceSrc(''); // delete the element
+				
+				$x = clsTbsXmlLoc::FindElementHavingAtt($rel_txt, 'Id="'.$s['rid'].'"', 0);
+				if ($x!==false) $x->ReplaceSrc(''); // delete the element
+
+				$del_lst[] = $s['file'];
+				$del_lst[] = $this->OpenXML_Rels_GetPath($s['file']);
+				
+			}
+		}
+
+		$this->TbsStorePut($xml_idx, $xml_txt);
+		$this->TbsStorePut($rel_idx, $rel_txt);
+		unset($xml_txt, $rel_txt);
+		
+		$idx = $this->FileGetIdx('[Content_Types].xml');
+		$txt = $this->TbsStoreGet($idx, 'Slide Delete and Display / Content_Types');
+		foreach ($del_lst as $f) {
+			$x = clsTbsXmlLoc::FindElementHavingAtt($rel_txt, 'PartName="/'.$f.'"', 0);
+			if ($x!==false) $x->ReplaceSrc(''); // delete the element
+		}
+		$this->TbsStorePut($idx, $txt);
 		
 	}
 	
@@ -3798,10 +3893,11 @@ class clsTbsXmlLoc {
 
 	// Search an element in the TXT contents which has the asked attribute, and return an object if it is found.
 	// Note that the element found has an unknwown name until FindEndTag() is called.
+	// The given attribute can be with or without a specific value. Example: 'visible' or 'visible="1"'
 	static function FindStartTagHavingAtt(&$Txt, $Att, $PosBeg, $Forward=true) {
 
 		$p = $PosBeg - (($Forward) ? 1 : -1);
-		$x = (strpos($Att, '=')===false) ? (' '.$Att.'="') : $Att; // get the item more precise if not yet done
+		$x = (strpos($Att, '=')===false) ? (' '.$Att.'="') : (' '.$Att); // get the item more precise if not yet done
 		$search = true;
 
 		do {
