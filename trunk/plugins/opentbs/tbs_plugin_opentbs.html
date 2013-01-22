@@ -70,8 +70,8 @@ ul {
 
 <body>
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.8.0, 2012-01-08, by Skrol29<br />
-  help file modified on 2012-01-08</div>
+<div>version 1.8.0, 2012-01-22, by Skrol29<br />
+  help file modified on 2012-01-22</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -515,7 +515,7 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DELETE_SHEETS, $Sheets[, $Delete])</td>
-    <td valign="top"><p>Make on or several sheets deleted or not. 
+    <td valign="top"><p>Make one or several sheets te be deleted or not. 
       This command will raise an error if the opened template is not a Workbook.</p>
       <ul>
         <li><span class="smallcode">$Sheets</span> must be an array of sheet identifier, or even a single sheet identifier. See command <span class="smallcode">OPENTBS_SELECT_SHEET</span> for more details about sheet identifiers.</li>
@@ -555,6 +555,12 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
     <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_COUNT_SLIDES)</td>
     <td valign="top"><p>Return the number of slides in the presentation. Always return 0 if the document is neither a PPTX nor an ODP.</p>
     <p> <span class="versioning">Command OPENTBS_COUNT_SLIDES is supported since OpenTBS version 1.8.0.</span></p></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DELETE_SLIDES, $Slides)</td>
+    <td valign="top"><p>Make one or several slides te be deleted or not. 
+      This command will raise an error if the opened template is not a Presentation (PPTX or ODP).</p>
+    <p> <span class="versioning">Command OPENTBS_DELETE_SLIDES is supported since OpenTBS version 1.8.0.</span></p></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DELETE_COMMENTS)</td>
@@ -738,6 +744,7 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
   <li> new command OPENTBS_MERGE_SPECIAL_ITEMS</li>
   <li>new command OPENTBS_CHANGE_PICTURE</li>
   <li>new command OPENTBS_COUNT_SLIDES</li>
+  <li>new command OPENTBS_DELETE_SLIDES</li>
   <li>fixed bug: parameter &quot;<span class="smallcode">ope=changepic</span>&quot; did not work in PPTX documents.</li>
   <li> fixed bug: parameter &quot;<span class="smallcode">ope=changepic</span>&quot; did not work with <span class="smallcode">[onload]</span> fields in Ms Office.</li>
   <li>fixed bug: parameter &quot;<span class="smallcode">default=current</span>&quot; did not work when using MergeField() instead of MergeBlock().</li>
