@@ -70,8 +70,8 @@ ul {
 
 <body>
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.8.0, 2012-01-22, by Skrol29<br />
-  help file modified on 2012-01-22</div>
+<div>version 1.8.0, 2012-02-04, by Skrol29<br />
+  help file modified on 2012-02-04</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -498,30 +498,41 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
     <td valign="top"><p>Select and load the main sub-file in the opened template. For example in a Writer document, or an Ms Word document, this command can bring you back from the merging of a header to the main body.</p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_SELECT_SHEET, $Sheet)</td>
-    <td valign="top"><p>Select and load the sub-file corresponding to $Sheet. This command will raise an error if the opened template is not a Workbook (Ms Word or OpenOffice Calc).      This command is useless for an 
-    OpenOffice Calc workbook because all sheets are saved in single sub-file. Nevertheless using it  won't raise an error.</p>
-      <p><span class="smallcode">$Sheet</span> must be a sheet identifier.         A sheet identifier can be 
-      either an integer corresponding to the index of the sheet, or a string corresponding to the name of the sheet.</p>
-      <p>    Use command <span class="smallcode">$TBS-&gt;PlugIn(<a href="#debugmode">OPENTBS_DEBUG_INFO</a>)</span> to list all id and name of sheets in the current Workbook.</p></td>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_SELECT_SHEET, $NumOrName)<br />
+    $TBS-&gt;PlugIn(OPENTBS_SELECT_SLIDE, $NumOrName)</td>
+    <td valign="top"><p>Select and load the sub-file corresponding to <span class="smallcode">$NumOrName</span>. This command will raise an error if the opened template is not an expected document.</p>
+      <p>This command is useless for LibreOffice/OpenOffice because all sheets/slides are saved in single sub-file. Nevertheless using it  won't raise an error.</p>
+      <p><span class="smallcode">$NumOrName</span> is an identifire that can be 
+      either an integer corresponding to the index of the sheet/slide, or a string corresponding to the name of the sheet/slide.</p>
+      <p>    Use command <span class="smallcode">$TBS-&gt;PlugIn(<a href="#debugmode">OPENTBS_DEBUG_INFO</a>)</span> to list all id and name of sheets/slides in the current document.</p>
+      <p><span class="versioning">Command OPENTBS_SELECT_SLIDE is supported since OpenTBS version 1.8.0.</span></p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DISPLAY_SHEETS, $Sheets[, $Visible])</td>
-    <td valign="top"><p>Make one or several sheets visible or hidden.  This command will raise an error if the opened template is not a Workbook.</p>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DISPLAY_SHEETS, $NumOrNames[, $Visible])<br />
+    $TBS-&gt;PlugIn(OPENTBS_DISPLAY_SLIDES, $NumOrNames[, $Visible])</td>
+    <td valign="top"><p>Make one or several sheets/slides visible or hidden.  This command will raise an error if the opened template is not an expected document.</p>
       <ul>
-        <li> <span class="smallcode">$Sheets</span> must be an array of sheet identifier, or even a single sheet identifier. See command <span class="smallcode">OPENTBS_SELECT_SHEET</span> for more details about sheet identifiers.</li>
+        <li> <span class="smallcode">$NumOrNames</span> must be an array of  identifiers, or even a single  identifier. See command <span class="smallcode">OPENTBS_SELECT_SHEET</span> for more details about  identifiers.</li>
         <li><span class="smallcode">$Visible</span> must be a boolean, default value is <span class="smallcode">true</span>.</li>
-    </ul></td>
+      </ul>
+    <p><span class="versioning">Command OPENTBS_DISPLAY_SLIDES is supported since OpenTBS version 1.8.0.</span></p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DELETE_SHEETS, $Sheets[, $Delete])</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DELETE_SHEETS, $NumOrNames[, $Delete])<br />
+    $TBS-&gt;PlugIn(OPENTBS_DELETE_SLIDES, $NumOrNames[, $Delete])</td>
     <td valign="top"><p>Make one or several sheets te be deleted or not. 
       This command will raise an error if the opened template is not a Workbook.</p>
       <ul>
-        <li><span class="smallcode">$Sheets</span> must be an array of sheet identifier, or even a single sheet identifier. See command <span class="smallcode">OPENTBS_SELECT_SHEET</span> for more details about sheet identifiers.</li>
+        <li> <span class="smallcode">$NumOrNames</span> must be an array of  identifiers, or even a single  identifier. See command <span class="smallcode">OPENTBS_SELECT_SHEET</span> for more details about  identifiers.</li>
         <li><span class="smallcode">$Delete</span> must be a boolean, default value is <span class="smallcode">true</span>.</li>
       </ul>
-      <p><em class="warning">Please note that for now, you must not delete a sheet that contains a Pivot Table because  this will produce an error when the workbook is opened.</em></p></td>
+      <p><em class="warning">Please note that for now, you must not delete a sheet that contains a Pivot Table in a XLSX workbook because  this will produce an error when the workbook is opened.</em></p>
+      <p><span class="versioning">Command OPENTBS_DELETE_SLIDES is supported since OpenTBS version 1.8.0.</span></p></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_COUNT_SLIDES)</td>
+    <td valign="top"><p>Return the number of slides in the presentation. Always return 0 if the document is neither a PPTX nor an ODP.</p>
+      <p> <span class="versioning">Command OPENTBS_COUNT_SLIDES is supported since OpenTBS version 1.8.0.</span></p></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_MERGE_SPECIAL_ITEMS)</td>
@@ -542,25 +553,6 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
       <span class="smallcode">$TBS-&gt;Plugin(OPENTBS_CHANGE_PICTURE, '#main_map#', 'pics/new_map.png'); </span></p>
       <p>Does not work with Ms Excel yet.</p>
     <p><span class="versioning">Command OPENTBS_CHANGE_PICTURE is supported since OpenTBS version 1.8.0.</span></p></td>
-  </tr>
-  <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_SELECT_SLIDE, $Slide)</td>
-    <td valign="top"><p>Select and load the sub-file corresponding to number $Slide. This command is useless for an 
-      OpenOffice Impress presentation because all slides are saved in single sub-file. Nevertheless using it  won't raise an error.</p>
-      <p><span class="smallcode">$Sheet</span> must be an integer.</p>
-      <p>        Use command <span class="smallcode">$TBS-&gt;PlugIn(<a href="#debugmode">OPENTBS_DEBUG_INFO</a>)</span> to list all slides in the current Presentation.</p>
-      <p><span class="versioning">Command OPENTBS_SELECT_SLIDE is supported since OpenTBS version 1.8.0.</span>    </p></td>
-  </tr>
-  <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_COUNT_SLIDES)</td>
-    <td valign="top"><p>Return the number of slides in the presentation. Always return 0 if the document is neither a PPTX nor an ODP.</p>
-    <p> <span class="versioning">Command OPENTBS_COUNT_SLIDES is supported since OpenTBS version 1.8.0.</span></p></td>
-  </tr>
-  <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DELETE_SLIDES, $Slides)</td>
-    <td valign="top"><p>Make one or several slides te be deleted or not. 
-      This command will raise an error if the opened template is not a Presentation (PPTX or ODP).</p>
-    <p> <span class="versioning">Command OPENTBS_DELETE_SLIDES is supported since OpenTBS version 1.8.0.</span></p></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DELETE_COMMENTS)</td>
@@ -731,24 +723,25 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
-<h3>version 1.8.0, on 2013-01-08</h3>
+<h3>version 1.8.0, on 2013-02-04</h3>
 <ul>
-  <li>    new feature: automatically cleans up spelling in PPTX templates (such information may 
+  <li>new feature: automatically cleans up spelling in PPTX templates (such information may 
   deconstruct the TBS tags). This feature can be disabled.</li>
   <li>new feature: Block Alias helps to define TBS blocks <span id="result_box2" lang="en" xml:lang="en">easily</span> on pages, sections,....</li>
   <li>new feature: merging a chart from its title.</li>
-  <li> new parameter &quot;<span class="smallcode">tagpos</span>&quot; to define the position of the TBS tag realtively to the image (when using &quot;<span class="smallcode">ope=changepic</span>&quot;).</li>
+  <li>new parameter &quot;<span class="smallcode">tagpos</span>&quot; to define the position of the TBS tag realtively to the image (when using &quot;<span class="smallcode">ope=changepic</span>&quot;).</li>
   <li>new parameter &quot;<span class="smallcode">delcol</span>&quot; to delete columns in  tables.</li>
-  <li> when using &quot;<span class="smallcode">ope=changepic</span>&quot;, default value of parameter &quot;<span class="smallcode">default</span>&quot; is now &quot;<span class="smallcode">current</span>&quot;.</li>
-  <li> new command OPENTBS_SELECT_SLIDE</li>
-  <li> new command OPENTBS_MERGE_SPECIAL_ITEMS</li>
-  <li>new command OPENTBS_CHANGE_PICTURE</li>
-  <li>new command OPENTBS_COUNT_SLIDES</li>
+  <li>when using &quot;<span class="smallcode">ope=changepic</span>&quot;, default value of parameter &quot;<span class="smallcode">default</span>&quot; is now &quot;<span class="smallcode">current</span>&quot;.</li>
+  <li>new command OPENTBS_SELECT_SLIDE</li>
   <li>new command OPENTBS_DELETE_SLIDES</li>
+  <li>new command OPENTBS_DISPLAY_SLIDES</li>
+  <li>new command OPENTBS_COUNT_SLIDES</li>
+  <li>new command OPENTBS_MERGE_SPECIAL_ITEMS</li>
+  <li>new command OPENTBS_CHANGE_PICTURE</li>
   <li>fixed bug: parameter &quot;<span class="smallcode">ope=changepic</span>&quot; did not work in PPTX documents.</li>
-  <li> fixed bug: parameter &quot;<span class="smallcode">ope=changepic</span>&quot; did not work with <span class="smallcode">[onload]</span> fields in Ms Office.</li>
+  <li>fixed bug: parameter &quot;<span class="smallcode">ope=changepic</span>&quot; did not work with <span class="smallcode">[onload]</span> fields in Ms Office.</li>
   <li>fixed bug: parameter &quot;<span class="smallcode">default=current</span>&quot; did not work when using MergeField() instead of MergeBlock().</li>
-  <li> requires TBS 3.8.0</li>
+  <li>requires TBS 3.8.0</li>
 </ul>
 <h3> version 1.7.6, on 2012-06-06</h3>
 <ul>
