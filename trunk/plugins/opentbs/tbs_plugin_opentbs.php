@@ -49,6 +49,7 @@ define('OPENTBS_MERGE_SPECIAL_ITEMS','clsOpenTBS.MergeSpecialItems');
 define('OPENTBS_CHANGE_PICTURE','clsOpenTBS.ChangePicture');
 define('OPENTBS_COUNT_SLIDES','clsOpenTBS.CountSlides');
 define('OPENTBS_SEARCH_IN_SLIDES','clsOpenTBS.SearchInSlides');
+define('OPENTBS_DISPLAY_SLIDES','clsOpenTBS.DisplaySlides');
 define('OPENTBS_DELETE_SLIDES','clsOpenTBS.DeleteSlides');
 define('OPENTBS_FIRST',1);
 define('OPENTBS_GO',2);
@@ -102,12 +103,8 @@ class clsOpenTBS extends clsTbsZip {
 				$SubFileLst = $this->ExtInfo['load'];
 				$TBS->OtbsConvBr = $this->ExtInfo['br'];
 			}
-			// Initialize other archive informations
-			$TBS->OtbsCurrFile = false;
 			$TBS->OtbsSubFileLst = $SubFileLst;
-			$this->TbsStoreLst = array();
-			$this->TbsCurrIdx = false;
-			$this->TbsNoField = array(); // idx of sub-file having no TBS fields
+			$this->TbsInitArchive(); // Initialize other archive informations
 		} elseif ($this->ArchFile==='') {
 			$this->RaiseError('Cannot read file(s) "'.$SubFileLst.'" because no archive is opened.');
 		}
@@ -150,10 +147,13 @@ class clsOpenTBS extends clsTbsZip {
 
 		$TbsShow = (($Render & OPENTBS_DEBUG_AVOIDAUTOFIELDS)!=OPENTBS_DEBUG_AVOIDAUTOFIELDS);
 
-		if (isset($this->OtbsSheetODS))   $this->OpenDoc_SheetDeleteAndDisplay();
-		if (isset($this->OtbsSheetXLSX))  $this->MsExcel_SheetDeleteAndDisplay();
-		if (isset($this->OtbsSlideXLSX))  $this->MsPowerpoint_SlideDelete();
-		if ($this->Ext_GetEquiv()=='docx')  $this->MsWord_RenumDocPr();
+		switch ($this->Ext_GetEquiv()) {
+			case 'ods':  $this->OpenDoc_SheetSlides_DeleteAndDisplay(true); break;
+			case 'odp':  $this->OpenDoc_SheetSlides_DeleteAndDisplay(false); break;
+			case 'xlsx': $this->MsExcel_SheetDeleteAndDisplay(); break;
+			case 'pptx': $this->MsPowerpoint_SlideDelete(); break;
+			case 'docx': $this->MsWord_RenumDocPr(); break;
+		}
 
 		// Merges all modified subfiles
 		$idx_lst = array_keys($this->TbsStoreLst);
@@ -412,39 +412,10 @@ class clsOpenTBS extends clsTbsZip {
 			}
 			return true;
 
-		} elseif ( ($Cmd==OPENTBS_DELETE_SHEETS) || ($Cmd==OPENTBS_DISPLAY_SHEETS) ) {
+		} elseif ( ($Cmd==OPENTBS_DELETE_SHEETS) || ($Cmd==OPENTBS_DISPLAY_SHEETS) || ($Cmd==OPENTBS_DELETE_SLIDES) || ($Cmd==OPENTBS_DISPLAY_SLIDES) ) {
 
-			if (is_null($x2)) $x2 = true; // default value
-			$delete = ($Cmd==OPENTBS_DELETE_SHEETS);
-
-			$ext = $this->Ext_GetEquiv();
-			if (!isset($this->OtbsSheetOk)) {
-				if ($ext=='xlsx') $this->OtbsSheetXLSX = true;
-				if ($ext=='ods') $this->OtbsSheetODS = true;
-				$this->OtbsSheetDelete = array();
-				$this->OtbsSheetVisible = array();
-				$this->OtbsSheetOk = true;
-			}
-
-			$x2 = (boolean) $x2;
-			if (!is_array($x1)) $x1 = array($x1);
-
-			foreach ($x1 as $sheet=>$action) {
-				if (!is_bool($action)) {
-					$sheet = $action;
-					$action = $x2;
-				}
-				$sheet_ref = (is_string($sheet)) ? 'n:'.htmlspecialchars($sheet) : 'i:'.$sheet; // help to make the difference beetween id and name
-				if ($delete) {
-					if ($x2) {
-						$this->OtbsSheetDelete[$sheet_ref] = $sheet;
-					} else {
-						unset($this->OtbsSheetDelete[$sheet_ref]);
-					}
-				} else {
-					$this->OtbsSheetVisible[$sheet_ref] = $x2;
-				}
-			}
+			$delete = ( ($Cmd==OPENTBS_DELETE_SHEETS) || ($Cmd==OPENTBS_DELETE_SLIDES) ) ;
+			$this->TbsSheetSlide_DeleteDisplay($x1, $x2, $delete);
 
 		} elseif ($Cmd==OPENTBS_MERGE_SPECIAL_ITEMS) {
 		
@@ -552,42 +523,9 @@ class clsOpenTBS extends clsTbsZip {
 			} else {
 				return false;
 			}
-
-		} elseif ($Cmd==OPENTBS_DELETE_SLIDES) {
-		
-			if (is_null($x2)) $x2 = true; // default value
-			$delete = ($Cmd==OPENTBS_DELETE_SLIDES);
-
-			$ext = $this->Ext_GetEquiv();
-			if (!isset($this->OtbsSheetOk)) {
-				if ($ext=='pptx') $this->OtbsSlideXLSX = true;
-				if ($ext=='odp') $this->OtbsSlideODP = true;
-				$this->OtbsSlideDelete = array();
-				$this->OtbsSlideVisible = array();
-				$this->OtbsSlideOk = true;
-			}
-
-			$x2 = (boolean) $x2;
-			if (!is_array($x1)) $x1 = array($x1);
-
-			foreach ($x1 as $slide=>$action) {
-				if (!is_bool($action)) {
-					$slide = $action;
-					$action = $x2;
-				}
-				$slide_ref = (is_string($slide)) ? 'n:'.htmlspecialchars($slide) : 'i:'.$slide; // help to make the difference beetween id and name
-				if ($delete) {
-					if ($x2) {
-						$this->OtbsSlideDelete[$slide_ref] = $slide;
-					} else {
-						unset($this->OtbsSlideVisible[$slide_ref]);
-					}
-				} else {
-					$this->OtbsSlideVisible[$slide_ref] = $x2;
-				}
-			}
-		
+			
 		}
+
 	}
 	
 	/**
@@ -801,10 +739,13 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$this->TbsDebug_Init($nl, $sep, $bull, 'OPENTBS_DEBUG_INFO');
 
-		if ($this->Ext_GetEquiv()==='docx') $this->MsWord_DocDebug($nl, $sep, $bull);
-		if ($this->Ext_GetEquiv()==='xlsx') $this->MsExcel_SheetDebug($nl, $sep, $bull);
-		if ($this->Ext_GetEquiv()==='pptx') $this->MsPowerpoint_SlideDebug($nl, $sep, $bull);
-		if ($this->Ext_GetEquiv()==='ods')  $this->OpenDoc_SheetDebug($nl, $sep, $bull);
+		switch ($this->Ext_GetEquiv()) {
+			case 'docx': $this->MsWord_DocDebug($nl, $sep, $bull); break;
+			case 'xlsx': $this->MsExcel_SheetDebug($nl, $sep, $bull); break;
+			case 'pptx': $this->MsPowerpoint_SlideDebug($nl, $sep, $bull); break;
+			case 'ods' : $this->OpenDoc_SheetSlides_Debug(true, $nl, $sep, $bull); break;
+			case 'odp' : $this->OpenDoc_SheetSlides_Debug(false, $nl, $sep, $bull); break;
+		}
 
 		if ($this->Ext_GetType()==='openxml') {
 			$this->OpenXML_ChartDebug($nl, $sep, $bull);
@@ -957,6 +898,20 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return false;
 	}
 
+	// Initialize template information
+	function TbsInitArchive() {
+
+		$TBS =& $this->TBS;
+
+		$TBS->OtbsCurrFile = false;
+
+		$this->TbsStoreLst = array();
+		$this->TbsCurrIdx = false;
+		$this->TbsNoField = array(); // idx of sub-file having no TBS fields
+		$this->OtbsSheetSlidesOk = false; // true or false
+
+	}
+	
 	function TbsPicFound($Txt, &$Loc, $IsCaching) {
 	// Found the relevent attribute for the image source, and then add parameter 'att' to the TBS locator.
 
@@ -1358,8 +1313,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	
 	// Check after the sheet process
 	function TbsSheetCheck() {
-		if (count($this->OtbsSheetDelete)>0) $this->RaiseError("Unable to delete the following sheets because they are not found in the workbook: ".(str_replace(array('i:','n:'),'',implode(', ',$this->OtbsSheetDelete))).'.');
-		if (count($this->OtbsSheetVisible)>0) $this->RaiseError("Unable to change visibility of the following sheets because they are not found in the workbook: ".(str_replace(array('i:','n:'),'',implode(', ',array_keys($this->OtbsSheetVisible)))).'.');
+		if (count($this->OtbsSheetSlidesDelete)>0) $this->RaiseError("Unable to delete the following sheets because they are not found in the workbook: ".(str_replace(array('i:','n:'),'',implode(', ',$this->OtbsSheetSlidesDelete))).'.');
+		if (count($this->OtbsSheetSlidesVisible)>0) $this->RaiseError("Unable to change visibility of the following sheets because they are not found in the workbook: ".(str_replace(array('i:','n:'),'',implode(', ',array_keys($this->OtbsSheetSlidesVisible)))).'.');
 	}
 
 	function TbsDeleteComments($MainTags, $CommFiles, $CommTags, $Inner) {
@@ -1480,6 +1435,46 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	/**
+	 * Delete or Display a Sheet or a Slide according to its numbre or its name
+	 * @param $id_or_name Id or Name of the Sheet/Slide
+	 * @param $ok         true to Keep or Display, false to Delete or Hide
+	 * @param $delete     true to Delete/Keep, false to Display/Hide
+	 */
+	function TbsSheetSlide_DeleteDisplay($id_or_name, $ok, $delete) {
+	
+		if (is_null($ok)) $ok = true; // default value
+
+	
+		$ext = $this->Ext_GetEquiv();
+		if (!$this->OtbsSheetSlidesOk) {
+			$this->OtbsSheetSlidesDelete = array();
+			$this->OtbsSheetSlidesVisible = array();
+			$this->OtbsSheetSlidesOk = true;
+		}
+
+		$ok = (boolean) $ok;
+		if (!is_array($id_or_name)) $id_or_name = array($id_or_name);
+
+		foreach ($id_or_name as $item=>$action) {
+			if (!is_bool($action)) {
+				$item = $action;
+				$action = $ok;
+			}
+			$item_ref = (is_string($item)) ? 'n:'.htmlspecialchars($item) : 'i:'.$item; // help to make the difference beetween id and name
+			if ($delete) {
+				if ($ok) {
+					$this->OtbsSheetSlidesDelete[$item_ref] = $item;
+				} else {
+					unset($this->OtbsSheetSlidesVisible[$item_ref]);
+				}
+			} else {
+				$this->OtbsSheetSlidesVisible[$item_ref] = $ok;
+			}
+		}
+		
+	}
+	
 	function Ext_PrepareInfo($Ext=false) {
 		/* Extension Info must be an array with keys 'load', 'br', 'ctype' and 'pic_path'. Keys 'rpl_what' and 'rpl_with' are optional.
 		  load:     files in the archive to be automatically loaded by OpenTBS when the archive is loaded. Separate files with comma ';'.
@@ -2709,8 +2704,8 @@ It needs to be completed when a new picture file extension is added in the docum
 	// Actally delete, display of hide sheet marked for this operations.
 	function MsExcel_SheetDeleteAndDisplay() {
 
-		if (!isset($this->OtbsSheetOk)) return;
-		if ( (count($this->OtbsSheetDelete)==0) && (count($this->OtbsSheetVisible)==0) ) return;
+		if (!$this->OtbsSheetSlidesOk) return;
+		if ( (count($this->OtbsSheetSlidesDelete)==0) && (count($this->OtbsSheetSlidesVisible)==0) ) return;
 
 		$this->MsExcel_SheetInit();
 		$Txt = $this->TbsStoreGet($this->MsExcel_Sheets_FileId, 'Sheet Delete and Display');
@@ -2727,19 +2722,19 @@ It needs to be completed when a new picture file extension is added in the docum
 			$loc = $this->MsExcel_Sheets[$idx];
 			$id = 'i:'.$loc->PrmLst['sheetid'];
 			$name = 'n:'.$loc->PrmLst['name']; // the value in the name attribute is XML protected
-			if ( isset($this->OtbsSheetDelete[$name]) || isset($this->OtbsSheetDelete[$id]) ) {
+			if ( isset($this->OtbsSheetSlidesDelete[$name]) || isset($this->OtbsSheetSlidesDelete[$id]) ) {
 				// Delete the sheet
 				$Txt = substr_replace($Txt, '', $loc->PosBeg, $loc->PosEnd - $loc->PosBeg +1);
 				$this->FileReplace($loc->xlsxTarget, false); // mark the target file to be deleted
 				$change = true;
 				$deleted[$loc->PrmLst['sheetid']] = $loc->PrmLst['name'];
-				unset($this->OtbsSheetDelete[$name]);
-				unset($this->OtbsSheetDelete[$id]);
-				unset($this->OtbsSheetVisible[$name]);
-				unset($this->OtbsSheetVisible[$id]);
-			} elseif ( isset($this->OtbsSheetVisible[$name]) || isset($this->OtbsSheetVisible[$id]) ) {
+				unset($this->OtbsSheetSlidesDelete[$name]);
+				unset($this->OtbsSheetSlidesDelete[$id]);
+				unset($this->OtbsSheetSlidesVisible[$name]);
+				unset($this->OtbsSheetSlidesVisible[$id]);
+			} elseif ( isset($this->OtbsSheetSlidesVisible[$name]) || isset($this->OtbsSheetSlidesVisible[$id]) ) {
 				// Hide or display the sheet
-				$visible = (isset($this->OtbsSheetVisible[$name])) ? $this->OtbsSheetVisible[$name] : $this->OtbsSheetVisible[$id];
+				$visible = (isset($this->OtbsSheetSlidesVisible[$name])) ? $this->OtbsSheetSlidesVisible[$name] : $this->OtbsSheetSlidesVisible[$id];
 				$state = ($visible) ? 'visible' : 'hidden';
 				if (!$visible) $change = true;
 				if (isset($loc->PrmLst['state'])) {
@@ -2749,8 +2744,8 @@ It needs to be completed when a new picture file extension is added in the docum
 					// add the attribute
 					$Txt = substr_replace($Txt, 'state="hidden" ', $loc->PosBeg + strlen('<sheet '), 0);
 				}
-				unset($this->OtbsSheetVisible[$name]);
-				unset($this->OtbsSheetVisible[$id]);
+				unset($this->OtbsSheetSlidesVisible[$name]);
+				unset($this->OtbsSheetSlidesVisible[$id]);
 			}
 		}
 
@@ -2925,10 +2920,11 @@ It needs to be completed when a new picture file extension is added in the docum
 		
 	}
 	
+	// Actually delete slides in the Presentation
 	function MsPowerpoint_SlideDelete() {
 		
-		if (!isset($this->OtbsSlideOk)) return;
-		if ( (count($this->OtbsSlideDelete)==0) && (count($this->OtbsSlideVisible)==0) ) return;
+		if (!$this->OtbsSheetSlidesOk) return;
+		if ( (count($this->OtbsSheetSlidesDelete)==0) && (count($this->OtbsSheetSlidesVisible)==0) ) return;
 
 		$this->MsPowerpoint_InitSlideLst();
 		
@@ -2942,7 +2938,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		$del_lst = array();
 		foreach ($this->OpenXmlSlideLst as $i=>$s) {
 			$ref = 'i:'.($i+1);
-			if (isset($this->OtbsSlideDelete[$ref]) && $this->OtbsSlideDelete[$ref] ) {
+			if (isset($this->OtbsSheetSlidesDelete[$ref]) && $this->OtbsSheetSlidesDelete[$ref] ) {
 			
 				$x = clsTbsXmlLoc::FindElementHavingAtt($xml_txt, 'r:id="'.$s['rid'].'"', 0);
 				if ($x!==false) $x->ReplaceSrc(''); // delete the element
@@ -3433,77 +3429,98 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 
-	function OpenDoc_SheetInit($force = false) {
+	function OpenDoc_SheetSlides_Init($sheet, $force = false) {
 
-		if (isset($this->OpenDoc_Sheets) && (!$force) ) return;
+		if (isset($this->OpenDoc_SheetSlides) && (!$force) ) return;
 
-		$this->OpenDoc_Sheets = array();     // sheet info sorted by location
+		$this->OpenDoc_SheetSlides = array();     // sheet/slide info sorted by location
 
 		$idx = $this->FileGetIdx($this->ExtInfo['main']);
 		if ($idx===false) return;
-		$Txt = $this->TbsStoreGet($idx, 'Sheet Info');
+		$Txt = $this->TbsStoreGet($idx, 'Sheet/Slide Info');
 		if ($Txt===false) return false;
 		if ($this->LastReadNotStored) $this->TbsStorePut($idx, $Txt);
-		$this->OpenDoc_Sheets_FileId = $idx;
+		$this->OpenDoc_SheetSlides_FileId = $idx;
 
-		// scann sheet list
+		$tag = ($sheet) ? 'table:table' : 'draw:page';
+		
+		// scann sheet/slide list
 		$p = 0;
 		$idx = 0;
-		while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, 'table:table', true, $p, true, false, true, true) ) {
-			$this->OpenDoc_Sheets[$idx] = $loc;
+		while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, $tag, true, $p, true, false, true, true) ) {
+			$this->OpenDoc_SheetSlides[$idx] = $loc;
 			$idx++;
 			$p = $loc->PosEnd;
 		}
 
 	}
 
-	function OpenDoc_SheetDeleteAndDisplay() {
+	// Actally delete hide or display Sheets and Slides in a ODS or ODP
+	function OpenDoc_SheetSlides_DeleteAndDisplay($sheet) {
 
-		if (!isset($this->OtbsSheetOk)) return;
-		if ( (count($this->OtbsSheetDelete)==0) && (count($this->OtbsSheetVisible)==0) ) return;
+		if (!$this->OtbsSheetSlidesOk) return;
+		if ( (count($this->OtbsSheetSlidesDelete)==0) && (count($this->OtbsSheetSlidesVisible)==0) ) return;
 
-		$this->OpenDoc_SheetInit(true);
-		$Txt = $this->TbsStoreGet($this->OpenDoc_Sheets_FileId, 'Sheet Delete and Display');
+		$this->OpenDoc_SheetSlides_Init($sheet, true);
+		$Txt = $this->TbsStoreGet($this->OpenDoc_SheetSlides_FileId, 'Sheet Delete and Display');
 
-		$close = '</table:table>';
-		$close_len = strlen($close);
+		if ($sheet) {
+			// Sheet
+			$tag_close = '</table:table>';
+			$att_name = 'table:name';
+			$att_style = 'table:style-name';
+			$att_display = 'table:display';
+			$yes_display = 'true';
+			$not_display = 'false';
+			$tag_property = 'style:table-properties';
+		} else {
+			// Slide
+			$tag_close = '</draw:page>';
+			$att_name = 'draw:name';
+			$att_style = 'draw:style-name';
+			$att_display = 'presentation:visibility';
+			$yes_display = 'visible';
+			$not_display = 'hidden';
+			$tag_property = 'style:drawing-page-properties';
+		}
+		$tag_close_len = strlen($tag_close);
 
 		$styles_to_edit = array();
 		// process sheet in rever order of their positions
-		for ($idx = count($this->OpenDoc_Sheets) - 1; $idx>=0; $idx--) {
-			$loc = $this->OpenDoc_Sheets[$idx];
+		for ($idx = count($this->OpenDoc_SheetSlides) - 1; $idx>=0; $idx--) {
+			$loc = $this->OpenDoc_SheetSlides[$idx];
 			$id = 'i:'.($idx + 1);
-			$name = 'n:'.$loc->PrmLst['table:name'];
-			if ( isset($this->OtbsSheetDelete[$name]) || isset($this->OtbsSheetDelete[$id]) ) {
+			$name = 'n:'.$loc->PrmLst[$att_name];
+			if ( isset($this->OtbsSheetSlidesDelete[$name]) || isset($this->OtbsSheetSlidesDelete[$id]) ) {
 				// Delete the sheet
-				$p = strpos($Txt, $close, $loc->PosEnd);
+				$p = strpos($Txt, $tag_close, $loc->PosEnd);
 				if ($p===false) return; // XML error
-				$Txt = substr_replace($Txt, '', $loc->PosBeg, $p + $close_len - $loc->PosBeg);
-				unset($this->OtbsSheetDelete[$name]);
-				unset($this->OtbsSheetDelete[$id]);
-				unset($this->OtbsSheetVisible[$name]);
-				unset($this->OtbsSheetVisible[$id]);
-			} elseif ( isset($this->OtbsSheetVisible[$name]) || isset($this->OtbsSheetVisible[$id]) ) {
+				$Txt = substr_replace($Txt, '', $loc->PosBeg, $p + $tag_close_len - $loc->PosBeg);
+				unset($this->OtbsSheetSlidesDelete[$name]);
+				unset($this->OtbsSheetSlidesDelete[$id]);
+				unset($this->OtbsSheetSlidesVisible[$name]);
+				unset($this->OtbsSheetSlidesVisible[$id]);
+			} elseif ( isset($this->OtbsSheetSlidesVisible[$name]) || isset($this->OtbsSheetSlidesVisible[$id]) ) {
 				// Hide or dispay the sheet
-				$visible = (isset($this->OtbsSheetVisible[$name])) ? $this->OtbsSheetVisible[$name] : $this->OtbsSheetVisible[$id];
-				$visible = ($visible) ? 'true' : 'false';
-				if (isset($loc->PrmLst['table:style-name'])) {
-					$style = $loc->PrmLst['table:style-name'];
+				$visible = (isset($this->OtbsSheetSlidesVisible[$name])) ? $this->OtbsSheetSlidesVisible[$name] : $this->OtbsSheetSlidesVisible[$id];
+				$visible = ($visible) ? $yes_display : $not_display;
+				if (isset($loc->PrmLst[$att_style])) {
+					$style = $loc->PrmLst[$att_style];
 					$new = $style.'_tbs_'.$visible;
 					if (!isset($styles_to_edit[$style])) $styles_to_edit[$style] = array();
 					$styles_to_edit[$style][$visible] = $new; // mark the style to be edited
-					$pi = $loc->PrmPos['table:style-name'];
+					$pi = $loc->PrmPos[$att_style];
 					$Txt = substr_replace($Txt, $pi[4].$new.$pi[4], $pi[2], $pi[3]-$pi[2]);
 				}
-				unset($this->OtbsSheetVisible[$name]);
-				unset($this->OtbsSheetVisible[$id]);
+				unset($this->OtbsSheetSlidesVisible[$name]);
+				unset($this->OtbsSheetSlidesVisible[$id]);
 			}
 		}
 
 		// process styles to edit
 		if (count($styles_to_edit)>0) {
-			$close = '</style:style>';
-			$close_len = strlen($close);
+			$tag_close = '</style:style>';
+			$tag_close_len = strlen($tag_close);
 			$p = 0;
 			while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, 'style:style', true, $p, true, false, true, false) ) {
 				$p = $loc->PosEnd;
@@ -3511,17 +3528,17 @@ It needs to be completed when a new picture file extension is added in the docum
 					$name = $loc->PrmLst['style:name'];
 					if (isset($styles_to_edit[$name])) {
 						// retrieve the full source of the <style:style> element
-						$p = strpos($Txt, $close, $p);
+						$p = strpos($Txt, $tag_close, $p);
 						if ($p===false) return; // bug in the XML contents
-						$p = $p + $close_len;
+						$p = $p + $tag_close_len;
 						$src = substr($Txt, $loc->PosBeg, $p - $loc->PosBeg);
 						// add the attribute, if missing
-						if (strpos($src, ' table:display="')===false)  $src = str_replace('<style:table-properties ', '<style:table-properties table:display="true" ', $src);
+						if (strpos($src, ' '.$att_display.'="')===false)  $src = str_replace('<'.$tag_property.' ', '<'.$tag_property.' '.$att_display.'="'.$yes_display.'" ', $src);
 						// add new styles
 						foreach ($styles_to_edit[$name] as $visible => $newName) {
-							$not = ($visible==='true') ? 'false' : 'true';
+							$not = ($visible===$not_display) ? $yes_display : $not_display;
 							$src2 = str_replace(' style:name="'.$name.'"', ' style:name="'.$newName.'"', $src);
-							$src2 = str_replace(' table:display="'.$not.'"', ' table:display="'.$visible.'"', $src2);
+							$src2 = str_replace(' '.$att_display.'="'.$not.'"', ' '.$att_display.'="'.$visible.'"', $src2);
 							$Txt = substr_replace($Txt, $src2, $loc->PosBeg, 0);
 							$p = $p + strlen($src2);
 						}
@@ -3532,21 +3549,24 @@ It needs to be completed when a new picture file extension is added in the docum
 		}
 
 		// store the result
-		$this->TbsStorePut($this->OpenDoc_Sheets_FileId, $Txt);
+		$this->TbsStorePut($this->OpenDoc_SheetSlides_FileId, $Txt);
 
 		$this->TbsSheetCheck();
 
 	}
 
-	function OpenDoc_SheetDebug($nl, $sep, $bull) {
+	function OpenDoc_SheetSlides_Debug($sheet, $nl, $sep, $bull) {
 
-		$this->OpenDoc_SheetInit();
+		$this->OpenDoc_SheetSlides_Init($sheet);
 
+		$text = ($sheet) ? "Sheets in the Workbook" : "Slides in the Presentation";
+		$att = ($sheet) ? 'table:name' : 'draw:name';
+		
 		echo $nl;
-		echo $nl."Sheets in the Workbook:";
+		echo $nl.$text.":";
 		echo $nl."-----------------------";
-		foreach ($this->OpenDoc_Sheets as $idx => $loc) {
-			$name = str_replace(array('&amp;','&quot;','&lt;','&gt;'), array('&','"','<','>'), $loc->PrmLst['table:name']);
+		foreach ($this->OpenDoc_SheetSlides as $idx => $loc) {
+			$name = str_replace(array('&amp;','&quot;','&lt;','&gt;'), array('&','"','<','>'), $loc->PrmLst[$att]);
 			echo $bull."id: ".($idx+1).", name: [".$name."]";
 		}
 
