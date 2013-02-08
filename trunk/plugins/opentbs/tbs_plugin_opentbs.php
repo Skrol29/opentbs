@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.0-beta-2013-01-22
+ * @version 1.8.0-beta-2013-02-08
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -72,7 +72,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
 		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
-		$this->Version = '1.8.0-beta-2013-01-22';
+		$this->Version = '1.8.0-beta-2013-02-08';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -3051,8 +3051,12 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 
+	/**
+	 * MsWord cut the source of the text when a modification is done. This is splitting TBS tags.
+	 * This function repare the split text by searching and delete duplicated layout.
+	 * Return the number of deleted dublicates.
+	 */
 	function MsWord_CleanDuplicatedLayout(&$Txt) {
-	// Return the number of deleted dublicates
 
 		$wro = '<w:r';
 		$wro_len = strlen($wro);
@@ -3068,25 +3072,30 @@ It needs to be completed when a new picture file extension is added in the docum
 
 		$nbr = 0;
 		$wro_p = 0;
-		while ( ($wro_p=$this->XML_FoundTagStart($Txt, $wro, $wro_p))!==false ) {
-			$wto_p = $this->XML_FoundTagStart($Txt,$wto,$wro_p); if ($wto_p===false) return false; // error in the structure of the <w:r> element
+		while ( ($wro_p=$this->XML_FoundTagStart($Txt,$wro,$wro_p))!==false ) { // next <w:r> tag
+			$wto_p = $this->XML_FoundTagStart($Txt,$wto,$wro_p); // next <w:t> tag
+			if ($wto_p===false) return false; // error in the structure of the <w:r> element
 			$first = true;
 			do {
 				$ok = false;
-				$wtc_p = $this->XML_FoundTagStart($Txt,$wtc,$wto_p); if ($wtc_p===false) return false; // error in the structure of the <w:r> element
-				$wrc_p = $this->XML_FoundTagStart($Txt,$wrc,$wro_p); if ($wrc_p===false) return false; // error in the structure of the <w:r> element
-				if ( ($wto_p<$wrc_p) && ($wtc_p<$wrc_p) ) { // if the found <w:t> is actually included in the <w:r> element
+				$wtc_p = $this->XML_FoundTagStart($Txt,$wtc,$wto_p); // next </w:t> tag
+				if ($wtc_p===false) return false;
+				$wrc_p = $this->XML_FoundTagStart($Txt,$wrc,$wro_p); // next </w:r> tag (only to check inclusion)
+				if ($wrc_p===false) return false;
+				if ( ($wto_p<$wrc_p) && ($wtc_p<$wrc_p) ) { // if the <w:t> is actually included in the <w:r> element
 					if ($first) {
-						$superflous = '</w:t></w:r>'.substr($Txt, $wro_p, ($wto_p+$wto_len)-$wro_p); // should be like: '</w:t></w:r><w:r>....<w:t'
+						// text that is concatened and can be simplified
+						$superflous = '</w:t></w:r>'.substr($Txt, $wro_p, ($wto_p+$wto_len)-$wro_p); // without the last symbol, like: '</w:t></w:r><w:r>....<w:t'
+						$superflous = str_replace('<w:tab/>', '', $superflous); // tag must not be deleted => ther must not appear in the duplicated part
 						$superflous_len = strlen($superflous);
 						$first = false;
 					}
-					$x = substr($Txt, $wtc_p+$superflous_len,1);
-					if ( (substr($Txt, $wtc_p, $superflous_len)===$superflous) && (($x===' ') || ($x==='>')) ) {
-						// if the <w:r> layout is the same same the next <w:r>, then we join it
+					// if the <w:r> layout is the same than the next <w:r>, then we join it
+					$x = substr($Txt, $wtc_p+$superflous_len,1); // must be ' ' or '>' if the string is the superfluous AND the <w:t> tag has or not attributes
+					if ( (($x===' ') || ($x==='>')) && (substr($Txt, $wtc_p, $superflous_len)===$superflous) ) {
 						$p_end = strpos($Txt, '>', $wtc_p+$superflous_len); //
 						if ($p_end===false) return false; // error in the structure of the <w:t> tag
-						$Txt = substr_replace($Txt, '', $wtc_p, $p_end-$wtc_p+1);
+						$Txt = substr_replace($Txt, '', $wtc_p, $p_end-$wtc_p+1); // delete superflous part + <w:t> attributes
 						$nbr++;
 						$ok = true;
 					}
