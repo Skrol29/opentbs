@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.0-beta-2013-02-08
+ * @version 1.8.0-beta-2013-02-11
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -72,7 +72,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
 		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
-		$this->Version = '1.8.0-beta-2013-02-08';
+		$this->Version = '1.8.0-beta-2013-02-11';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -3070,12 +3070,16 @@ It needs to be completed when a new picture file extension is added in the docum
 		$wtc = '</w:t';
 		$wtc_len = strlen($wtc);
 
+		$preserve = 'xml:space="preserve"';
+		
 		$nbr = 0;
 		$wro_p = 0;
 		while ( ($wro_p=$this->XML_FoundTagStart($Txt,$wro,$wro_p))!==false ) { // next <w:r> tag
 			$wto_p = $this->XML_FoundTagStart($Txt,$wto,$wro_p); // next <w:t> tag
 			if ($wto_p===false) return false; // error in the structure of the <w:r> element
 			$first = true;
+			$last_att = '';
+			$first_att = '';
 			do {
 				$ok = false;
 				$wtc_p = $this->XML_FoundTagStart($Txt,$wtc,$wto_p); // next </w:t> tag
@@ -3086,15 +3090,20 @@ It needs to be completed when a new picture file extension is added in the docum
 					if ($first) {
 						// text that is concatened and can be simplified
 						$superflous = '</w:t></w:r>'.substr($Txt, $wro_p, ($wto_p+$wto_len)-$wro_p); // without the last symbol, like: '</w:t></w:r><w:r>....<w:t'
-						$superflous = str_replace('<w:tab/>', '', $superflous); // tag must not be deleted => ther must not appear in the duplicated part
+						$superflous = str_replace('<w:tab/>', '', $superflous); // tabs must not be deleted between parts => they nt be in the superflous string
 						$superflous_len = strlen($superflous);
 						$first = false;
+						$p_first_att = $wto_p+$wto_len;
+						$p =  strpos($Txt, '>', $wto_p);
+						if ($p!==false) $first_att = substr($Txt, $p_first_att, $p-$p_first_att);
 					}
-					// if the <w:r> layout is the same than the next <w:r>, then we join it
-					$x = substr($Txt, $wtc_p+$superflous_len,1); // must be ' ' or '>' if the string is the superfluous AND the <w:t> tag has or not attributes
+					// if the <w:r> layout is the same than the next <w:r>, then we join them
+					$p_att = $wtc_p + $superflous_len;
+					$x = substr($Txt, $p_att, 1); // must be ' ' or '>' if the string is the superfluous AND the <w:t> tag has or not attributes
 					if ( (($x===' ') || ($x==='>')) && (substr($Txt, $wtc_p, $superflous_len)===$superflous) ) {
 						$p_end = strpos($Txt, '>', $wtc_p+$superflous_len); //
 						if ($p_end===false) return false; // error in the structure of the <w:t> tag
+						$last_att = substr($Txt,$p_att,$p_end-$p_att);
 						$Txt = substr_replace($Txt, '', $wtc_p, $p_end-$wtc_p+1); // delete superflous part + <w:t> attributes
 						$nbr++;
 						$ok = true;
@@ -3102,6 +3111,11 @@ It needs to be completed when a new picture file extension is added in the docum
 				}
 			} while ($ok);
 
+			// Recover the 'preserve' attribute if the last join element was having it. We check alo the first one because the attribute must not be twice.
+			if ( ($last_att!=='') && (strpos($first_att, $preserve)===false)  && (strpos($last_att, $preserve)!==false) ) {
+				$Txt = substr_replace($Txt, ' '.$preserve, $p_first_att, 0);
+			}
+			
 			$wro_p = $wro_p + $wro_len;
 
 		}
