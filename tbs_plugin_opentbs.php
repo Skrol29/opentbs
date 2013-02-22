@@ -359,7 +359,12 @@ class clsOpenTBS extends clsTbsZip {
 			$NewValues = (is_null($x3)) ? false : $x3;
 			$NewLegend = (is_null($x4)) ? false : $x4;
 			$CopyFromSeries = (is_null($x5)) ? false : $x5;
-			return $this->OpenXML_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend, $CopyFromSeries);
+			
+			if ($this->Ext_GetType()=='odf') {
+				return $this->OpenDoc_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend, $CopyFromSeries);
+			} else {
+				return $this->OpenXML_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend, $CopyFromSeries);
+			}
 
 		} elseif ( ($Cmd==OPENTBS_DEBUG_INFO) || ($Cmd==OPENTBS_DEBUG_CHART_LIST) ) {
 
@@ -3717,6 +3722,45 @@ It needs to be completed when a new picture file extension is added in the docum
 	// TBS Block Alias for draws
 	function OpenDoc_GetDraw($Tag, $Txt, $Pos, $Forward, $LevelStop) {
 		return $this->XML_BlockAlias_Prefix('draw:', $Txt, $Pos, $Forward, $LevelStop);
+	}
+	
+	function OpenDoc_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend, $CopyFromSeries) {
+	
+		if (!isset($this->OpenDocCharts)) $this->OpenDoc_ChartInit();
+	
+		var_export($this->OpenDocCharts);
+	
+	}
+	
+	function OpenDoc_ChartInit() {
+		
+		$this->OpenDocCharts = array();
+		
+		$idx = $this->Ext_GetMainIdx();
+		$Txt = $this->TbsStoreGet($idx, 'OpenDoc_ChartInit');
+
+		$p = 0;
+		while($drEl = clsTbsXmlLoc::FindElement($Txt, 'draw:frame', $p)) {
+
+			$src = $drEl->GetInnerSrc();
+			$objEl = clsTbsXmlLoc::FindStartTag($src, 'draw:object', 0);
+			$href = $objEl->GetAttLazy('xlink:href');
+			if ($href) {
+				
+				$imgEl = clsTbsXmlLoc::FindElement($src, 'draw:image', 0);
+				$img_href = ($imgEl) ? $imgEl->GetAttLazy('xlink:href') : false;
+				$img_src = ($imgEl) ? $imgEl->GetSrc('xlink:href') : false;
+				
+				$titEl = clsTbsXmlLoc::FindElement($src, 'svg:title', 0);
+				$title = ($titEl) ? $titEl->GetInnerSrc() : '';
+				
+				$this->OpenDocCharts[] = array('href'=>$href, 'title'=>$title, 'img_href'=>$img_href, 'img_src'=>$img_src);
+				
+			}
+			$p = $drEl->PosEnd;
+		}
+		
+		
 	}
 	
 }
