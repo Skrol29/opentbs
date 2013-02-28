@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.0-beta-2013-02-11
+ * @version 1.8.0-beta-2013-02-28
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -72,7 +72,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
 		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
-		$this->Version = '1.8.0-beta-2013-02-11';
+		$this->Version = '1.8.0-beta-2013-02-28';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -3724,12 +3724,146 @@ It needs to be completed when a new picture file extension is added in the docum
 		return $this->XML_BlockAlias_Prefix('draw:', $Txt, $Pos, $Forward, $LevelStop);
 	}
 	
-	function OpenDoc_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend, $CopyFromSeries) {
+	function OpenDoc_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend=false, $CopyFromSeries=false) {
 	
 		if (!isset($this->OpenDocCharts)) $this->OpenDoc_ChartInit();
 	
-		var_export($this->OpenDocCharts);
-	
+		// Find the chart
+		if (is_numeric($ChartRef)) {
+			$ChartCaption = 'number '.$ChartRef;
+			$idx = intval($ChartRef) -1;
+			if (!isset($this->OpenDocCharts[$idx])) return $this->RaiseError("(ChartChangeSeries) : unable to found the chart $ChartCaption.");
+		} else {
+			$ChartCaption = 'with title "'.$ChartRef.'"';
+			$idx = false;
+			foreach($this->OpenDocCharts as $i=>$c) {
+				if ($c['title']==$ChartRef) $idx = $i;
+			}
+			if ($idx===false) return $this->RaiseError("(ChartChangeSeries) : unable to found the chart $ChartCaption.");
+		}
+
+		// Retrieve chart information
+		$chart = $this->OpenDocCharts[$idx];
+		if ($chart['to_clear']) $this->OpenDoc_ChartClear($idx);
+		
+		// Retrieve the XML of the data
+		$data_idx = $this->FileGetIdx($chart['href'].'/content.xml');
+		if ($data_idx===false) return $this->RaiseError("(ChartChangeSeries) : unable to found the data in the chart $ChartCaption.");
+		$Txt = $this->TbsStoreGet($data_idx, 'OpenDoc_ChartChangeSeries');
+		
+		// Search and Analyze the series names
+		$elHeaders = clsTbsXmlLoc::FindElement($Txt, 'table:table-header-rows', 0);
+		if ($elHeaders===false) return $this->RaiseError("(ChartChangeSeries) : unable to found the series names in the chart $ChartCaption.");
+
+		if (is_numeric($SeriesNameOrNum)) {
+			$s_caption = 'number '.$SeriesNameOrNum;
+			$s_col = intval($SeriesNameOrNum)+1; // first column is always the category names, not data
+			$s_name = false;
+		} else {
+			$s_caption = '"'.$SeriesNameOrNum.'"';
+			$s_col = false;
+			$s_name = $SeriesNameOrNum;
+		}
+		$p = 0;
+		$n = 0;
+		$ok = false;
+		while (($elCell=clsTbsXmlLoc::FindElement($elHeaders, 'table:table-cell', $p))!==false) {
+			$n++;
+			$elP = clsTbsXmlLoc::FindElement($elCell, 'text:p', 0);
+			if ($elP!==false) {
+				$name = $elP->GetInnerSrc();
+				if ( ($n===$s_col) || (($s_name!==false) && ($s_name===$name)) ) {
+					$s_col = $n;
+					$s_name = $name;
+					$ok = true;
+					if ($NewLegend!==false) {
+						$elP->ReplaceInnerSrc($NewLegend);
+						$elP->UpdateParent(true);
+					}
+				}
+			}
+			$p = $elCell->PosEnd;
+		}
+		unset($elP, $elCell, $elHeaders);
+		if (!$ok) return $this->RaiseError("(ChartChangeSeries) : unable to found the column of series $s_caption in the chart $ChartCaption.");
+
+		$c_cat = 1;  // column of categories
+		$c_max = $n; // number of columns
+		
+		// Force syntax of data
+		if (!is_array($NewValues)) {
+			$data = array();
+		} elseif ( isset($NewValues[0]) && isset($NewValues[1]) && is_array($NewValues[0]) && is_array($NewValues[1]) ) {
+			// syntax 2: $NewValues = array( array('cat1','cat2',...), array(val1,val2,...) );		
+			$k = $NewValues[0];
+			$v = $NewValues[1];
+			$data = array();
+			foreach($k as $i=>$x) $data[$x] = isset($v[$i]) ? $v[$i] : false;
+			unset($k, $v);
+		} else {
+			$data = $NewValues;
+		}
+		unset($NewValues);
+		
+		// Scann all rows for changing cells
+		$elData = clsTbsXmlLoc::FindElement($Txt, 'table:table-rows', 0);
+		$p_row = 0;
+		while (($elRow=clsTbsXmlLoc::FindElement($elData, 'table:table-row', $p_row))!==false) {
+			$p_cell = 0;
+			$category = false;
+			for ($i=1; $i<=$s_col; $i++) {
+				if ($elCell = clsTbsXmlLoc::FindElement($elRow, 'table:table-cell', $p_cell)) {
+					if ($i==$c_cat) {
+						//Category
+						if ($elP = clsTbsXmlLoc::FindElement($elCell, 'text:p', 0)) {
+							$category = $elP->GetInnerSrc();
+						}
+					} elseif ( ($i==$s_col) && ($category!==false) ) {
+						// Change the value
+						if (isset($data[$category])) {
+							$x = $data[$category];
+							if ( ($x===false) || is_null($x) ) $x = 'NaN';
+							unset($data[$category]);
+						} else {
+							$x = 'NaN';
+						}
+						$elCell->ReplaceAtt('office:value', $x);
+						// Delete the cached legend
+						if ($elP = clsTbsXmlLoc::FindElement($elCell, 'text:p', 0)) {
+							$elP->ReplaceSrc('');
+							$elP->UpdateParent(); // update $elCell source
+						}
+						$elCell->UpdateParent(); // update $elRow source
+					}
+					$p_cell = $elCell->PosEnd;
+				} else {
+					$i = $s_col+1; // ends the loops
+				}
+			}
+			$elRow->UpdateParent(); // update $elData source
+			$p_row = $elRow->PosEnd;
+		}
+		
+		// Add new categories
+		$x = '';
+		foreach ($data as $cat=>$val) {
+			$x .= '<table:table-row>';
+			for ($i=1; $i<=$c_max; $i++) {
+				if ($i==$c_cat) {
+					$x .= '<table:table-cell office:value-type="string"><text:p>'.$cat.'</text:p></table:table-cell>';
+				} elseif($i==$s_col) {
+					$x .= '<table:table-cell office:value-type="float" office:value="'.$val.'"></table:table-cell>';
+				} else {
+					$x .= '<table:table-cell office:value-type="float" office:value="NaN"></table:table-cell>';
+				}
+			}
+			$x .= '</table:table-row>';
+		}
+		if ($x!=='') $Txt = substr_replace($Txt, $x, $elData->pET_PosBeg, 0);
+		
+		// Save the new data
+		$this->TbsStorePut($data_idx, $Txt);
+		
 	}
 	
 	function OpenDoc_ChartInit() {
@@ -3744,22 +3878,51 @@ It needs to be completed when a new picture file extension is added in the docum
 
 			$src = $drEl->GetInnerSrc();
 			$objEl = clsTbsXmlLoc::FindStartTag($src, 'draw:object', 0);
-			$href = $objEl->GetAttLazy('xlink:href');
+			$href = $objEl->GetAttLazy('xlink:href'); // example "./Object 1"
 			if ($href) {
 				
 				$imgEl = clsTbsXmlLoc::FindElement($src, 'draw:image', 0);
-				$img_href = ($imgEl) ? $imgEl->GetAttLazy('xlink:href') : false;
+				$img_href = ($imgEl) ? $imgEl->GetAttLazy('xlink:href') : false; // "./ObjectReplacements/Object 1"
 				$img_src = ($imgEl) ? $imgEl->GetSrc('xlink:href') : false;
 				
 				$titEl = clsTbsXmlLoc::FindElement($src, 'svg:title', 0);
 				$title = ($titEl) ? $titEl->GetInnerSrc() : '';
 				
-				$this->OpenDocCharts[] = array('href'=>$href, 'title'=>$title, 'img_href'=>$img_href, 'img_src'=>$img_src);
+				if (substr($href,0,2)=='./') $href = substr($href, 2);
+				if ( is_string($img_href) && (substr($img_href,0,2)=='./') ) $img_href = substr($img_href, 2);
+				$this->OpenDocCharts[] = array('href'=>$href, 'title'=>$title, 'img_href'=>$img_href, 'img_src'=>$img_src, 'to_clear'=> ($img_href!==false) );
 				
 			}
 			$p = $drEl->PosEnd;
 		}
 		
+		
+	}
+	
+	function OpenDoc_ChartClear($idx) {
+	
+		$chart = &$this->OpenDocCharts[$idx];
+		$chart['to_clear'] = false;
+		
+		// Delete the file in the archive
+		$this->FileReplace($chart['img_href'], false);
+		
+		// Delete the element in the main file
+		$main = $this->Ext_GetMainIdx();
+		$Txt = $this->TbsStoreGet($main, 'OpenDoc_ChartClear');
+		$Txt = str_replace($chart['img_src'], '', $Txt);
+		$this->TbsStorePut($main, $Txt);
+		
+		// Delete the element in the Manifest file
+		$manifest = $this->FileGetIdx('META-INF/manifest.xml');
+		if ($manifest!==false) {
+			$Txt = $this->TbsStoreGet($manifest, 'OpenDoc_ChartClear');
+			$el = clsTbsXmlLoc::FindStartTagHavingAtt($Txt, 'manifest:full-path="'.$chart['img_href']."'", 0);
+			if ($el) {
+				$el->ReplaceSrc('');
+				$this->TbsStorePut($manifest, $Txt);
+			}
+		}
 		
 	}
 	
@@ -3783,14 +3946,17 @@ class clsTbsXmlLoc {
 	var $pST_Src = false;    // start tag: source
 	var $pET_PosBeg = false; // end tag: position of the begining
 	
+	var $Parent = false; // parent object
+	
 	// Create an instance with the given parameters
-	function __construct(&$Txt, $Name, $PosBeg, $PosEnd, $SelfClosing = null) {
+	function __construct(&$Txt, $Name, $PosBeg, $PosEnd, $SelfClosing = null, $Parent=false) {
 		$this->Txt = &$Txt;
 		$this->Name = $Name;
 		$this->PosBeg = $PosBeg;
 		$this->PosEnd = $PosEnd;
 		$this->pST_PosEnd = $PosEnd;
 		$this->SelfClosing = $SelfClosing;
+		$this->Parent = $Parent;
 	}
 
 	// Return an array of (val_pos, val_len, very_sart, very_len) of the attribute. Return false if the attribute is not found.
@@ -3828,18 +3994,21 @@ class clsTbsXmlLoc {
 	}
 	
 	// Return the start of the inner content, or false if it's a self-closing tag 
+	// Return false if SelfClosing.
 	function GetInnerStart() {
 		return ($this->pST_PosEnd===false) ? false : $this->pST_PosEnd + 1;
 	}
 
 	// Return the length of the inner content, or false if it's a self-closing tag
 	// Assume FindEndTag() is previsouly called.
+	// Return false if SelfClosing.
 	function GetInnerLen() {
 		return ($this->pET_PosBeg===false) ? false : $this->pET_PosBeg - $this->pST_PosEnd - 1;
 	}
 
 	// Return the length of the inner content, or false if it's a self-closing tag 
 	// Assume FindEndTag() is previsouly called.
+	// Return false if SelfClosing.
 	function GetInnerSrc() {
 		return ($this->pET_PosBeg===false) ? false : substr($this->Txt, $this->pST_PosEnd + 1, $this->pET_PosBeg - $this->pST_PosEnd - 1 );
 	}
@@ -3852,6 +4021,14 @@ class clsTbsXmlLoc {
 		$this->Txt = substr_replace($this->Txt, $new, $this->pST_PosEnd + 1, $len);
 		$this->PosEnd += strlen($new) - $len;
 		$this->pET_PosBeg += strlen($new) - $len;
+	}
+	
+	// Update the parent object, if any.
+	function UpdateParent($Cascading=false) {
+		if ($this->Parent) {
+			$this->Parent->ReplaceSrc($this->Txt);
+			if ($Cascading) $this->Parent->UpdateParent($Cascading);
+		}
 	}
 	
 	// Get an attribut's value. Or false if the attribute is not found.
@@ -3921,16 +4098,30 @@ class clsTbsXmlLoc {
 		return true;
 	}
 
-	// Search a start tag of an element in the TXT contents, and return an object if it is found.
-	static function FindStartTag(&$Txt, $Tag, $PosBeg, $Forward=true) {
+	/**
+	 * Search a start tag of an element in the TXT contents, and return an object if it is found.
+	 * Instead of a TXT content, it can be an object of the class. Thus, the object is linked to a copy
+	 *  of the source of the parent element. The parent element can receive the changes of the object using method UpdateParent().
+	 */
+	static function FindStartTag(&$TxtOrObj, $Tag, $PosBeg, $Forward=true) {
 
+		if (is_object($TxtOrObj)) {
+			$TxtOrObj->FindEndTag();
+			$Txt = $TxtOrObj->GetSrc();
+			if ($Txt===false) return false;
+			$Parent = &$TxtOrObj;
+		} else {
+			$Txt = &$TxtOrObj;
+			$Parent = false;
+		}
+	
 		$PosBeg = clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true , $PosBeg, $Forward, true);
 		if ($PosBeg===false) return false;
 
 		$PosEnd = strpos($Txt, '>', $PosBeg);
 		if ($PosEnd===false) return false;
 
-		return new clsTbsXmlLoc($Txt, $Tag, $PosBeg, $PosEnd);
+		return new clsTbsXmlLoc($Txt, $Tag, $PosBeg, $PosEnd, null, $Parent);
 
 	}
 
@@ -3968,9 +4159,9 @@ class clsTbsXmlLoc {
 	}
 
 	// Search an element in the TXT contents, and return an object if it is found.
-	static function FindElement(&$Txt, $Tag, $PosBeg, $Forward=true) {
+	static function FindElement(&$TxtOrObj, $Tag, $PosBeg, $Forward=true) {
 
-		$XmlLoc = clsTbsXmlLoc::FindStartTag($Txt, $Tag, $PosBeg, $Forward);
+		$XmlLoc = clsTbsXmlLoc::FindStartTag($TxtOrObj, $Tag, $PosBeg, $Forward);
 		if ($XmlLoc===false) return false;
 	
 		$XmlLoc->FindEndTag();
