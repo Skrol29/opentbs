@@ -3791,6 +3791,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		$c_max = $n; // number of columns
 		
 		// Force syntax of data
+		// TODO: support XY (chart:class="chart:scatter") => x,y and Bubble (chart:class="chart:bubble") => x,y,size
 		if (!is_array($NewValues)) {
 			$data = array();
 		} elseif ( isset($NewValues[0]) && isset($NewValues[1]) && is_array($NewValues[0]) && is_array($NewValues[1]) ) {
