@@ -96,7 +96,14 @@ class clsOpenTBS extends clsTbsZip {
 
 		// Open the archive
 		if ($FilePath!=='') {
-			$this->Open($FilePath);  // Open the archive
+			$ok = @$this->Open($FilePath);  // Open the archive
+			if (!$ok) {
+				if ($this->ArchHnd===false) {
+					return $this->RaiseError("The template '".$FilePath."' cannot be found.");
+				} else {
+					return false;
+				}
+			}
 			$this->Ext_PrepareInfo(); // Set extension information
 			if ($TBS->OtbsAutoLoad && ($this->ExtInfo!==false) && ($SubFileLst===false)) {
 				// auto load files from the archive
