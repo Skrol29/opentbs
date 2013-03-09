@@ -3750,7 +3750,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		}
 
 		// Retrieve chart information
-		$chart = $this->OpenDocCharts[$idx];
+		$chart = &$this->OpenDocCharts[$idx];
 		if ($chart['to_clear']) $this->OpenDoc_ChartClear($idx);
 		
 		// Retrieve the XML of the data
@@ -3758,50 +3758,38 @@ It needs to be completed when a new picture file extension is added in the docum
 		if ($data_idx===false) return $this->RaiseError("(ChartChangeSeries) : unable to found the data in the chart $ChartCaption.");
 		$Txt = $this->TbsStoreGet($data_idx, 'OpenDoc_ChartChangeSeries');
 		
-		// Search and Analyze the series names
-		$elHeaders = clsTbsXmlLoc::FindElement($Txt, 'table:table-header-rows', 0);
-		if ($elHeaders===false) return $this->RaiseError("(ChartChangeSeries) : unable to found the series names in the chart $ChartCaption.");
-
+		// Found all chart series
+		if (!isset($chart['series'])) {
+			$ok = $this->OpenDoc_ChartFindSeries($idx, $Txt, $ChartCaption);
+			if (!$ok) return;
+		}
+		$series = &$chart['series'];
+	
+		// Found the asked series
+		$s_info = false;
 		if (is_numeric($SeriesNameOrNum)) {
 			$s_caption = 'number '.$SeriesNameOrNum;
-			$s_col = intval($SeriesNameOrNum)+1; // first column is always the category names, not data
-			$s_name = false;
+			$idx = $SeriesNameOrNum -1;
+			if (isset($series[$idx])) $s_info = &$series[$idx];
 		} else {
 			$s_caption = '"'.$SeriesNameOrNum.'"';
-			$s_col = false;
-			$s_name = $SeriesNameOrNum;
-		}
-		$p = 0;
-		$n = 0;
-		$ok = false;
-		while (($elCell=clsTbsXmlLoc::FindElement($elHeaders, 'table:table-cell', $p))!==false) {
-			$n++;
-			$elP = clsTbsXmlLoc::FindElement($elCell, 'text:p', 0);
-			if ($elP!==false) {
-				$name = $elP->GetInnerSrc();
-				if ( ($n===$s_col) || (($s_name!==false) && ($s_name===$name)) ) {
-					$s_col = $n;
-					$s_name = $name;
-					$ok = true;
-					if ($NewLegend!==false) {
-						$elP->ReplaceInnerSrc($NewLegend);
-						$elP->UpdateParent(true);
-					}
-				}
+			foreach($series as $idx => $s) {
+				if ( ($s_info===false) && ($s['name']==$SeriesNameOrNum) ) $s_info = &$series[$idx];
 			}
-			$p = $elCell->PosEnd;
 		}
-		unset($elP, $elCell, $elHeaders);
-		if (!$ok) return $this->RaiseError("(ChartChangeSeries) : unable to found the column of series $s_caption in the chart $ChartCaption.");
-
-		$c_cat = 1;  // column of categories
-		$c_max = $n; // number of columns
+		if ($s_info===false) return $this->RaiseError("(ChartChangeSeries) : unable to found the series $s_caption in the chart $ChartCaption.");
+		
+		$col_cat  = $chart['col_cat']; // column Category (always 1)
+		$col_nbr  = $chart['col_nbr']; // number of columns
+		$s_col    = $s_info['col'];  // first column of the series
+		$s_colend = $s_col + $chart['series_len'] - 1;  // last columns of the series
+		$s_use_cat = ($chart['series_len']==1); // true is the series uses the column Category
 		
 		// Force syntax of data
-		// TODO: support XY (chart:class="chart:scatter") => x,y and Bubble (chart:class="chart:bubble") => x,y,size
+		// TODO: rename and delete series
 		if (!is_array($NewValues)) {
 			$data = array();
-		} elseif ( isset($NewValues[0]) && isset($NewValues[1]) && is_array($NewValues[0]) && is_array($NewValues[1]) ) {
+		} elseif ( $s_use_cat && isset($NewValues[0]) && isset($NewValues[1]) && is_array($NewValues[0]) && is_array($NewValues[1]) ) {
 			// syntax 2: $NewValues = array( array('cat1','cat2',...), array(val1,val2,...) );		
 			$k = $NewValues[0];
 			$v = $NewValues[1];
@@ -3809,6 +3797,7 @@ It needs to be completed when a new picture file extension is added in the docum
 			foreach($k as $i=>$x) $data[$x] = isset($v[$i]) ? $v[$i] : false;
 			unset($k, $v);
 		} else {
+			// syntax 1: $NewValues = array( 'cat1'=>val1, 'cat2'=>val2, ... );		
 			$data = $NewValues;
 		}
 		unset($NewValues);
@@ -3819,22 +3808,28 @@ It needs to be completed when a new picture file extension is added in the docum
 		while (($elRow=clsTbsXmlLoc::FindElement($elData, 'table:table-row', $p_row))!==false) {
 			$p_cell = 0;
 			$category = false;
-			for ($i=1; $i<=$s_col; $i++) {
+			$data_r = false;
+			for ($i=1; $i<=$s_colend; $i++) {
 				if ($elCell = clsTbsXmlLoc::FindElement($elRow, 'table:table-cell', $p_cell)) {
-					if ($i==$c_cat) {
-						//Category
+					if ($i==$col_cat) {
+						// Category
 						if ($elP = clsTbsXmlLoc::FindElement($elCell, 'text:p', 0)) {
 							$category = $elP->GetInnerSrc();
 						}
-					} elseif ( ($i==$s_col) && ($category!==false) ) {
+					} elseif ($i>=$s_col) {
 						// Change the value
-						if (isset($data[$category])) {
-							$x = $data[$category];
-							if ( ($x===false) || is_null($x) ) $x = 'NaN';
-							unset($data[$category]);
+						$x = 'NaN'; // default value
+						if ($s_use_cat) {
+							if ( ($category!==false) && isset($data[$category]) ) {
+								$x = $data[$category];
+								unset($data[$category]); // delete the category in order to keep only unused
+							}
 						} else {
-							$x = 'NaN';
+							$val_idx = $i - $s_col;
+							if ($data_r===false) $data_r = array_shift($data); // (may return null) delete the row in order to keep only unused
+							if ( (!is_null($data_r)) && isset($data_r[$val_idx])) $x = $data_r[$val_idx];
 						}
+						if ( ($x===false) || is_null($x) ) $x = 'NaN';
 						$elCell->ReplaceAtt('office:value', $x);
 						// Delete the cached legend
 						if ($elP = clsTbsXmlLoc::FindElement($elCell, 'text:p', 0)) {
@@ -3845,31 +3840,41 @@ It needs to be completed when a new picture file extension is added in the docum
 					}
 					$p_cell = $elCell->PosEnd;
 				} else {
-					$i = $s_col+1; // ends the loops
+					$i = $s_colend+1; // ends the loops
 				}
 			}
 			$elRow->UpdateParent(); // update $elData source
 			$p_row = $elRow->PosEnd;
 		}
 		
-		// Add new categories
+		// Add unused data
 		$x = '';
+		$x_nan = '<table:table-cell office:value-type="float" office:value="NaN"></table:table-cell>';
 		foreach ($data as $cat=>$val) {
 			$x .= '<table:table-row>';
-			for ($i=1; $i<=$c_max; $i++) {
-				if ($i==$c_cat) {
-					$x .= '<table:table-cell office:value-type="string"><text:p>'.$cat.'</text:p></table:table-cell>';
-				} elseif($i==$s_col) {
-					$x .= '<table:table-cell office:value-type="float" office:value="'.$val.'"></table:table-cell>';
+			if ($s_use_cat) $val = array($val);
+			for ($i=1; $i<=$col_nbr; $i++) {
+				if ( ($s_col<=$i) && ($i<=$s_colend) ) {
+					$val_idx = $i - $s_col;
+					if (isset($val[$val_idx])) {
+						$x .= '<table:table-cell office:value-type="float" office:value="'.$val[$val_idx].'"></table:table-cell>';
+					} else {
+						$x .= $x_nan;
+					}
 				} else {
-					$x .= '<table:table-cell office:value-type="float" office:value="NaN"></table:table-cell>';
+					if ($s_use_cat && ($i==$col_cat) ) {
+						$x .= '<table:table-cell office:value-type="string"><text:p>'.$cat.'</text:p></table:table-cell>';
+					} else {
+						$x .= $x_nan;
+					}
 				}
 			}
 			$x .= '</table:table-row>';
 		}
-		if ($x!=='') $Txt = substr_replace($Txt, $x, $elData->pET_PosBeg, 0);
+		$p = strpos($Txt, '</table:table-rows>', $elData->PosBeg);
+		if ($x!=='') $Txt = substr_replace($Txt, $x, $p, 0);
 		
-		// Save the new data
+		// Save the result
 		$this->TbsStorePut($data_idx, $Txt);
 		
 	}
@@ -3932,6 +3937,55 @@ It needs to be completed when a new picture file extension is added in the docum
 			}
 		}
 		
+	}
+	
+	function OpenDoc_ChartFindSeries($idx, $Txt, $ChartCaption) {
+	
+		$chart = &$this->OpenDocCharts[$idx];
+	
+		// Number of columns for each series
+		if (strpos($Txt, ' chart:class="chart:scatter"')!==false) {
+			$series_len = 2;
+		} elseif (strpos($Txt, ' chart:class="chart:bubble"')!==false) {
+			$series_len = 3;
+		} elseif (strpos($Txt, ' chart:class="chart:stock"')!==false) {
+			$series_len = 4;
+		} else {
+			$series_len = 1;
+		}
+		$chart['series_len'] = $series_len;
+		$chart['col_cat'] = 1; // the column of categories is always #1
+		
+		// Search and Analyze the series names
+		$elHeaders = clsTbsXmlLoc::FindElement($Txt, 'table:table-header-rows', 0);
+		if ($elHeaders===false) return $this->RaiseError("(ChartChangeSeries) : unable to found the series names in the chart $ChartCaption.");
+
+		$chart['series'] = array();
+		$series = &$chart['series'];
+		
+		$p = 0;
+		$col_num = 0;
+		$col_name  = $chart['col_cat'] + $series_len; // column of the series's name, it is always the last column of the series
+		while (($elCell=clsTbsXmlLoc::FindElement($elHeaders, 'table:table-cell', $p))!==false) {
+			$col_num++;
+			if ($col_num==$col_name) {
+				$elP = clsTbsXmlLoc::FindElement($elCell, 'text:p', 0);
+				if ($elP!==false) {
+					$name = $elP->GetInnerSrc();
+				} else {
+					$name = '(no name)';
+				}
+				$info = array('name'=>$name, 'col_name'=>$col_name, 'col'=>($col_name-$series_len+1), 'idx'=>count($series));
+				$series[] = $info;
+				$col_name += $series_len;
+			}
+			$p = $elCell->PosEnd;
+		}
+	
+		$chart['col_nbr'] = $col_num;
+	
+		return true;
+	
 	}
 	
 }
@@ -3998,7 +4052,15 @@ class clsTbsXmlLoc {
 	function ReplaceSrc($new) {
 		$len = $this->GetLen(); // avoid PHP error : Strict Standards: Only variables should be passed by reference
 		$this->Txt = substr_replace($this->Txt, $new, $this->PosBeg, $len);
-		$this->PosEnd += strlen($new) - $len;
+		$diff = strlen($new) - $len;
+		$this->PosEnd += $diff;
+		if ($new==='') {
+			$this->pST_PosBeg = false;
+			$this->pST_Src = false;
+			$this->pST_PosEnd = false;
+		} else {
+			$this->pST_PosEnd += $diff;
+		}
 	}
 	
 	// Return the start of the inner content, or false if it's a self-closing tag 
