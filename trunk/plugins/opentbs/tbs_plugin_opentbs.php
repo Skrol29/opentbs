@@ -1788,8 +1788,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ($x_len2!=$x_len) $Txt = substr_replace($Txt, $x, $Pos, $x_len);
 		return $Pos + $x_len2;
 	}
-	
-	/* Function used by Block Alias
+
+	/**
+	 * Function used by Block Alias
 	 * The first start tag on the left is supposed to be the good one.
 	 * Note: encapuslation is not yet supported in this version.
 	 */
@@ -1805,6 +1806,38 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 	
 	}
+
+	/**
+	 * Return the column number from a cell reference like "B3".
+	 */
+	function Misc_ColNum($ColRef, $IsODF) {
+	
+		if ($IsODF) {
+			$p = strpos($ColRef, '.');
+			if ($p!==false) $ColRef = substr($ColRef, $p); // delete the table name wich is in prefix
+			$ColRef = str_replace( array('.','$'), '', $ColRef);
+			$ColRef = explode(':', $ColRef);
+			$ColRef = $ColRef[0];
+		}
+	
+		$num = 0;
+		$rank = 0;
+		for ($i=strlen($ColRef)-1;$i>=0;$i--) {
+			$l = $ColRef[$i];
+			if (!is_numeric($l)) {
+				$l = ord(strtoupper($l)) -64;
+				if ($l>0 && $l<27) {
+					$num = $num + $l*pow(26,$rank);
+				} else {
+					return $this->RaiseError('(Sheet) Reference of cell \''.$ColRef.'\' cannot be recognized.');
+				}
+				$rank++;
+			}
+		}
+		
+		return $num;
+		
+	}
 	
 	/**
 	 * Return the path of the Rel file in the archive for a given XML document.
@@ -1814,7 +1847,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$DocName = basename($DocPath);
 		return str_replace($DocName,'_rels/'.$DocName.'.rels',$DocPath);
 	}
-	
+
 	/**
 	 * Return an object that represents the informations of an .rels file, but for optimization, targets are scanned only for asked directories.
 	 * The result is stored in a cache so that a second call will not compute again.
@@ -1823,7 +1856,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * @param $TargetPrefix Prefix of the 'Target' attribute. For example $TargetPrefix='../drawings/'
 	 */
 	function OpenXML_Rels_GetObj($DocPath, $TargetPrefix) {
-	
+
 		// Create the object if it does not exist yet
 		if (!isset($this->OpenXmlRid[$DocPath])) {
 		
@@ -1855,7 +1888,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$Txt = &$o->FicTxt;
 			
 		}
-		
+
 		// Feed the Rid and Target lists for the asked directory
 		if (!isset($o->DirLst[$TargetPrefix])) {
 		
@@ -2458,7 +2491,7 @@ It needs to be completed when a new picture file extension is added in the docum
 				if ($IsRow) {
 					$r = intval($r);
 				} else {
-					$r = $this->MsExcel_ColNum($r);
+					$r = $this->Misc_ColNum($r, false);
 				}
 				$missing_nbr = $r - $item_num -1;
 				if ($missing_nbr<0) {
@@ -2504,25 +2537,6 @@ It needs to be completed when a new picture file extension is added in the docum
 
 		}
 
-	}
-
-	function MsExcel_ColNum($ColRef) {
-	// return the column number from a reference like "B3"
-		$num = 0;
-		$rank = 0;
-		for ($i=strlen($ColRef)-1;$i>=0;$i--) {
-			$l = $ColRef[$i];
-			if (!is_numeric($l)) {
-				$l = ord(strtoupper($l)) -64;
-				if ($l>0 && $l<27) {
-					$num = $num + $l*pow(26,$rank);
-				} else {
-					return $this->RaiseError('(Excel Consistency) Reference of cell \''.$ColRef.'\' cannot be recognized.');
-				}
-				$rank++;
-			}
-		}
-		return $num;
 	}
 
 	function MsExcel_DeleteFormulaResults(&$Txt) {
@@ -3748,10 +3762,11 @@ It needs to be completed when a new picture file extension is added in the docum
 			}
 			if ($idx===false) return $this->RaiseError("(ChartChangeSeries) : unable to found the chart $ChartCaption.");
 		}
+		$this->_ChartCaption = $ChartCaption; // for error messages
 
 		// Retrieve chart information
 		$chart = &$this->OpenDocCharts[$idx];
-		if ($chart['to_clear']) $this->OpenDoc_ChartClear($idx);
+		if ($chart['to_clear']) $this->OpenDoc_ChartClear($chart);
 		
 		// Retrieve the XML of the data
 		$data_idx = $this->FileGetIdx($chart['href'].'/content.xml');
@@ -3760,7 +3775,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		
 		// Found all chart series
 		if (!isset($chart['series'])) {
-			$ok = $this->OpenDoc_ChartFindSeries($idx, $Txt, $ChartCaption);
+			$ok = $this->OpenDoc_ChartFindSeries($chart, $Txt);
 			if (!$ok) return;
 		}
 		$series = &$chart['series'];
@@ -3777,18 +3792,20 @@ It needs to be completed when a new picture file extension is added in the docum
 				if ( ($s_info===false) && ($s['name']==$SeriesNameOrNum) ) $s_info = &$series[$idx];
 			}
 		}
-		if ($s_info===false) return $this->RaiseError("(ChartChangeSeries) : unable to found the series $s_caption in the chart $ChartCaption.");
+		if ($s_info===false) return $this->RaiseError("(ChartChangeSeries) : unable to found the series $s_caption in the chart ".$this->_ChartCaption.".");
 		
 		$col_cat  = $chart['col_cat']; // column Category (always 1)
 		$col_nbr  = $chart['col_nbr']; // number of columns
-		$s_col    = $s_info['col'];  // first column of the series
-		$s_colend = $s_col + $chart['series_len'] - 1;  // last columns of the series
-		$s_use_cat = ($chart['series_len']==1); // true is the series uses the column Category
+		$s_col    = $s_info['cols'][0];  // first column of the series
+		$s_col_nbr = count($s_info['cols']);
+		$s_colend  = $s_col + $s_col_nbr - 1;  // last column of the series
+		$s_use_cat = (count($s_info['cols'])==1); // true is the series uses the column Category
 		
 		// Force syntax of data
 		// TODO: rename and delete series
 		if (!is_array($NewValues)) {
 			$data = array();
+			if ($NewValues===false) $this->OpenDoc_ChartDelSeries($Txt, $s_info);
 		} elseif ( $s_use_cat && isset($NewValues[0]) && isset($NewValues[1]) && is_array($NewValues[0]) && is_array($NewValues[1]) ) {
 			// syntax 2: $NewValues = array( array('cat1','cat2',...), array(val1,val2,...) );		
 			$k = $NewValues[0];
@@ -3912,9 +3929,8 @@ It needs to be completed when a new picture file extension is added in the docum
 		
 	}
 	
-	function OpenDoc_ChartClear($idx) {
+	function OpenDoc_ChartClear(&$chart) {
 	
-		$chart = &$this->OpenDocCharts[$idx];
 		$chart['to_clear'] = false;
 		
 		// Delete the file in the archive
@@ -3939,53 +3955,95 @@ It needs to be completed when a new picture file extension is added in the docum
 		
 	}
 	
-	function OpenDoc_ChartFindSeries($idx, $Txt, $ChartCaption) {
+	/**
+	 * Find and save informations abouts all series in the chart.
+	 */
+	function OpenDoc_ChartFindSeries(&$chart, $Txt) {
 	
-		$chart = &$this->OpenDocCharts[$idx];
-	
-		// Number of columns for each series
-		if (strpos($Txt, ' chart:class="chart:scatter"')!==false) {
-			$series_len = 2;
-		} elseif (strpos($Txt, ' chart:class="chart:bubble"')!==false) {
-			$series_len = 3;
-		} elseif (strpos($Txt, ' chart:class="chart:stock"')!==false) {
-			$series_len = 4;
-		} else {
-			$series_len = 1;
+		// Find series declarations
+		$p = 0;
+		$s_idx = 0;
+		$series = array();
+		$cols = array(); // all columns attached to a series
+		$cols_name = array();
+		while($elSeries = clsTbsXmlLoc::FindElement($Txt, 'chart:series', $p)) {
+			$s_cols = array();
+			// Column of main value
+			$col = $this->OpenDoc_ChartFindCol($cols, $elSeries, 'chart:values-cell-range-address', $s_idx);
+			$s_cols[$col] = true;
+			// Column of series's name
+			$col_name = $this->OpenDoc_ChartFindCol($cols, $elSeries, 'chart:label-cell-address', $s_idx);
+			// Columns for other values
+			$src = $elSeries->GetInnerSrc();
+			$p2 = 0;
+			while($elDom = clsTbsXmlLoc::FindStartTag($src, 'chart:domain', $p2)) {
+				$col = $this->OpenDoc_ChartFindCol($cols, $elDom, 'table:cell-range-address', $s_idx);
+				$s_cols[$col] = true;
+				$p2 = $elDom->PosEnd;
+			}
+			// rearrange col numbers
+			ksort($s_cols);
+			$s_cols = array_keys($s_cols); // nedded for havinf first col on index 0
+			// Attribute to re-find the series
+			$ref = $elSeries->GetAttLazy('chart:label-cell-address');
+			// Add the series
+			$series[$s_idx] = array('name'=>false, 'col_name'=>$col_name, 'cols'=>$s_cols, 'ref'=>$ref);
+			$cols_name[$col_name] = $s_idx;
+			$p = $elSeries->PosEnd;
+			$s_idx++;
 		}
-		$chart['series_len'] = $series_len;
-		$chart['col_cat'] = 1; // the column of categories is always #1
+		$chart['cols'] = $cols;
 		
-		// Search and Analyze the series names
-		$elHeaders = clsTbsXmlLoc::FindElement($Txt, 'table:table-header-rows', 0);
-		if ($elHeaders===false) return $this->RaiseError("(ChartChangeSeries) : unable to found the series names in the chart $ChartCaption.");
+		// Column of categories
+		$col_cat = false;
+		$elCat = clsTbsXmlLoc::FindStartTag($Txt, 'chart:categories', 0);
+		if ($elCat!==false) {
+			$att = $elCat->GetAttLazy('table:cell-range-address');
+			$col_cat = $this->Misc_ColNum($att, true); // the column of categories is always #1
+		}
+		$chart['col_cat'] = $col_cat;
+		
 
-		$chart['series'] = array();
-		$series = &$chart['series'];
-		
+		// Brows headers columns
+		$elHeaders = clsTbsXmlLoc::FindElement($Txt, 'table:table-header-rows', 0);
+		if ($elHeaders===false) return $this->RaiseError("(ChartFindSeries) : unable to found the series names in the chart ".$this->_ChartCaption.".");
 		$p = 0;
 		$col_num = 0;
-		$col_name  = $chart['col_cat'] + $series_len; // column of the series's name, it is always the last column of the series
 		while (($elCell=clsTbsXmlLoc::FindElement($elHeaders, 'table:table-cell', $p))!==false) {
 			$col_num++;
-			if ($col_num==$col_name) {
+			if (isset($cols_name[$col_num])) {
 				$elP = clsTbsXmlLoc::FindElement($elCell, 'text:p', 0);
-				if ($elP!==false) {
-					$name = $elP->GetInnerSrc();
-				} else {
-					$name = '(no name)';
-				}
-				$info = array('name'=>$name, 'col_name'=>$col_name, 'col'=>($col_name-$series_len+1), 'idx'=>count($series));
-				$series[] = $info;
-				$col_name += $series_len;
+				$name = ($elP===false) ? '' : $elP->GetInnerSrc();
+				$s_idx = $cols_name[$col_num];
+				$series[$s_idx]['name'] = $name;
 			}
 			$p = $elCell->PosEnd;
 		}
-	
+		$chart['series'] = $series;
 		$chart['col_nbr'] = $col_num;
-	
+
 		return true;
 	
+	}
+	
+	function OpenDoc_ChartFindCol(&$cols, &$el, $att, $s_idx) {
+		$x = $el->GetAttLazy($att);
+		if ($x===false) return $this->RaiseError("(ChartFindCol) : unable to find cell references for series number #".($idx+1)." in the chart ".$this->_ChartCaption.".");
+		$c = $this->Misc_ColNum($x, true);
+		if ($s_idx!==false) $cols[$c] = $s_idx;
+		return $c;
+	}
+	
+	function OpenDoc_ChartDelSeries(&$Txt, &$series) {
+	
+		$att = 'chart:label-cell-address="'.$series['ref'].'"';
+		$elSeries = clsTbsXmlLoc::FindElementHavingAtt($Txt, $att, 0);
+		if ($elSeries!==false) $elSeries->ReplaceSrc('');
+	
+	}
+	
+	function OpenDoc_ChartRenameSeries(&$Txt, &$series, $NewName) {
+		
 	}
 	
 }
