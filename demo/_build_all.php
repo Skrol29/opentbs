@@ -7,30 +7,29 @@ $template_lst = array(
 	'demo_ms_excel.xlsx',
 	'demo_ms_powerpoint.pptx',
 	'demo_ms_word.docx',
-	'demo_oo_formula.odf' => 'simple',
-	'demo_oo_graph.odg' => 'simple',
+	'demo_oo_formula.odf',
+	'demo_oo_graph.odg',
 	'demo_oo_presentation.odp',
 	'demo_oo_spreadsheet.ods',
-	'demo_oo_text.odt' => 'simple',
+	'demo_oo_text.odt',
 );
 
 $output_canevas = file_get_contents('_build_canevas.php');
 
 
-foreach ($template_lst as $k => $v) {
+foreach ($template_lst as $template) {
 
-	if (is_numeric($k)) {
-		$template = $v;
-		$insert_type = false;
-	} else {
-		$template = $k;
-		$insert_type = $v;
-	}
-	
 	$info = pathinfo($template);
 	
-	if ($insert_type===false) $insert_type = $info['extension'];
+	$insert_type = $info['extension'];
 	$insert_file = '_build_'.$insert_type.'.php';
+	
+	if (file_exists($insert_file)) {
+		$default = false;
+	} else {
+		$default = true;
+		$insert_file = '_build_default.php';
+	}
 	
 	$output_file = $info['filename'].'.php';
 	
@@ -45,5 +44,6 @@ foreach ($template_lst as $k => $v) {
 	file_put_contents($output_file, $output_code);
 	
 	echo "\n<br>&bull; Template merged: $template";
+	if ($default) echo " (default canevas)";
 	
 }

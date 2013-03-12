@@ -53,10 +53,10 @@ if (isset($_POST['debug']) && ($_POST['debug']=='show'))    $TBS->Plugin(OPENTBS
 $TBS->MergeBlock('a,b', $data);
 
 // Change chart series
-$ChartNameOrNum = 'chart1';
-$SeriesNameOrNum = 2;
+$ChartNameOrNum = 'a nice chart'; // Title of the shape that embeds the chart
+$SeriesNameOrNum = 'Series 2';
 $NewValues = array( array('Category A','Category B','Category C','Category D'), array(3, 1.1, 4.0, 3.3) );
-$NewLegend = "New series 2";
+$NewLegend = "Updated series 2";
 $TBS->PlugIn(OPENTBS_CHART, $ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewLegend);
 
 // Delete comments

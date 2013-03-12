@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.0-beta-2013-02-28
+ * @version 1.8.0-beta-2013-03-12
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -72,7 +72,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
 		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
-		$this->Version = '1.8.0-beta-2013-02-28';
+		$this->Version = '1.8.0-beta-2013-03-12';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -365,12 +365,11 @@ class clsOpenTBS extends clsTbsZip {
 			$SeriesNameOrNum = $x2;
 			$NewValues = (is_null($x3)) ? false : $x3;
 			$NewLegend = (is_null($x4)) ? false : $x4;
-			$CopyFromSeries = (is_null($x5)) ? false : $x5;
 			
 			if ($this->Ext_GetType()=='odf') {
-				return $this->OpenDoc_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend, $CopyFromSeries);
+				return $this->OpenDoc_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend);
 			} else {
-				return $this->OpenXML_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend, $CopyFromSeries);
+				return $this->OpenXML_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend);
 			}
 
 		} elseif ( ($Cmd==OPENTBS_DEBUG_INFO) || ($Cmd==OPENTBS_DEBUG_CHART_LIST) ) {
@@ -752,15 +751,16 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$this->TbsDebug_Init($nl, $sep, $bull, 'OPENTBS_DEBUG_INFO');
 
 		switch ($this->Ext_GetEquiv()) {
-			case 'docx': $this->MsWord_DocDebug($nl, $sep, $bull); break;
-			case 'xlsx': $this->MsExcel_SheetDebug($nl, $sep, $bull); break;
-			case 'pptx': $this->MsPowerpoint_SlideDebug($nl, $sep, $bull); break;
-			case 'ods' : $this->OpenDoc_SheetSlides_Debug(true, $nl, $sep, $bull); break;
-			case 'odp' : $this->OpenDoc_SheetSlides_Debug(false, $nl, $sep, $bull); break;
+		case 'docx': $this->MsWord_DocDebug($nl, $sep, $bull); break;
+		case 'xlsx': $this->MsExcel_SheetDebug($nl, $sep, $bull); break;
+		case 'pptx': $this->MsPowerpoint_SlideDebug($nl, $sep, $bull); break;
+		case 'ods' : $this->OpenDoc_SheetSlides_Debug(true, $nl, $sep, $bull); break;
+		case 'odp' : $this->OpenDoc_SheetSlides_Debug(false, $nl, $sep, $bull); break;
 		}
 
-		if ($this->Ext_GetType()==='openxml') {
-			$this->OpenXML_ChartDebug($nl, $sep, $bull);
+		switch ($this->Ext_GetType()) {
+		case 'openxml': $this->OpenXML_ChartDebug($nl, $sep, $bull); break;
+		case 'odf':     $this->OpenDoc_ChartDebug($nl, $sep, $bull); break;
 		}
 
 		if ($Exit) exit;
@@ -2274,7 +2274,7 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 
-	function OpenXML_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend=false, $CopyFromSeries=false) {
+	function OpenXML_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend=false) {
 
 		if (!isset($this->OpenXmlCharts)) $this->OpenXML_ChartInit();
 
@@ -3745,7 +3745,7 @@ It needs to be completed when a new picture file extension is added in the docum
 		return $this->XML_BlockAlias_Prefix('draw:', $Txt, $Pos, $Forward, $LevelStop);
 	}
 	
-	function OpenDoc_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend=false, $CopyFromSeries=false) {
+	function OpenDoc_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend=false) {
 	
 		if (!isset($this->OpenDocCharts)) $this->OpenDoc_ChartInit();
 	
@@ -3757,8 +3757,9 @@ It needs to be completed when a new picture file extension is added in the docum
 		} else {
 			$ChartCaption = 'with title "'.$ChartRef.'"';
 			$idx = false;
+			$x = htmlspecialchars($ChartRef);
 			foreach($this->OpenDocCharts as $i=>$c) {
-				if ($c['title']==$ChartRef) $idx = $i;
+				if ($c['title']==$x) $idx = $i;
 			}
 			if ($idx===false) return $this->RaiseError("(ChartChangeSeries) : unable to found the chart $ChartCaption.");
 		}
@@ -3794,6 +3795,9 @@ It needs to be completed when a new picture file extension is added in the docum
 		}
 		if ($s_info===false) return $this->RaiseError("(ChartChangeSeries) : unable to found the series $s_caption in the chart ".$this->_ChartCaption.".");
 		
+		if ($NewLegend!==false) $this->OpenDoc_ChartRenameSeries($Txt, $s_info, $NewLegend);
+		
+		// simplified variables
 		$col_cat  = $chart['col_cat']; // column Category (always 1)
 		$col_nbr  = $chart['col_nbr']; // number of columns
 		$s_col    = $s_info['cols'][0];  // first column of the series
@@ -3802,7 +3806,6 @@ It needs to be completed when a new picture file extension is added in the docum
 		$s_use_cat = (count($s_info['cols'])==1); // true is the series uses the column Category
 		
 		// Force syntax of data
-		// TODO: rename and delete series
 		if (!is_array($NewValues)) {
 			$data = array();
 			if ($NewValues===false) $this->OpenDoc_ChartDelSeries($Txt, $s_info);
@@ -3880,7 +3883,7 @@ It needs to be completed when a new picture file extension is added in the docum
 					}
 				} else {
 					if ($s_use_cat && ($i==$col_cat) ) {
-						$x .= '<table:table-cell office:value-type="string"><text:p>'.$cat.'</text:p></table:table-cell>';
+						$x .= '<table:table-cell office:value-type="string"><text:p>'.htmlspecialchars($cat).'</text:p></table:table-cell>';
 					} else {
 						$x .= $x_nan;
 					}
@@ -3896,6 +3899,9 @@ It needs to be completed when a new picture file extension is added in the docum
 		
 	}
 	
+	/**
+	 * Look for all chart in the document, and store information.
+	 */
 	function OpenDoc_ChartInit() {
 		
 		$this->OpenDocCharts = array();
@@ -3908,20 +3914,23 @@ It needs to be completed when a new picture file extension is added in the docum
 
 			$src = $drEl->GetInnerSrc();
 			$objEl = clsTbsXmlLoc::FindStartTag($src, 'draw:object', 0);
-			$href = $objEl->GetAttLazy('xlink:href'); // example "./Object 1"
-			if ($href) {
+			
+			if ($objEl) { // Picture have <draw:frame> without <draw:object>
+				$href = $objEl->GetAttLazy('xlink:href'); // example "./Object 1"
+				if ($href) {
 				
-				$imgEl = clsTbsXmlLoc::FindElement($src, 'draw:image', 0);
-				$img_href = ($imgEl) ? $imgEl->GetAttLazy('xlink:href') : false; // "./ObjectReplacements/Object 1"
-				$img_src = ($imgEl) ? $imgEl->GetSrc('xlink:href') : false;
-				
-				$titEl = clsTbsXmlLoc::FindElement($src, 'svg:title', 0);
-				$title = ($titEl) ? $titEl->GetInnerSrc() : '';
-				
-				if (substr($href,0,2)=='./') $href = substr($href, 2);
-				if ( is_string($img_href) && (substr($img_href,0,2)=='./') ) $img_href = substr($img_href, 2);
-				$this->OpenDocCharts[] = array('href'=>$href, 'title'=>$title, 'img_href'=>$img_href, 'img_src'=>$img_src, 'to_clear'=> ($img_href!==false) );
-				
+					$imgEl = clsTbsXmlLoc::FindElement($src, 'draw:image', 0);
+					$img_href = ($imgEl) ? $imgEl->GetAttLazy('xlink:href') : false; // "./ObjectReplacements/Object 1"
+					$img_src = ($imgEl) ? $imgEl->GetSrc('xlink:href') : false;
+					
+					$titEl = clsTbsXmlLoc::FindElement($src, 'svg:title', 0);
+					$title = ($titEl) ? $titEl->GetInnerSrc() : '';
+					
+					if (substr($href,0,2)=='./') $href = substr($href, 2);
+					if ( is_string($img_href) && (substr($img_href,0,2)=='./') ) $img_href = substr($img_href, 2);
+					$this->OpenDocCharts[] = array('href'=>$href, 'title'=>$title, 'img_href'=>$img_href, 'img_src'=>$img_src, 'to_clear'=> ($img_href!==false) );
+					
+				}
 			}
 			$p = $drEl->PosEnd;
 		}
@@ -4038,11 +4047,49 @@ It needs to be completed when a new picture file extension is added in the docum
 	
 		$att = 'chart:label-cell-address="'.$series['ref'].'"';
 		$elSeries = clsTbsXmlLoc::FindElementHavingAtt($Txt, $att, 0);
+
 		if ($elSeries!==false) $elSeries->ReplaceSrc('');
 	
 	}
 	
 	function OpenDoc_ChartRenameSeries(&$Txt, &$series, $NewName) {
+		
+		$NewName = htmlspecialchars($NewName);
+		$col_name = $series['col_name'];
+
+		$el = clsTbsXmlLoc::FindStartTag($Txt, 'table:table-header-rows', 0);
+		$el = clsTbsXmlLoc::FindStartTag($Txt, 'table:table-row', $el->PosEnd);
+		for ($i=1; $i<$col_name; $i++) $el = clsTbsXmlLoc::FindStartTag($Txt, 'table:table-cell', $el->PosEnd);
+		$elCell = clsTbsXmlLoc::FindElement($Txt, 'table:table-cell', $el->PosEnd);
+		
+		$elP = clsTbsXmlLoc::FindElement($elCell, 'text:p', 0);
+		if ($elP===false) {
+			$elCell->ReplaceInnerSrc($elCell->InnerSrc.'<text:p>'.$NewName.'</text:p>');
+		} else {
+			if($elP->SelfClosing) {
+				$elP->ReplaceSrc('<text:p>'.$NewName.'</text:p>');
+			} else {
+				$elP->ReplaceInnerSrc($NewName);
+			}
+			$elP->UpdateParent();
+		}
+		
+	}
+	
+	function OpenDoc_ChartDebug($nl, $sep, $bull) {
+	
+		if (!isset($this->OpenDocCharts)) $this->OpenDoc_ChartInit();
+		
+		$ChartLst = $this->OpenDocCharts;
+
+		echo $nl;
+		echo $nl."Charts found in the contents:";
+		echo $nl."-----------------------------";
+		foreach ($ChartLst as $i=>$c) {
+			$title = ($c['title']===false) ? '(not found)' : var_export($c['title'], true);
+			echo $bull."title: $title";
+		}
+		if (count($ChartLst)==0) echo $bull."(none)";
 		
 	}
 	
@@ -4194,7 +4241,7 @@ class clsTbsXmlLoc {
 				$p++;
 				$z = $this->Txt[$p];
 			} while ( ($z!==' ') && ($z!=="\r") && ($z!=="\n") && ($z!=='>') && ($z!=='/') );
-			$this->Name = substr($this->Txt, $this->PosBeg + 1, $p - $this->PosBeg + 1);
+			$this->Name = substr($this->Txt, $this->PosBeg + 1, $p - $this->PosBeg - 1);
 		}
 		return $this->Name;
 	}
@@ -4307,7 +4354,11 @@ class clsTbsXmlLoc {
 		$search = true;
 
 		do {
-			if ($Forward) $p = strpos($Txt, $x, $p+1);  else $p = strrpos(substr($Txt, 0, $p+1), $x);
+			if ($Forward) {
+				$p = strpos($Txt, $x, $p+1);
+			} else {
+				$p = strrpos(substr($Txt, 0, $p+1), $x);
+			}
 			if ($p===false) return false;
 			do {
 			  $p = $p - 1;
@@ -4330,6 +4381,7 @@ class clsTbsXmlLoc {
 		if ($XmlLoc===false) return false;
 		
 		$XmlLoc->FindEndTag();
+
 		return $XmlLoc;
 
 	}

@@ -70,8 +70,8 @@ ul {
 
 <body>
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.8.0, 2012-02-08, by Skrol29<br />
-  help file modified on 2012-02-08</div>
+<div>version 1.8.0, 2012-03-12, by Skrol29<br />
+  help file modified on 2012-03-12</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -352,43 +352,49 @@ if the extension is not recognized then OpenTBS also try to find the document by
 </table>
 <h3><a name="chart" id="chart"></a>4.5. Change data of series in charts</h3>
 <h4>&bull; Change series in charts:</h4>
-<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.6.0, for Ms Word and Ms Powerpoint only)</span>
+<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.6.0, for Ms Word and Ms Powerpoint, since version 1.8.0 for LibreOffice)</span>
   <div class="code">Example: $TBS-&gt;PlugIn(OPENTBS_CHART, $ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend=false)</div>
-  <p>This command changes the values of a series in a Chart of the document. The chart will be automatically actualized when the merged document is opened because OpenTBS also breaks the link between the chart and its cached view.<br />
-    The result is <span class="smallcode">true</span> if the series is modified with success, otherwise the result is <span class="smallcode">false</span>. <br />
-  </p>
+  <p>This command changes the values of a series in a Chart of the document. The chart will be automatically actualized when the merged document is opened because OpenTBS also breaks the link between the chart and its cached view. It can also delete or rename the series in the chart.</p>
+  <p> The result is <span class="smallcode">true</span> if the series is modified with success, otherwise the result is <span class="smallcode">false</span>.  </p>
   <table width="100%" border="0" cellspacing="2" cellpadding="0">
     <tr>
       <th align="left" valign="top">Argument</th>
       <th align="left">Description</th>
     </tr>
     <tr>
-      <td valign="top" class="smallcode">$ChartRef</td>
-      <td><p>This value can be either:</p>
+      <td valign="top" class="smallcode"><p>$ChartRef</p></td>
+      <td valign="top"><p>This value can be either:</p>
         <ul>
-          <li>  the title if the chart <span class="versioning">(supported since OpenTBS 1.8.0)</span>,</li>
-          <li> the  order number of the chart in the document (first is number 1),</li>
-          <li> Internal name of the XML file that contains the chart definition (with or without the extension).</li>
+          <li>  The title of the chart <span class="versioning">(supported since OpenTBS 1.8.0)</span>. In both Ms Office and LibreOffice, that is the property &quot;Title&quot; of the frame that embeds the chart.</li>
+          <li> The  order number of the chart in the document (first is number 1).</li>
         </ul>
-        <p> You can use the command <a href="#debugmode">OPENTBS_DEBUG_INFO</a> in order to view all chart in the document.</p>
-        <p> <span class="smallcode">$CarteNameOrNum</span> is typically <span class="smallcode">'chart1'</span> or <span class="smallcode">1</span>.</p></td>
+        <p> You can use the command <a href="#debugmode">OPENTBS_DEBUG_INFO</a> in order to view all  charts in the document that OpenTBS can manage.</p>
+        <p>Deprecated since version 1.8.0: in previous version, <span class="smallcode">$ChartRef</span> could be the internal name of the XML file that contains the chart definition, with or without the extension. Such as <span class="smallcode">'chart1'</span>.</p></td>
     </tr>
     <tr>
-      <td valign="top" class="smallcode">$SeriesNumOrName</td>
-      <td>Exact caption of the series in the chart, or its number (first is number 1). Typically <span class="smallcode">'Series 1'</span> or <span class="smallcode">1</span>. </td>
+      <td valign="top" class="smallcode"><p>$SeriesNumOrName</p></td>
+      <td valign="top"><p>Exact caption of the series in the chart, or its number (first is number 1). Typically <span class="smallcode">'Series 1'</span> or <span class="smallcode">1</span>. </p></td>
     </tr>
     <tr>
-      <td valign="top" class="smallcode">$NewValues</td>
-      <td><p>The new data of the series. Must be an array, or value <span class="smallcode">false</span> if you want to delete the series.</p>
-        <p> The array can store data with 2 possibilities:<br />
-          <span class="code">$NewValues = array( array('cat1', 'cat2', 'cat3', ...), array(val1, val2, val3, ...) );</span><br />
+      <td valign="top" class="smallcode"><p>$NewValues</p></td>
+      <td valign="top"><p>The new data of the series. Must be an array, or value <span class="smallcode">false</span> if you want to delete the series.</p>
+        <p> The array can store data with 3 possibilities:</p>
+        <p> 
+        	#1: <span class="code">$NewValues = array( array('cat1', 'cat2', 'cat3', ...), array(val1, val2, val3, ...) );</span><br />
           or <br />
-        <span class="code">$NewValues = array('cat1'=&gt;val1,  'cat2'=&gt;val2, 'cat3'=&gt;val3, ...);</span></p>
-        <p>        If the chart type is &quot;X Y (Scatter)&quot; then you must use only the  first data store type.</p></td>
+          #2: <span class="code">$NewValues = array('cat1'=&gt;val1,  'cat2'=&gt;val2, 'cat3'=&gt;val3, ...);</span><br />
+          or <br />
+          #3: <span class="code">$NewValues = array( array(x1, y1),  array(x2,y2), array(x3, y3), ...);</span>
+        </p>
+        <p>Notes :</p>
+        <ul>
+          <li>Structure #3 is supported only for LibreOffice, and is required when the chart type is <strong>XY (Scatter)</strong>, <strong>Bubble</strong> or<strong> Stock</strong>. Use  2  values in each items for XY, 3 for Bubble, and 4 for Stock.</li>
+          <li>Structure #1 is required for Ms Office when the chart type is  <strong>XY (Scatter)</strong>. Bubble and Stock are not yet supported for Ms Office.</li>
+        </ul></td>
     </tr>
     <tr>
-      <td valign="top" class="smallcode">$NewLegend</td>
-      <td>Optional. The new caption of the series. </td>
+      <td valign="top" class="smallcode"><p>$NewLegend</p></td>
+      <td valign="top"><p>Optional. The new caption of the series. </p></td>
     </tr>
   </table>
   <h5>Please note:</h5>
