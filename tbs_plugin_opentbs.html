@@ -84,10 +84,11 @@ ul {
       <li>4.4. <a href="#blockalias">Block Alias</a></li>
       <li>4.5. <a href="#chart">Change data of series in charts</a></li>
       <li>4.6. <a href="#pic">Change pictures in the document</a></li>
-      <li>4.7. <a href="#delcol">Delete columns in tables</a></li>
-      <li>4.8. <a href="#modify_contents">Manual modification in the contents</a></li>
-      <li>4.9. <a href="#modify_files">Manual modification of files in the archive</a></li>
-      <li>4.10. <a href="#misc">Miscellaneous</a></li>
+      <li>4.7. <a href="#cells">Merging data in spreadsheet cells</a></li>
+      <li>4.8. <a href="#delcol">Delete columns in tables</a></li>
+      <li>4.9. <a href="#modify_contents">Manual modification in the contents</a></li>
+      <li>4.10. <a href="#modify_files">Manual modification of files in the archive</a></li>
+      <li>4.11. <a href="#misc">Miscellaneous</a></li>
     </ul>
   </li>
   <li><a href="#demo">Demo</a></li>
@@ -475,9 +476,56 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
     </tr>
   </table>
 </div>
-<h3><a name="delcol" id="modify3"></a>4.7. Delete columns in a table</h3>
+<h3><a name="cells" id="modify4"></a>4.7. Merging data in spreadsheet cells</h3>
+<p>In any documents, the </p>
+<p>In both Ms Excel and LibreOffice Calc, the  spreadsheet cells expect thier data to be typed. Because of this consideration, OpenTBS gives a solution inorder to ...</p>
+<h5>Keyword for mergind data ins spreadsheet cells:</h5>
+<table border="0" cellspacing="1" cellpadding="4">
+  <tr>
+    <th rowspan="2" align="left">Desciption</th>
+    <th align="center">LibreOffice</th>
+    <th align="center">Ms Office</th>
+  </tr>
+  <tr>
+    <th align="center">Calc<br />
+      (ods)</th>
+    <th align="center">Excel<br />
+      (xlsx)</th>
+  </tr>
+  <tr>
+    <td width="117">Number</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">odsNum</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">xlsxNum</td>
+  </tr>
+  <tr>
+    <td>Boolean</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">odsBool</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">xlsxBool</td>
+  </tr>
+  <tr>
+    <td>Date/time</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">odsDate</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">xlsxDate</td>
+  </tr>
+  <tr>
+    <td>Time only</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">odsTime</td>
+    <td><span class="smallcode">xlsxDate</span> + formated cell</td>
+  </tr>
+  <tr>
+    <td>Currency</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">odsCurr</td>
+    <td><p><span class="smallcode">xlsxNum</span> + formated cell</p></td>
+  </tr>
+  <tr>
+    <td>Percentage</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">odsPercent</td>
+    <td><span class="smallcode">xlsxNum</span> + formated cell</td>
+  </tr>
+</table>
+<h3><a name="delcol" id="modify3"></a>4.8. Delete columns in a table</h3>
 <p><span class="versioning">This feature is  supported since OpenTBS version 1.8.0</span>.</p>
-<p>Enables you to delete the columns you want in any table of an Ms Word Document. It doesn't work for Libre Office for now.</p>
+<p>Enables you to delete the columns you want in any table of an Ms Word Document. It doesn't work for LibreOffice for now.</p>
 <p> You have to put a TBS field anywhere inside the table with the following parameters:</p>
 <ul>
   <li> <span class="template">ope</span> = delcol</li>
@@ -492,7 +540,7 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
   <li> <span class="template">[onload;ope=delcol;colnum=2;colshift=-1]</span> =&gt; will delete columns {1,2}</li>
   <li><span class="template">[onload.col_to_delete;ope=delcol;colnum=[val];colshift=2]</span> =&gt; will delete 3 colmuns staring to column number $col_to_delete</li>
 </ul>
-<h3><a name="modify_contents" id="modify2"></a>4.8. Manual modification in the contents</h3>
+<h3><a name="modify_contents" id="modify2"></a>4.9. Manual modification in the contents</h3>
 <p><span class="versioning">The following commands are supported since OpenTBS version 1.7.0</span>:</p>
 <table border="0" cellspacing="1" cellpadding="0">
   <tr>
@@ -572,7 +620,7 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
     </p></td>
   </tr>
 </table>
-<h3><a name="modify_files" id="modify_files"></a>4.9. Manual modification of files in the archive</h3>
+<h3><a name="modify_files" id="modify_files"></a>4.10. Manual modification of files in the archive</h3>
 <h4 style="display:inline">&bull; Check if a file does exists in the archive:</h4>
 <div class="shift">
   <div class="code">$TBS-&gt;Plugin(OPENTBS_FILEEXISTS, $Name)
@@ -621,7 +669,7 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
     $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</div>
   <p>The automatic extension recognition is also applied as it was applied for the first load of the archive.</p>
 </div>
-<h3><a name="misc" id="misc"></a>4.10. Miscellaneous</h3>
+<h3><a name="misc" id="misc"></a>4.11. Miscellaneous</h3>
 <h4>&bull; Dealing with apostrophes:</h4>
 <div class="shift">
   <p> Both OpenOffice and Ms Office may automatically convert single quotes (') into typographic apostrophes (&rsquo;), depending to the auto-correction options. This may be annoying   when you need to code a TBS fields that have a single quote. That's why OpenTBS automatically convert by default all (&rsquo;) back to single quotes (') in documents.<br />

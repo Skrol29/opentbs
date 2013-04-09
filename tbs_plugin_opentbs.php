@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.0-beta-2013-03-18
+ * @version 1.8.0-beta-2013-03-26
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -162,6 +162,10 @@ class clsOpenTBS extends clsTbsZip {
 			case 'docx': $this->MsWord_RenumDocPr(); break;
 		}
 
+		// Commit special OpenXML features if any
+		// Must be done before TbsStoreLst because some REL file can also be in TbsStoreLst
+		if (isset($this->OpenXmlRid)) $this->OpenXML_RidCommit($Debug);
+
 		// Merges all modified subfiles
 		$idx_lst = array_keys($this->TbsStoreLst);
 		foreach ($idx_lst as $idx) {
@@ -177,7 +181,6 @@ class clsOpenTBS extends clsTbsZip {
 		$TBS->Plugin(-10); // reactivate other plugins
 		$this->TbsCurrIdx = false;
 
-		if (isset($this->OpenXmlRid))    $this->OpenXML_RidCommit($Debug);       // Commit special OpenXML features if any
 		if (isset($this->OpenXmlCTypes)) $this->OpenXML_CTypesCommit($Debug);    // Commit special OpenXML features if any
 		if (isset($this->OpenDocManif))  $this->OpenDoc_ManifestCommit($Debug);  // Commit special OpenDocument features if any
 
@@ -623,8 +626,11 @@ class clsOpenTBS extends clsTbsZip {
 		$this->TBS->OtbsCurrFile = $file;
 	}
 
-	// Save a given source in the store.
-	// If $onshow is null, then the 'onshow' option stays unchanged.
+	/**
+	 * Save a given source in the store.
+	 * $onshow=true means [onshow] are merged before the output. 
+	 * If $onshow is null, then the 'onshow' option stays unchanged.
+	 */
 	function TbsStorePut($idx, $src, $onshow = null) {
 		if ($idx===$this->TbsCurrIdx) {
 			$this->TBS->Source = $src;
@@ -1947,23 +1953,40 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	function OpenXML_RidCommit ($Debug) {
 
 		foreach ($this->OpenXmlRid as $o) {
-			// search position for insertion
-			$p = strpos($o->FicTxt, '</Relationships>');
-			if ($p===false) return $this->RaiseError("(OpenXML) closing tag </Relationships> not found in subfile ".$o->FicPath);
-			// build the string to instert
-			$x = '';
-			foreach ($o->RidNew as $file=>$rid) {
-				$x .= '<Relationship Id="'.$rid.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="'.$file.'"/>';
+		
+			if (count($o->RidNew)>0) {
+		
+				$store = isset($this->TbsStoreLst[$o->FicIdx]);
+				$Txt = ($store) ? $this->TbsStoreLst[$o->FicIdx]['src'] : $o->FicTxt;
+			
+				// search position for insertion
+				$p = strpos($Txt, '</Relationships>');
+				if ($p===false) return $this->RaiseError("(OpenXML) closing tag </Relationships> not found in subfile ".$o->FicPath);
+				
+				// build the string to insert
+				$x = '';
+				foreach ($o->RidNew as $file=>$rid) {
+					$x .= '<Relationship Id="'.$rid.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="'.$file.'"/>';
+				}
+				
+				// insert
+				$Txt = substr_replace($Txt, $x, $p, 0);
+				
+				// save
+				if ($store) {
+					$this->TbsStoreLst[$o->FicIdx]['src'] = $Txt;
+				} else {
+					if ($o->FicType==1) {
+						$this->FileAdd($o->FicPath, $Txt);
+					} else {
+						$this->FileReplace($o->FicIdx, $Txt);
+					}
+				}
+				
+				// debug mode
+				if ($Debug) $this->DebugLst[$o->FicPath] = $Txt;
+				
 			}
-			// insert
-			$o->FicTxt = substr_replace($o->FicTxt, $x, $p, 0);
-			if ($o->FicType==1) {
-				$this->FileAdd($o->FicPath, $o->FicTxt);
-			} else {
-				$this->FileReplace($o->FicIdx, $o->FicTxt);
-			}
-			// debug mode
-			if ($Debug) $this->DebugLst[$o->FicPath] = $o->FicTxt;
 		}
 
 	}
@@ -2174,12 +2197,16 @@ It needs to be completed when a new picture file extension is added in the docum
 		// list of supported charts
 		$nbr = 0;
 		foreach ($this->OpenXmlCharts as $key => $info) {
-			$nbr++;
+			$ok = true;
 			if (!isset($info['series_nbr'])) {
 				$txt = $this->FileRead($info['idx'], true);
 				$info['series_nbr'] = substr_count($txt, '<c:ser>');
+				$ok = (strpos($txt, '<c:chart>')!==false);
 			}
-			echo $bull."name: '".$key."' , number of series: ".$info['series_nbr'];
+			if ($ok) {
+				$nbr++;
+				echo $bull."name: '".$key."' , number of series: ".$info['series_nbr'];
+			}
 		}
 
 		if ($this->TbsCurrIdx===false) {
@@ -2954,6 +2981,9 @@ It needs to be completed when a new picture file extension is added in the docum
 
 		$this->MsPowerpoint_InitSlideLst();
 		
+
+		// Edit both XML and REL of file 'presentation.xml'
+
 		$xml_file = 'ppt/presentation.xml';
 		$xml_idx = $this->FileGetIdx($xml_file);
 		$rel_idx = $this->FileGetIdx($this->OpenXML_Rels_GetPath($xml_file));
@@ -2962,6 +2992,8 @@ It needs to be completed when a new picture file extension is added in the docum
 		$rel_txt = $this->TbsStoreGet($rel_idx, 'Slide Delete and Display / REL');
 
 		$del_lst = array();
+		$del_lst2 = array();
+		$first_kept = false;
 		foreach ($this->OpenXmlSlideLst as $i=>$s) {
 			$ref = 'i:'.($i+1);
 			if (isset($this->OtbsSheetSlidesDelete[$ref]) && $this->OtbsSheetSlidesDelete[$ref] ) {
@@ -2974,7 +3006,10 @@ It needs to be completed when a new picture file extension is added in the docum
 
 				$del_lst[] = $s['file'];
 				$del_lst[] = $this->OpenXML_Rels_GetPath($s['file']);
+				$del_lst2[] = basename($s['file']);
 				
+			} else {
+				$first_kept = basename($s['file']);
 			}
 		}
 
@@ -2982,13 +3017,28 @@ It needs to be completed when a new picture file extension is added in the docum
 		$this->TbsStorePut($rel_idx, $rel_txt);
 		unset($xml_txt, $rel_txt);
 		
+		// Delete references in '[Content_Types].xml'
 		$idx = $this->FileGetIdx('[Content_Types].xml');
 		$txt = $this->TbsStoreGet($idx, 'Slide Delete and Display / Content_Types');
 		foreach ($del_lst as $f) {
-			$x = clsTbsXmlLoc::FindElementHavingAtt($rel_txt, 'PartName="/'.$f.'"', 0);
+			$x = clsTbsXmlLoc::FindElementHavingAtt($txt, 'PartName="/'.$f.'"', 0);
 			if ($x!==false) $x->ReplaceSrc(''); // delete the element
 		}
 		$this->TbsStorePut($idx, $txt);
+		
+		// Change references in 'viewProps.xml.rels'
+		$idx = $this->FileGetIdx('ppt/_rels/viewProps.xml.rels');
+		$txt = $this->TbsStoreGet($idx, 'Slide Delete and Display / viewProps');
+		$ok = false;
+		foreach ($del_lst2 as $f) {
+			$z = 'Target="slides/'.$f.'"';
+			if (strpos($txt, $z)) {
+				if ($first_kept===false) return $this->RaiseError("(Slide Delete and Display) : no slide left to replace the default slide in 'viewProps.xml.rels'.");
+				$ok = true;
+				$txt = str_replace($z, 'Target="slides/'.$first_kept.'"' , $txt);
+			}
+		}
+		if ($ok) $this->TbsStorePut($idx, $txt);
 		
 	}
 	
@@ -4758,7 +4808,7 @@ class clsTbsZip {
 
 	function FileReplace($NameOrIdx, $Data, $DataType=TBSZIP_STRING, $Compress=true) {
 	// Store replacement information.
-
+	
 		$idx = $this->FileGetIdx($NameOrIdx);
 		if ($idx===false) return $this->RaiseError('File "'.$NameOrIdx.'" is not found in the Central Directory.');
 
