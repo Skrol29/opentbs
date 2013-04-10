@@ -70,8 +70,8 @@ ul {
 
 <body>
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.8.0, 2012-03-18, by Skrol29<br />
-  help file modified on 2012-03-18</div>
+<div>version 1.8.0, 2012-04-10, by Skrol29<br />
+  help file modified on 2012-04-10</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -477,12 +477,17 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
   </table>
 </div>
 <h3><a name="cells" id="modify4"></a>4.7. Merging data in spreadsheet cells</h3>
-<p>In any documents, the </p>
-<p>In both Ms Excel and LibreOffice Calc, the  spreadsheet cells expect thier data to be typed. Because of this consideration, OpenTBS gives a solution inorder to ...</p>
-<h5>Keyword for mergind data ins spreadsheet cells:</h5>
+<p>In speaksheets (Ms Excel or LibreOffice Calc), cells values may be formated but also typed. For example, a cell value may be typed as String, Numerical, Boolean or Date.</p>
+<p>Unfortunately, as soon as you enter a TBS tag in a cell, the cell it is typed as String. This may not be corresponding to the final value you wanted after the merging.</p>
+<p>For those situations, TBS offers a parameter like &quot;<span class="smallcode">ope=cellType</span>&quot;. Note that the merged value will be implicitly   converted by TBS into the expected type.</p>
+<h5>Example:</h5>
+<ul>
+  <li><span class="template">[onload.x;ope=xlsxNum]</span> =&gt; will turn the cell as Numerical after $x is merged.</li>
+</ul>
+<h5>Parameters for merging   data in spreadsheet cells:</h5>
 <table border="0" cellspacing="1" cellpadding="4">
   <tr>
-    <th rowspan="2" align="left">Desciption</th>
+    <th rowspan="2" align="left">Expected Cell Type</th>
     <th align="center">LibreOffice</th>
     <th align="center">Ms Office</th>
   </tr>
@@ -494,33 +499,33 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
   </tr>
   <tr>
     <td width="117">Number</td>
-    <td valign="top" nowrap="nowrap" class="smallcode">odsNum</td>
-    <td valign="top" nowrap="nowrap" class="smallcode">xlsxNum</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">ope=odsNum</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">ope=xlsxNum</td>
   </tr>
   <tr>
     <td>Boolean</td>
-    <td valign="top" nowrap="nowrap" class="smallcode">odsBool</td>
-    <td valign="top" nowrap="nowrap" class="smallcode">xlsxBool</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">ope=odsBool</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">ope=xlsxBool</td>
   </tr>
   <tr>
     <td>Date/time</td>
-    <td valign="top" nowrap="nowrap" class="smallcode">odsDate</td>
-    <td valign="top" nowrap="nowrap" class="smallcode">xlsxDate</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">ope=odsDate</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">ope=xlsxDate</td>
   </tr>
   <tr>
     <td>Time only</td>
-    <td valign="top" nowrap="nowrap" class="smallcode">odsTime</td>
-    <td><span class="smallcode">xlsxDate</span> + formated cell</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">ope=odsTime</td>
+    <td><span class="smallcode">ope=xlsxDate</span> + time format on the cell</td>
   </tr>
   <tr>
     <td>Currency</td>
-    <td valign="top" nowrap="nowrap" class="smallcode">odsCurr</td>
-    <td><p><span class="smallcode">xlsxNum</span> + formated cell</p></td>
+    <td valign="top" nowrap="nowrap" class="smallcode">ope=odsCurr</td>
+    <td><p><span class="smallcode">ope=xlsxNum</span> + currency format on the cell</p></td>
   </tr>
   <tr>
     <td>Percentage</td>
-    <td valign="top" nowrap="nowrap" class="smallcode">odsPercent</td>
-    <td><span class="smallcode">xlsxNum</span> + formated cell</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">ope=odsPercent</td>
+    <td><span class="smallcode">ope=xlsxNum</span> + percentage format on the cell</td>
   </tr>
 </table>
 <h3><a name="delcol" id="modify3"></a>4.8. Delete columns in a table</h3>
@@ -777,7 +782,7 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
-<h3>version 1.8.0, on 2013-02-04</h3>
+<h3>version 1.8.0, on 2013-04-10</h3>
 <ul>
   <li>new feature: automatically cleans up spelling in PPTX templates (such information may 
   deconstruct the TBS tags). This feature can be disabled.</li>

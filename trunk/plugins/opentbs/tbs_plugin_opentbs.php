@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.0-beta-2013-03-26
+ * @version 1.8.0-beta-2013-04-10
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -72,7 +72,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
 		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
-		$this->Version = '1.8.0-beta-2013-03-18';
+		$this->Version = '1.8.0-beta-2013-04-10';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -2997,10 +2997,12 @@ It needs to be completed when a new picture file extension is added in the docum
 		foreach ($this->OpenXmlSlideLst as $i=>$s) {
 			$ref = 'i:'.($i+1);
 			if (isset($this->OtbsSheetSlidesDelete[$ref]) && $this->OtbsSheetSlidesDelete[$ref] ) {
-			
-				$x = clsTbsXmlLoc::FindElementHavingAtt($xml_txt, 'r:id="'.$s['rid'].'"', 0);
-				if ($x!==false) $x->ReplaceSrc(''); // delete the element
-				
+
+				// the rid may be used several time in the fiel. i.e.: in <p:sldIdLst><p:sldIdLst>, but also in <p:custShow><p:sldLst>
+				while ( ($x = clsTbsXmlLoc::FindElementHavingAtt($xml_txt, 'r:id="'.$s['rid'].'"', 0))!==false ) {
+					$x->ReplaceSrc(''); // delete the element
+				}
+
 				$x = clsTbsXmlLoc::FindElementHavingAtt($rel_txt, 'Id="'.$s['rid'].'"', 0);
 				if ($x!==false) $x->ReplaceSrc(''); // delete the element
 
@@ -3039,6 +3041,13 @@ It needs to be completed when a new picture file extension is added in the docum
 			}
 		}
 		if ($ok) $this->TbsStorePut($idx, $txt);
+		
+		// Actually delete the slide files
+		foreach ($del_lst as $f) {
+			$idx = $this->FileGetIdx($f);
+			unset($this->TbsStoreLst[$idx]); // delete the slide from the merging if any
+			$this->FileReplace($idx, false);
+		}
 		
 	}
 	
