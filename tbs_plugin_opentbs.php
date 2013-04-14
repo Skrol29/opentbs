@@ -184,6 +184,8 @@ class clsOpenTBS extends clsTbsZip {
 		if (isset($this->OpenXmlCTypes)) $this->OpenXML_CTypesCommit($Debug);    // Commit special OpenXML features if any
 		if (isset($this->OpenDocManif))  $this->OpenDoc_ManifestCommit($Debug);  // Commit special OpenDocument features if any
 
+		if ($this->Ext_GetType()=='openxml') $this->OpenMXL_GarbageCollector();
+		
 		if ( ($TBS->ErrCount>0) && (!$TBS->NoErr) && (!$Debug)) {
 			$TBS->meth_Misc_Alert('Show() Method', 'The output is cancelled by the OpenTBS plugin because at least one error has occured.');
 			exit;
@@ -2490,6 +2492,44 @@ It needs to be completed when a new picture file extension is added in the docum
 		return substr($Txt, $str['beg'], $str['len']);
 
 	}
+	
+	// Delete unreferenced images
+	function OpenMXL_GarbageCollector() {
+		
+		$pic_path = $this->ExtInfo['pic_path'];
+		$pic_path_len = strlen($pic_path);
+		
+		$rels_ext = '.rels';
+		$rels_ext_len = strlen($rels_ext);
+
+		// List all Pictures and Rels files
+		$pictures = array();
+		$rels = array();
+		foreach ($this->CdFileLst as $idx=>$f) {
+			$n = $f['v_name'];
+			if (substr($n, 0, $pic_path_len)==$pic_path) {
+				$short = basename($pic_path).'/'.basename($n);
+				$pictures[] = array('name'=>$n, 'idx'=>$idx, 'nbr'=>0, 'short'=>$short);
+			} elseif (substr($n, -$rels_ext_len)==$rels_ext) {
+				if ($this->FileGetState($idx)!='d') $rels[$n] = $idx;
+			}
+		}
+		
+		// Read contents or Rels files
+		foreach ($rels as $n=>$idx) {
+			$txt = $this->TbsStoreGet($idx, 'GarbageCollector');
+			foreach ($pictures as $i=>$info) {
+				if (strpos($txt, $info['short'].'"')!==false) $pictures[$i]['nbr']++;
+			}
+		}
+		
+		// Delete unused Picture files
+		foreach ($pictures as $info) {
+			if ($info['nbr']==0) $this->FileReplace($info['idx'], false);
+		}
+		
+		
+	}
 
 	function MsExcel_ConvertToRelative(&$Txt) {
 		// <row r="10" ...> attribute "r" is optional since missing row are added using <row />
@@ -4448,8 +4488,8 @@ class clsTbsXmlLoc {
 }
 
 /*
-TbsZip version 2.12
-Date    : 2013-03-16
+TbsZip version 2.13
+Date    : 2013-04-14
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class is independent from any other classes and has been originally created for the OpenTbs plug-in
@@ -4817,7 +4857,7 @@ class clsTbsZip {
 
 	function FileReplace($NameOrIdx, $Data, $DataType=TBSZIP_STRING, $Compress=true) {
 	// Store replacement information.
-	
+
 		$idx = $this->FileGetIdx($NameOrIdx);
 		if ($idx===false) return $this->RaiseError('File "'.$NameOrIdx.'" is not found in the Central Directory.');
 
@@ -4842,6 +4882,32 @@ class clsTbsZip {
 
 	}
 
+	/**
+	 * Return the state of the file.
+	 * @return {string} 'u'=unchanged, 'm'=modified, 'd'=deleted, 'a'=added, false=unknown
+	 */
+	function FileGetState($NameOrIdx) {
+		
+		$idx = $this->FileGetIdx($NameOrIdx);
+		if ($idx===false) {
+			$idx = $this->FileGetIdxAdd($NameOrIdx);
+			if ($idx===false) {
+				return false;
+			} else {
+				return 'a';
+			}
+		} elseif (isset($this->ReplInfo[$idx])) {
+			if ($this->ReplInfo[$idx]===false) {
+				return 'd';
+			} else {
+				return 'm';
+			}
+		} else {
+			return 'u';
+		}
+		
+	}
+	
 	function FileCancelModif($NameOrIdx, $ReplacedAndDeleted=true) {
 	// cancel added, modified or deleted modifications on a file in the archive
 	// return the number of cancels
