@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.0-beta-2013-04-10
+ * @version 1.8.0-beta-2013-04-17
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -72,7 +72,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
 		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
-		$this->Version = '1.8.0-beta-2013-04-10';
+		$this->Version = '1.8.0-beta-2013-04-17';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -228,7 +228,10 @@ class clsOpenTBS extends clsTbsZip {
 			if (in_array('changepic', $ope_lst)) {
 				$this->TbsPicFound($Txt, $Loc, true); // add parameter "att" which will be processed just after this event, when the field is cached
 				$Loc->PrmLst['pic_change'] = true;
+			} elseif (in_array('mergecell', $ope_lst)) {
+				$this->TbsPrepareMergeCell($Txt, $Loc);
 			}
+			
 
 			// Change cell type in ODS files
 			if (strpos(','.$Loc->PrmLst['ope'],',ods')!==false) {
@@ -251,6 +254,8 @@ class clsOpenTBS extends clsTbsZip {
 					}
 				}
 			}
+			
+			
 
 		}
 
@@ -313,6 +318,15 @@ class clsOpenTBS extends clsTbsZip {
 		} elseif ($ope==='delcol') {
 			$this->TbsDeleteColumns($Txt, $Value, $PrmLst, $PosBeg, $PosEnd);
 			return false; // prevent TBS from merging the field
+		} elseif ($ope==='mergecell') {
+			if (isset($Loc->PrevVal)) {
+				if ($Value==$Loc->PrevVal) {
+					$Value = '<w:vMerge w:val="continue"/>';
+				} else {
+					$Loc->PrevVal = $Value;
+					$Value = '<w:vMerge w:val="restart"/>';
+				}
+			}
 		}
 	}
 
@@ -541,6 +555,22 @@ class clsOpenTBS extends clsTbsZip {
 			}
 			
 		}
+
+	}
+
+	// Initialize template information
+	function TbsInitArchive() {
+
+		$TBS =& $this->TBS;
+
+		$TBS->OtbsCurrFile = false;
+
+		$this->TbsStoreLst = array();
+		$this->TbsCurrIdx = false;
+		$this->TbsNoField = array(); // idx of sub-file having no TBS fields
+		$this->OtbsSheetSlidesDelete = array();
+		$this->OtbsSheetSlidesVisible = array();
+		$this->IdxToCheck = array(); // index of files to check
 
 	}
 	
@@ -918,20 +948,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return false;
 	}
 
-	// Initialize template information
-	function TbsInitArchive() {
-
-		$TBS =& $this->TBS;
-
-		$TBS->OtbsCurrFile = false;
-
-		$this->TbsStoreLst = array();
-		$this->TbsCurrIdx = false;
-		$this->TbsNoField = array(); // idx of sub-file having no TBS fields
-		$this->OtbsSheetSlidesOk = false; // true or false
-
-	}
-	
 	function TbsPicFound($Txt, &$Loc, $IsCaching) {
 	// Found the relevent attribute for the image source, and then add parameter 'att' to the TBS locator.
 
@@ -1467,11 +1483,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	
 		$ext = $this->Ext_GetEquiv();
-		if (!$this->OtbsSheetSlidesOk) {
-			$this->OtbsSheetSlidesDelete = array();
-			$this->OtbsSheetSlidesVisible = array();
-			$this->OtbsSheetSlidesOk = true;
-		}
 
 		$ok = (boolean) $ok;
 		if (!is_array($id_or_name)) $id_or_name = array($id_or_name);
@@ -1493,6 +1504,25 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			}
 		}
 		
+	}
+	
+	/**
+	 * Prepare the locator for merging cells.
+	 */
+	function TbsPrepareMergeCell(&$Txt, &$Loc) {
+		if ($this->Ext_GetEquiv()=='docx') {
+			// Move the locator just inside the <w:tcPr> element.
+			// See OnOperation() for other process
+			$xml = clsTbsXmlLoc::FindStartTag($Txt, 'w:tcPr', $Loc->PosBeg, false); 
+			if ($xml) {
+				$Txt = substr_replace($Txt, '', $Loc->PosBeg, $Loc->PosEnd - $Loc->PosBeg + 1);
+				$Loc->PosBeg = $xml->PosEnd+1;
+				$Loc->PosEnd = $xml->PosEnd;
+				$Loc->PrevVal = '';
+				//$Loc->Prms['strconv']='no'; // should work
+				$Loc->ConvStr=false;
+			}
+		}
 	}
 	
 	function Ext_PrepareInfo($Ext=false) {
@@ -1887,7 +1917,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$Txt = $this->FileRead($FicIdx, true);
 			}
 			$o->FicTxt = $Txt;
-
+			$o->ParentIdx = $this->FileGetIdx($DocPath);
+			
 			$this->OpenXmlRid[$DocPath] = &$o;
 
 		} else {
@@ -1946,7 +1977,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$NewRid = 'opentbs'.(1+count($o->RidNew));
 		$o->RidLst[$Target] = $NewRid;
 		$o->RidNew[$Target] = $NewRid;
-
+		
+		$this->IdxToCheck[$o->ParentIdx] = $o->FicIdx;
+		
 		return $NewRid;
 
 	}
@@ -2493,12 +2526,25 @@ It needs to be completed when a new picture file extension is added in the docum
 
 	}
 	
+	/**
+	 * Clear Rid in the Rels file that are missing in the parent file.
+	 */
+	function OpenXML_ClearRels() {
+		// TODO
+		// foreach($this->IdxToCheck as $ParentIdx=>$RelsIdx) {
+		// }
+	}
+	
 	// Delete unreferenced images
 	function OpenMXL_GarbageCollector() {
 		
+		if ( (count($this->IdxToCheck)==0) && (count($this->OtbsSheetSlidesDelete)==0) ) return;
+		
+		// Key for Pictures
 		$pic_path = $this->ExtInfo['pic_path'];
 		$pic_path_len = strlen($pic_path);
 		
+		// Key for Rels
 		$rels_ext = '.rels';
 		$rels_ext_len = strlen($rels_ext);
 
@@ -2797,7 +2843,6 @@ It needs to be completed when a new picture file extension is added in the docum
 	// Actally delete, display of hide sheet marked for this operations.
 	function MsExcel_SheetDeleteAndDisplay() {
 
-		if (!$this->OtbsSheetSlidesOk) return;
 		if ( (count($this->OtbsSheetSlidesDelete)==0) && (count($this->OtbsSheetSlidesVisible)==0) ) return;
 
 		$this->MsExcel_SheetInit();
@@ -3016,7 +3061,6 @@ It needs to be completed when a new picture file extension is added in the docum
 	// Actually delete slides in the Presentation
 	function MsPowerpoint_SlideDelete() {
 		
-		if (!$this->OtbsSheetSlidesOk) return;
 		if ( (count($this->OtbsSheetSlidesDelete)==0) && (count($this->OtbsSheetSlidesVisible)==0) ) return;
 
 		$this->MsPowerpoint_InitSlideLst();
@@ -3606,7 +3650,6 @@ It needs to be completed when a new picture file extension is added in the docum
 	// Actally delete hide or display Sheets and Slides in a ODS or ODP
 	function OpenDoc_SheetSlides_DeleteAndDisplay($sheet) {
 
-		if (!$this->OtbsSheetSlidesOk) return;
 		if ( (count($this->OtbsSheetSlidesDelete)==0) && (count($this->OtbsSheetSlidesVisible)==0) ) return;
 
 		$this->OpenDoc_SheetSlides_Init($sheet, true);
