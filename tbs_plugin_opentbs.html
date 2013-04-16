@@ -70,8 +70,8 @@ ul {
 
 <body>
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.8.0, 2012-04-10, by Skrol29<br />
-  help file modified on 2012-04-10</div>
+<div>version 1.8.0, 2012-04-17, by Skrol29<br />
+  help file modified on 2012-04-17</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -85,7 +85,7 @@ ul {
       <li>4.5. <a href="#chart">Change data of series in charts</a></li>
       <li>4.6. <a href="#pic">Change pictures in the document</a></li>
       <li>4.7. <a href="#cells">Merging data in spreadsheet cells</a></li>
-      <li>4.8. <a href="#delcol">Delete columns in tables</a></li>
+      <li>4.8. <a href="#col">Delete or merge columns in tables</a></li>
       <li>4.9. <a href="#modify_contents">Manual modification in the contents</a></li>
       <li>4.10. <a href="#modify_files">Manual modification of files in the archive</a></li>
       <li>4.11. <a href="#misc">Miscellaneous</a></li>
@@ -528,9 +528,10 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
     <td><span class="smallcode">ope=xlsxNum</span> + percentage format on the cell</td>
   </tr>
 </table>
-<h3><a name="delcol" id="modify3"></a>4.8. Delete columns in a table</h3>
+<h3><a name="col" id="modify3"></a>4.8. Delete or merge columns in a table</h3>
 <p><span class="versioning">This feature is  supported since OpenTBS version 1.8.0</span>.</p>
-<p>Enables you to delete the columns you want in any table of an Ms Word Document. It doesn't work for LibreOffice for now.</p>
+<h5>Delete columns in a table</h5>
+<p>Parameter &quot;<span class="smallcode">ope=delcol</span>&quot; enables you to delete the columns you want in any table of an Ms Word Document. It doesn't work for LibreOffice for now.</p>
 <p> You have to put a TBS field anywhere inside the table with the following parameters:</p>
 <ul>
   <li> <span class="template">ope</span> = delcol</li>
@@ -538,13 +539,25 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
   <li> <span class="template">colshift</span> = (optional) if parameter &quot;colnum&quot; has only on value then &quot;colshift&quot; extends the number of columns to delete to the left of to the rigth.</li>
 </ul>
 <p> Both parameters &quot;colnum&quot; and &quot;colshift&quot; can contain  [val] and [var] fields. When the TBS field is merged, the specified columns will be deleted and the TBS field is erased.</p>
-<h5>  Examples:</h5>
+<div class="shift">
+<h5>Examples:</h5>
 <ul>
   <li><span class="template">[onload;ope=delcol;colnum=2,4,6]</span> =&gt; will delete columns {2,5,6}</li>
   <li> <span class="template">[onload;ope=delcol;colnum=2;colshift=2]</span> =&gt; will delete columns {2,3,4}</li>
   <li> <span class="template">[onload;ope=delcol;colnum=2;colshift=-1]</span> =&gt; will delete columns {1,2}</li>
   <li><span class="template">[onload.col_to_delete;ope=delcol;colnum=[val];colshift=2]</span> =&gt; will delete 3 colmuns staring to column number $col_to_delete</li>
 </ul>
+</div>
+<h5>Merge columns in a table</h5>
+<p>Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; enables you to merge cells vertically in a table of an Ms Word Document. It doesn't work for LibreOffice for now.</p>
+<p>This can work only for a block merged on the rows of the table. Note that the TBS field with &quot;ope=mergecell&quot; does not display any value, it only produces the merge.</p>
+<div class="shift">
+  <h5>Example:</h5>
+  <ul>
+    <li><span class="template">[b.rank;block=tbs:row][b.rank;ope=mergecell]</span> =&gt; This will display the colmun rank and alos merge the cells vertically depending on the rank.</li>
+  </ul>
+</div>
+<p>&nbsp;</p>
 <h3><a name="modify_contents" id="modify2"></a>4.9. Manual modification in the contents</h3>
 <p><span class="versioning">The following commands are supported since OpenTBS version 1.7.0</span>:</p>
 <table border="0" cellspacing="1" cellpadding="0">
@@ -782,7 +795,7 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
-<h3>version 1.8.0, on 2013-04-10</h3>
+<h3>version 1.8.0, on 2013-04-17</h3>
 <ul>
   <li>new feature: automatically cleans up spelling in PPTX templates (such information may 
   deconstruct the TBS tags). This feature can be disabled.</li>
@@ -790,6 +803,7 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
   <li>new feature: merging a chart from its title.</li>
   <li>new parameter &quot;<span class="smallcode">tagpos</span>&quot; to define the position of the TBS tag realtively to the image (when using &quot;<span class="smallcode">ope=changepic</span>&quot;).</li>
   <li>new parameter &quot;<span class="smallcode">delcol</span>&quot; to delete columns in  tables.</li>
+  <li>new parameter &quot;<span class="smallcode">mergecell</span>&quot; to merge cells in  tables.</li>
   <li>enhancement: merging charts is also available for LibreOffice documents</li>
   <li>enhancement: when using &quot;<span class="smallcode">ope=changepic</span>&quot;, default value of parameter &quot;<span class="smallcode">default</span>&quot; is now &quot;<span class="smallcode">current</span>&quot;.</li>
   <li>enhancement: delete unused pictures.</li>
