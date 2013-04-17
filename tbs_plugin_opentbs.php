@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.0-beta-2013-04-17
+ * @version 1.8.0-beta-2013-04-18
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -72,7 +72,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
 		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
-		$this->Version = '1.8.0-beta-2013-04-17';
+		$this->Version = '1.8.0-beta-2013-04-18';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -319,11 +319,11 @@ class clsOpenTBS extends clsTbsZip {
 			$this->TbsDeleteColumns($Txt, $Value, $PrmLst, $PosBeg, $PosEnd);
 			return false; // prevent TBS from merging the field
 		} elseif ($ope==='mergecell') {
-			if (isset($Loc->PrevVal)) {
-				if ($Value==$Loc->PrevVal) {
+			if (isset($this->PrevVals[$Loc->FullName])) {
+				if ($Value==$this->PrevVals[$Loc->FullName]) {
 					$Value = '<w:vMerge w:val="continue"/>';
 				} else {
-					$Loc->PrevVal = $Value;
+					$this->PrevVals[$Loc->FullName] = $Value;
 					$Value = '<w:vMerge w:val="restart"/>';
 				}
 			}
@@ -571,6 +571,7 @@ class clsOpenTBS extends clsTbsZip {
 		$this->OtbsSheetSlidesDelete = array();
 		$this->OtbsSheetSlidesVisible = array();
 		$this->IdxToCheck = array(); // index of files to check
+		$this->PrevVals = array(); // Previous values for 'mergecell' operator
 
 	}
 	
@@ -1518,7 +1519,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$Txt = substr_replace($Txt, '', $Loc->PosBeg, $Loc->PosEnd - $Loc->PosBeg + 1);
 				$Loc->PosBeg = $xml->PosEnd+1;
 				$Loc->PosEnd = $xml->PosEnd;
-				$Loc->PrevVal = '';
+				$this->PrevVals[$Loc->FullName] = ''; // the previous value is saved in property because they can be several sections, and thus several Loc for the same column.
 				//$Loc->Prms['strconv']='no'; // should work
 				$Loc->ConvStr=false;
 			}
