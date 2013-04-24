@@ -73,7 +73,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))   $TBS->OtbsGarbageCollector = true;
-		$this->Version = '1.8.0-beta-2013-04-18';
+		$this->Version = '1.8.0-beta-2013-04-24';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -163,7 +163,7 @@ class clsOpenTBS extends clsTbsZip {
 		}
 
 		// Commit special OpenXML features if any
-		// Must be done before TbsStoreLst because some REL file can also be in TbsStoreLst
+		// Must be done before the loop because some REL file can also be in TbsStoreLst
 		if ($this->OpenXmlRid!==false) $this->OpenXML_RidCommit($Debug);
 
 		// Merges all modified subfiles
@@ -183,7 +183,8 @@ class clsOpenTBS extends clsTbsZip {
 
 		if ($this->OpenXmlCTypes!==false) $this->OpenXML_CTypesCommit($Debug);    // Commit special OpenXML features if any
 		if ($this->OpenDocManif!==false)  $this->OpenDoc_ManifestCommit($Debug);  // Commit special OpenDocument features if any
-
+		if ($this->OpenXmlRid!==false) $this->OpenXML_RidCommit($Debug); // Must be done also after the loop because some Rid can be added with [onshow]
+		
 		if ($TBS->OtbsGarbageCollector) {
 			if ($this->Ext_GetType()=='openxml') $this->OpenMXL_GarbageCollector();
 		}
@@ -1995,6 +1996,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	function OpenXML_Rels_AddNew($DocPath, $TargetDir, $FileName) {
 
 		$o = $this->OpenXML_Rels_GetObj($DocPath, $TargetDir);
+
 		$Target = $TargetDir.$FileName;
 
 		if (isset($o->RidLst[$Target])) return $o->RidLst[$Target];
@@ -2013,7 +2015,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	// Save the changes in the rels files (works only for images for now)
 	function OpenXML_RidCommit ($Debug) {
 
-		foreach ($this->OpenXmlRid as $o) {
+		foreach ($this->OpenXmlRid as $doc => $o) {
 
 			if (count($o->RidNew)>0) {
 
@@ -2026,8 +2028,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 				// build the string to insert
 				$x = '';
-				foreach ($o->RidNew as $file=>$rid) {
-					$x .= '<Relationship Id="'.$rid.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="'.$file.'"/>';
+				foreach ($o->RidNew as $target=>$rid) {
+					$x .= '<Relationship Id="'.$rid.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="'.$target.'"/>';
 				}
 
 				// insert
@@ -2046,6 +2048,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 				// debug mode
 				if ($Debug) $this->DebugLst[$o->FicPath] = $Txt;
+				
+				$this->OpenXmlRid[$doc]->RidNew = array(); // Erase the Rid done because there can be another commit
 
 			}
 		}
