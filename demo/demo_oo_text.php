@@ -59,6 +59,9 @@ $NewValues = array( array('Category A','Category B','Category C','Category D'), 
 $NewLegend = "Updated series 2";
 $TBS->PlugIn(OPENTBS_CHART, $ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewLegend);
 
+// Delete comments
+$TBS->PlugIn(OPENTBS_DELETE_COMMENTS);
+
 
 // -----------------
 // Output the result

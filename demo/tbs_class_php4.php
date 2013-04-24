@@ -3,8 +3,8 @@
 ********************************************************
 TinyButStrong - Template Engine for Pro and Beginners
 ------------------------
-Version  : 3.8.0 for PHP 4
-Date     : 2012-03-04
+Version  : 3.8.2 for PHP 4
+Date     : 2013-04-20
 Web site : http://www.tinybutstrong.com
 Author   : http://www.tinybutstrong.com/onlyyou.html
 ********************************************************
@@ -75,7 +75,11 @@ var $OnDataPrmDone = array();
 var $OnDataPi = false;
 
 function DataAlert($Msg) {
-	return $this->TBS->meth_Misc_Alert('when merging block '.$this->TBS->_ChrOpen.$this->TBS->_CurrBlock.$this->TBS->_ChrClose,$Msg);
+	if (is_array($this->TBS->_CurrBlock)) {
+		return $this->TBS->meth_Misc_Alert('when merging block "'.implode(',',$this->TBS->_CurrBlock).'"',$Msg);
+	} else {
+		return $this->TBS->meth_Misc_Alert('when merging block '.$this->TBS->_ChrOpen.$this->TBS->_CurrBlock.$this->TBS->_ChrClose,$Msg);
+	}
 }
 
 function DataPrepare(&$SrcId,&$TBS) {
@@ -536,7 +540,7 @@ var $ObjectRef = false;
 var $NoErr = false;
 var $Assigned = array();
 // Undocumented (can change at any version)
-var $Version = '3.8.0';
+var $Version = '3.8.2';
 var $Charset = '';
 var $TurboBlock = true;
 var $VarPrefix = '';
@@ -651,6 +655,7 @@ function SetOption($o, $v=false, $d=false) {
 	if (array_key_exists('block_alias',$o)) clsTinyButStrong::f_Misc_UpdateArray($GLOBALS['_TBS_BlockAlias'], false, $o['block_alias'], $d);
 	if (array_key_exists('include_path',$o)) clsTinyButStrong::f_Misc_UpdateArray($this->IncludePath, true, $o['include_path'], $d);
 	if (isset($o['render'])) $this->Render = $o['render'];
+	if (isset($o['methods_allowed'])) $this->MethodsAllowed = $o['methods_allowed'];
 }
 
 function GetOption($o) {
@@ -680,6 +685,7 @@ function GetOption($o) {
 	}
 	if ($o==='include_path') return $this->IncludePath;
 	if ($o==='render') return $this->Render;
+	if ($o==='methods_allowed') return $this->MethodsAllowed;
 	return $this->meth_Misc_Alert('with GetOption() method','option \''.$o.'\' is not supported.');;
 }
 
@@ -1124,7 +1130,7 @@ function meth_Locator_SectionAddGrp(&$LocR,$BlockName,&$BDef,$Type,$Field,$Prm) 
 
 	// Save sub items in a structure near to Locator.
 	$Field0 = $Field;
-	if (strpos($Field,$this->_ChrOpen)===false) $Field = $this->_ChrOpen.$BlockName.'.'.$Field.$this->_ChrClose;
+	if (strpos($Field,$this->_ChrOpen)===false) $Field = $this->_ChrOpen.$BlockName.'.'.$Field.';tbstype='.$Prm.$this->_ChrClose; // tbstype is an internal parameter for catching errors
 	$BDef->FDef = &$this->meth_Locator_SectionNewBDef($LocR,$BlockName,$Field,array(),true);
 	if ($BDef->FDef->LocNbr==0)	$this->meth_Misc_Alert('Parameter '.$Prm,'The value \''.$Field0.'\' is unvalide for this parameter.');
 
@@ -1325,7 +1331,7 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 						}
 						$CurrVal = implode($Loc->OpePrm[$i],$CurrVal);
 					} else {
-						if (!is_string($CurrVal)) $CurrVal = (string)$CurrVal;
+						if (!is_string($CurrVal)) $CurrVal = @(string)$CurrVal;
 						$this->meth_Conv_Str($CurrVal,$Loc->ConvBr);
 					}
 				} else {
@@ -1340,12 +1346,12 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 			case  8: $CurrVal = ('0'+$CurrVal) / $Loc->OpePrm[$i]; break;
 			case  9; case 10:
 				if ($ope===9) {
-				 $CurrVal = (in_array((string)$CurrVal,$Loc->OpeMOK)) ? ' ' : '';
+				 $CurrVal = (in_array(@(string)$CurrVal,$Loc->OpeMOK)) ? ' ' : '';
 				} else {
-				 $CurrVal = (in_array((string)$CurrVal,$Loc->OpeMKO)) ? '' : ' ';
+				 $CurrVal = (in_array(@(string)$CurrVal,$Loc->OpeMKO)) ? '' : ' ';
 				} // no break here
 			case 11:
-				if ((string)$CurrVal==='') {
+				if (@(string)$CurrVal==='') {
 					if ($Loc->MagnetId===0) $Loc->MagnetId = $Loc->MSave;
 				} else {
 					if ($Loc->MagnetId!==0) {
@@ -1355,7 +1361,7 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 					$CurrVal = '';
 				}
 				break;
-			case 12: if ((string)$CurrVal===$Loc->OpePrm[$i]) $CurrVal = ''; break;
+			case 12: if (@(string)$CurrVal===$Loc->OpePrm[$i]) $CurrVal = ''; break;
 			case 13: $CurrVal = str_replace('*',$CurrVal,$Loc->OpePrm[$i]); break;
 			case 14: $CurrVal = clsTinyButStrong::f_Loc_AttBoolean($CurrVal, $Loc->PrmLst['atttrue'], $Loc->AttName); break;
 			case 15: $CurrVal = ($Loc->OpeUtf8) ? mb_convert_case($CurrVal, MB_CASE_UPPER, 'UTF-8') : strtoupper($CurrVal); break;
@@ -1368,12 +1374,12 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 
 	// String conversion or format
 	if ($Loc->ConvMode===1) { // Usual string conversion
-		if (!is_string($CurrVal)) $CurrVal =(string)$CurrVal; // (string) is faster than strval() and settype()
+		if (!is_string($CurrVal)) $CurrVal = @(string)$CurrVal; // (string) is faster than strval() and settype()
 		if ($Loc->ConvStr) $this->meth_Conv_Str($CurrVal,$Loc->ConvBr);
 	} elseif ($Loc->ConvMode===0) { // Format
 		$CurrVal = $this->meth_Misc_Format($CurrVal,$Loc->PrmLst);
 	} elseif ($Loc->ConvMode===2) { // Special string conversion
-		if (!is_string($CurrVal)) $CurrVal = (string)$CurrVal;
+		if (!is_string($CurrVal)) $CurrVal = @(string)$CurrVal;
 		if ($Loc->ConvStr) $this->meth_Conv_Str($CurrVal,$Loc->ConvBr);
 		if ($Loc->ConvEsc) $CurrVal = str_replace('\'','\'\'',$CurrVal);
 		if ($Loc->ConvWS) {
@@ -2663,7 +2669,13 @@ function meth_Misc_Alert($Src,$Msg,$NoErrMsg=false,$SrcType=false) {
 	}
 	if (!is_string($Src)) {
 		if ($SrcType===false) $SrcType='in field';
-		$Src = $SrcType.' '.$this->_ChrOpen.$Src->FullName.'...'.$this->_ChrClose;
+		if (isset($Src->PrmLst['tbstype'])) {
+			$Msg = 'Column \''.$Src->SubName.'\' is expected but missing in the current record.';
+			$Src = 'Parameter \''.$Src->PrmLst['tbstype'].'='.$Src->SubName.'\'';
+			$NoErrMsg = false;
+		} else {
+			$Src = $SrcType.' '.$this->_ChrOpen.$Src->FullName.'...'.$this->_ChrClose;
+		}
 	}
 	$x = $t[0].'TinyButStrong Error'.$t[1].' '.$Src.': '.$Msg;
 	if ($NoErrMsg) $x = $x.' '.$t[2].'This message can be cancelled using parameter \'noerr\'.'.$t[3];
@@ -3827,12 +3839,12 @@ function f_Loc_Enlarge_Find($Txt, $Tag, $Fct, $Pos, $Forward, $LevelStop) {
 function f_Loc_AttBoolean($CurrVal, $AttTrue, $AttName) {
 // Return the good value for a boolean attribute
 	if ($AttTrue===true) {
-		if ((string)$CurrVal==='') {
+		if (@(string)$CurrVal==='') {
 			return '';
 		} else {
 			return $AttName;
 		}
-	} elseif ((string)$CurrVal===$AttTrue) {
+	} elseif (@(string)$CurrVal===$AttTrue) {
 		return $AttName;
 	} else {
 		return '';
@@ -4275,5 +4287,3 @@ function f_Xml_FindNewLine(&$Txt,$PosBeg,$Forward,$IsRef) {
 }
 
 }
-
-?>
