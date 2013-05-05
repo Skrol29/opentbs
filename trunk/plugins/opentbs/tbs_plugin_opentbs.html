@@ -70,8 +70,8 @@ ul {
 
 <body>
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.8.0, 2012-04-17, by Skrol29<br />
-  help file modified on 2012-04-17</div>
+<div>version 1.8.0, 2012-05-04, by Skrol29<br />
+  help file modified on 2012-05-04</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -400,10 +400,10 @@ if the extension is not recognized then OpenTBS also try to find the document by
   </table>
   <h5>Please note:</h5>
   <ul>
-    <li>The type of the chart won't be changed.</li>
+    <li>The type of the chart cannot be changed.</li>
     <li>Some charts may not be recognized by this feature when the Word document is created with Word &lt;= 2007 or is saved with a Compatibility Mode. You have to convert charts to have it work (right on the chart and choose &quot;Convert&quot;). You can use the command <a href="#debugmode">OPENTBS_DEBUG_INFO</a> in order to view all unsupported   charts in the document.</li>
-  </ul>
-</div>
+    <li>Charts in worksheets (Ms Office and LibreOffice) are not supported. This is because such charts are linked to cells.</li>
+    <li>With Ms Office, charts must not be linked to external data (such as Excel worksheet). Otherwise the chart will be automatically actualized back the previous values when it will be opened.</li></ul></div>
 <h3><a name="pic" id="pic2"></a>4.6. Change pictures in the document</h3>
 <h4>&bull; Change an internal picture with a new one:</h4>
 <div class="shift"> <span class="versioning">(supported since OpenTBS version 1.4.0, for OpenOffice and MsOffice documents only)</span>
@@ -412,6 +412,7 @@ if the extension is not recognized then OpenTBS also try to find the document by
   <p> When a TBS field having <span class="smallcode">&quot;ope=changepic&quot;</span> is merged in the template, then OpenTBS will search the first picture located before the field (see parameter <span class="smallcode">tagpos</span> below for another position), and then it will change the picture assuming that the value of the field is the path for a picture file on the server. You don't have to care about loading the picture file in the document, OpenTBS will manage this for you.</p>
   <p>Note that parameter <span class="smallcode">&quot;ope=changepic&quot;</span> is  a feature provided by the OpenTBS plug-in, which extends the &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_ope">ope</a>&quot; parameter natively present with TBS.</p>
   <p>Instead of change a picture with a TBS tag, you can also do it manually at the PHP side using the command <a href="#modify_contents">OPENTBS_CHANGE_PICTURE</a>.</p>
+  <p>Note that since OpenTBS version 1.8.0, you can change picture in Ms Excel worksheet. You must put the TBS field inside the picture description and use parameter &quot;tagpos=inside&quot;. Before this version it was not possible to change pictures in an Ms Excel worksheet.</p>
   <p>    In order to 
     simplify your coding, they are other complementary optional parameters: </p>
   <table border="0" cellpadding="0" cellspacing="4" style="marging-left:20px;">
@@ -795,7 +796,7 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
-<h3>version 1.8.0, on 2013-04-17</h3>
+<h3>version 1.8.0, on 2013-05-04</h3>
 <ul>
   <li>new feature: automatically cleans up spelling in PPTX templates (such information may 
   deconstruct the TBS tags). This feature can be disabled.</li>
