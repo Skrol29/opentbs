@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.0
- * @date 2013-05-04
+ * @version 1.8.1-beta-2013-05-31
+ * @date 2013-05-31
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -87,13 +87,14 @@ class clsOpenTBS extends clsTbsZip {
 		if ($TBS->_Mode!=0) return; // If we are in subtemplate mode, the we use the TBS default process
 
 		// Decompose the file path. The syntaxe is 'Archive.ext#subfile', or 'Archive.ext', or '#subfile'
-		$p = strpos($File, '#');
-		if ($p===false) {
-			$FilePath = $File;
-			$SubFileLst = false;
-		} else {
-			$FilePath = substr($File,0,$p);
-			$SubFileLst = substr($File,$p+1);
+		$FilePath = $File;
+		$SubFileLst = false;
+		if (is_string($File)) {
+			$p = strpos($File, '#');
+			if ($p!==false) {
+				$FilePath = substr($File,0,$p);
+				$SubFileLst = substr($File,$p+1);
+			}
 		}
 
 		// Open the archive
@@ -101,7 +102,7 @@ class clsOpenTBS extends clsTbsZip {
 			$ok = @$this->Open($FilePath);  // Open the archive
 			if (!$ok) {
 				if ($this->ArchHnd===false) {
-					return $this->RaiseError("The template '".$FilePath."' cannot be found.");
+					return $this->RaiseError("The template '".$this->ArchFile."' cannot be found.");
 				} else {
 					return false;
 				}
@@ -134,7 +135,7 @@ class clsOpenTBS extends clsTbsZip {
 			$this->TbsLoadSubFileAsTemplate($SubFileLst);
 		}
 
-		if ($FilePath!=='') $TBS->_LastFile = $FilePath;
+		if ($FilePath!=='') $TBS->_LastFile = $this->ArchFile;
 
 		return false; // default LoadTemplate() process is not executed
 
@@ -1566,10 +1567,16 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		if ($Ext===false) {
 			// Get the extension of the current archive
-			$Ext = basename($this->ArchFile);
-			$p = strrpos($Ext, '.');
-			$Ext = ($p===false) ? '' : strtolower(substr($Ext, $p + 1));
+			if ($this->ArchIsStream) {
+				$Ext = '';
+			} else {
+				$Ext = basename($this->ArchFile);
+				$p = strrpos($Ext, '.');
+				$Ext = ($p===false) ? '' : strtolower(substr($Ext, $p + 1));
+			}
 			$Frm = $this->Ext_DeductFormat($Ext, true);
+			// Rename the name of the phantom file if it is a stream
+			if ( $this->ArchIsStream && (strlen($Ext)>2) ) $this->ArchFile = str_replace('.zip', '.'.$Ext, $this->ArchFile);
 		} else {
 			// The extension is forced
 			$Frm = $this->Ext_DeductFormat($Ext, false);
@@ -4563,8 +4570,8 @@ class clsTbsXmlLoc {
 }
 
 /*
-TbsZip version 2.13
-Date    : 2013-04-14
+TbsZip version 2.14-beta
+Date    : 2013-05-31
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class is independent from any other classes and has been originally created for the OpenTbs plug-in
@@ -4604,10 +4611,16 @@ class clsTbsZip {
 		if (!isset($this->Meth8Ok)) $this->__construct();  // for PHP 4 compatibility
 		$this->Close(); // close handle and init info
 		$this->Error = false;
-		$this->ArchFile = $ArchFile;
 		$this->ArchIsNew = false;
-		// open the file
-		$this->ArchHnd = fopen($ArchFile, 'rb', $UseIncludePath);
+		$this->ArchIsStream = (is_resource($ArchFile) && (get_resource_type($ArchFile)=='stream'));
+		if ($this->ArchIsStream) {
+			$this->ArchFile = 'from_stream.zip';
+			$this->ArchHnd = $ArchFile;
+		} else {
+			// open the file
+			$this->ArchFile = $ArchFile;
+			$this->ArchHnd = fopen($ArchFile, 'rb', $UseIncludePath);
+		}
 		$ok = !($this->ArchHnd===false);
 		if ($ok) $ok = $this->CentralDirRead();
 		return $ok;
