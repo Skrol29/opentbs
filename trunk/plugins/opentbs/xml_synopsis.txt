@@ -69,6 +69,24 @@ Table in a document:
   </table:table-row>
 </table:table>
 
+* Merging cells vertically:
+
+<table:table-cell table:number-rows-spanned="2" office:value-type="string">
+	<text:p>
+		<text:span> CONTENT OF THE CELL </text:span>
+	</text:p>
+</table:table-cell>
+
+
+* Merging cells horizontally:
+
+<table:table-cell table:number-columns-spanned="2" office:value-type="string">
+	<text:p>
+		<text:span> CONTENT OF THE CELL </text:span>
+	</text:p>
+</table:table-cell>
+
+
 Comments:
 ---------
 
@@ -292,6 +310,27 @@ Synopsis of a table inserted in a Word document:
 
 <w:p>...</w:p> 
 
+* Merging cells vertically:
+
+<w:tc> 
+	<w:tcPr>
+		<w:vMerge w:val="restart"/>  // marks the cell to start a new cell-merging
+		<w:vMerge w:val="continue"/> // marks the cell to continue the cell-mergin (the cell is merged with a previous one having "restart" or "continue")
+		<w:vMerge/> // same as above
+		// no <w:vMerge> entity means the cell is not merged. 
+	</w:tcPr>
+	...
+</w:tc>
+
+* Merging cells horizontally:
+
+<w:tc> 
+	<w:tcPr>
+		<w:gridSpan w:val="2"/> // It works like "colspan" in HTML.
+	</w:tcPr>
+	...
+</w:tc>
+	
 Headers and footers:
 --------------------
 
