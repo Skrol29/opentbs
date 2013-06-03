@@ -77,7 +77,12 @@ Table in a document:
 	</text:p>
 </table:table-cell>
 
+Cell that are not displayed because of vertical merging or horizontal mergin, are replaced with
+	<table:covered-table-cell/>
+But such entities seems to be optionnal: LibreOffice display correclty the table if they are ommited.
 
+Attributes  table:number-rows-spanned="1" seems to be supported and has no effect.
+	
 * Merging cells horizontally:
 
 <table:table-cell table:number-columns-spanned="2" office:value-type="string">
@@ -85,6 +90,7 @@ Table in a document:
 		<text:span> CONTENT OF THE CELL </text:span>
 	</text:p>
 </table:table-cell>
+<table:covered-table-cell/>
 
 
 Comments:

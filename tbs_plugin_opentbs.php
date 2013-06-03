@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.1-beta-2013-05-31
- * @date 2013-05-31
+ * @version 1.8.1-beta-2013-06-03
+ * @date 2013-06-03
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -4571,7 +4571,7 @@ class clsTbsXmlLoc {
 
 /*
 TbsZip version 2.14-beta
-Date    : 2013-05-31
+Date    : 2013-06-03
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class is independent from any other classes and has been originally created for the OpenTbs plug-in
@@ -5481,6 +5481,9 @@ class clsTbsZip {
 
 		if ($this->ArchIsNew) {
 			$Len = strlen($this->CdInfo['bin']);
+		} elseif ($this->ArchIsStream) {
+			$x = fstat($this->ArchHnd);
+			$Len = $x['size'];
 		} else {
 			$Len = filesize($this->ArchFile);
 		}
