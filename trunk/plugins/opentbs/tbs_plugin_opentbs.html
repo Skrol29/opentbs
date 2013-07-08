@@ -70,8 +70,8 @@ ul {
 
 <body>
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.8.0, 2012-05-04, by Skrol29<br />
-  help file modified on 2012-05-04</div>
+<div>version 1.8.1-beta, 2013-07-09, by Skrol29<br />
+  help file modified on 2013-07-09</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -144,6 +144,12 @@ if the extension is not recognized then OpenTBS also try to find the document by
 <h4>&bull; Load an archive without the automatic extension recognition:</h4>
 <div class="shift"><span class="versioning">(supported since OpenTBS version 1.1)</span>
   <div class="code">$TBS-&gt;LoadTemplate('document.odt#');</div>
+</div>
+<h4>&bull; Load an archive with a PHP file handle:</h4>
+<div class="shift"><span class="versioning">(supported since OpenTBS version 1.8.1)</span>
+  <div class="code">$handle = tmpfile();<br />
+    fwrite($handle, $binary_contents);<br />
+  $TBS-&gt;LoadTemplate($handle);</div>
 </div>
 <h4>&bull; Load an archive and one file stored in this archive:</h4>
 <div class="shift code">$TBS-&gt;LoadTemplate('document.odt#content.xml');</div>
@@ -796,6 +802,12 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
+<h3>version 1.8.1, on 2013-07-09</h3>
+<ul>
+  <li>new feature: the loaded template can be a PHP file handle.</li>
+  <li>enhancement: Ms Excel Sheets are now saved with explicit references for rows and cells, so merged templates are viewabled with Libre Office and other third viewers.</li>
+  <li>based on a TbsZip 2.14</li>
+</ul>
 <h3>version 1.8.0, on 2013-05-04</h3>
 <ul>
   <li>new feature: automatically cleans up spelling in PPTX templates (such information may 
