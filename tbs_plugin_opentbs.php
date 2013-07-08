@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.1-beta-2013-06-03
- * @date 2013-06-03
+ * @version 1.8.1-beta-2013-07-09
+ * @date 2013-07-09
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -72,9 +72,10 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsSpacePreserve))      $TBS->OtbsSpacePreserve = true;
 		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
 		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
+		if (!isset($TBS->OtbsMsExcelExplicitRef)) $TBS->OtbsMsExcelExplicitRef = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))   $TBS->OtbsGarbageCollector = true;
-		$this->Version = '1.8.0';
+		$this->Version = '1.8.1-beta-2013-07-09';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -163,7 +164,9 @@ class clsOpenTBS extends clsTbsZip {
 			case 'pptx': $this->MsPowerpoint_SlideDelete(); break;
 			case 'docx': $this->MsWord_RenumDocPr(); break;
 		}
-
+		
+		$explicitRef = ($TBS->OtbsMsExcelExplicitRef && ($this->Ext_GetEquiv()==='xlsx'));
+		
 		// Commit special OpenXML features if any
 		// Must be done before the loop because some REL file can also be in TbsStoreLst
 		if ($this->OpenXmlRid!==false) $this->OpenXML_RidCommit($Debug);
@@ -177,6 +180,7 @@ class clsOpenTBS extends clsTbsZip {
 			$TBS->OtbsCurrFile = $this->TbsGetFileName($idx); // usefull for TbsPicAdd()
 			$this->TbsCurrIdx = $idx; // usefull for debug mode
 			if ($TbsShow && $onshow) $TBS->Show(TBS_NOTHING);
+			if ($explicitRef) $this->MsExcel_ConvertToExplicit($TBS->Source);
 			if ($Debug) $this->DebugLst[$this->TbsGetFileName($idx)] = $TBS->Source;
 			$this->FileReplace($idx, $TBS->Source, TBSZIP_STRING, $TBS->OtbsAutoUncompress);
 		}
@@ -1911,6 +1915,20 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
+	 * Return the refrence of the cell, such as 'A10'.
+	 */
+	function Misc_CellRef($Col, $Row) {
+		$r = '';
+		$x = $Col-1;
+		do {
+			$c = ($x % 26);
+			$x = ($x - $c)/26;
+			$r .= chr(65 + $c); // chr(65)='A'
+		} while ($x>0);
+		return $r.$Row;
+	}
+	
+	/**
 	 * Return the path of the Rel file in the archive for a given XML document.
 	 * @param $DocPath      Full path of the sub-file in the archive
 	 */
@@ -2628,7 +2646,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	// convert tags $Tag which have a position (defined with attribute $Att) into relatives tags without attribute $Att. Missing tags are added as empty tags.
 		$item_num = 0;
 		$tag_len = strlen($Tag);
-		$missing = '<'.$Tag.' />';
+		$missing = '<'.$Tag.'/>';
 		$closing = '</'.$Tag.'>';
 		$p = 0;
 		while (($p=clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true, $p, true, true))!==false) {
@@ -2653,7 +2671,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					// delete the $Att attribute
 					$pp = $Loc->PrmPos[$Att];
 					$pp[3]--; //while ($Txt[$pp[3]]===' ') $pp[3]--; // external end of the attribute, may has an extra spaces
-					$x_p = $pp[0];
+					$x_p = $pp[0]-1; // we take out the space
 					$x_len = $pp[3] - $x_p +1;
 					$Txt = substr_replace($Txt, '', $x_p, $x_len);
 					$PosEnd = $PosEnd - $x_len;
@@ -2692,6 +2710,72 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	/**
+	 * Add the attribute in all <row> and <c> items, and delete empty items.
+	 */
+	function MsExcel_ConvertToExplicit(&$Txt) {
+		if (strpos($Txt, '<sheetData>')===false) return;
+		$this->MsExcel_ConvertToExplicit_Item($Txt, 'row', 'r', false);
+	}
+
+	/**
+	 * Add the attribute that gives the reference of the item.
+	 * Return the number of inserted attributes.
+	 */
+	function MsExcel_ConvertToExplicit_Item(&$Txt, $Tag, $Att, $CellRow) {
+
+		$tag_pc = strlen($Tag) + 1;
+		$rpl = '<'.$Tag.' '.$Att.'="';
+		$rpl_len = strlen($rpl);
+		$rpl_nbr = 0;
+		$p = 0;
+		$empty_first_pos = false;
+		$empty_nbr = 0;
+		$item_num = 0;
+		$rpl_nbr = 0;
+
+		while (($p=clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true, $p, true, true))!==false) {
+
+			$item_num++;
+			
+			if ($empty_first_pos===false) $empty_first_pos = $p;
+			
+			$p = $p + $tag_pc;
+			if (substr($Txt, $p, 1) == '/') {
+				// It's an empty item
+				$empty_nbr++;
+			} else {
+				// The item is not empty => relace attribute and delete the previus empty item in the same time
+				$ref = ($CellRow===false) ? $item_num : $this->Misc_CellRef($item_num, $CellRow);
+				$x = $rpl.$ref.'"';
+				$len = $p - $empty_first_pos;
+				$Txt = substr_replace($Txt, $x, $empty_first_pos, $len);
+				$rpl_nbr++;
+				
+				// If it's a row => search for cells
+				if ($CellRow===false) {
+					$loc = new clsTbsXmlLoc($Txt, $Tag, $p);
+					$loc->FindEndTag();
+					$src = $loc->GetSrc();
+					$nbr = $this->MsExcel_ConvertToExplicit_Item($src, 'c', 'r', $item_num);
+					if ($nbr>0) {
+						$loc->ReplaceSrc($src);
+					}
+					$p = $loc->PosEnd;
+				} else {
+					$p = $empty_first_pos + $tag_pc;
+				}
+				// Ini variables
+				$empty_nbr = 0;
+				$empty_first_pos = false;
+			}
+			
+		}
+		
+		return $rpl_nbr;
+
+	}
+	
 	function MsExcel_DeleteFormulaResults(&$Txt) {
 	// In order to refresh the formula results when the merged XLSX is opened, then we delete all <v> elements having a formula.
 		$c_close = '</c>';
@@ -4297,12 +4381,15 @@ class clsTbsXmlLoc {
 	var $Parent = false; // parent object
 
 	// Create an instance with the given parameters
-	function __construct(&$Txt, $Name, $PosBeg, $PosEnd, $SelfClosing = null, $Parent=false) {
+	function __construct(&$Txt, $Name, $PosBeg, $SelfClosing = null, $Parent=false) {
+	
+		$this->PosEnd = strpos($Txt, '>', $PosBeg);
+		if ($this->PosEnd===false) $this->PosEnd = strlen($Txt)-1; // should no happen but avoid errors
+	
 		$this->Txt = &$Txt;
 		$this->Name = $Name;
 		$this->PosBeg = $PosBeg;
-		$this->PosEnd = $PosEnd;
-		$this->pST_PosEnd = $PosEnd;
+		$this->pST_PosEnd = $this->PosEnd;
 		$this->SelfClosing = $SelfClosing;
 		$this->Parent = $Parent;
 	}
@@ -4474,10 +4561,7 @@ class clsTbsXmlLoc {
 		$PosBeg = clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true , $PosBeg, $Forward, true);
 		if ($PosBeg===false) return false;
 
-		$PosEnd = strpos($Txt, '>', $PosBeg);
-		if ($PosEnd===false) return false;
-
-		return new clsTbsXmlLoc($Txt, $Tag, $PosBeg, $PosEnd, null, $Parent);
+		return new clsTbsXmlLoc($Txt, $Tag, $PosBeg, null, $Parent);
 
 	}
 
@@ -4494,9 +4578,6 @@ class clsTbsXmlLoc {
 		}
 		if ($PosBeg===false) return false;
 
-		$PosEnd = strpos($Txt, '>', $PosBeg);
-		if ($PosEnd===false) return false;
-
 		// Read the actual tag name
 		$Tag = $TagPrefix;
 		$p = $PosBeg + $xl;
@@ -4510,7 +4591,7 @@ class clsTbsXmlLoc {
 			}
 		} while ($p!==false);
 
-		return new clsTbsXmlLoc($Txt, $Tag, $PosBeg, $PosEnd);
+		return new clsTbsXmlLoc($Txt, $Tag, $PosBeg);
 
 	}
 
@@ -4549,10 +4630,7 @@ class clsTbsXmlLoc {
 			if ($z==='<') $search = false;
 		} while ($search);
 
-		$PosEnd = strpos($Txt, '>', $p);
-		if ($PosEnd===false) return false;
-
-		return new clsTbsXmlLoc($Txt, '', $p, $PosEnd);
+		return new clsTbsXmlLoc($Txt, '', $p);
 
 	}
 
