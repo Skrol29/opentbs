@@ -14,7 +14,7 @@ $TBS->MergeBlock('cell1,cell2', 'num', 3);
 $TBS->MergeBlock('b2', $data);
 
 // Merge pictures of the current sheet
-$x_picture = 'pic_1523d.png';
+$x_picture = 'pic_1523d.gif';
 $TBS->PlugIn(OPENTBS_MERGE_SPECIAL_ITEMS);
 
 // Delete a sheet

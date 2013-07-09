@@ -1265,7 +1265,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$this->OpenDoc_ManifestChange($InternalPath,'');
 			} elseif ($Type==='openxml') {
 				// Microsoft Office document
-				$this->OpenXML_CTypesPrepare($InternalPath, '');
+				$this->OpenXML_CTypesPrepareExt($InternalPath, '');
 				$BackNbr = max(substr_count($TBS->OtbsCurrFile, '/') - 1, 0); // docx=>"media/img.png", xlsx & pptx=>"../media/img.png"
 				$TargetDir = str_repeat('../', $BackNbr).'media/';
 				$FileName = basename($InternalPath);
@@ -2083,24 +2083,47 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-	 * This function prepare information for editing the '[Content_Types].xml' file.
+	 * Initialize modifications in '[Content_Types].xml'.
+	 */
+	function OpenXML_CTypesInit() {
+		if ($this->OpenXmlCTypes===false){
+			$this->OpenXmlCTypes = array(
+				'Extension'=>array(),
+				'PartName'=>array()
+			);
+		}
+	}
+
+	/**
+	 * Prepare information for adding a content type for an extension.
 	 * It needs to be completed when a new picture file extension is added in the document.
 	 */
-	function OpenXML_CTypesPrepare($FileOrExt, $ct='') {
+	function OpenXML_CTypesPrepareExt($FileOrExt, $ct='') {
 
 		$p = strrpos($FileOrExt, '.');
 		$ext = ($p===false) ? $FileOrExt : substr($FileOrExt, $p+1);
 		$ext = strtolower($ext);
 
-		if ($this->OpenXmlCTypes===false) $this->OpenXmlCTypes = array();
-		if (isset($this->OpenXmlCTypes[$ext]) && ($this->OpenXmlCTypes[$ext]!=='') ) return;
+		$this->OpenXML_CTypesInit();
+		
+		$lst =& $this->OpenXmlCTypes['Extension'];
+		if (isset($lst[$ext]) && ($lst[$ext]!=='') ) return;
 
 		if (($ct==='') && isset($this->ExtInfo['pic_ext'][$ext])) $ct = 'image/'.$this->ExtInfo['pic_ext'][$ext];
 
-		$this->OpenXmlCTypes[$ext] = $ct;
+		$lst[$ext] = $ct;
 
 	}
 
+	/**
+	 * Delete a file in the declaration file.
+	 * @param $PartName : path of the file to delete
+	 */
+	function OpenXML_CTypesDeletePart($PartName) {
+		$this->OpenXML_CTypesInit();
+		$this->OpenXmlCTypes['PartName'][$PartName] = false;
+	}
+	
 	function OpenXML_CTypesCommit($Debug) {
 
 		$file = '[Content_Types].xml';
@@ -2111,8 +2134,22 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$Txt = $this->FileRead($idx, true);
 		}
 
+		$ok = false;
+		
+		// Delete PartNames
+		foreach ($this->OpenXmlCTypes['PartName'] as $part=>$val) {
+			if ($val===false) {
+				$loc = clsTbsXmlLoc::FindElementHavingAtt($Txt, 'PartName="'.$part.'"', 0);
+				if ($loc!==false) {
+					$loc->ReplaceSrc('');
+					$ok = true;
+				}
+			}
+		}		
+
+		// Add missing extensions
 		$x = '';
-		foreach ($this->OpenXmlCTypes as $ext=>$ct) {
+		foreach ($this->OpenXmlCTypes['Extension'] as $ext=>$ct) {
 			$p = strpos($Txt, ' Extension="'.$ext.'"');
 			if ($p===false) {
 				if ($ct==='') {
@@ -2122,14 +2159,16 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				}
 			}
 		}
-
-
 		if ($x!=='') {
-
 			$p = strpos($Txt, '</Types>'); // search position for insertion
 			if ($p===false) return $this->RaiseError("(OpenXML) closing tag </Types> not found in subfile ".$file);
 			$Txt = substr_replace($Txt, $x, $p ,0);
+			$ok = true;
+		}
 
+
+		if ($ok) {
+		echo $Txt;
 			// debug mode
 			if ($Debug) $this->DebugLst[$file] = $Txt;
 
@@ -2896,9 +2935,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$this->MsExcel_SheetsById = array(); // shorcut for ids
 		$this->MsExcel_SheetsByName = array(); // shorcut for names
 
-		$name = 'xl/workbook.xml';
-		$idx = $this->FileGetIdx($name);
-		$this->MsExcel_Sheets_FileId = $idx;
+		$idx = $this->FileGetIdx('xl/workbook.xml');
+		$this->MsExcel_Sheets_WrkBkIdx = $idx;
 		if ($idx===false) return;
 
 		$Txt = $this->TbsStoreGet($idx, 'SheetInfo'); // use the store, so the file will be available for editing if needed
@@ -2970,12 +3008,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ( (count($this->OtbsSheetSlidesDelete)==0) && (count($this->OtbsSheetSlidesVisible)==0) ) return;
 
 		$this->MsExcel_SheetInit();
-		$Txt = $this->TbsStoreGet($this->MsExcel_Sheets_FileId, 'Sheet Delete and Display');
+		$Txt = $this->TbsStoreGet($this->MsExcel_Sheets_WrkBkIdx, 'Sheet Delete and Display');
 
-		$close = '</table:table>';
-		$close_len = strlen($close);
-
-		$styles_to_edit = array();
 		$change = false;
 		$deleted = array();
 
@@ -2988,6 +3022,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				// Delete the sheet
 				$Txt = substr_replace($Txt, '', $loc->PosBeg, $loc->PosEnd - $loc->PosBeg +1);
 				$this->FileReplace($loc->xlsxTarget, false); // mark the target file to be deleted
+				$this->OpenXML_CTypesDeletePart('/'.$loc->xlsxTarget, false); // mark the Content-Type file to be modified
 				$change = true;
 				$deleted[$loc->PrmLst['sheetid']] = $loc->PrmLst['name'];
 				unset($this->OtbsSheetSlidesDelete[$name]);
@@ -3044,7 +3079,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$Txt = str_replace('<pivotCaches></pivotCaches>', '', $Txt); // can make Excel error, no problem with <definedNames>
 
 		// store the result
-		$this->TbsStorePut($this->MsExcel_Sheets_FileId, $Txt);
+		$this->TbsStorePut($this->MsExcel_Sheets_WrkBkIdx, $Txt);
 
 		$this->TbsSheetCheck();
 
