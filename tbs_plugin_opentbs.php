@@ -2168,7 +2168,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 
 		if ($ok) {
-		echo $Txt;
 			// debug mode
 			if ($Debug) $this->DebugLst[$file] = $Txt;
 
