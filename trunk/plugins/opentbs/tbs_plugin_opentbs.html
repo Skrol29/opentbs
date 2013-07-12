@@ -70,8 +70,8 @@ ul {
 
 <body>
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.8.1-beta, 2013-07-09, by Skrol29<br />
-  help file modified on 2013-07-09</div>
+<div>version 1.8.1-beta, 2013-07-13, by Skrol29<br />
+  help file modified on 2013-07-13</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -802,11 +802,12 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
-<h3>version 1.8.1, on 2013-07-09</h3>
+<h3>version 1.8.1, on 2013-07-13</h3>
 <ul>
   <li>new feature: the loaded template can be a PHP file handle.</li>
-  <li>enhancement: Ms Excel Sheets are now saved with explicit references for rows and cells, so merged templates are viewabled with Libre Office and other third viewers.</li>
-  <li>based on a TbsZip 2.14</li>
+  <li>enhancement: Ms Excel Sheets are now saved with explicit references for rows and cells, so merged templates are viewable with Libre Office and other third viewers.</li>
+  <li>fixed bug: A DOCX file could be corrupted when using &quot;block=tbs:page&quot; and  the last paragraph of the document has no text.</li>
+  <li>based on TbsZip 2.14</li>
 </ul>
 <h3>version 1.8.0, on 2013-05-04</h3>
 <ul>
@@ -830,7 +831,7 @@ If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS 
   <li>fixed bug: parameter &quot;<span class="smallcode">ope=changepic</span>&quot; did not work with <span class="smallcode">[onload]</span> fields in Ms Office.</li>
   <li>fixed bug: parameter &quot;<span class="smallcode">default=current</span>&quot; did not work when using MergeField() instead of MergeBlock().</li>
   <li>fixed bug: some tab may be deleted in the template (during the automatic cleanup process).</li>
-  <li>based on a TbsZip 2.13</li>
+  <li>based on  TbsZip 2.13</li>
   <li>requires TBS 3.8.0</li>
 </ul>
 <h3> version 1.7.6, on 2012-06-06</h3>
