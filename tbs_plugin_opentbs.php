@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.1-beta-2013-07-09
- * @date 2013-07-09
+ * @version 1.8.1-beta-2013-07-13
+ * @date 2013-07-13
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -75,7 +75,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsMsExcelExplicitRef)) $TBS->OtbsMsExcelExplicitRef = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))   $TBS->OtbsGarbageCollector = true;
-		$this->Version = '1.8.1-beta-2013-07-09';
+		$this->Version = '1.8.1-beta-2013-07-13';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -790,7 +790,7 @@ class clsOpenTBS extends clsTbsZip {
 
 		static $DebugInit = false;
 
-		if (DebugInit) return;
+		if ($DebugInit) return;
 		$DebugInit = true;
 
 		$nl = "\n";
@@ -3536,11 +3536,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ( ($loc1===false) && ($loc2===false) ) {
 			if ($Forward) {
 				// End of the last paragraph of the document.
-				// We don't use clsTbsXmlLoc because <w:p> elements can be embeded
-				$x = '</w:p>';
-				$p = strrpos($Txt, $x);
-				if ($p===false) return false;
-				return $p + strlen($x)-1;
+				// The <w:p> elements can be embeded, and it can be a single tag if it cnotains no text.
+				$loc = clsTbsXmlLoc::FindElement($Txt, 'w:p', strlen($Txt), false);
+				if ($loc===false) return false;
+				return $loc->PosEnd;
 			} else {
 				// start of the first paragraph of the document
 				$loc = clsTbsXmlLoc::FindStartTag($Txt, 'w:p', 0, true);
