@@ -441,13 +441,10 @@ class clsOpenTBS extends clsTbsZip {
 
 			// Only XLSX files have sheets in separated subfiles.
 			if ($this->Ext_GetEquiv()==='xlsx') {
-				$loc = $this->MsExcel_SheetGet($x1, $Cmd, true);
-				if ($loc==false) return;
-				if ($this->FileExists($loc->xlsxTarget)) {
-					$this->TbsLoadSubFileAsTemplate($loc->xlsxTarget);
-				} else {
-					return $this->RaiseError("($Cmd) sub-file '".$loc->xlsxTarget."' is not found inside the Workbook.");
-				}
+				$o = $this->MsExcel_SheetGet($x1);
+				if ($o===false) return;
+				if ($o->file===false) return $this->RaiseError("($Cmd) Error with sheet '$x1'. The corresponding XML subfile is not referenced.");
+				return $this->TbsLoadSubFileAsTemplate('xl/'.$o->file);
 			}
 			return true;
 
@@ -602,21 +599,21 @@ class clsOpenTBS extends clsTbsZip {
 	/**
 	 * Load one or several sub-files of the archive as the current template.
 	 * If a sub-template is loaded for the first time, then automatic merges and clean-up are performed.
-	 * @param $SubFileLst Can be a and index or a name or a file, or an array of such values.
+	 * Return true if the file is correctly loaded.
+	 * @param $SubFileLst Can be an index or a name or a file, or an array of such values.
 	 */
 	function TbsLoadSubFileAsTemplate($SubFileLst) {
 
 		if (!is_array($SubFileLst)) $SubFileLst = array($SubFileLst);
 
-		$this->TbsSwitchMode(true); // Configuration which prevents from other plug-ins when calling LoadTemplate()
-		$MergeAutoFields = $this->TbsMergeAutoFields();
-		$TBS =& $this->TBS;
+		$ok = true;
+		$TBS = false;
 
 		foreach ($SubFileLst as $SubFile) {
 
 			$idx = $this->FileGetIdx($SubFile);
 			if ($idx===false) {
-				$this->RaiseError('The file "'.$SubFile.'" is not found in the archive "'.$this->ArchFile.'".');
+				$ok = $this->RaiseError('Cannot load "'.$SubFile.'". The file is not found in the archive "'.$this->ArchFile.'".');
 			} elseif ($idx!==$this->TbsCurrIdx) {
 				// Save the current loaded subfile if any
 				$this->TbsStorePark();
@@ -624,6 +621,11 @@ class clsOpenTBS extends clsTbsZip {
 				if (!is_string($SubFile)) $SubFile = $this->TbsGetFileName($idx);
 				$this->TbsStoreLoad($idx, $SubFile);
 				if ($this->LastReadNotStored) {
+					if ($TBS===false) {
+						$this->TbsSwitchMode(true); // Configuration which prevents from other plug-ins when calling LoadTemplate()
+						$MergeAutoFields = $this->TbsMergeAutoFields();
+						$TBS =& $this->TBS;
+					}
 					if ($this->LastReadComp<=0) { // the contents is not compressed
 						if ($this->ExtInfo!==false) {
 							$i = $this->ExtInfo;
@@ -644,8 +646,10 @@ class clsOpenTBS extends clsTbsZip {
 
 		}
 
-		$this->TbsSwitchMode(false); // Reactivate default configuration
-
+		if ($TBS!==false) $this->TbsSwitchMode(false); // Reactivate default configuration
+		
+		return $ok;
+		
 	}
 
 	// Return true if automatic fields must be merged
@@ -2931,11 +2935,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ($this->MsExcel_Sheets!==false) return;
 
 		$this->MsExcel_Sheets = array();   // sheet info sorted by location
-		$this->MsExcel_SheetsById = array(); // shorcut for ids
-		$this->MsExcel_SheetsByName = array(); // shorcut for names
 
 		$idx = $this->FileGetIdx('xl/workbook.xml');
-		$this->MsExcel_Sheets_WrkBkIdx = $idx;
+		$this->MsExcel_Sheets_WkbIdx = $idx;
 		if ($idx===false) return;
 
 		$Txt = $this->TbsStoreGet($idx, 'SheetInfo'); // use the store, so the file will be available for editing if needed
@@ -2944,46 +2946,44 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		// scann sheet list
 		$p = 0;
-		$idx = 0;
+		$i = 0;
 		$rels = array();
-		while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, 'sheet', true, $p, true, false, true, true) ) {
-			if (isset($loc->PrmLst['sheetid'])) {
-				$id = $loc->PrmLst['sheetid']; // actual parameter is 'sheetId'
-				$this->MsExcel_Sheets[$idx] = $loc;
-				if (isset($loc->PrmLst['r:id'])) $rels[$loc->PrmLst['r:id']] = $idx;
-				$this->MsExcel_SheetsById[$id] =& $this->MsExcel_Sheets[$idx];
-				if (isset($loc->PrmLst['name'])) $this->MsExcel_SheetsByName[$loc->PrmLst['name']] =& $this->MsExcel_Sheets[$idx];
-				$idx++;
-			}
+		while ($loc=clsTbsXmlLoc::FindStartTag($Txt, 'sheet', $p, true) ) {
+			$o = (object) null;
+			$o->sheetId   = $loc->GetAttLazy('sheetId');
+			$o->rid   = $loc->GetAttLazy('r:id');
+			$o->name  = $loc->GetAttLazy('name');
+			$o->state = $loc->GetAttLazy('state');
+			$o->stateR = ($o->state===false) ? 'visible' : $o->state;
+			$o->file  = false;
+			$this->MsExcel_Sheets[$i] = $o;
+			$rels[$o->rid] =& $this->MsExcel_Sheets[$i]; 
+			$i++;
 			$p = $loc->PosEnd;
 		}
 
-		// retrieve sheet files
-		$Txt = $this->FileRead('xl/_rels/workbook.xml.rels');
+		// Retrieve Sheet files
+		$idx = $this->FileGetIdx('xl/_rels/workbook.xml.rels');
+		$this->MsExcel_Sheets_WkbRelsIdx = $idx;
+		$Txt = $this->FileRead($idx);
 		if ($Txt===false) return false;
 
 		$p = 0;
-		while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, 'Relationship', true, $p, true, false, true, false) ) {
-			if (isset($loc->PrmLst['id']) && isset($loc->PrmLst['target']) ) {
-				$rid = $loc->PrmLst['id'];
-				if (isset($rels[$rid])) $this->MsExcel_Sheets[$rels[$rid]]->xlsxTarget = 'xl/'.$loc->PrmLst['target'];
-			}
+		while ($loc=clsTbsXmlLoc::FindStartTag($Txt, 'Relationship', $p, true) ) {
+			$rid = $loc->GetAttLazy('Id');
+			if (isset($rels[$rid])) $rels[$rid]->file =  $loc->GetAttLazy('Target');
 			$p = $loc->PosEnd;
 		}
 
 	}
 
-	function MsExcel_SheetGet($IdOrName, $Caller, $CheckTarget=false) {
+	function MsExcel_SheetGet($IdOrName) {
 		$this->MsExcel_SheetInit();
-		if (isset($this->MsExcel_SheetsByName[$IdOrName])) {
-			$loc = $this->MsExcel_SheetsByName[$IdOrName];
-		} elseif (isset($this->MsExcel_SheetsById[$IdOrName])) {
-			$loc = $this->MsExcel_SheetsById[$IdOrName];
-		} else {
-			return $this->RaiseError("($Caller) The sheet '$IdOrName' is not found inside the Workbook. Try command OPENTBS_DEBUG_INFO to check all sheets inside the current Workbook.");
+		foreach($this->MsExcel_Sheets as $o) {
+			if ($o->name==$IdOrName) return $o;
+			if ($o->sheetId==$IdOrName) return $o;
 		}
-		if ($CheckTarget && (!isset($loc->xlsxTarget)) )  return $this->RaiseError("($Caller) Error with sheet '$IdOrName'. The corresponding XML subfile is not referenced.");
-		return $loc;
+		return $this->RaiseError("($Caller) The sheet '$IdOrName' is not found inside the Workbook. Try command OPENTBS_DEBUG_INFO to check all sheets inside the current Workbook.");
 	}
 
 	function MsExcel_SheetDebug($nl, $sep, $bull) {
@@ -2993,10 +2993,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		echo $nl;
 		echo $nl."Sheets in the Workbook:";
 		echo $nl."-----------------------";
-		foreach ($this->MsExcel_Sheets as $loc) {
-			$name = str_replace(array('&amp;','&quot;','&lt;','&gt;'), array('&','"','<','>'), $loc->PrmLst['name']);
-			echo $bull."id: ".$loc->PrmLst['sheetid'].", name: [".$name."]";
-			if (isset($loc->PrmLst['state'])) echo ", state: ".$loc->PrmLst['state'];
+		foreach ($this->MsExcel_Sheets as $o) {
+			$name = str_replace(array('&amp;','&quot;','&lt;','&gt;'), array('&','"','<','>'), $o->name);
+			echo $bull."id: ".$o->sheetId.", name: [".$name."], state: ".$o->stateR;
 		}
 
 	}
@@ -3007,90 +3006,120 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ( (count($this->OtbsSheetSlidesDelete)==0) && (count($this->OtbsSheetSlidesVisible)==0) ) return;
 
 		$this->MsExcel_SheetInit();
-		$Txt = $this->TbsStoreGet($this->MsExcel_Sheets_WrkBkIdx, 'Sheet Delete and Display');
-
+		
+		$WkbTxt = $this->TbsStoreGet($this->MsExcel_Sheets_WkbIdx, 'Sheet Delete and Display');
+		$WkbRelsTxt = false;
+		$nothing = false;
+		
 		$change = false;
-		$deleted = array();
+		$refToDel = array();
 
 		// process sheet in reverse order of their positions
-		for ($idx = count($this->MsExcel_Sheets) - 1; $idx>=0; $idx--) {
-			$loc = $this->MsExcel_Sheets[$idx];
-			$id = 'i:'.$loc->PrmLst['sheetid'];
-			$name = 'n:'.$loc->PrmLst['name']; // the value in the name attribute is XML protected
-			if ( isset($this->OtbsSheetSlidesDelete[$name]) || isset($this->OtbsSheetSlidesDelete[$id]) ) {
+		foreach ($this->MsExcel_Sheets as $o) {
+			$zid = 'i:'.$o->sheetId;
+			$zname = 'n:'.$o->name; // the value in the name attribute is XML protected
+			if ( isset($this->OtbsSheetSlidesDelete[$zname]) || isset($this->OtbsSheetSlidesDelete[$zid]) ) {
+				if ($WkbRelsTxt===false) {
+					$WkbRelsTxt = $this->TbsStoreGet($this->MsExcel_Sheets_WkbRelsIdx, 'Sheet Delete and Display');
+				}
 				// Delete the sheet
-				$Txt = substr_replace($Txt, '', $loc->PosBeg, $loc->PosEnd - $loc->PosBeg +1);
-				$this->FileReplace($loc->xlsxTarget, false); // mark the target file to be deleted
-				$this->OpenXML_CTypesDeletePart('/'.$loc->xlsxTarget, false); // mark the Content-Type file to be modified
+				$this->MsExcel_DeleteFile($o->file, $WkbRelsTxt, $o->rid, $WkbTxt);
 				$change = true;
-				$deleted[$loc->PrmLst['sheetid']] = $loc->PrmLst['name'];
-				unset($this->OtbsSheetSlidesDelete[$name]);
-				unset($this->OtbsSheetSlidesDelete[$id]);
-				unset($this->OtbsSheetSlidesVisible[$name]);
-				unset($this->OtbsSheetSlidesVisible[$id]);
-			} elseif ( isset($this->OtbsSheetSlidesVisible[$name]) || isset($this->OtbsSheetSlidesVisible[$id]) ) {
+				$ref1 = str_replace(array('&quot;','\''), array('"','\'\''), $o->name);
+				$ref2 = "'".$ref1."'";
+				$refToDel[] = $ref1;
+				$refToDel[] = $ref2;
+				unset($this->OtbsSheetSlidesDelete[$zname]);
+				unset($this->OtbsSheetSlidesDelete[$zid]);
+				unset($this->OtbsSheetSlidesVisible[$zname]);
+				unset($this->OtbsSheetSlidesVisible[$zid]);
+			} elseif ( isset($this->OtbsSheetSlidesVisible[$zname]) || isset($this->OtbsSheetSlidesVisible[$zid]) ) {
 				// Hide or display the sheet
-				$visible = (isset($this->OtbsSheetSlidesVisible[$name])) ? $this->OtbsSheetSlidesVisible[$name] : $this->OtbsSheetSlidesVisible[$id];
+				$visible = (isset($this->OtbsSheetSlidesVisible[$zname])) ? $this->OtbsSheetSlidesVisible[$zname] : $this->OtbsSheetSlidesVisible[$zid];
 				$state = ($visible) ? 'visible' : 'hidden';
-				if (!$visible) $change = true;
-				if (isset($loc->PrmLst['state'])) {
-					$pi = $loc->PrmPos['state'];
-					$Txt = substr_replace($Txt, $pi[4].$state.$pi[4], $pi[2], $pi[3]-$pi[2]);
-				} elseif(!$visible) {
-					// add the attribute
-					$Txt = substr_replace($Txt, 'state="hidden" ', $loc->PosBeg + strlen('<sheet '), 0);
+				if ($o->stateR!=$state) {
+					if (!$visible) $change = true;
+					$loc = clsTbsXmlLoc::FindStartTagHavingAtt($WkbTxt, 'r:id="'.$o->rid.'"', 0);
+					if ($loc!==false) $loc->ReplaceAtt('state', $state, true);
 				}
-				unset($this->OtbsSheetSlidesVisible[$name]);
-				unset($this->OtbsSheetSlidesVisible[$id]);
+				unset($this->OtbsSheetSlidesVisible[$zname]);
+				unset($this->OtbsSheetSlidesVisible[$zid]);
 			}
 		}
 
-		// if they are deleted or hidden sheet, then it could be the active sheet, so we delete the active tab information
-		// note: activeTab attribute seems to not be a sheet id
-		if ($change){
-			$x = ' activeTab="';
-			$p1 = strpos($Txt, $x);
-			if ($p1!==false) {
-				$p2 = strpos($Txt, '"', $p1 + strlen($x));
-				if ($p2!==false) {
-					$Txt = substr_replace($Txt, '', $p1, $p2 - $p1 +1);
-				}
-			}
+		// If they are deleted or hidden sheet, then it could be the active sheet, so we delete the active tab information
+		// Note: activeTab attribute seems to not be a sheet id, but rather a tab id.
+		if ($change) {
+			$loc = clsTbsXmlLoc::FindStartTag($WkbTxt, 'workbookView', 0);
+			if ($loc!==false) $loc->DeleteAtt('activeTab');
 		}
 
-		// delete <definedName> elements that refer to a deleted sheet
-		foreach ($deleted as $name) {
-			$name2 = str_replace(array('&quot;','\''), array('"','\'\''), $name);
-			do {
-				$p = strpos($Txt, "'".$name2."'");
-				if ($p!==false) {
-					$p2 = strpos($Txt, '>', $p);
-					$p1 = strrpos(substr($Txt, 0, $p), '<');
-					if ( ($p1!==false) && ($p2!==false) ) {
-						$Txt = substr_replace($Txt, '', $p1, $p2 - $p1 +1);
-					} else {
-						$p = false;
-					}
+		// Delete name of cells (<definedName>) that refer to a deleted sheet
+		foreach ($refToDel as $ref) {
+			// The name of the sheets is used in the reference, but with small changes
+			$p = 0;
+			while ( ($p = strpos($WkbTxt, '>'.$ref.'!', $p)) !==false ) {
+				$p2 = strpos($WkbTxt, '>', $p+1);
+				$p1 = strrpos(substr($WkbTxt, 0, $p), '<');
+				if ( ($p1!==false) && ($p2!==false) ) {
+					$WkbTxt = substr_replace($WkbTxt, '', $p1, $p2 - $p1 +1);
+				} else {
+					$p++;
 				}
-			} while ($p!==false);
+			}
 			//<pivotCaches><pivotCache cacheId="1" r:id="rId5"/></pivotCaches>
 		}
-		$Txt = str_replace('<pivotCaches></pivotCaches>', '', $Txt); // can make Excel error, no problem with <definedNames>
+		
+		// can make Excel error, no problem with <definedNames>
+		$WkbTxt = str_replace('<pivotCaches></pivotCaches>', '', $WkbTxt);
 
+		// see http://ankushbhatia.wordpress.com/2010/02/11/how-to-delete-a-worksheet-from-excel-using-open-xml-sdk-2-0/
+		// Delete the CalcChain file if any. Ms Excel display an error if this file contains bad referenced cells.
+		// But since the cells in this file may not all contain sheet id, it is better to delete the whole file (it is optional).
+		if (count($refToDel)>0) {
+			$this->MsExcel_DeleteFile('calcChain.xml', $WkbRelsTxt, false, $nothing);
+		}
+		
 		// store the result
-		$this->TbsStorePut($this->MsExcel_Sheets_WrkBkIdx, $Txt);
+		$this->TbsStorePut($this->MsExcel_Sheets_WkbIdx, $WkbTxt);
+		if ($WkbRelsTxt!==false) $this->TbsStorePut($this->MsExcel_Sheets_WkbRelsIdx, $WkbRelsTxt);
 
 		$this->TbsSheetCheck();
 
-		// see http://ankushbhatia.wordpress.com/2010/02/11/how-to-delete-a-worksheet-from-excel-using-open-xml-sdk-2-0/
-		if (count($deleted)>0) {
-			// Delete the CalcChain file if any. Ms Excel display an error if this file contains bad referenced cells. But since the cells in this file may not all contain sheet id, it is better to delete the whole file (it is optional).
-			$idx = $this->FileGetIdx('xl/calcChain.xml');
-			if ($idx!==false) $this->FileReplace($idx, false);
-		}
-
 	}
 
+	function MsExcel_DeleteFile($file, &$WkbRelsTxt, $rid, &$WkbTxt) {
+	
+		// Delete the file
+		$idx = $this->FileGetIdx('xl/'.$file);
+		if ($idx==false) return false;
+		$this->FileReplace($idx, false);
+
+		// Delete the Rels file if any
+		$relsFile = $this->OpenXML_Rels_GetPath('xl/'.$file);
+		$idx = $this->FileGetIdx($relsFile);
+		if ($idx!==false) $this->FileReplace($idx, false);
+		
+		// Delete in [Content_Types].xml
+		$this->OpenXML_CTypesDeletePart('/xl/'.$file, false);
+		
+		// Delete in workbook.xml.rels
+		if ($WkbRelsTxt!==false) {
+			$loc = clsTbsXmlLoc::FindElementHavingAtt($WkbRelsTxt, 'Target="'.$file.'"', 0);
+			if ($loc!==false) $loc->ReplaceSrc('');
+		}
+
+		// Delete in workbook.xml
+		if ($rid!=false) {
+			$loc = clsTbsXmlLoc::FindElementHavingAtt($WkbTxt, 'r:id="'.$rid.'"', 0);
+			if ($loc!==false) $loc->ReplaceSrc('');
+		}
+		
+		
+		
+		
+	}
+	
 	// Return the list of images in the current sheet
 	function MsExcel_GetDrawingLst() {
 
@@ -4441,6 +4470,13 @@ class clsTbsXmlLoc {
 		}
 		return false;
 	}
+	
+	function _ApplyDiffFromStart($Diff) {
+		$this->pST_PosEnd += $Diff;
+		$this->pST_Src = false;
+		if ($this->pET_PosBeg!==false) $this->pET_PosBeg += $Diff;
+		$this->PosEnd += $Diff;
+	}
 
 	// Return the outer len of the locator.
 	function GetLen() {
@@ -4460,9 +4496,9 @@ class clsTbsXmlLoc {
 		$this->Txt = substr_replace($this->Txt, $new, $this->PosBeg, $len);
 		$diff = strlen($new) - $len;
 		$this->PosEnd += $diff;
+		$this->pST_Src = false;
 		if ($new==='') {
 			$this->pST_PosBeg = false;
-			$this->pST_Src = false;
 			$this->pST_PosEnd = false;
 		} else {
 			$this->pST_PosEnd += $diff;
@@ -4515,23 +4551,36 @@ class clsTbsXmlLoc {
 		return substr($this->pST_Src, $z[0], $z[1]);
 	}
 
-	function ReplaceAtt($Att, $Value) {
-
-		$z = $this->_GetAttValPos($Att);
-		if ($z===false) return false;
+	function ReplaceAtt($Att, $Value, $AddIfMissing = false) {
 
 		$Value = ''.$Value;
+
+		$z = $this->_GetAttValPos($Att);
+		if ($z===false) {
+			if ($AddIfMissing) {
+				// Add the attribute
+				$Value = ' '.$Att.'="'.$Value.'"';
+				$z = array($this->pST_PosEnd - $this->PosBeg, 0);
+			} else {
+				return false;
+			}
+		}
+
 		$this->Txt = substr_replace($this->Txt, $Value, $this->PosBeg + $z[0], $z[1]);
 
 		// update info
-		$Diff = strlen($Value) - $z[1];
-		$this->pST_PosEnd += $Diff;
-		$this->PosEnd += $Diff;
-		if ($this->pET_PosBeg!==false) $this->pET_PosBeg += $Diff;
-		$this->pST_Src = false;
+		$this->_ApplyDiffFromStart(strlen($Value) - $z[1]);
 
 		return true;
 
+	}
+	
+	function DeleteAtt($Att) {
+		$z = $this->_GetAttValPos($Att);
+		if ($z===false) return false;
+		$this->Txt = substr_replace($this->Txt, '', $this->PosBeg + $z[2], $z[3]);
+		$this->_ApplyDiffFromStart( - $z[3]);
+		return true;
 	}
 
 	// Find the name of the element
