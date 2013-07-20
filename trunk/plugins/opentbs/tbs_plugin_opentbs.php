@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.1-beta-2013-07-14
- * @date 2013-07-14
+ * @version 1.8.1-beta-2013-07-20
+ * @date 2013-07-20
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -75,7 +75,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsMsExcelExplicitRef)) $TBS->OtbsMsExcelExplicitRef = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))   $TBS->OtbsGarbageCollector = true;
-		$this->Version = '1.8.1-beta-2013-07-14';
+		$this->Version = '1.8.1-beta-2013-07-20';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -1871,11 +1871,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 */
 	function Misc_CellRef($Col, $Row) {
 		$r = '';
-		$x = $Col-1;
+		$x = $Col;
 		do {
+			$x = $x - 1;
 			$c = ($x % 26);
 			$x = ($x - $c)/26;
-			$r .= chr(65 + $c); // chr(65)='A'
+			$r = chr(65 + $c) . $r; // chr(65)='A'
 		} while ($x>0);
 		return $r.$Row;
 	}
