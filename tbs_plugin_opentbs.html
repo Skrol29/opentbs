@@ -71,7 +71,7 @@ ul {
 <body>
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
 <div>version 1.8.1-beta, 2013-07-14, by Skrol29<br />
-  help file modified on 2013-07-14</div>
+  help file modified on 2013-08-20</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -433,7 +433,7 @@ if the extension is not recognized then OpenTBS also try to find the document by
         <p>          You can use &quot;<span class="smallcode">tagpos=inside</span>&quot; when you put the TBS field in the Description or Title of the image (LibreOffice/OpenOffice or Ms Office). </p>
         <ul>
           <li>This option won't work if you put the TBS tag inside the property Name of an image in LibreOffice/OpenOffice.</li>
-          <li> In Ms Word 2007, property Description and Title are supported but not available for editing, but you can use the URL or Toolipt of a Link on the image.</li>
+          <li> In Ms Word 2007, property Description and Title are supported but not available for editing, but you can use &quot;Alternative text&quot; (in the &quot;Web&quot; tab of the Size dialog box) , ot the URL, or the Toolipt of a Link on the image.</li>
           <li> In Ms Excel, you must use &quot;tagpos=inside&quot; because pictures are not saved in the sheet, they are not positioned relativelly to cells.</li>
         </ul>
       <p> <span class="versioning">Parameter tagpos is supported since OpenTBS version 1.8.0. Previsouly the TBS tag had to be placed  after the picture.</span></p></td>
@@ -621,7 +621,7 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
     )</td>
     <td valign="top"><p>Change one or several pictures in the current sub-file. This command does the same as the <a href="#pic">changepic</a> feature. The difference is that the command needs no TBS tags in the template.</p>
       <ul>
-        <li> <span class="smallcode">$PicRef</span> must be a string that is saved in the Title or the Description of the picture. If several pictures have the same key string then they are all replaced with the picture.</li>
+        <li> <span class="smallcode">$PicRef</span> must be a string that is saved in the Title or the Description of the picture. If several pictures have the same key string then they are all replaced with the picture. It won't work if you put the string reference tag inside the property Name of an image in LibreOffice/OpenOffice.  In Ms Word 2007, both properties Description and Title are supported but not available for editing, but you can use &quot;Alternative text&quot; (in the &quot;Web&quot; tab of the Size dialog box) , ot the URL, or the Toolipt of a Link on the image.</li>
         <li><span class="smallcode">$File</span> must be path for picture file that will be copied inside the document.      </li>
       </ul>
       <p>Example:<br />
