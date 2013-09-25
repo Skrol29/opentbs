@@ -4,6 +4,13 @@
 include_once('tbs_class.php'); // Load the TinyButStrong template engine
 include_once('../tbs_plugin_opentbs.php'); // Load the OpenTBS plugin
 
+// prevent from a PHP configuration problem when using mktime() and date()
+if (version_compare(PHP_VERSION,'5.1.0')>=0) {
+	if (ini_get('date.timezone')=='') {
+		date_default_timezone_set('UTC');
+	}
+}
+
 // Initalize the TBS instance
 $TBS = new clsTinyButStrong; // new instance of TBS
 $TBS->Plugin(TBS_INSTALL, OPENTBS_PLUGIN); // load the OpenTBS plugin
