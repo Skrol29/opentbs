@@ -64,7 +64,8 @@ Table in a document:
   <table:table-column ... />
   <table:table-row>
     <table:table-cell> ... </table:table-cell>
-    <table:table-cell> ... </table:table-cell>
+    <table:table-cell table:number-columns-spanned="2"> ... </table:table-cell>
+	<table:covered-table-cell/> // virtual column that is covered by the span
     <table:table-cell> ... </table:table-cell>
   </table:table-row>
 </table:table>

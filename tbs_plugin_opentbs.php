@@ -1550,10 +1550,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		$TBS = &$this->TBS;
-
+		$set_option = method_exists($TBS, 'SetOption');
+		
 		$i = false;
 		$block_alias = false;
-
+		
 		if (isset($GLOBAL['_OPENTBS_AutoExt'][$Ext])) {
 			// User defined information
 			$i = $GLOBAL['_OPENTBS_AutoExt'][$Ext];
@@ -1585,6 +1586,16 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				'tbs:drawitem' => array(&$this, 'OpenDoc_GetDraw'),
 				'tbs:listitem' => 'text:list-item', // ODT+ODP
 			);
+			if ($set_option) {
+				$TBS->SetOption('parallel_conf', 'table:table', 
+					array(
+						'ignore' => array('table:covered-table-cell', 'table:table-header-rows'),
+						'cols' => array('table:table-column' => 'table:number-columns-repeated'),
+						'rows' => array('table:table-row'),
+						'cells' => array('table:table-cell' => 'table:number-columns-spanned'),
+					)
+				);
+			}
 		} elseif ($Frm==='openxml') {
 			// Microsoft Office documents
 			$this->OpenXML_MapInit();
@@ -1604,12 +1615,23 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					'tbs:section' => array(&$this, 'MsWord_GetSection'),
 					'tbs:table' => 'w:tbl',
 					'tbs:row' => 'w:tr',
+					'tbs:cell' => 'w:tc',
 					'tbs:page' => array(&$this, 'MsWord_GetPage'),
 					'tbs:draw' => 'mc:AlternateContent',
 					'tbs:drawgroup' => 'mc:AlternateContent',
 					'tbs:drawitem' => 'wps:wsp',
 					'tbs:listitem' => 'w:p',
 				);  
+				if ($set_option) {
+					$TBS->SetOption('parallel_conf', 'w:tbl', 
+						array(
+							'ignore' => array('w:tblPr', 'w:tblGrid'),
+							'cols' => array('w:gridCol' => ''),
+							'rows' => array('w:tr'),
+							'cells' => array('w:tc' => ''), // <w:gridSpan w:val="2"/>
+						)
+					);
+				}
 			} elseif ( ($Ext==='xlsx') || ($Ext==='xlsm')) {
 				$i = array('br' => false, 'ctype' => $ctype . 'spreadsheetml.sheet', 'pic_path' => 'xl/media/');
 				$i['main'] = $this->OpenXML_MapGetMain('spreadsheetml.worksheet+xml', 'xl/worksheets/sheet1.xml');
@@ -1647,7 +1669,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$i['load'][] = $i['main']; // add to main file at the end of the files to load
 		}
 		  
-		if ( ($block_alias!==false) && method_exists($TBS, 'SetOption') ) $TBS->SetOption('block_alias', $block_alias);
+		if ($set_option && ($block_alias!==false)) $TBS->SetOption('block_alias', $block_alias);
 
 		$this->ExtInfo = $i;
 		if ($this->ExtEquiv===false) $this->ExtEquiv = $Ext;
