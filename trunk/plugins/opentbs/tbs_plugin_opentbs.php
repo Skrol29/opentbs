@@ -70,6 +70,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsAutoUncompress))     $TBS->OtbsAutoUncompress = $this->Meth8Ok;
 		if (!isset($TBS->OtbsConvertApostrophes)) $TBS->OtbsConvertApostrophes = true;
 		if (!isset($TBS->OtbsSpacePreserve))      $TBS->OtbsSpacePreserve = true;
+		if (!isset($TBS->OtbsClearWriter))        $TBS->OtbsClearWriter = true;
 		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
 		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsMsExcelExplicitRef)) $TBS->OtbsMsExcelExplicitRef = true;
@@ -590,6 +591,7 @@ class clsOpenTBS extends clsTbsZip {
 							$i = $this->ExtInfo;
 							$e = $this->ExtEquiv;
 							if (isset($i['rpl_what'])) $TBS->Source = str_replace($i['rpl_what'], $i['rpl_with'], $TBS->Source); // auto replace strings in the loaded file
+							if (($e==='odt') && $TBS->OtbsClearWriter) $this->OpenDoc_CleanRsID($TBS->Source);
 							if (($e==='docx') && $TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
 							if (($e==='pptx') && $TBS->OtbsClearMsPowerpoint) $this->MsPowerpoint_Clean($TBS->Source);
 							if (($e==='xlsx') && $TBS->OtbsMsExcelConsistent) {
@@ -1730,9 +1732,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		return false;
 	}
-
+	
+	/**
+	 * Delete all tags of the types given in the list.
+	 * @param {string} $Txt The text content to search into.
+	 * @param {array} $TagLst List of tag names to delete.
+	 * @param {boolean} $OnlyInner Set to true to keep the content inside the element. Set to false to delete the entire element. Default is false.
+	 */
 	function XML_DeleteElements(&$Txt, $TagLst, $OnlyInner=false) {
-	// Delete all tags of the types given in the list. In fact the entire element is deleted if it's an opening+closing tag.
 		$nbr_del = 0;
 		foreach ($TagLst as $tag) {
 			$t_open = '<'.$tag;
@@ -1811,11 +1818,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	/**
 	 * Delete attributes in an XML element. The XML element is located by $Pos.
-	 * @param string $Txt Text containing XML elements.
-	 * @param int    $Pos Start of the XML element.
-	 * @param array  $AttLst List of attributes to search an delete
-	 * @param array  $StrLst List of strings to search an delete
-	 * @return int The new end of the element.
+	 * @param {string} $Txt Text containing XML elements.
+	 * @param {int}    $Pos Start of the XML element.
+	 * @param {array}  $AttLst List of attributes to search and delete
+	 * @param {array}  $StrLst List of strings to search and delete
+	 * @return {int} The new end of the element.
 	 */
 	function XML_DeleteAttributes(&$Txt, $Pos, $AttLst, $StrLst)	{
 		$end = strpos($Txt, '>', $Pos); // end of the element
@@ -3703,6 +3710,40 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	// OpenOffice documents
 
+	function OpenDoc_CleanRsID(&$Txt) {
+	
+		// Get all style names about RSID for <span> elements
+		$styles = array();
+		$p = 0;
+		while ( ($el = clsTbsXmlLoc::FindStartTagHavingAtt($Txt, 'officeooo:rsid', $p)) !== false) {
+			// If the <style:text-properties> element has only this attribute then its length is 50.
+			if ($el->GetLen() < 60) {
+				if ($par = clsTbsXmlLoc::FindStartTag($Txt, 'style:style', $el->PosBeg, false)) {
+					if ($name = $par->GetAttLazy('style:name')) {
+						$styles[] = $name;
+					}
+				}
+			}
+			$p = $el->PosEnd;
+		}
+		
+		// Delete <text:span> elements
+		$xe = '</text:span>';
+		$xe_len = strlen($xe);
+		foreach ($styles as $name) {
+			$p = 0;
+			$x = '<text:span text:style-name="' . $name . '">';
+			$x_len = strlen($x);
+			while ( ($p = strpos($Txt, $x, $p)) !== false) {
+				$pe = strpos($Txt, $xe, $p);
+				$src = substr($Txt, $p + $x_len, $pe - $p - $x_len);
+				$Txt = substr_replace($Txt, $src, $p, $pe + $xe_len - $p);
+				$p = $p + strlen($src);
+			}
+		}
+	
+	}
+	
 	function OpenDoc_ManifestChange($Path, $Type) {
 	// Set $Type=false in order to mark the the manifest entry to be deleted.
 	// Video and sound files are not to be registered in the manifest since the contents is not saved in the document.
@@ -4502,7 +4543,7 @@ class clsTbsXmlLoc {
 
 	// Return an array of (val_pos, val_len, very_sart, very_len) of the attribute. Return false if the attribute is not found.
 	// Positions are relative to $this->PosBeg.
-	// This method is lazy because it assumes the attribute is separated by a space and its value is deleimited by double-quote.
+	// This method is lazy because it assumes the attribute is separated by a space and its value is delimited by double-quote.
 	function _GetAttValPos($Att) {
 		if ($this->pST_Src===false) $this->pST_Src = substr($this->Txt, $this->PosBeg, $this->pST_PosEnd - $this->PosBeg + 1 );
 		$a = ' '.$Att.'="';
@@ -4617,6 +4658,17 @@ class clsTbsXmlLoc {
 
 		return true;
 
+	}
+	
+	// Delete the element with or without the content.
+	function Delete($Contents=true) {
+		$this->FindEndTag();
+		if ($Contents || $this->SelfClosing) {
+			$this->ReplaceSrc('');
+		} else {
+			$inner = $this->GetInnerSrc();
+			$this->ReplaceSrc($inner);
+		}
 	}
 	
 	function DeleteAtt($Att) {
