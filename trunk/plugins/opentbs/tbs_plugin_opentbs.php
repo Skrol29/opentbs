@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.2-beta-2013-10-24
- * @date 2013-08-31
+ * @version 1.8.2-beta-2013-12-13
+ * @date 2013-12-13
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -76,7 +76,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsMsExcelExplicitRef)) $TBS->OtbsMsExcelExplicitRef = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))   $TBS->OtbsGarbageCollector = true;
-		$this->Version = '1.8.2-beta-2013-10-24';
+		$this->Version = '1.8.2-beta-2013-12-13';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -3827,66 +3827,68 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			'odsDate'=>'date',
 			'odsTime'=>'time',
 		);
-		$AttStr = 'office:value-type="string"';
-		$AttStr_len = strlen($AttStr);
+		
+		static $TypeLst = array(
+			'float' => array('attval' => 'office:value'),
+			'percentage' => array('attval' => 'office:value'),
+			'currency' => array('attval' => 'office:value', 'attcurr' => 'office:currency'),
+			'boolean' => array('attval' => 'office:boolean-value'),
+			'date' => array('attval' => 'office:date-value', 'frm' => 'yyyy-mm-ddThh:nn:ss'),
+			'time' => array('attval' => 'office:time-value', 'frm' => '"PT"hh"H"nn"M"ss"S"'),
+		);
 
 		if (!isset($OpeLst[$Ope])) return false;
 
-		$t0 = clsTinyButStrong::f_Xml_FindTagStart($Txt, 'table:table-cell', true, $Loc->PosBeg, false, true);
-		if ($t0===false) return false; // error in the XML structure
-
-		$te = strpos($Txt, '>', $t0);
-		if ( ($te===false) || ($te>$Loc->PosBeg) ) return false; // error in the XML structure
-
-		$len = $te - $t0 + 1;
-		$tag = substr($Txt, $t0, $len);
-
-		$p = strpos($tag, $AttStr);
-		if ($p===false) return false; // error: the cell was expected to have a string contents since it contains a TBS tag.
-
-		// replace the current string with blanck chars
+		$new_type = $OpeLst[$Ope];
+		$new_atts = $TypeLst[$new_type];
+		
+		$xLoc = clsTbsXmlLoc::FindStartTag($Txt, 'table:table-cell', $Loc->PosBeg, false);
+		if ($xLoc===false) return false; // error in the XML structure
+		
+		// Replace the current TBS field with blank chars
+		// This prevent from cases when the TBS field is not inside the cell (is this even possible ?)
 		$len = $Loc->PosEnd - $Loc->PosBeg + 1;
 		$Txt = substr_replace($Txt, str_repeat(' ',$len), $Loc->PosBeg, $len);
+		
+		$xLoc->switchToRelative();
+		
+		// Update attributes
+		$xLoc->DeleteAtt('calcext:value-type'); // new attribute in LibreOffice 4
+		$xLoc->ReplaceAtt('office:value-type', $new_type, true);
+		$xLoc->ReplaceAtt($new_atts['attval'], '[]', true); // [] are the new bounds of the TBS field
+		if (isset($new_atts['attcurr']) && isset($Loc->PrmLst['currency'])) $xLoc->ReplaceAtt('office:currency', $Loc->PrmLst['currency'], true);
 
-		// prepare special formating for the value
-		$type = $OpeLst[$Ope];
-		$att_new = 'office:value-type="'.$type.'"';
-		$newfrm = false;
-		switch ($type) {
-		case 'float':      $att_new .= ' office:value="[]"'; break;
-		case 'percentage': $att_new .= ' office:value="[]"'; break;
-		case 'currency':   $att_new .= ' office:value="[]"'; if (isset($Loc->PrmLst['currency'])) $att_new .= ' office:currency="'.$Loc->PrmLst['currency'].'"'; break;
-		case 'boolean':    $att_new .= ' office:boolean-value="[]"'; break;
-		case 'date':       $att_new .= ' office:date-value="[]"'; $newfrm = 'yyyy-mm-ddThh:nn:ss'; break;
-		case 'time';       $att_new .= ' office:time-value="[]"'; $newfrm = '"PT"hh"H"nn"M"ss"S"'; break;
+		// Delete contents
+		$xLocP = clsTbsXmlLoc::FindElement($xLoc, 'text:p', 0);
+		if ($xLocP!==false) {
+			$xLocP->Delete();
+			$xLocP->UpdateParent();
 		}
-
-		// replace the sring attribute with the new attribute
-		//$diff = strlen($att_new) - $AttStr_len;
-		$p_att = $t0 + $p;
-		$p_fld = $p_att + strpos($att_new, '['); // new position of the fields in $Txt
-		$Txt = substr_replace($Txt, $att_new, $p_att, $AttStr_len);
-
+		
 		// move the TBS field
-		$Loc->PosBeg = $p_fld;
-		$Loc->PosEnd = $p_fld +1;
+		$p_fld = strpos($xLoc->Txt, '[', 0); // new position of the fields in $Txt
 
+		$xLoc->switchToNormal();
+		
+		$Loc->PosBeg = $xLoc->PosBeg + $p_fld;
+		$Loc->PosEnd = $xLoc->PosBeg + $p_fld +1;
+		
 		if ($IsMerging) {
 			// the field is currently being merged
-			if ($type==='boolean') {
+			if ($new_type==='boolean') {
 				if ($Value) {
 					$Value = 'true';
 				} else {
 					$Value = 'false';
 				}
-			} elseif ($newfrm!==false) {
-				$prm = array('frm'=>$newfrm);
+			} elseif (isset($new_atts['frm'])) {
+				$prm = array('frm'=>$new_atts['frm']);
 				$Value = $this->TBS->meth_Misc_Format($Value,$prm);
 			}
 			$Loc->ConvStr = false;
 			$Loc->ConvProtect = false;
 		} else {
-			if ($newfrm!==false) $Loc->PrmLst['frm'] = $newfrm;
+			if (isset($new_atts['frm'])) $Loc->PrmLst['frm'] = $new_atts['frm'];
 		}
 
 	}
@@ -4527,6 +4529,11 @@ class clsTbsXmlLoc {
 
 	var $Parent = false; // parent object
 
+	// For relative mode
+	var $rel_Txt = false;
+	var $rel_PosBeg = false;
+	var $rel_Len = false;
+	
 	// Create an instance with the given parameters
 	function __construct(&$Txt, $Name, $PosBeg, $SelfClosing = null, $Parent=false) {
 	
@@ -4556,11 +4563,20 @@ class clsTbsXmlLoc {
 		return false;
 	}
 	
+	// Update positions when attributes of the start tag has been upated.
 	function _ApplyDiffFromStart($Diff) {
 		$this->pST_PosEnd += $Diff;
 		$this->pST_Src = false;
 		if ($this->pET_PosBeg!==false) $this->pET_PosBeg += $Diff;
 		$this->PosEnd += $Diff;
+	}
+	
+	// Update all positions.
+	function _ApplyDiffToAll($Diff) {
+		$this->PosBeg += $Diff;
+		$this->PosEnd += $Diff;
+		$this->pST_PosEnd += $Diff;
+		if ($this->pET_PosBeg!==false) $this->pET_PosBeg += $Diff;
 	}
 
 	// Return the outer len of the locator.
@@ -4585,8 +4601,10 @@ class clsTbsXmlLoc {
 		if ($new==='') {
 			$this->pST_PosBeg = false;
 			$this->pST_PosEnd = false;
+			$this->pET_PosBeg = false;
 		} else {
-			$this->pST_PosEnd += $diff;
+			$this->pST_PosEnd += $diff; // CAUTION: may be wrong if attributes has changed
+			if ($this->pET_PosBeg!==false) $this->pET_PosBeg += $diff; // CAUTION: right only if the tag name is the same
 		}
 	}
 
@@ -4719,6 +4737,34 @@ class clsTbsXmlLoc {
 		return true;
 	}
 
+	// Swith the locator to a realtive one that has no XML contents before and no XML contents after.
+	// Useful to save time in search and replace.
+	function switchToRelative() {
+		$this->FindEndTag();
+		// Save info
+		$this->rel_Txt = &$this->Txt;
+		$this->rel_PosBeg = $this->PosBeg;
+		$this->rel_Len = $this->GetLen();
+		// Change the univers
+		$src = $this->GetSrc();
+		$this->Txt = &$src;
+		// Change positions
+		$this->_ApplyDiffToAll(-$this->PosBeg);
+	}
+
+	// To use after switchToRelative(): save modificatin to the normal contents and update positions.
+	function switchToNormal() {
+		// Save info
+		$src = $this->GetSrc();
+		$this->Txt = &$this->rel_Txt;
+		$x = false;
+		$this->rel_Txt = &$x;
+		$this->Txt = substr_replace($this->Txt, $src, $this->rel_PosBeg, $this->rel_Len);
+		$this->_ApplyDiffToAll(+$this->rel_PosBeg);
+		$this->rel_PosBeg = false;
+		$this->rel_Len = false;
+	}
+	
 	/**
 	 * Search a start tag of an element in the TXT contents, and return an object if it is found.
 	 * Instead of a TXT content, it can be an object of the class. Thus, the object is linked to a copy
