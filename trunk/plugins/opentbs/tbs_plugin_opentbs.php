@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.2-beta-2013-12-13
- * @date 2013-12-13
+ * @version 1.8.2
+ * @date 2014-01-26
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -76,7 +76,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsMsExcelExplicitRef)) $TBS->OtbsMsExcelExplicitRef = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))   $TBS->OtbsGarbageCollector = true;
-		$this->Version = '1.8.2-beta-2013-12-13';
+		$this->Version = '1.8.2';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -592,7 +592,10 @@ class clsOpenTBS extends clsTbsZip {
 							$e = $this->ExtEquiv;
 							if (isset($i['rpl_what'])) $TBS->Source = str_replace($i['rpl_what'], $i['rpl_with'], $TBS->Source); // auto replace strings in the loaded file
 							if (($e==='odt') && $TBS->OtbsClearWriter) $this->OpenDoc_CleanRsID($TBS->Source);
-							if (($e==='docx') && $TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
+							if ($e==='docx') {
+								if ($TBS->OtbsSpacePreserve) $this->MsWord_CleanSpacePreserve($TBS->Source);
+								if ($TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
+							}
 							if (($e==='pptx') && $TBS->OtbsClearMsPowerpoint) $this->MsPowerpoint_Clean($TBS->Source);
 							if (($e==='xlsx') && $TBS->OtbsMsExcelConsistent) {
 								$this->MsExcel_DeleteFormulaResults($TBS->Source);
@@ -1589,8 +1592,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				'tbs:listitem' => 'text:list-item', // ODT+ODP
 			);
 			if ($set_option) {
-				$TBS->SetOption('parallel_conf', 'table:table', 
+				$TBS->SetOption('parallel_conf', 'tbs:table', 
 					array(
+						'parent' => 'table:table',
 						'ignore' => array('table:covered-table-cell', 'table:table-header-rows'),
 						'cols' => array('table:table-column' => 'table:number-columns-repeated'),
 						'rows' => array('table:table-row'),
@@ -1625,8 +1629,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					'tbs:listitem' => 'w:p',
 				);  
 				if ($set_option) {
-					$TBS->SetOption('parallel_conf', 'w:tbl', 
+					$TBS->SetOption('parallel_conf', 'tbs:table', 
 						array(
+							'parent' => 'w:tbl',
 							'ignore' => array('w:tblPr', 'w:tblGrid'),
 							'cols' => array('w:gridCol' => ''),
 							'rows' => array('w:tr'),
@@ -3360,7 +3365,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	// Cleaning tags in MsWord
-
 	function MsWord_Clean(&$Txt) {
 		$Txt = str_replace('<w:lastRenderedPageBreak/>', '', $Txt); // faster
 		$this->XML_DeleteElements($Txt, array('w:proofErr', 'w:noProof', 'w:lang', 'w:lastRenderedPageBreak'));
@@ -3517,24 +3521,27 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	/**
+	 * Prevent from the problem of missing spaces when calling ->MsWord_CleanRsID() or under certain merging circumstances.
+	 * Replace attribute xml:space="preserve" used in <w:t>, with the same attribute in <w:document>.
+	 * This trick works for MsWord 2007, 2010 but is undocumented. It may be desabled by default in a next version.
+	 * LibreOffice does ignore this attribute in both <w:t> and <w:document>.
+	 */
 	function MsWord_CleanSpacePreserve(&$Txt) {
-		// apply xml:space="preserve" by default for the entire document
-		// unfotunately, it doesn't work on headers (<w:hdr>) and footers (<w:ftr>)
-		$p = $this->XML_FoundTagStart($Txt, '<w:document', 0);
-		if ($p===false) return;
-		$pe = strpos($Txt, '>', $p);
-		$x = substr($Txt, $p, $pe-$p+1);
-		if (strpos($x, 'xml:space=')===false) {
-			// insert the default value
-			$Txt = substr_replace($Txt, ' xml:space="preserve"', $pe, 0);
-			$Txt = str_replace('<w:t xml:space="preserve">', '<w:t>', $Txt); // not obligatory but cleanner and save space
-		}
+		$XmlLoc = clsTbsXmlLoc::FindStartTag($Txt, 'w:document', 0);
+		if ($XmlLoc===false) return;
+		if ($XmlLoc->GetAttLazy('xml:space') === 'preserve') return;
+		
+		$Txt = str_replace(' xml:space="preserve"', '', $Txt); // not mendatory but cleanner and save space
+		$XmlLoc->ReplaceAtt('xml:space', 'preserve', true);
+
 	}
 
+	/**
+	 * Renumber attribute "id " of elements <wp:docPr> in order to ensure unicity.
+	 * Such elements are used in objects.
+	 */
 	function MsWord_RenumDocPr() {
-	/* Renumber attribute "id " of elements <wp:docPr> in order to ensure unicity.
-	   Such elements are used in objects.
-	*/
 
 		$file = $this->ExtInfo['main'];
 		$idx = $this->FileGetIdx($file);
