@@ -3,8 +3,8 @@
 ********************************************************
 TinyButStrong - Template Engine for Pro and Beginners
 ------------------------
-Version  : 3.9.0-beta-2013-10-32 for PHP 5
-Date     : 2013-10-32
+Version  : 3.9.0 for PHP 5
+Date     : 2014-01-26
 Web site : http://www.tinybutstrong.com
 Author   : http://www.tinybutstrong.com/onlyyou.html
 ********************************************************
@@ -536,7 +536,7 @@ public $Assigned = array();
 public $ExtendedMethods = array();
 public $ErrCount = 0;
 // Undocumented (can change at any version)
-public $Version = '3.9.0-beta-2013-10-32';
+public $Version = '3.9.0';
 public $Charset = '';
 public $TurboBlock = true;
 public $VarPrefix = '';
@@ -1046,28 +1046,31 @@ function &meth_Locator_SectionNewBDef(&$LocR,$BlockName,$Txt,$PrmLst,$Cache) {
 			if ($Loc->PosBeg>$PrevEnd) { // No embedding
 				if (isset($Loc->PrmLst['att'])) {
 					$LocSrc = substr($Txt,$Loc->PosBeg,$Loc->PosEnd-$Loc->PosBeg+1);
-					$this->f_Xml_AttFind($Txt,$Loc,true,$this->AttDelim);
-					if (isset($Loc->PrmLst['atttrue'])) {
-						$Loc->PrmLst['magnet'] = '#';
-						$Loc->PrmLst['ope'] = (isset($Loc->PrmLst['ope'])) ? $Loc->PrmLst['ope'].',attbool' : 'attbool';
-					}
-					$IsAtt = true;
-					if ($Loc->AttForward) {
-						$IsAMF = true;
-					} else {
-						if ($Loc->AttInsLen>0) {
-							for ($i=$LocNbr;$i>0;$i--) {
-								if ($LocLst[$i]->PosEnd>=$Loc->PosBeg) {
-									$NewIdx = $i;
-									$li = $LocLst[$i];
-									$li->PosBeg += $Loc->AttInsLen;
-									$li->PosEnd += $Loc->AttInsLen;
-									$LocLst[$i+1] = $li;
-								} else {
-									$i = 0;
+					if ($this->f_Xml_AttFind($Txt,$Loc,true,$this->AttDelim)) {
+						if (isset($Loc->PrmLst['atttrue'])) {
+							$Loc->PrmLst['magnet'] = '#';
+							$Loc->PrmLst['ope'] = (isset($Loc->PrmLst['ope'])) ? $Loc->PrmLst['ope'].',attbool' : 'attbool';
+						}
+						$IsAtt = true;
+						if ($Loc->AttForward) {
+							$IsAMF = true;
+						} else {
+							if ($Loc->AttInsLen>0) {
+								for ($i=$LocNbr;$i>0;$i--) {
+									if ($LocLst[$i]->PosEnd>=$Loc->PosBeg) {
+										$NewIdx = $i;
+										$li = $LocLst[$i];
+										$li->PosBeg += $Loc->AttInsLen;
+										$li->PosEnd += $Loc->AttInsLen;
+										$LocLst[$i+1] = $li;
+									} else {
+										$i = 0;
+									}
 								}
 							}
 						}
+					} else {
+						$this->meth_Misc_Alert('','TBS is not able to merge the field '.$LocSrc.' because the entity targeted by parameter \'att\' cannot be found.');
 					}
 					unset($Loc->PrmLst['att']);
 				}
@@ -1932,36 +1935,36 @@ function meth_Locator_FindBlockLst(&$Txt,$BlockName,$Pos,$SpePrm) {
 
 }
 
-function meth_Locator_FindParallel(&$Txt, $ZoneBeg, $ZoneEnd, $Parent) {
-	
+function meth_Locator_FindParallel(&$Txt, $ZoneBeg, $ZoneEnd, $ConfId) {
+
 	// Define configurations
 	global $_TBS_ParallelLst, $_TBS_BlockAlias;
-	
+
 	if (!isset($_TBS_ParallelLst)) $_TBS_ParallelLst = array();
-	
-	if (isset($_TBS_BlockAlias[$Parent])) $Parent = $_TBS_BlockAlias[$Parent];
-	
-	if ( ($Parent=='table')  && (!isset($_TBS_ParallelLst['table'])) ) {
-		$_TBS_ParallelLst['table'] = array(
+
+	if ( ($ConfId=='tbs:table')  && (!isset($_TBS_ParallelLst['tbs:table'])) ) {
+		$_TBS_ParallelLst['tbs:table'] = array(
+			'parent' => 'table',
 			'ignore' => array('!--', 'caption', 'thead', 'thbody', 'thfoot'),
-			'cols' => array('zcolumn' => 'zspan'),
+			'cols' => array(),
 			'rows' => array('tr'),
 			'cells' => array('td'=>'colspan', 'th'=>'colspan'),
 		);
 	}
-	
-	if (!isset($_TBS_ParallelLst[$Parent])) return $this->meth_Misc_Alert("Parallel", "The configuration for the entity '$Parent' is not found.");
-	
-	$conf = $_TBS_ParallelLst[$Parent];
-	
-	
+
+	if (!isset($_TBS_ParallelLst[$ConfId])) return $this->meth_Misc_Alert("Parallel", "The configuration '$ConfId' is not found.");
+
+	$conf = $_TBS_ParallelLst[$ConfId];
+
+	$Parent = $conf['parent'];
+
 	// Search parent bounds
 	$par_o = self::f_Xml_FindTag($Txt,$Parent,true ,$ZoneBeg,false,1,false);
 	if ($par_o===false) return $this->meth_Misc_Alert("Parallel", "The opening tag '$Parent' is not found.");
-	
+
 	$par_c = self::f_Xml_FindTag($Txt,$Parent,false,$ZoneBeg,true,-1,false);
 	if ($par_c===false) return $this->meth_Misc_Alert("Parallel", "The closing tag '$Parent' is not found.");
-	
+
 	$SrcPOffset = $par_o->PosEnd + 1;
 	$SrcP = substr($Txt, $SrcPOffset, $par_c->PosBeg - $SrcPOffset);
 
@@ -1975,7 +1978,7 @@ function meth_Locator_FindParallel(&$Txt, $ZoneBeg, $ZoneEnd, $Parent) {
 	$pCOe = false;
 	$p = false;
 	$Loc = new clsTbsLocator;
-	
+
 	$Rows  = array();
 	$RowIdx = 0;
 	$RefRow = false;
@@ -1983,10 +1986,10 @@ function meth_Locator_FindParallel(&$Txt, $ZoneBeg, $ZoneEnd, $Parent) {
 	$RefCellE = false;
 	
 	$RowType = array();
-	
+
 	// Loop on entities inside the parent entity
 	$PosR = 0;
-	
+
 	$mode_column = true;
 	$Cells = array();
 	$ColNum = 1;
@@ -1997,10 +2000,10 @@ function meth_Locator_FindParallel(&$Txt, $ZoneBeg, $ZoneEnd, $Parent) {
 
 		$pROe = strpos($SrcP, '>', $p) + 1;
 		$singleR = ($SrcP[$pROe-2] === '/');
-	
+
 		// If the tag is not a closing, a self-closing and has a name
 		if ($tagR!=='') {
-		
+
 			if (in_array($tagR, $conf['ignore'])) {
 				// This tag must be ignored
 				$PosR = $p;
@@ -2014,38 +2017,38 @@ function meth_Locator_FindParallel(&$Txt, $ZoneBeg, $ZoneEnd, $Parent) {
 				}
 				$att = $conf['cols'][$tagR];
 				$this->meth_Locator_FindParallelCol($SrcP, $PosR, $tagR, $pRO, $p, $SrcPOffset, $RowIdx, $ZoneBeg, $ZoneEnd, $att, $Loc, $Cells, $ColNum, $IsRef, $RefCellB, $RefCellE, $RefRow);
-				
+
 			} elseif (!$singleR) {
 
 				// Search the Row Closing tag
 				$locRE = self::f_Xml_FindTag($SrcP, $tagR, false, $pROe, true, -1, false);
 				if ($locRE===false) return $this->meth_Misc_Alert("Parallel", "The row closing tag is not found. (tagR=$tagR, p=$p, pROe=$pROe)");
-				
+
 				// Inner source
 				$SrcR = substr($SrcP, $pROe, $locRE->PosBeg - $pROe);
 				$SrcROffset = $SrcPOffset + $pROe;
-				
+
 				if (in_array($tagR, $conf['rows'])) {
-				
+
 					if ( $mode_column && isset($RowType['_column']) ) {
 						$Rows[$RowIdx] = array('tag'=>'_column', 'cells' => $Cells, 'isref' => $IsRef, 'count' => $RowType['_column']);
 						$RowIdx++;
 					}
-				
+
 					$mode_column = false;
-				
+
 					if (isset($RowType[$tagR])) {
 						$RowType[$tagR]++;
 					} else {
 						$RowType[$tagR] = 1;
 					}
-				
+
 					// Now we've got the row entity, we search for cell entities
 					$Cells = array();
 					$ColNum = 1;
 					$PosC = 0;
 					$IsRef = false;
-					
+
 					// Loop on Cell Opening tags
 					while (self::f_Xml_GetNextEntityName($SrcR, $PosC, $tagC, $pCO, $p)) {
 						if (isset($conf['cells'][$tagC]) ) {
@@ -2055,14 +2058,14 @@ function meth_Locator_FindParallel(&$Txt, $ZoneBeg, $ZoneEnd, $Parent) {
 							$PosC = $p;
 						}
 					}
-					
+
 					$Rows[$RowIdx] = array('tag'=>$tagR, 'cells' => $Cells, 'isref' => $IsRef, 'count' => $RowType[$tagR]);
 					$RowIdx++;
-					
+
 				}
-				
-				$PosR = $locRE->PosEnd; 	
-				
+
+				$PosR = $locRE->PosEnd; 
+
 			} else {
 				$PosR = $pROe;
 			}
@@ -2070,9 +2073,9 @@ function meth_Locator_FindParallel(&$Txt, $ZoneBeg, $ZoneEnd, $Parent) {
 			$PosR = $pROe;
 		}
 	}
-	
+
 	//return $Rows;
-	
+
 	$Blocks = array();
 	$rMax = count($Rows) -1;
 	foreach ($Rows as $r=>$Row) {
@@ -2094,9 +2097,9 @@ function meth_Locator_FindParallel(&$Txt, $ZoneBeg, $ZoneEnd, $Parent) {
 			return $this->meth_Misc_Alert("Parallel", "At row ".$Row['count']." having entity [".$Row['tag']."],the column $RefCellB is missing or is not the first in a set of spanned columns. (The block is defined from column $RefCellB to $RefCellE)");
 		}
 	}
-	
+
 	return $Blocks;
-	
+
 }
 
 function meth_Locator_FindParallelCol($SrcR, &$PosC, $tagC, $pCO, $p, $SrcROffset, $RowIdx, $ZoneBeg, $ZoneEnd, &$att, &$Loc, &$Cells, &$ColNum, &$IsRef, &$RefCellB, &$RefCellE, &$RefRow) {
@@ -2884,15 +2887,17 @@ function meth_Merge_AutoOn(&$Txt,$Name,$TplVar,$MergeVar) {
 					if (isset($LocA->PrmLst['parallel'])) {
 						// may return false if error
 						$parallel = $this->meth_Locator_FindParallel($Txt, $LocA->PosBeg, $LocA->PosEnd, $LocA->PrmLst['parallel']);
-					}
-					if ($parallel===false) {
-						$Txt = substr_replace($Txt,'',$FldPos,$FldLen);
-					} else {
-						// delete in reverse order
-						for ($r = count($parallel)-1 ; $r >= 0 ; $r--) {
-							$p = $parallel[$r];
-							$Txt = substr_replace($Txt,'',$p['PosBeg'],$p['PosEnd']-$p['PosBeg']+1);
+						if ($parallel===false) {
+							$Txt = substr_replace($Txt,'',$FldPos,$FldLen);
+						} else {
+							// delete in reverse order
+							for ($r = count($parallel)-1 ; $r >= 0 ; $r--) {
+								$p = $parallel[$r];
+								$Txt = substr_replace($Txt,'',$p['PosBeg'],$p['PosEnd']-$p['PosBeg']+1);
+							}
 						}
+					} else {
+						$Txt = substr_replace($Txt,'',$LocA->PosBeg,$LocA->PosEnd-$LocA->PosBeg+1);
 					}
 				} else {
 					// Merge the block as if it was a field
@@ -3415,8 +3420,8 @@ function meth_Misc_Format(&$Value,&$PrmLst) {
 		}
 		if ($Frm['PerCent']) $Value = $Value * 100;
 		$Value = number_format($Value,$Frm['DecNbr'],$Frm['DecSep'],$Frm['ThsSep']);
-		if ($Frm['ThsRpl']!==false) $Value = str_replace($Frm['ThsSep'], $Frm['ThsRpl'], $Value);
 		if ($Frm['Pad']!==false) $Value = str_pad($Value, $Frm['Pad'], '0', STR_PAD_LEFT);
+		if ($Frm['ThsRpl']!==false) $Value = str_replace($Frm['ThsSep'], $Frm['ThsRpl'], $Value);
 		$Value = substr_replace($Frm['Str'],$Value,$Frm['Pos'],$Frm['Len']);
 		return $Value;
 		break;

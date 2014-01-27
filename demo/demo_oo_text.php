@@ -25,18 +25,10 @@ $yourname = trim(''.$yourname);
 if ($yourname=='') $yourname = "(no name)";
 
 // A recordset for merging tables
-$data = array(
-	array('rank'=> 'A', 'firstname'=>'Sandra' , 'name'=>'Hill'      , 'number'=>'1523d', 'score'=>200, 'email_1'=>'sh@tbs.com',  'email_2'=>'sandra@tbs.com',  'email_3'=>'s.hill@tbs.com'),
-	array('rank'=> 'A', 'firstname'=>'Roger'  , 'name'=>'Smith'     , 'number'=>'1234f', 'score'=>800, 'email_1'=>'rs@tbs.com',  'email_2'=>'robert@tbs.com',  'email_3'=>'r.smith@tbs.com' ),
-	array('rank'=> 'B', 'firstname'=>'William', 'name'=>'Mac Dowell', 'number'=>'5491y', 'score'=>130, 'email_1'=>'wmc@tbs.com', 'email_2'=>'william@tbs.com', 'email_3'=>'w.m.dowell@tbs.com' ),
-);
-
-$data2 = array(
-	array('name'=> 'Sandra',  'score_min'=>1, 'score_max'=>12 , 'duration_min'=>3, 'duration_max'=>7,  'moves_min'=>1,  'moves_max'=>18),
-	array('name'=> 'Roger',   'score_min'=>1, 'score_max'=>10 , 'duration_min'=>2, 'duration_max'=>8,  'moves_min'=>1,  'moves_max'=>16),
-	array('name'=> 'William', 'score_min'=>0, 'score_max'=>11 , 'duration_min'=>4, 'duration_max'=>12, 'moves_min'=>1,  'moves_max'=>25),
-);
-
+$data = array();
+$data[] = array('rank'=> 'A', 'firstname'=>'Sandra' , 'name'=>'Hill'      , 'number'=>'1523d', 'score'=>200, 'email_1'=>'sh@tbs.com',  'email_2'=>'sandra@tbs.com',  'email_3'=>'s.hill@tbs.com');
+$data[] = array('rank'=> 'A', 'firstname'=>'Roger'  , 'name'=>'Smith'     , 'number'=>'1234f', 'score'=>800, 'email_1'=>'rs@tbs.com',  'email_2'=>'robert@tbs.com',  'email_3'=>'r.smith@tbs.com' );
+$data[] = array('rank'=> 'B', 'firstname'=>'William', 'name'=>'Mac Dowell', 'number'=>'5491y', 'score'=>130, 'email_1'=>'wmc@tbs.com', 'email_2'=>'william@tbs.com', 'email_3'=>'w.m.dowell@tbs.com' );
 
 // Other single data items
 $x_num = 3152.456;
@@ -66,7 +58,6 @@ if (isset($_POST['debug']) && ($_POST['debug']=='show'))    $TBS->Plugin(OPENTBS
 
 // Merge data in the body of the document
 $TBS->MergeBlock('a,b', $data);
-$TBS->MergeBlock('c', $data2);
 
 // Change chart series
 $ChartNameOrNum = 'a nice chart'; // Title of the shape that embeds the chart
