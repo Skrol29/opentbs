@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.2
- * @date 2014-01-26
+ * @version 1.8.3
+ * @date 2014-02-02
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -76,7 +76,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsMsExcelExplicitRef)) $TBS->OtbsMsExcelExplicitRef = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))   $TBS->OtbsGarbageCollector = true;
-		$this->Version = '1.8.2';
+		$this->Version = '1.8.3';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -168,10 +168,6 @@ class clsOpenTBS extends clsTbsZip {
 		
 		$explicitRef = ($TBS->OtbsMsExcelExplicitRef && ($this->ExtEquiv==='xlsx'));
 		
-		// Commit special OpenXML features if any
-		// Must be done before the loop because some REL file can also be in TbsStoreLst
-		if ($this->OpenXmlRid!==false) $this->OpenXML_RidCommit($Debug);
-
 		// Merges all modified subfiles
 		$idx_lst = array_keys($this->TbsStoreLst);
 		foreach ($idx_lst as $idx) {
@@ -2032,11 +2028,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 			if (count($o->RidNew)>0) {
 
-				$store = isset($this->TbsStoreLst[$o->FicIdx]);
-				$Txt = ($store) ? $this->TbsStoreLst[$o->FicIdx]['src'] : $o->FicTxt;
-
 				// search position for insertion
-				$p = strpos($Txt, '</Relationships>');
+				$p = strpos($o->FicTxt, '</Relationships>');
 				if ($p===false) return $this->RaiseError("(OpenXML) closing tag </Relationships> not found in subfile ".$o->FicPath);
 
 				// build the string to insert
@@ -2046,21 +2039,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				}
 
 				// insert
-				$Txt = substr_replace($Txt, $x, $p, 0);
+				$o->FicTxt = substr_replace($o->FicTxt, $x, $p, 0);
 
 				// save
-				if ($store) {
-					$this->TbsStoreLst[$o->FicIdx]['src'] = $Txt;
+				if ($o->FicType==1) {
+					$this->FileAdd($o->FicPath, $o->FicTxt);
 				} else {
-					if ($o->FicType==1) {
-						$this->FileAdd($o->FicPath, $Txt);
-					} else {
-						$this->FileReplace($o->FicIdx, $Txt);
-					}
+					$this->FileReplace($o->FicIdx, $o->FicTxt);
 				}
 
 				// debug mode
-				if ($Debug) $this->DebugLst[$o->FicPath] = $Txt;
+				if ($Debug) $this->DebugLst[$o->FicPath] = $o->FicTxt;
 				
 				$this->OpenXmlRid[$doc]->RidNew = array(); // Erase the Rid done because there can be another commit
 
