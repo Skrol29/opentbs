@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.3
+ * @version 1.8.4-beta
  * @date 2014-02-02
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
@@ -65,18 +65,19 @@ class clsOpenTBS extends clsTbsZip {
 	function OnInstall() {
 		$TBS =& $this->TBS;
 
-		if (!isset($TBS->OtbsAutoLoad))           $TBS->OtbsAutoLoad = true; // TBS will load the subfile regarding to the extension of the archive
-		if (!isset($TBS->OtbsConvBr))             $TBS->OtbsConvBr = false;  // string for NewLine conversion
-		if (!isset($TBS->OtbsAutoUncompress))     $TBS->OtbsAutoUncompress = $this->Meth8Ok;
-		if (!isset($TBS->OtbsConvertApostrophes)) $TBS->OtbsConvertApostrophes = true;
-		if (!isset($TBS->OtbsSpacePreserve))      $TBS->OtbsSpacePreserve = true;
-		if (!isset($TBS->OtbsClearWriter))        $TBS->OtbsClearWriter = true;
-		if (!isset($TBS->OtbsClearMsWord))        $TBS->OtbsClearMsWord = true;
-		if (!isset($TBS->OtbsMsExcelConsistent))  $TBS->OtbsMsExcelConsistent = true;
-		if (!isset($TBS->OtbsMsExcelExplicitRef)) $TBS->OtbsMsExcelExplicitRef = true;
-		if (!isset($TBS->OtbsClearMsPowerpoint))  $TBS->OtbsClearMsPowerpoint = true;
-		if (!isset($TBS->OtbsGarbageCollector))   $TBS->OtbsGarbageCollector = true;
-		$this->Version = '1.8.3';
+		if (!isset($TBS->OtbsAutoLoad))             $TBS->OtbsAutoLoad = true; // TBS will load the subfile regarding to the extension of the archive
+		if (!isset($TBS->OtbsConvBr))               $TBS->OtbsConvBr = false;  // string for NewLine conversion
+		if (!isset($TBS->OtbsAutoUncompress))       $TBS->OtbsAutoUncompress = $this->Meth8Ok;
+		if (!isset($TBS->OtbsConvertApostrophes))   $TBS->OtbsConvertApostrophes = true;
+		if (!isset($TBS->OtbsSpacePreserve))        $TBS->OtbsSpacePreserve = true;
+		if (!isset($TBS->OtbsClearWriter))          $TBS->OtbsClearWriter = true;
+		if (!isset($TBS->OtbsClearMsWord))          $TBS->OtbsClearMsWord = true;
+		if (!isset($TBS->OtbsMsExcelConsistent))    $TBS->OtbsMsExcelConsistent = true;
+		if (!isset($TBS->OtbsMsExcelExplicitRef))   $TBS->OtbsMsExcelExplicitRef = true;
+		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
+		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
+		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
+		$this->Version = '1.8.4-beta-2014-03-12';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -295,12 +296,22 @@ class clsOpenTBS extends clsTbsZip {
 	function OnCommand($Cmd, $x1=null, $x2=null, $x3=null, $x4=null, $x5=null) {
 
 		if ($Cmd==OPENTBS_INFO) {
-
 			// Display debug information
 			echo "<strong>OpenTBS plugin Information</strong><br>\r\n";
 			return $this->Debug();
-
-		} elseif ($Cmd==OPENTBS_RESET) {
+		} elseif ( ($Cmd==OPENTBS_DEBUG_INFO) || ($Cmd==OPENTBS_DEBUG_CHART_LIST) ) {
+			if (is_null($x1)) $x1 = true;
+			$this->TbsDebug_Info($x1);
+			return true;
+		}
+		
+		// Check that a template is loaded
+		if ($this->ExtInfo===false) {
+			$this->RaiseError("Cannot execute the plug-in commande because no template is loaded.");
+			return true;
+		}
+		
+		if ($Cmd==OPENTBS_RESET) {
 
 			// Reset all mergings
 			$this->ArchCancelModif();
@@ -352,11 +363,6 @@ class clsOpenTBS extends clsTbsZip {
 			} else {
 				return $this->OpenXML_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend);
 			}
-
-		} elseif ( ($Cmd==OPENTBS_DEBUG_INFO) || ($Cmd==OPENTBS_DEBUG_CHART_LIST) ) {
-
-			if (is_null($x1)) $x1 = true;
-			$this->TbsDebug_Info($x1);
 
 		} elseif ($Cmd==OPENTBS_DEBUG_XML_SHOW) {
 
@@ -573,10 +579,11 @@ class clsOpenTBS extends clsTbsZip {
 			} elseif ($idx!==$this->TbsCurrIdx) {
 				// Save the current loaded subfile if any
 				$this->TbsStorePark();
-				// load the subfile
+				// Load the subfile
 				if (!is_string($SubFile)) $SubFile = $this->TbsGetFileName($idx);
 				$this->TbsStoreLoad($idx, $SubFile);
 				if ($this->LastReadNotStored) {
+					// Loaded for the first time
 					if ($TBS===false) {
 						$this->TbsSwitchMode(true); // Configuration which prevents from other plug-ins when calling LoadTemplate()
 						$MergeAutoFields = $this->TbsMergeAutoFields();
@@ -586,13 +593,23 @@ class clsOpenTBS extends clsTbsZip {
 						if ($this->ExtInfo!==false) {
 							$i = $this->ExtInfo;
 							$e = $this->ExtEquiv;
-							if (isset($i['rpl_what'])) $TBS->Source = str_replace($i['rpl_what'], $i['rpl_with'], $TBS->Source); // auto replace strings in the loaded file
-							if (($e==='odt') && $TBS->OtbsClearWriter) $this->OpenDoc_CleanRsID($TBS->Source);
+							if (isset($i['rpl_what'])) {
+								// auto replace strings in the loaded file
+								$TBS->Source = str_replace($i['rpl_what'], $i['rpl_with'], $TBS->Source);
+							}
+							if (($e==='odt') && $TBS->OtbsClearWriter) {
+								$this->OpenDoc_CleanRsID($TBS->Source);
+							}
+							if (($e==='ods') && $TBS->OtbsMsExcelCompatibility) {
+								$this->OpenDoc_MsExcelCompatibility($TBS->Source);
+							}
 							if ($e==='docx') {
 								if ($TBS->OtbsSpacePreserve) $this->MsWord_CleanSpacePreserve($TBS->Source);
 								if ($TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
 							}
-							if (($e==='pptx') && $TBS->OtbsClearMsPowerpoint) $this->MsPowerpoint_Clean($TBS->Source);
+							if (($e==='pptx') && $TBS->OtbsClearMsPowerpoint) {
+								$this->MsPowerpoint_Clean($TBS->Source);
+							}
 							if (($e==='xlsx') && $TBS->OtbsMsExcelConsistent) {
 								$this->MsExcel_DeleteFormulaResults($TBS->Source);
 								$this->MsExcel_ConvertToRelative($TBS->Source);
@@ -773,8 +790,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		echo $nl.'* OpenTBS version: '.$this->Version;
 		echo $nl.'* TinyButStrong version: '.$this->TBS->Version;
 		echo $nl.'* PHP version: '.PHP_VERSION;
-		echo $nl.'* Opened document: '.$this->ArchFile;
-		echo $nl.'* Activated features for document type: '.(($this->ExtEquiv===false) ? '(none)' : $this->ExtType.'/'.$this->ExtEquiv);
+		echo $nl.'* Opened document: '.(($this->ArchFile==='') ? '(none)' : $this->ArchFile);
+		echo $nl.'* Activated features for document type: '.(($this->ExtInfo===false) ? '(none)' : $this->ExtType.'/'.$this->ExtEquiv);
 
 	}
 
@@ -782,17 +799,21 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$this->TbsDebug_Init($nl, $sep, $bull, 'OPENTBS_DEBUG_INFO');
 
-		switch ($this->ExtEquiv) {
-		case 'docx': $this->MsWord_DocDebug($nl, $sep, $bull); break;
-		case 'xlsx': $this->MsExcel_SheetDebug($nl, $sep, $bull); break;
-		case 'pptx': $this->MsPowerpoint_SlideDebug($nl, $sep, $bull); break;
-		case 'ods' : $this->OpenDoc_SheetSlides_Debug(true, $nl, $sep, $bull); break;
-		case 'odp' : $this->OpenDoc_SheetSlides_Debug(false, $nl, $sep, $bull); break;
-		}
+		if ($this->ExtInfo !== false) {
+		
+			switch ($this->ExtEquiv) {
+			case 'docx': $this->MsWord_DocDebug($nl, $sep, $bull); break;
+			case 'xlsx': $this->MsExcel_SheetDebug($nl, $sep, $bull); break;
+			case 'pptx': $this->MsPowerpoint_SlideDebug($nl, $sep, $bull); break;
+			case 'ods' : $this->OpenDoc_SheetSlides_Debug(true, $nl, $sep, $bull); break;
+			case 'odp' : $this->OpenDoc_SheetSlides_Debug(false, $nl, $sep, $bull); break;
+			}
 
-		switch ($this->ExtType) {
-		case 'openxml': $this->OpenXML_ChartDebug($nl, $sep, $bull); break;
-		case 'odf':     $this->OpenDoc_ChartDebug($nl, $sep, $bull); break;
+			switch ($this->ExtType) {
+			case 'openxml': $this->OpenXML_ChartDebug($nl, $sep, $bull); break;
+			case 'odf':     $this->OpenDoc_ChartDebug($nl, $sep, $bull); break;
+			}
+			
 		}
 
 		if ($Exit) exit;
@@ -2923,18 +2944,18 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			if (is_numeric($Value)) {
 				// we have to check contents in order to avoid Excel errors. Note that value '0.00000000000000' makes an Excel error.
 				if (strpos($Value,'e')!==false) { // exponential representation
-					$Value = (float) $Value;
+					$Value = '' . ((float) $Value);
 				} elseif (strpos($Value,'x')!==false) { // hexa representation
-					$Value = hexdec($Value);
+					$Value = '' . hexdec($Value);
 				} elseif (strpos($Value,'.')===false) {
-					$Value = (integer) $Value;
+					// it is better to not convert because of big numbers
+					// intval(7580563123) returns -1009371469 in 32bits
 				} else {
-					$Value = (float) $Value;
+					$Value = '' . ((float) $Value);
 				}
 			} else {
 				$Value = '';
 			}
-			$Value = (is_numeric($Value)) ? ''.$Value : '';
 			break;
 		case 'tbs:bool':
 		case 'xlsxBool':
@@ -4503,6 +4524,74 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	/**
+	 * Fixes the problem of ODS files built with LibreOffice >= 4 and merged with OpenTBS and opened with Ms Excel.
+	 * The virtual number of row can exeed the maximum supported, then Excem raises an error when opening the file.
+	 * LibreOffice does not.
+	 */
+	function OpenDoc_MsExcelCompatibility(&$Txt) {
+		
+		$el_tbl  = 'table:table';
+		$el_col  = 'table:table-column'; // Column definition
+		$el_row  = 'table:table-row';
+		$el_cell = 'table:table-cell';
+		$att_rep_col = 'table:number-columns-repeated';
+		$att_rep_row = 'table:number-rows-repeated';
+		
+		$loop = array($att_rep_col, $att_rep_row);
+		
+		// Loop for deleting useless repeated columns
+		foreach ($loop as $att_rep) {
+		
+			$p = 0;
+			while ( $xml = clsTbsXmlLoc::FindElementHavingAtt($Txt, $att_rep, $p) ) {
+			
+				$xml->FindName();
+				$p = $xml->PosEnd;
+				
+				// Next tag (opening or closing)
+				$next = clsTbsXmlLoc::FindStartTagByPrefix($Txt, '', $p);
+				$next_name = $next->Name;
+				if ($next_name == '') {
+					$next_name = $next->GetSrc();
+					$next_name = substr($next_name, 1, strlen($next_name) -2);
+				};
+
+				$z_src = $next->GetSrc();
+				
+				//echo " * name=" . $xml->Name . ", suiv_name=$next_name, suiv_src=$z_src\n";
+
+				$delete = false;
+				
+				if ( ($xml->Name == $el_col) && ($xml->SelfClosing) ) {
+					if ( ($next_name == $el_row) || ($next_name == '/' . $el_tbl) ) {
+						$delete = true;
+					}
+				} elseif ( ($xml->Name == $el_cell) && ($xml->SelfClosing) ) {
+					if ( $next_name == '/' . $el_row ) {
+						$delete = true;
+					}
+				} elseif ($xml->Name == $el_row) {
+					if ( $next_name == '/' . $el_tbl ) {
+						$inner_src = '' . $xml->GetInnerSrc();
+						if (strpos($inner_src, '<') === false) {
+							$delete = true;
+						}
+					}
+				}
+				
+				if ($delete) {
+					//echo " * SUPPRIME " . $xml->Name . " : " . $xml->GetSrc() . "\n";
+					$p = $xml->PosBeg;
+					$xml->Delete();
+				}
+				
+			}
+
+		}
+		
+	}
+	
 }
 
 /**

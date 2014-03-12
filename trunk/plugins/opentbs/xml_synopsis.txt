@@ -343,7 +343,7 @@ Headers and footers:
 
 The headers and footers files are usually "word/header1.xml" and "word/footer1.xml".
 They exists only if header/footer is defined.
-There alos may have an optional couple of XML files for odd numbered pages (usually "word/header2.xml" and "word/footer2.xml").
+There also may have an optional couple of XML files for odd numbered pages (usually "word/header2.xml" and "word/footer2.xml").
 And an optional couple of files for the first page (usually "word/header3.xml" and "word/footer3.xml").
 
 The actual type and locations of Headers and Footers are defined in the main document "word/document.xml"
