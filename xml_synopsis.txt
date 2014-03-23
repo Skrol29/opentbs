@@ -125,9 +125,11 @@ Comments in ODT documents (OpenOffice Write):
   comment is just inserted there.
 </text:p>
 
-Headers and footers in a document:
+Headers and footers in a document :
 ----------------------------------
-Header's and footer's contents are saved in the "sytles.xml" file:
+
+ODT, ODS :
+Header and footer contents are saved in the "sytles.xml" file:
 You can choose for each page to hide or display the header and footer. Nevertheless, the contents is always the same for each page.
 
 <office:document-styles ...>
@@ -143,6 +145,19 @@ You can choose for each page to hide or display the header and footer. Neverthel
   </office:master-styles>
 </office:document-styles>
 
+ODP :
+Header and footer contents are saved in "content.xml" file.
+They are defined as available styles and can be use for any slide and for the whole document in the "handout" view which is a set of several slide.
+
+    <office:presentation>
+      <presentation:header-decl presentation:name="hdr1">Here is my header</presentation:header-decl>
+      <presentation:footer-decl presentation:name="ftr1">Here is my footer for slide 1</presentation:footer-decl>
+      <presentation:footer-decl presentation:name="ftr2">Here is my footer</presentation:footer-decl>
+      <draw:page ... presentation:use-footer-name="ftr1">
+	  </draw:page>
+	  ...
+	</office:presentation>
+	
 Charts:
 -------
 The location of the chart is defined in the main subfile "contents.xml":
@@ -263,7 +278,7 @@ The main file is usually "word/document.xml", but its actual location is defined
 Note: I've test to change the "word/document.xml" name in both the "[Content_Types].xml" file and the archive, but this makes 
   Word 2010 to be unable to open the document, saying it is corrupted.
 
-Synopsis of the main file "word/document.xml":
+Synopsis of the main file "word/document.xml": (DOCX)
 ----------------------------------------------
 <w:document>
   <w:body>
@@ -298,7 +313,7 @@ What are attributes "w:rsidR" and "w:rsidRPr" for?
 and each of its modification is marked with its RsID.
  More info: http://blogs.msdn.com/brian_jones/archive/2006/12/11/what-s-up-with-all-those-rsids.aspx
 
-Synopsis of a table inserted in a Word document:
+Synopsis of a table inserted in a Word document: (DOCX)
 ------------------------------------------------
 <w:p>...</w:p>
 
@@ -338,7 +353,7 @@ Synopsis of a table inserted in a Word document:
 	...
 </w:tc>
 	
-Headers and footers:
+Headers and footers: (DOCX)
 --------------------
 
 The headers and footers files are usually "word/header1.xml" and "word/footer1.xml".
@@ -355,6 +370,9 @@ Close to the bottom of it may have :
   <w:footerReference w:type="first" r:id="rId16"/>
   ...
 <w:sectPr>
+
+Relation files
+--------------
 
 The information related to r:id are stored in the file "word/_rels/document.xml.rels"
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
@@ -380,8 +398,8 @@ Example of header source:
   </w:p>
 </w:hdr>
 
-Comments, footnotes and endnotes:
-------------------------------------
+Comments, footnotes and endnotes: (DOCX)
+---------------------------------
 Like headers and footers, they are aslo saved in separated XML files.
 
 Bookmarks:
@@ -425,7 +443,7 @@ Textboxes:
   </w:r>
 </w:p>
 
-Charts:
+Charts: (DOCX)
 -------
 
 The first chart is saved under "word/charts/chart1.xml", and so on for the next ones.
@@ -482,7 +500,7 @@ Example of a series saved in the XML (the tags are different for an XY series):
 </c:ser>
 
 ****************************
-Ms Excel SpreadSheet (.XLSX)
+Ms Excel SpreadSheet (XLSX)
 ****************************
 
 An Excel workbook can have one or several worksheets. The contents of cells are saved in worksheets.
@@ -496,7 +514,7 @@ make difficulties  to merge an Excel sheet.
 
 All sheets of the workbook are listed in the file "xl/workbook.xml".
 
-Synopsis of a sheet file like "xl/worksheets/sheet1.xml":
+Synopsis of a sheet file like "xl/worksheets/sheet1.xml": (XLSX)
 ---------------------------------------------------------
 <worksheet>
   ...
@@ -520,7 +538,7 @@ Synopsis of a sheet file like "xl/worksheets/sheet1.xml":
   </sheetData>
 </worksheet>
 
-Synopsis of the Shared String file "xl/sharedStrings.xml":
+Synopsis of the Shared String file "xl/sharedStrings.xml": (XLSX)
 ----------------------------------------------------------
 <sst>
   <si>
@@ -528,8 +546,19 @@ Synopsis of the Shared String file "xl/sharedStrings.xml":
   </si>
 </sst>
 
+Headers and footers: (XLSX)
+--------------------
+Like as DCX, they can be up to 6 headers/footers for each sheet.
+Header and footers are saved in the sheet file.
+
+  <headerFooter differentOddEven="1" differentFirst="1">
+    <oddHeader>My header for odd page in this sheet</oddHeader>
+    <evenHeader>My header for even page in this sheet</evenHeader>
+    <firstHeader>My header for first page in this sheet</firstHeader>
+  </headerFooter>
+
 **********************************
-Ms PowerPoint Presentation (.PPTX)
+Ms PowerPoint Presentation (PPTX)
 **********************************
 
 Think to set all texts to "Tools\Language\No check" when you edit the PowerPoint presentation, otherwise some TBS fields
@@ -539,7 +568,7 @@ Slides are listed in the file 'ppt/_rels/presentation.xml.rels', where an intern
 
 The first slide is quite always corresponding to the file 'ppt/slides/slide1.xml'.
 
-Synopsis of a slide file like "ppt/slides/slide1.xml":
+Synopsis of a slide file like "ppt/slides/slide1.xml": (PPTX)
 ------------------------------------------------------
 
 <p:sld>
@@ -561,13 +590,19 @@ Synopsis of a slide file like "ppt/slides/slide1.xml":
   </p:cSld>
 </p:sld>
 
+Headers and footers: (PPTX)
+--------------------
+
+They can be headers and footers for each slide, and aslo an header and footer for the "handout" view, wich is a set of several slides.
+Header and footer of each slide is saved in the sub-file of the slide ("ppt/slides/slide1.xml" for example).
+Header and footer of the handout is saved ins ubs-file "ppt/handoutMasters/handoutMaster1.xml".
 
 ***************
 Pictures/Images
 ***************
 Binary contents is saved as a file in "word/media/" , "ppt/media/" , "xl/media/"
 
-Word :
+Word : (DOCX)
 ======
 image link saved into "word/_rels/document.xml.rels":
   <Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.png"/>
@@ -621,7 +656,7 @@ They are two ways to insert a picture.
   </wp:inline>
 </w:drawing>
 
-Powerpoint:
+Powerpoint: (PPTX)
 ===========
 
 (short synopsis)
@@ -643,7 +678,7 @@ Powerpoint:
 	</p:spPr>
 </p:pic>
 
-Excel:
+Excel: (XLSX)
 ======
 The presence of pictures in the sheet is mentioned with a single <drawing> entity at the bottom of the <worksheet> entity.
 The <drawing> entity has a reference to the file of all Rels of the sheet.
