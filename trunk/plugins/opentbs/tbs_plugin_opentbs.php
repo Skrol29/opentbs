@@ -52,6 +52,9 @@ define('OPENTBS_COUNT_SLIDES','clsOpenTBS.CountSlides');
 define('OPENTBS_SEARCH_IN_SLIDES','clsOpenTBS.SearchInSlides');
 define('OPENTBS_DISPLAY_SLIDES','clsOpenTBS.DisplaySlides');
 define('OPENTBS_DELETE_SLIDES','clsOpenTBS.DeleteSlides');
+define('OPENTBS_SELECT_HEADER_FOOTER','clsOpenTBS.SelectHeaderFooter');
+define('OPENTBS_SELECT_FILE','clsOpenTBS.SelectFile');
+define('OPENTBS_GET_HEADERS_FOOTERS','clsOpenTBS.SelectHeaderFooter');
 define('OPENTBS_FIRST',1);
 define('OPENTBS_GO',2);
 define('OPENTBS_ALL',4);
@@ -326,6 +329,15 @@ class clsOpenTBS extends clsTbsZip {
 			}
 			return true;
 
+		} elseif ($Cmd==OPENTBS_SELECT_FILE) {
+		
+			if ($this->FileExists($x1)) {
+				$this->TBS->LoadTemplate('#' . $x1);
+				return true;
+			} else {
+				return false;
+			}
+		
 		} elseif ( ($Cmd==OPENTBS_ADDFILE) || ($Cmd==OPENTBS_REPLACEFILE) ) {
 
 			// Add a new file or cancel a previous add
@@ -518,7 +530,41 @@ class clsOpenTBS extends clsTbsZip {
 			} else {
 				return false;
 			}
+			
+		} elseif ($Cmd==OPENTBS_GET_HEADERS_FOOTERS) {
 
+			$res = array();
+		
+			switch ($this->ExtEquiv) {
+			case 'docx':
+				//
+				$types = array('footer', 'header');
+				for ($i=1 ; $i<=3 ; $i++) {
+					foreach ($types as $t) {
+						$f = 'word/' . $t . $i . '.xml';
+						if ($this->FileExists($f)) {
+							$res[] = $f;
+						}
+					}
+				}
+				break;
+			case 'odt': case 'ods': case 'odp':
+				// Headers and footers are in the main file.
+				// Handout headers and footers for presentations (PPTX & ODP) are not supported for now.
+				if (isset($this->ExtInfo['main'])) $res[] = $this->ExtInfo['main'];
+			case 'xlsx':
+				$FileName = $this->CdFileLst[$this->TbsCurrIdx];
+				if ($this->MsExcel_SheetIsIt($FileName) ) $res[] = $FileName;
+				break;
+			case 'pptx': 
+				// Headers and footers are in the selected sheet or slide.
+				$FileName = $this->CdFileLst[$this->TbsCurrIdx];
+				if ($this->MsPowerpoint_SlideIsIt($FileName) ) $res[] = $FileName;
+				break;
+			}
+			
+			return $res;
+		
 		}
 
 	}
@@ -3038,6 +3084,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return $this->RaiseError("($Caller) The sheet '$IdOrName' is not found inside the Workbook. Try command OPENTBS_DEBUG_INFO to check all sheets inside the current Workbook.");
 	}
 
+	/**
+	 * Check if the file name is a subfile corresponding to a sheet.
+	 */
+	function MsExcel_SheetIsIt($FileName) {
+		$this->MsExcel_SheetInit();
+		foreach($this->MsExcel_Sheets as $o) {
+			if ($FileName=='xl/'.$o->file) return true;
+		}
+		return false;
+	}
+	
 	function MsExcel_SheetDebug($nl, $sep, $bull) {
 
 		$this->MsExcel_SheetInit();
@@ -3047,7 +3104,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		echo $nl."-----------------------";
 		foreach ($this->MsExcel_Sheets as $o) {
 			$name = str_replace(array('&amp;','&quot;','&lt;','&gt;'), array('&','"','<','>'), $o->name);
-			echo $bull."id: ".$o->sheetId.", name: [".$name."], state: ".$o->stateR;
+			echo $bull."id: ".$o->sheetId.", name: [".$name."], state: ".$o->stateR.", file: xl/".$o->file;
 		}
 
 	}
@@ -3272,7 +3329,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		echo $nl.count($this->OpenXmlSlideLst)." slide(s) in the Presentation:";
 		echo $nl."-------------------------------";
 		foreach ($this->OpenXmlSlideLst as $i => $s) {
-			echo $bull."#".($i+1).": ".basename($s['file']);
+			echo $bull."#".($i+1).": ".basename($s['file']).", file: " . $s['file'];
 		}
 		if (count($this->OpenXmlSlideLst)==0) echo $bull."(none)";
 
@@ -3374,6 +3431,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	function MsPowerpoint_SlideIsIt($FileName) {
+		$this->MsPowerpoint_InitSlideLst();
+		foreach ($this->OpenXmlSlideLst as $i => $s) {
+			if ($FileName==$s['file']) return true;
+		}
+		return false;
+	}
+	
 	// Cleaning tags in MsWord
 	function MsWord_Clean(&$Txt) {
 		$Txt = str_replace('<w:lastRenderedPageBreak/>', '', $Txt); // faster
