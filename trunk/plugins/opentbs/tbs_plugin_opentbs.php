@@ -2730,6 +2730,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$missing = '<'.$Tag.'/>';
 		$closing = '</'.$Tag.'>';
 		$p = 0;
+        $compat_limit_miss = 1000;
+        $compat_limit_num = 1048576 - 10000;
 		while (($p=clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true, $p, true, true))!==false) {
 
 			$Loc->PrmPos = array();
@@ -2737,6 +2739,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$p2 = $p + $tag_len + 2; // count the char '<' before and the char ' ' after
 			$PosEnd = strpos($Txt, '>', $p2);
 			clsTinyButStrong::f_Loc_PrmRead($Txt,$p2,true,'\'"','<','>',$Loc, $PosEnd, true); // read parameters
+            $Delete = false;
 			if (isset($Loc->PrmPos[$Att])) {
 				// attribute found
 				$r = $Loc->PrmLst[$Att];
@@ -2748,6 +2751,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$missing_nbr = $r - $item_num -1;
 				if ($missing_nbr<0) {
 					return $this->RaiseError('(Excel Consistency) error in counting items <'.$Tag.'>, found number '.$r.', previous was '.$item_num);
+                } elseif($IsRow && ($missing_nbr > $compat_limit_miss) && ($r >= $compat_limit_num)) { // Excel limit is 1048576
+                    // Useless final rows: LibreOffice add several final useless rows in the sheet when saving as XLSX.
+                    $Delete = true;
+                    $item_num++;
 				} else {
 					// delete the $Att attribute
 					$pp = $Loc->PrmPos[$Att];
@@ -2766,14 +2773,20 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 						$PosEnd = $PosEnd + $x_len;
 						$x = ''; // empty the memory
 					}
+                    $item_num = $r;
 				}
-				$item_num = $r;
 			} else {
 				// nothing to change the item is already relative
 				$item_num++;
 			}
-
-			if ($IsRow && ($Txt[$PosEnd-1]!=='/')) {
+            if ($Delete) {
+                if (($Txt[$PosEnd-1]!=='/')) {
+                    $x_p = strpos($Txt, $closing, $PosEnd);
+                    if ($x_p===false) return $this->RaiseError('(Excel Consistency) closing row tag is not found.');
+                    $PosEnd = $x_p + strlen($closing) - 1;
+                }
+                $Txt = substr_replace($Txt, '', $p, $PosEnd - $p + 1);
+            } elseif ($IsRow && ($Txt[$PosEnd-1]!=='/')) {
 				// It's a row item that may contain columns
 				$x_p = strpos($Txt, $closing, $PosEnd);
 				if ($x_p===false) return $this->RaiseError('(Excel Consistency) closing row tag is not found.');
@@ -2783,12 +2796,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$Txt = substr_replace($Txt, $x, $PosEnd+1, $x_len0);
 				$x_len = strlen($x);
 				$p = $x_p + $x_len - $x_len0;
-			} else {
+            } else {
 				$p = $PosEnd;
 			}
-
 		}
-
+    
 	}
 
 	/**
