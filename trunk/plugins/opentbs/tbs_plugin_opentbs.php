@@ -52,12 +52,16 @@ define('OPENTBS_COUNT_SLIDES','clsOpenTBS.CountSlides');
 define('OPENTBS_SEARCH_IN_SLIDES','clsOpenTBS.SearchInSlides');
 define('OPENTBS_DISPLAY_SLIDES','clsOpenTBS.DisplaySlides');
 define('OPENTBS_DELETE_SLIDES','clsOpenTBS.DeleteSlides');
-define('OPENTBS_SELECT_HEADER_FOOTER','clsOpenTBS.SelectHeaderFooter');
 define('OPENTBS_SELECT_FILE','clsOpenTBS.SelectFile');
-define('OPENTBS_GET_HEADERS_FOOTERS','clsOpenTBS.SelectHeaderFooter');
 define('OPENTBS_FIRST',1);
 define('OPENTBS_GO',2);
 define('OPENTBS_ALL',4);
+// Types of file to select
+define('OPENTBS_GET_HEADERS_FOOTERS','clsOpenTBS.SelectHeaderFooter');
+define('OPENTBS_SELECT_HEADER','clsOpenTBS.SelectHeader');
+define('OPENTBS_SELECT_FOOTER','clsOpenTBS.SelectFooter');
+// Sub-types of file
+define('OPENTBS_EVEN',128);
 
 /**
  * Main class which is a TinyButStrong plug-in.
@@ -331,12 +335,8 @@ class clsOpenTBS extends clsTbsZip {
 
 		} elseif ($Cmd==OPENTBS_SELECT_FILE) {
 		
-			if ($this->FileExists($x1)) {
-				$this->TBS->LoadTemplate('#' . $x1);
-				return true;
-			} else {
-				return false;
-			}
+			// Raise an error is the file is not found
+			return $this->TbsLoadSubFileAsTemplate($x1);
 		
 		} elseif ( ($Cmd==OPENTBS_ADDFILE) || ($Cmd==OPENTBS_REPLACEFILE) ) {
 
@@ -531,22 +531,34 @@ class clsOpenTBS extends clsTbsZip {
 				return false;
 			}
 			
+		} elseif ( ($Cmd==OPENTBS_SELECT_HEADER) || ($Cmd==OPENTBS_SELECT_FOOTER) ) {
+		
+			$file = false;
+
+			switch ($this->ExtEquiv) {
+			case 'docx':
+				$x2 = intval($x2); // 0 by default
+				$file = $this->MsWord_GetHeaderFooterFile($Cmd, $x1, $x2);
+				break;
+			case 'odt': case 'ods': case 'odp':
+				$file = $this->ExtInfo['main'];
+			case 'xlsx': case 'pptx': 
+				return true;
+				break;
+			}
+			
+			return $this->TbsLoadSubFileAsTemplate($file);
+		
 		} elseif ($Cmd==OPENTBS_GET_HEADERS_FOOTERS) {
 
 			$res = array();
 		
 			switch ($this->ExtEquiv) {
 			case 'docx':
-				//
-				$types = array('footer', 'header');
-				for ($i=1 ; $i<=3 ; $i++) {
-					foreach ($types as $t) {
-						$f = 'word/' . $t . $i . '.xml';
-						if ($this->FileExists($f)) {
-							$res[] = $f;
-						}
-					}
-				}
+				$this->MsWord_InitHeaderFooter();
+				foreach ($this->MsWord_HeaderFooter as $info) {
+					$res[] = $info['file'];
+				}				
 				break;
 			case 'odt': case 'ods': case 'odp':
 				// Headers and footers are in the main file.
@@ -599,6 +611,7 @@ class clsOpenTBS extends clsTbsZip {
 		$this->OpenXmlSharedStr = false;
 		$this->OpenXmlSlideLst = false;
 		$this->MsExcel_Sheets = false;
+		$this->MsWord_HeaderFooter = false;
 
 		$this->Ext_PrepareInfo(); // Set extension information
 
@@ -2044,16 +2057,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				// Get the target name
 				$p1 = $p + strlen($zTarget);
 				$p2 = strpos($Txt, '"', $p1);
-				if ($p2===false) return $this->RaiseError("(OpenXML) end of attribute Target not found in position ".$p1." of subfile ".$o->FicPath);
-				$Target = $TargetPrefix.substr($Txt, $p1, $p2 -$p1);
+				if ($p2===false) return $this->RaiseError("(OpenXML) end of attribute Target not found in position ".$p1." of sub-file ".$o->FicPath);
+				$TargetEnd = substr($Txt, $p1, $p2 -$p1);
+				$Target = $TargetPrefix.$TargetEnd;
 				// Get the Id
 				$p1 = strrpos(substr($Txt,0,$p), '<');
-				if ($p1===false) return $this->RaiseError("(OpenXML) begining of tag not found in position ".$p." of subfile ".$o->FicPath);
+				if ($p1===false) return $this->RaiseError("(OpenXML) beginning of tag not found in position ".$p." of sub-file ".$o->FicPath);
 				$p1 = strpos($Txt, $zId, $p1);
 				if ($p1!==false) {
 					$p1 = $p1 + strlen($zId);
 					$p2 = strpos($Txt, '"', $p1);
-					if ($p2===false) return $this->RaiseError("(OpenXML) end of attribute Id not found in position ".$p1." of subfile ".$o->FicPath);
+					if ($p2===false) return $this->RaiseError("(OpenXML) end of attribute Id not found in position ".$p1." of sub-file ".$o->FicPath);
 					$Rid = substr($Txt, $p1, $p2 - $p1);
 					$o->RidLst[$Target] = $Rid;
 					$o->TargetLst[$Rid] = $Target;
@@ -3786,6 +3800,91 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	/**
+	 * Initialize information about header and footer files
+	 */
+	function MsWord_InitHeaderFooter() {
+	
+		if ($this->MsWord_HeaderFooter!==false) return;
+
+		$types_ok = array('default' => true, 'first' => false, 'even' => false);
+		
+		// Is there a different header/footer for odd an even pages ?
+		$idx = $this->FileGetIdx('word/settings.xml');
+		if ($idx!==false) {		
+			$Txt = $this->TbsStoreGet($idx, 'GetHeaderFooterFile');
+			$types_ok['even'] = (strpos($Txt, '<w:evenAndOddHeaders/>')!==false);
+			unset($Txt);
+		}
+
+		// Is there a different header/footer for the first page ?
+		$idx = $this->FileGetIdx('word/document.xml');
+		if ($idx===false) return false;
+		$Txt = $this->TbsStoreGet($idx, 'GetHeaderFooterFile');
+		$types_ok['first'] = (strpos($Txt, '<w:titlePg/>')!==false);
+
+		$places = array('header', 'footer');
+		$files = array();
+		$rels = $this->OpenXML_Rels_GetObj('word/document.xml', '');
+		
+		foreach ($places as $place) {
+			$p = 0;
+			$entity = 'w:' . $place . 'Reference';
+			while ($loc = clsTbsXmlLoc::FindStartTag($Txt, $entity, $p)) {
+				$p = $loc->PosEnd;
+				$type = $loc->GetAttLazy('w:type');
+				if (isset($types_ok[$type]) && $types_ok[$type]) {
+					$rid = $loc->GetAttLazy('r:id');
+					if (isset($rels->TargetLst[$rid])) {
+						$target = $rels->TargetLst[$rid];
+						$files[] = array('file' => ('word/'.$target), 'type' => $type, 'place' => $place);
+					}
+				}
+			}
+		}
+
+		$this->MsWord_HeaderFooter = $files;
+	
+	}
+	
+	/**
+	 * Retrieve the header/footer sub-file.
+	 * @param mixed $TbsCmd  OPENTBS_SELECT_HEADER or OPENTBS_SELECT_FOOTER.
+	 * @param mixed $TbsType OPENTBS_DEFAULT, OPENTBS_FIRST or OPENTBS_EVEN. 
+	 * @param int [$Offset] Since a DCX can have several sections, and each section can have its own header/footer, this options 
+	 * @return mixed The name of the file of false if no file is found. 
+	 */
+	function MsWord_GetHeaderFooterFile($TbsCmd, $TbsType, $Offset = 0) {
+
+		$this->MsWord_InitHeaderFooter();
+
+		$Place = 'header';
+		if ($TbsCmd==OPENTBS_SELECT_FOOTER) {
+			$Place = 'footer';
+		}
+
+		$Type = 'default';
+		if ($TbsType==OPENTBS_FIRST) {
+			$Type = 'first';
+		} elseif ($TbsType==OPENTBS_EVEN) {
+			$Type = 'even';
+		}
+
+		$nb = 0;
+		foreach($this->MsWord_HeaderFooter as $info) {
+			if ( ($info['type']==$Type) && ($info['place']==$Place) ) {
+				if ($nb==$Offset) {
+					return $info['file'];
+				} else {
+					$nb++;
+				}
+			}
+		}
+		
+		return false;
+		
+	}
+	
 	function MsWord_DocDebug($nl, $sep, $bull) {
 
 		$ChartLst = $this->OpenXML_ChartGetInfoFromFile($this->Ext_GetMainIdx());
@@ -4993,7 +5092,7 @@ class clsTbsXmlLoc {
 	}
 
 	// Search an element in the TXT contents which has the asked attribute, and return an object if it is found.
-	// Note that the element found has an unknwown name until FindEndTag() is called.
+	// Note that the element found has an unknown name until FindEndTag() is called.
 	// The given attribute can be with or without a specific value. Example: 'visible' or 'visible="1"'
 	static function FindStartTagHavingAtt(&$Txt, $Att, $PosBeg, $Forward=true) {
 
