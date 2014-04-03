@@ -8,7 +8,7 @@
  * and retrieve the content of a zipped file which is not compressed.
  *
  * @version 1.8.4-beta
- * @date 2014-02-02
+ * @date 2014-04-04
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -194,7 +194,7 @@ class clsOpenTBS extends clsTbsZip {
 
 		if ($this->OpenXmlCTypes!==false) $this->OpenXML_CTypesCommit($Debug);    // Commit special OpenXML features if any
 		if ($this->OpenDocManif!==false)  $this->OpenDoc_ManifestCommit($Debug);  // Commit special OpenDocument features if any
-		if ($this->OpenXmlRid!==false) $this->OpenXML_RidCommit($Debug); // Must be done also after the loop because some Rid can be added with [onshow]
+		if ($this->OpenXmlRid!==false) $this->OpenXML_Rels_CommitNewRids($Debug); // Must be done also after the loop because some Rid can be added with [onshow]
 		
 		if ($TBS->OtbsGarbageCollector) {
 			if ($this->ExtType=='openxml') $this->OpenMXL_GarbageCollector();
@@ -1310,7 +1310,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$BackNbr = max(substr_count($TBS->OtbsCurrFile, '/') - 1, 0); // docx=>"media/img.png", xlsx & pptx=>"../media/img.png"
 				$TargetDir = str_repeat('../', $BackNbr).'media/';
 				$FileName = basename($InternalPath);
-				$Rid = $this->OpenXML_Rels_AddNew($TBS->OtbsCurrFile, $TargetDir, $FileName);
+				$Rid = $this->OpenXML_Rels_AddNewRid($TBS->OtbsCurrFile, $TargetDir, $FileName);
 			}
 
 			// change the value of the field for the merging process
@@ -1716,6 +1716,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					);
 				}
 			} elseif ( ($Ext==='xlsx') || ($Ext==='xlsm')) {
+				$this->MsExcel_DeleteCalcChain();
 				$i = array('br' => false, 'ctype' => $ctype . 'spreadsheetml.sheet', 'pic_path' => 'xl/media/');
 				$i['main'] = $this->OpenXML_MapGetMain('spreadsheetml.worksheet+xml', 'xl/worksheets/sheet1.xml');
 				$this->ExtEquiv = 'xlsx';
@@ -1992,12 +1993,107 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 	
 	/**
+	 * Return the path of file $FullPath relatively to the path of file $RelativeTo.
+	 * For example:
+	 * 'dir1/dir2/file_a.xml' relatively to 'dir1/dir2/file_b.xml' is 'file_a.xml'
+	 * 'dir1/file_a.xml' relatively to 'dir1/dir2/file_b.xml' is '../file_a.xml'
+	 */
+	function OpenXML_GetRelativePath($FullPath, $RelativeTo) {
+		
+		$fp = explode('/', $FullPath);
+		$fp_file = array_pop($fp);
+		$fp_max = count($fp)-1;
+		
+		$rt = explode('/', $RelativeTo);
+		$rt_file = array_pop($rt);
+		$rt_max = count($rt)-1;
+		
+		// First different item
+		$min = min($fp_max, $rt_max);
+		while( ($min>=0) && ($fp[0]==$rt[0])  ) {
+			$min--;
+			array_shift($fp);
+			array_shift($rt);
+		}
+
+		$path  = str_repeat('../', count($rt));
+		$path .= implode('/', $fp);
+		if (count($fp)>0) $path .= '/';
+		$path .= $fp_file;
+		
+		return $path;
+		
+	}
+	
+	/**
+	 * Delete an XML file in the OpenXML archive.
+	 * The file is delete from the declaration file [Content_Types].xml and from the relationships of the specified files.
+	 * @param {string} $FullPath The full path of the file to delete.
+	 * @param {array}  $$RelatedTo List of the the full paths of the files than may have relationship with the file to delete.
+	 * @return {mixed} False if it is not possible to delete the file, or the number of modifier relations ship in case of success (may be 0). 
+	 */
+	function OpenXML_DeleteFile($FullPath, $RelatedTo) {
+
+		// Delete the file in the archive
+		$idx = $this->FileGetIdx($FullPath);
+		if ($idx==false) return false;
+		$this->FileReplace($idx, false);
+
+		// Delete the declaration of the file
+		$this->OpenXML_CTypesDeletePart('/' . $FullPath);
+		 
+		// Delete the relationships
+		$nb = 0;
+		foreach ($RelatedTo as $file) {
+			$target = $this->OpenXML_GetRelativePath($FullPath, $file);
+			$rels_file = $this->OpenXML_Rels_GetPath($file);
+			if ($this->OpenXML_Rels_ReplaceTarget($rels_file, $target, false)) {
+				$nb++;
+			}
+		}
+		
+		return $nb;
+		
+	}
+
+	/**
 	 * Return the path of the Rel file in the archive for a given XML document.
 	 * @param $DocPath      Full path of the sub-file in the archive
 	 */
 	function OpenXML_Rels_GetPath($DocPath) {
 		$DocName = basename($DocPath);
 		return str_replace($DocName,'_rels/'.$DocName.'.rels',$DocPath);
+	}
+
+	/**
+	 * Replace or delete a target in a Rels file.
+	 * The current function actually edit the Rels file.
+	 * Take car that there is another technic for listing and adding targets wish is working with a persistent object which is commit at the end of the merge..
+	 * @param {string} $RelsPath  The path of the Rels file.
+	 * @param {string} $OldTarget The target value to find.
+	 * @param {string|boolean} $NewTarget The new target value, or false to delete the relation ship element.
+	 * @return {boolean} True if the change is applied.
+	 */
+	function OpenXML_Rels_ReplaceTarget($RelsPath, $OldTarget, $NewTarget) {
+	
+		$idx = $this->FileGetIdx($RelsPath);
+		if ($idx===false) $this->RaiseError("Cannot edit target in '$RelsPath' because the file is not found.");
+		$txt = $this->TbsStoreGet($idx, 'Replace target in rels file');
+		
+		$att = 'Target="'.$OldTarget.'"';
+		$loc = clsTbsXmlLoc::FindStartTagHavingAtt($txt, $att, 0);
+		if ($loc) {
+			if ($NewTarget === false) {
+				$loc->Delete();
+			} else {
+				$loc->ReplaceAtt('Target',$NewTarget);
+			}
+			$this->TbsStorePut($idx, $txt);
+			return true;
+		} else {
+			return false;
+		}
+	
 	}
 
 	/**
@@ -2080,10 +2176,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	/* Add a new Rid in the file in the Rels file. Return the Rid.
+	/* 
+	* Add a new Rid in the file in the Rels file. Return the Rid.
 	* Rels files are attached to XML files and are listing, and gives all rids and their corresponding targets used in the XML file.
 	*/
-	function OpenXML_Rels_AddNew($DocPath, $TargetDir, $FileName) {
+	function OpenXML_Rels_AddNewRid($DocPath, $TargetDir, $FileName) {
 
 		$o = $this->OpenXML_Rels_GetObj($DocPath, $TargetDir);
 
@@ -2103,7 +2200,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	// Save the changes in the rels files (works only for images for now)
-	function OpenXML_RidCommit ($Debug) {
+	function OpenXML_Rels_CommitNewRids ($Debug) {
 
 		foreach ($this->OpenXmlRid as $doc => $o) {
 
@@ -2898,6 +2995,15 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 	}
 
+	/**
+	 * XLSX has a file that refers to formulas in the entire workbook in order to schedule the calculations. 
+	 * The cells references in this file mey become erroneous since cell has been deleted or added in some sheets.
+	 * Hopefully this file is optional. We have to deleted it.
+	 */
+	function MsExcel_DeleteCalcChain() {
+		return $this->OpenXML_DeleteFile('xl/calcChain.xml', array('xl/workbook.xml'));
+	}
+	
 	function MsExcel_ReplaceString(&$Txt, $p, &$PosEnd) {
 	// replace a SharedString into an InlineStr only if the string contains a TBS field
 		static $c = '</c>';
@@ -3088,7 +3194,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		// Retrieve Sheet files
 		$idx = $this->FileGetIdx('xl/_rels/workbook.xml.rels');
-		$this->MsExcel_Sheets_WkbRelsIdx = $idx;
 		$Txt = $this->FileRead($idx);
 		if ($Txt===false) return false;
 
@@ -3135,7 +3240,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	// Actally delete, display of hide sheet marked for this operations.
+	// Actually delete, display of hide sheet marked for this operations.
 	function MsExcel_SheetDeleteAndDisplay() {
 
 		if ( (count($this->OtbsSheetSlidesDelete)==0) && (count($this->OtbsSheetSlidesVisible)==0) ) return;
@@ -3143,7 +3248,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$this->MsExcel_SheetInit();
 		
 		$WkbTxt = $this->TbsStoreGet($this->MsExcel_Sheets_WkbIdx, 'Sheet Delete and Display');
-		$WkbRelsTxt = false;
 		$nothing = false;
 		
 		$change = false;
@@ -3154,11 +3258,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$zid = 'i:'.$o->sheetId;
 			$zname = 'n:'.$o->name; // the value in the name attribute is XML protected
 			if ( isset($this->OtbsSheetSlidesDelete[$zname]) || isset($this->OtbsSheetSlidesDelete[$zid]) ) {
-				if ($WkbRelsTxt===false) {
-					$WkbRelsTxt = $this->TbsStoreGet($this->MsExcel_Sheets_WkbRelsIdx, 'Sheet Delete and Display');
-				}
 				// Delete the sheet
-				$this->MsExcel_DeleteFile($o->file, $WkbRelsTxt, $o->rid, $WkbTxt);
+				$this->MsExcel_DeleteSheetFile($o->file, $o->rid, $WkbTxt);
 				$change = true;
 				$ref1 = str_replace(array('&quot;','\''), array('"','\'\''), $o->name);
 				$ref2 = "'".$ref1."'";
@@ -3207,51 +3308,23 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		
 		// can make Excel error, no problem with <definedNames>
 		$WkbTxt = str_replace('<pivotCaches></pivotCaches>', '', $WkbTxt);
-
-		// see http://ankushbhatia.wordpress.com/2010/02/11/how-to-delete-a-worksheet-from-excel-using-open-xml-sdk-2-0/
-		// Delete the CalcChain file if any. Ms Excel display an error if this file contains bad referenced cells.
-		// But since the cells in this file may not all contain sheet id, it is better to delete the whole file (it is optional).
-		if (count($refToDel)>0) {
-			$this->MsExcel_DeleteFile('calcChain.xml', $WkbRelsTxt, false, $nothing);
-		}
-		
+	
 		// store the result
 		$this->TbsStorePut($this->MsExcel_Sheets_WkbIdx, $WkbTxt);
-		if ($WkbRelsTxt!==false) $this->TbsStorePut($this->MsExcel_Sheets_WkbRelsIdx, $WkbRelsTxt);
 
 		$this->TbsSheetCheck();
 
 	}
 
-	function MsExcel_DeleteFile($file, &$WkbRelsTxt, $rid, &$WkbTxt) {
-	
-		// Delete the file
-		$idx = $this->FileGetIdx('xl/'.$file);
-		if ($idx==false) return false;
-		$this->FileReplace($idx, false);
+	function MsExcel_DeleteSheetFile($file, $rid, &$WkbTxt) {
 
-		// Delete the Rels file if any
-		$relsFile = $this->OpenXML_Rels_GetPath('xl/'.$file);
-		$idx = $this->FileGetIdx($relsFile);
-		if ($idx!==false) $this->FileReplace($idx, false);
-		
-		// Delete in [Content_Types].xml
-		$this->OpenXML_CTypesDeletePart('/xl/'.$file, false);
-		
-		// Delete in workbook.xml.rels
-		if ($WkbRelsTxt!==false) {
-			$loc = clsTbsXmlLoc::FindElementHavingAtt($WkbRelsTxt, 'Target="'.$file.'"', 0);
-			if ($loc!==false) $loc->ReplaceSrc('');
-		}
+		$this->OpenXML_DeleteFile('xl/' . $file, array('xl/workbook.xml'));
 
 		// Delete in workbook.xml
 		if ($rid!=false) {
 			$loc = clsTbsXmlLoc::FindElementHavingAtt($WkbTxt, 'r:id="'.$rid.'"', 0);
 			if ($loc!==false) $loc->ReplaceSrc('');
 		}
-		
-		
-		
 		
 	}
 	
@@ -3387,7 +3460,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$this->MsPowerpoint_InitSlideLst();
 
-
 		// Edit both XML and REL of file 'presentation.xml'
 
 		$xml_file = 'ppt/presentation.xml';
@@ -3399,7 +3471,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$del_lst = array();
 		$del_lst2 = array();
-		$first_kept = false;
+		$first_kept = false; // Name of the first slide, to be kept 
 		foreach ($this->OpenXmlSlideLst as $i=>$s) {
 			$ref = 'i:'.($i+1);
 			if (isset($this->OtbsSheetSlidesDelete[$ref]) && $this->OtbsSheetSlidesDelete[$ref] ) {
@@ -3426,13 +3498,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		unset($xml_txt, $rel_txt);
 
 		// Delete references in '[Content_Types].xml'
-		$idx = $this->FileGetIdx('[Content_Types].xml');
-		$txt = $this->TbsStoreGet($idx, 'Slide Delete and Display / Content_Types');
 		foreach ($del_lst as $f) {
-			$x = clsTbsXmlLoc::FindElementHavingAtt($txt, 'PartName="/'.$f.'"', 0);
-			if ($x!==false) $x->ReplaceSrc(''); // delete the element
+			$this->OpenXML_CTypesDeletePart('/'.$f);
 		}
-		$this->TbsStorePut($idx, $txt);
 
 		// Change references in 'viewProps.xml.rels'
 		$idx = $this->FileGetIdx('ppt/_rels/viewProps.xml.rels');
