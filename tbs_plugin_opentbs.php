@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.8.4-beta
- * @date 2014-04-04
+ * @version 1.9.0
+ * @date 2014-04-10
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -53,9 +53,9 @@ define('OPENTBS_SEARCH_IN_SLIDES','clsOpenTBS.SearchInSlides');
 define('OPENTBS_DISPLAY_SLIDES','clsOpenTBS.DisplaySlides');
 define('OPENTBS_DELETE_SLIDES','clsOpenTBS.DeleteSlides');
 define('OPENTBS_SELECT_FILE','clsOpenTBS.SelectFile');
-define('OPENTBS_FIRST',1);
-define('OPENTBS_GO',2);
-define('OPENTBS_ALL',4);
+define('OPENTBS_FIRST',1); // 
+define('OPENTBS_GO',2);    // = TBS_GO
+define('OPENTBS_ALL',4);   // = TBS_ALL
 // Types of file to select
 define('OPENTBS_GET_HEADERS_FOOTERS','clsOpenTBS.SelectHeaderFooter');
 define('OPENTBS_SELECT_HEADER','clsOpenTBS.SelectHeader');
@@ -84,7 +84,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.8.4-beta-2014-03-12';
+		$this->Version = '1.9.0';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -410,6 +410,11 @@ class clsOpenTBS extends clsTbsZip {
 
 		} elseif ($Cmd==OPENTBS_SELECT_SHEET) {
 
+			if ($this->ExtEquiv=='ods') {
+				$this->TbsLoadSubFileAsTemplate($this->ExtInfo['main']);
+				return true;
+			}
+
 			// Only XLSX files have sheets in separated subfiles.
 			if ($this->ExtEquiv==='xlsx') {
 				$o = $this->MsExcel_SheetGet($x1);
@@ -417,7 +422,8 @@ class clsOpenTBS extends clsTbsZip {
 				if ($o->file===false) return $this->RaiseError("($Cmd) Error with sheet '$x1'. The corresponding XML subfile is not referenced.");
 				return $this->TbsLoadSubFileAsTemplate('xl/'.$o->file);
 			}
-			return true;
+			
+			return false;
 
 		} elseif ( ($Cmd==OPENTBS_DELETE_SHEETS) || ($Cmd==OPENTBS_DISPLAY_SHEETS) || ($Cmd==OPENTBS_DELETE_SLIDES) || ($Cmd==OPENTBS_DISPLAY_SLIDES) ) {
 
@@ -432,16 +438,23 @@ class clsOpenTBS extends clsTbsZip {
 
 		} elseif ($Cmd==OPENTBS_SELECT_SLIDE) {
 
+			if ($this->ExtEquiv=='odp') {
+				$this->TbsLoadSubFileAsTemplate($this->ExtInfo['main']);
+				return true;
+			}
+			
 			if ($this->ExtEquiv!='pptx') return false;
 
-			$this->MsPowerpoint_InitSlideLst();
+			$master  = (is_null($x2)) ? false : $x2;
+			$slide = ($master) ? 'slide master' : 'slide';
+			$RefLst = $this->MsPowerpoint_InitSlideLst($master);
 
 			$s = intval($x1)-1;
-			if (isset($this->OpenXmlSlideLst[$s])) {
-				$this->TbsLoadSubFileAsTemplate($this->OpenXmlSlideLst[$s]['idx']);
+			if (isset($RefLst[$s])) {
+				$this->TbsLoadSubFileAsTemplate($RefLst[$s]['idx']);
 				return true;
 			} else {
-				return $this->RaiseError("($Cmd) slide number $x1 is not found inside the Presentation.");
+				return $this->RaiseError("($Cmd) $slide number $x1 is not found inside the Presentation.");
 			}
 
 		} elseif ($Cmd==OPENTBS_DELETE_COMMENTS) {
@@ -499,9 +512,11 @@ class clsOpenTBS extends clsTbsZip {
 
 		} elseif ($Cmd==OPENTBS_COUNT_SLIDES) {
 
+			$master  = (is_null($x1)) ? false : $x1;
+			
 			if ($this->ExtEquiv=='pptx') {
-				$this->MsPowerpoint_InitSlideLst();
-				return count($this->OpenXmlSlideLst);
+				$RefLst = $this->MsPowerpoint_InitSlideLst($master);
+				return count($RefLst);
 			} elseif ($this->ExtEquiv=='odp') {
 				return substr_count($TBS->Source, '</draw:page>');
 			} else {
@@ -543,7 +558,7 @@ class clsOpenTBS extends clsTbsZip {
 			case 'odt': case 'ods': case 'odp':
 				$file = $this->ExtInfo['main'];
 			case 'xlsx': case 'pptx': 
-				return true;
+				return false;
 				break;
 			}
 			
@@ -610,6 +625,7 @@ class clsOpenTBS extends clsTbsZip {
 		$this->OpenXmlCharts = false;
 		$this->OpenXmlSharedStr = false;
 		$this->OpenXmlSlideLst = false;
+		$this->OpenXmlSlideMasterLst = false;
 		$this->MsExcel_Sheets = false;
 		$this->MsWord_HeaderFooter = false;
 
@@ -849,6 +865,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		echo $nl.'* OpenTBS version: '.$this->Version;
 		echo $nl.'* TinyButStrong version: '.$this->TBS->Version;
 		echo $nl.'* PHP version: '.PHP_VERSION;
+		echo $nl.'* Zlib enabled: '.($this->Meth8Ok) ? 'YES' : 'NO (it should be enabled)';
 		echo $nl.'* Opened document: '.(($this->ArchFile==='') ? '(none)' : $this->ArchFile);
 		echo $nl.'* Activated features for document type: '.(($this->ExtInfo===false) ? '(none)' : $this->ExtType.'/'.$this->ExtEquiv);
 
@@ -1254,6 +1271,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	// Add a picture inside the archive, use parameters 'from' and 'as'.
 	// Argument $Prm is only used for error messages.
 
+		static $index = 0;
+		static $internal = array();
 		$TBS = &$this->TBS;
 
 		// set the path where files should be taken
@@ -1288,7 +1307,15 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			if (!isset($PrmLst['pic_prepared'])) $TBS->meth_Merge_AutoVar($PrmLst['as'],true); // merge automatic TBS fields in the path
 			$InternalPath = str_replace($TBS->_ChrVal,$Value,$PrmLst['as']); // merge [val] fields in the path
 		} else {
-			$InternalPath = basename($FullPath);
+			// uniqueness by the name of the file, not its full path, this is a weakness
+			// OpenXML does not support spaces and accents in internal file names.
+			$x = basename($FullPath);
+			if (!isset($internal[$x])) {
+				$ext = $this->Misc_FileExt(basename($FullPath));
+				$internal[$x] = 'opentbs_added_' . $index . '.' . $ext;
+				$index++;
+			}
+			$InternalPath = $internal[$x];
 		}
 
 		if ($ok) {
@@ -1978,7 +2005,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-	 * Return the refrence of the cell, such as 'A10'.
+	 * Return the reference of the cell, such as 'A10'.
 	 */
 	function Misc_CellRef($Col, $Row) {
 		$r = '';
@@ -1990,6 +2017,16 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$r = chr(65 + $c) . $r; // chr(65)='A'
 		} while ($x>0);
 		return $r.$Row;
+	}
+	
+	/**
+	 * Return the extension of the file, lower case and without the dot. Example: 'png'.
+	 */
+	function Misc_FileExt($FileOrExt) {
+		$p = strrpos($FileOrExt, '.');
+		$ext = ($p===false) ? $FileOrExt : substr($FileOrExt, $p+1);
+		$ext = strtolower($ext);
+		return $ext;
 	}
 	
 	/**
@@ -2254,9 +2291,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 */
 	function OpenXML_CTypesPrepareExt($FileOrExt, $ct='') {
 
-		$p = strrpos($FileOrExt, '.');
-		$ext = ($p===false) ? $FileOrExt : substr($FileOrExt, $p+1);
-		$ext = strtolower($ext);
+		$ext = $this->Misc_FileExt($FileOrExt);
 
 		$this->OpenXML_CTypesInit();
 		
@@ -3343,14 +3378,25 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return $lst;
 	}
 
-	// Return the list of slides in the Ms Powerpoint presentation
-	function MsPowerpoint_InitSlideLst() {
+	/**
+	 * Return the list of slides in the Ms Powerpoint presentation.
+	 * @param {boolean} $Master Trye to operate on master slides.
+	 * @return {array} The list of the slides, of false if an error occurs.
+	 */
+	function MsPowerpoint_InitSlideLst($Master = false) {
 
-		if ($this->OpenXmlSlideLst!==false) return true;
+		if ($Master) {
+			$RefLst = &$this->OpenXmlSlideMasterLst;
+		} else {
+			$RefLst = &$this->OpenXmlSlideLst;
+		}
+		
+		if ($RefLst!==false) return $RefLst;
 
 		$PresFile = 'ppt/presentation.xml';
 
-		$o = $this->OpenXML_Rels_GetObj('ppt/presentation.xml', 'slides/');
+		$prefix = ($Master) ? 'slideMasters/' : 'slides/';
+		$o = $this->OpenXML_Rels_GetObj('ppt/presentation.xml', $prefix);
 
 		$Txt = $this->FileRead($PresFile);
 		if ($Txt===false) return false;
@@ -3358,22 +3404,23 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$p = 0;
 		$i = 0;
 		$lst = array();
-		while ($loc = clsTbsXmlLoc::FindStartTag($Txt, 'p:sldId', $p)) {
+		$tag = ($Master) ? 'p:sldMasterId' : 'p:sldId';
+		while ($loc = clsTbsXmlLoc::FindStartTag($Txt, $tag, $p)) {
 			$i++;
 			$rid = $loc->GetAttLazy('r:id');
 			if ($rid===false) {
-				$this->RaiseError("(Init Slide List) attribute 'r:id' is missing for slide #$i in 'ppt/presentation.xml'.");
+				$this->RaiseError("(Init Slide List) attribute 'r:id' is missing for slide #$i in '$PresFile'.");
 			} elseif (isset($o->TargetLst[$rid])) {
 				$f = 'ppt/'.$o->TargetLst[$rid];
 				$lst[] = array('file' => $f, 'idx' => $this->FileGetIdx($f), 'rid' => $rid);
 			} else {
-				$this->RaiseError("(Init Slide List) Slide corresponding to rid=$rid is not found in the Rels file of 'ppt/presentation.xml'.");
+				$this->RaiseError("(Init Slide List) Slide corresponding to rid=$rid is not found in the Rels file of '$PresFile'.");
 			}
 			$p = $loc->PosEnd;
 		}
 
-		$this->OpenXmlSlideLst = $lst;
-		return true;
+		$RefLst = $lst;
+		return $RefLst;
 
 	}
 
@@ -3525,6 +3572,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	/**
+	 * Return true if the file name is a slide.
+	 */
 	function MsPowerpoint_SlideIsIt($FileName) {
 		$this->MsPowerpoint_InitSlideLst();
 		foreach ($this->OpenXmlSlideLst as $i => $s) {
@@ -5201,8 +5251,8 @@ class clsTbsXmlLoc {
 }
 
 /*
-TbsZip version 2.15
-Date    : 2013-10-16
+TbsZip version 2.16
+Date    : 2014-04-08
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class is independent from any other classes and has been originally created for the OpenTbs plug-in
@@ -5674,7 +5724,7 @@ class clsTbsZip {
 
 	function Flush($Render=TBSZIP_DOWNLOAD, $File='', $ContentType='') {
 
-		if ( ($File!=='') && ($this->ArchFile===$File)) {
+		if ( ($File!=='') && ($this->ArchFile===$File) && ($Render==TBSZIP_FILE) ) {
 			$this->RaiseError('Method Flush() cannot overwrite the current opened archive: \''.$File.'\''); // this makes corrupted zip archives without PHP error.
 			return false;
 		}
