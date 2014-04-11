@@ -5,7 +5,13 @@
 <title>OpenTBS Demo</title>
 <script type="text/javascript">
 	function download_template() {
-		window.location.href=document.forms['form1'].elements['tpl'].value;
+		var file = document.forms['form1'].elements['tpl'].value;
+		var rep = document.forms['form1'].action;
+		var p = rep.lastIndexOf('/');
+		if (p>=0) {
+			file = rep.substr(0, p+1) + file
+		}
+		window.location.href = file;
 	}
 </script>
 <style type="text/css">
@@ -22,6 +28,8 @@ body,td,th {
 </style></head>
 
 <body>
+<!-- main-body is used for insertion in the TBS menu -->
+<div id="main-body">
 <p align="center"><span class="title1">OpenTBS</span> <span class="title1">demo</span><br />
   OpenTBS is a PHP tool that produces any OpenOffice and Ms Office documents with the technic of template<br />
   <br />
@@ -38,34 +46,47 @@ body,td,th {
   <li> No PHP extension required (but easier to use if <a href="http://www.php.net/manual/en/book.zlib.php">ZLib</a> is enabled)</li>
 </ul>
 <h2>Demo</h2>
-<form id="form1" method="post" action="demo_merge.php">
-  Enter a name:
-    <input name="yourname" type="text" size="10" />, choose a template:
-  <select name="tpl">
-    <option value="demo_oo_text.odt">OpenOffice Writer Document (.odt)</option>
-    <option value="demo_oo_spreadsheet.ods">OpenOffice Calc Spreadsheet (.ods)</option>
-    <option value="demo_oo_presentation.odp">OpenOffice Impress Presentation (.odp)</option>
-    <option value="demo_oo_graph.odg">OpenOffice Draw Graphic (.odg)</option>
-    <option value="demo_oo_formula.odf">OpenOffice Math Formula (.odf)</option>
-    <option value="demo_ms_word.docx">Ms Word Document (.docx)</option>
-    <option value="demo_ms_excel.xlsx">Ms Excel SpreadSheet (.xlsx)</option>
-    <option value="demo_ms_powerpoint.pptx">Ms PowerPoint Presentation (.pptx)</option>
-  </select>
-  ,  debug:
-  <select name="debug">
-    <option value="" selected="selected">No</option>
-    <option value="info">General Information</option>
-    <option value="current">During merge</option>
-    <option value="show">After merge</option>
-  </select>
-  <div id="save_as_file" style="display:none;">, save as file with suffix: 
-    <input name="save_as" type="text" size="10" />
-  (let empty for download),</div>
-  <input type="submit" name="btn_go" value="and go" />
+<form id="form1" method="post" action="./demo_merge.php">
+  <table border="0" cellspacing="4" cellpadding="0">
+    <tr>
+      <td scope="col">Enter a name:</td>
+      <td scope="col"><input name="yourname" type="text" size="10" /></td>
+      <td scope="col">&nbsp;</td>
+    </tr>
+    <tr>
+      <td>Choose a template:</td>
+      <td><select name="tpl">
+        <option value="demo_oo_text.odt">OpenOffice Writer Document (.odt)</option>
+        <option value="demo_oo_spreadsheet.ods">OpenOffice Calc Spreadsheet (.ods)</option>
+        <option value="demo_oo_presentation.odp">OpenOffice Impress Presentation (.odp)</option>
+        <option value="demo_oo_graph.odg">OpenOffice Draw Graphic (.odg)</option>
+        <option value="demo_oo_formula.odf">OpenOffice Math Formula (.odf)</option>
+        <option value="demo_ms_word.docx">Ms Word Document (.docx)</option>
+        <option value="demo_ms_excel.xlsx">Ms Excel SpreadSheet (.xlsx)</option>
+        <option value="demo_ms_powerpoint.pptx">Ms PowerPoint Presentation (.pptx)</option>
+      </select></td>
+      <td>&nbsp;</td>
+    </tr>
+    <tr>
+      <td>Debug:</td>
+      <td><select name="debug">
+        <option value="" selected="selected">No</option>
+        <option value="info">General Information</option>
+        <option value="current">During merge</option>
+        <option value="show">After merge</option>
+      </select></td>
+      <td>&nbsp;</td>
+    </tr>
+    <tr>
+      <td>&nbsp;</td>
+      <td><input type="submit" name="btn_go" value="and go" /></td>
+      <td>&nbsp;</td>
+    </tr>
+  </table>
 </form>
 <ul>
   <li>See the selected <a href="javascript:download_template()">template</a></li>
-  <li>See the <a href="demo_merge.php?source">source code of the PHP script</a></li>
+  <li>See the <a href="./demo_merge.php?source">source code of the PHP script</a></li>
 </ul>
 <h2>More</h2>
 <ul>
@@ -78,4 +99,5 @@ body,td,th {
 	// enable the option for savegin as a file, the PHP script will test if it is running on localhost anyway.
 	if (window.location.hostname=='localhost') document.getElementById('save_as_file').style.display='inline';
 </script>
+</div>
 </html>
