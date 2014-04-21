@@ -76,7 +76,11 @@ $output_file_name = str_replace('.', '_'.date('Y-m-d').$save_as.'.', $template);
 if ($save_as==='') {
 	// Output the result as a downloadable file (only streaming, no data saved in the server)
 	$TBS->Show(OPENTBS_DOWNLOAD, $output_file_name); // Also merges all [onshow] automatic fields.
+	// Be sure that no more output is done, otherwise the download file is corrupted with extra data.
+	exit();
 } else {
-	// Output the result as a file on the server
-	$TBS->Show(OPENTBS_FILE+TBS_EXIT, $output_file_name); // Also merges all [onshow] automatic fields.
+	// Output the result as a file on the server.
+	$TBS->Show(OPENTBS_FILE, $output_file_name); // Also merges all [onshow] automatic fields.
+	// The script can continue.
+	exit("File [$output_file_name] has been created.");
 }

@@ -49,12 +49,11 @@ body,td,th {
 <form id="form1" method="post" action="./demo_merge.php">
   <table border="0" cellspacing="4" cellpadding="0">
     <tr>
-      <td scope="col">Enter a name:</td>
-      <td scope="col"><input name="yourname" type="text" size="10" /></td>
-      <td scope="col">&nbsp;</td>
+      <td scope="col">Enter a name :</td>
+      <td scope="col"><input name="yourname" type="text" size="10" /> <i>(will be displayed in the merged result)</i></td>
     </tr>
     <tr>
-      <td>Choose a template:</td>
+      <td>Choose a template :</td>
       <td><select name="tpl">
         <option value="demo_oo_text.odt">OpenOffice Writer Document (.odt)</option>
         <option value="demo_oo_spreadsheet.ods">OpenOffice Calc Spreadsheet (.ods)</option>
@@ -65,22 +64,23 @@ body,td,th {
         <option value="demo_ms_excel.xlsx">Ms Excel SpreadSheet (.xlsx)</option>
         <option value="demo_ms_powerpoint.pptx">Ms PowerPoint Presentation (.pptx)</option>
       </select></td>
-      <td>&nbsp;</td>
     </tr>
     <tr>
-      <td>Debug:</td>
+      <td>Debug :</td>
       <td><select name="debug">
         <option value="" selected="selected">No</option>
         <option value="info">General Information</option>
         <option value="current">During merge</option>
         <option value="show">After merge</option>
       </select></td>
-      <td>&nbsp;</td>
+    </tr>
+    <tr id="save_as_file">
+      <td>Save locally with suffix :</td>
+      <td><input name="save_as" type="text" size="10" /> <i>(leave empty for direct download)</i></td>
     </tr>
     <tr>
       <td>&nbsp;</td>
       <td><input type="submit" name="btn_go" value="and go" /></td>
-      <td>&nbsp;</td>
     </tr>
   </table>
 </form>
@@ -97,7 +97,7 @@ body,td,th {
 </body>
 <script type="text/javascript">
 	// enable the option for savegin as a file, the PHP script will test if it is running on localhost anyway.
-	if (window.location.hostname=='localhost') document.getElementById('save_as_file').style.display='inline';
+	if (window.location.hostname=='localhost') document.getElementById('save_as_file').style.display='table-row';
 </script>
 </div>
 </html>
