@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.1-beta
- * @date 2014-04-16
+ * @version 1.9.1-beta-2014-04-29
+ * @date 2014-04-10
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -84,7 +84,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.9.1-beta';
+		$this->Version = '1.9.1-beta-2014-04-29';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -274,7 +274,11 @@ class clsOpenTBS extends clsTbsZip {
 				$this->TbsPicFound($Txt, $Loc, false);  // add parameter "att" which will be processed just before the value is merged
 				$PrmLst['pic_change'] = true;
 			}
-			$this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=changepic');
+            if (isset($PrmLst['unique'])) {
+                $this->TbsPicReplace($Value, $PrmLst, $Txt, $Loc); 
+            } else {
+                $this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=changepic');
+            }
 		} elseif ($ope==='delcol') {
 			$this->TbsDeleteColumns($Txt, $Value, $PrmLst, $PosBeg, $PosEnd);
 			return false; // prevent TBS from merging the field
@@ -496,12 +500,21 @@ class clsOpenTBS extends clsTbsZip {
 
 			$code = $x1;
 			$file = $x2;
-			$default = (is_null($x3)) ? 'current' : $x3;
-			$adjust = (is_null($x4)) ? 'inside' : $x4;
-
+            $prms = array('default'=>'current', 'adjust' => 'inside');
+            if (is_array($x3)) {
+                $prms = array_merge($prms, $x3);
+            } else {
+                // Compatibility v <= 1.9.0
+                if (!is_null($x3)) $prms['default'] = $x3;
+                if (!is_null($x4)) $prms['adjust'] = $x4;
+            }
+            $prms_flat = array();
+            foreach($prms as $p => $v) $prms_flat[] = $p.'='.$v;
+            $prms_flat = implode(';', $prms_flat);
+            
 			$img_num++;
 			$name = 'OpenTBS_Change_Picture_'.$img_num;
-			$tag = "[$name;ope=changepic;tagpos=inside;default=$default;adjust=$adjust]";
+			$tag = "[$name;ope=changepic;tagpos=inside;$prms_flat]";
 
 			$nbr = false;
 			$TBS =& $this->TBS; 
@@ -1158,12 +1171,26 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	function TbsPicGetDim_OpenXML_dml($Txt, $Pos, $Forward, $Shift) {
-		$dim_shape = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $Shift, 'wp:extent', 'cx="', 'cy="', 0, 12700, false);
-		$dim_inner = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $Shift, 'a:ext'    , 'cx="', 'cy="', 0, 12700, 'uri="');
-		if ( ($dim_inner!==false) && ($dim_inner['wb']<$dim_shape['wb']) ) $dim_inner = false; // <a:ext> isoptional but must always be after the corresponding <wp:extent>, otherwise it may be the <a:ext> of another picture
-		$dim_drawing = $this->TbsPicGetDim_Drawings($Txt, $Pos, $dim_inner);
-		//var_export($dim_drawing); exit;
-		return array($dim_inner, $dim_shape, $dim_drawing); // dims must be sorted in reverse order of location
+	
+		// find the drawing element
+		$Loc = clsTbsXmlLoc::FindElement($Txt, 'w:drawing', $Pos, false);
+		$Src = $Loc->GetSrc();
+	    
+		$Shift2 = $Shift - $Loc->PosBeg;
+		
+		$dim_shape = $this->TbsPicGetDim_Any($Src, 0, true, $Shift2, 'wp:extent', 'cx="', 'cy="', 0, 12700, false);
+		$dim_inner = $this->TbsPicGetDim_Any($Src, 0, true, $Shift2, 'a:ext'    , 'cx="', 'cy="', 0, 12700, 'uri="');
+		$dim_drawing = $this->TbsPicGetDim_Drawings($Txt, $Pos, $dim_inner); // for XLSX
+
+		// dims must be sorted in reverse order of location
+		$result = array();
+		if ($dim_shape!==false)   $result[$dim_shape['wb']] = $dim_shape;
+		if ($dim_inner!==false)   $result[$dim_inner['wb']] = $dim_inner;
+		if ($dim_drawing!==false) $result[$dim_drawing['wb']] = $dim_drawing;
+		krsort($result);
+		
+		return $result;
+		
 	}
 
 	function TbsPicGetDim_Any($Txt, $Pos, $Forward, $Shift, $Element, $AttW, $AttH, $AllowedDec, $CoefToPt, $IgnoreIfAtt) {
@@ -1267,14 +1294,13 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	function TbsPicAdd(&$Value, &$PrmLst, &$Txt, &$Loc, $Prm) {
-	// Add a picture inside the archive, use parameters 'from' and 'as'.
-	// Argument $Prm is only used for error messages.
-
-		static $index = 0;
-		static $internal = array();
-		$TBS = &$this->TBS;
-
+    /**
+     * Return the path of the image on the server corresponding the current field being merged.
+     */
+    function TbsPicExternalPath(&$Value, &$PrmLst) {
+    
+        $TBS = &$this->TBS;
+    
 		// set the path where files should be taken
 		if (isset($PrmLst['from'])) {
 			if (!isset($PrmLst['pic_prepared'])) $TBS->meth_Merge_AutoVar($PrmLst['from'],true); // merge automatic TBS fields in the path
@@ -1284,23 +1310,50 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		if ( (!isset($PrmLst['pic_prepared'])) && isset($PrmLst['default']) ) $TBS->meth_Merge_AutoVar($PrmLst['default'],true); // merge automatic TBS fields in the path
 
-		$ok = true; // true if the picture file is actually inserted and ready to be changed
-
 		// check if the picture exists, and eventually use the default picture
 		if (!file_exists($FullPath)) {
 			if (isset($PrmLst['default'])) {
 				$x = $PrmLst['default'];
 				if ($x==='current') {
-					$ok = false;
+					return false;
 				} elseif (file_exists($x)) {
 					$FullPath = $x;
 				} else {
-					$ok = $this->RaiseError('The default picture "'.$x.'" defined by parameter "default" of the field ['.$Loc->FullName.'] is not found.');
+					return $this->RaiseError('The default picture "'.$x.'" defined by parameter "default" of the field ['.$Loc->FullName.'] is not found.');
 				}
 			} else {
-				$ok = false;
+				return false;
 			}
 		}
+
+        return $FullPath;
+        
+    }
+    
+	function TbsPicAdd(&$Value, &$PrmLst, &$Txt, &$Loc, $Prm) {
+	// Add a picture inside the archive, use parameters 'from' and 'as'.
+	// Argument $Prm is only used for error messages.
+
+		static $index = 0;
+		static $internal = array();
+        
+		$TBS = &$this->TBS;
+
+		$PrmLst['pic_prepared'] = true; // mark the locator as Picture prepared
+        
+        $ExternalPath = $this->TbsPicExternalPath($Value, $PrmLst);
+        
+		if ($ExternalPath === false) {
+			if (isset($PrmLst['att'])) {
+				// can happen when using MergeField()
+				unset($PrmLst['att']);
+				$Value = '';
+			} else {
+				// parameter att already applied during Field caching
+				$Value = substr($Txt, $Loc->PosBeg, $Loc->PosEnd - $Loc->PosBeg + 1);
+			}
+            return false;
+        }
 
 		// set the name of the internal file
 		if (isset($PrmLst['as'])) {
@@ -1309,45 +1362,41 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		} else {
 			// uniqueness by the name of the file, not its full path, this is a weakness
 			// OpenXML does not support spaces and accents in internal file names.
-			$x = basename($FullPath);
+			$x = basename($ExternalPath);
 			if (!isset($internal[$x])) {
-				$ext = $this->Misc_FileExt(basename($FullPath));
+				$ext = $this->Misc_FileExt(basename($ExternalPath));
 				$internal[$x] = 'opentbs_added_' . $index . '.' . $ext;
 				$index++;
 			}
 			$InternalPath = $internal[$x];
 		}
 
-		if ($ok) {
+        // the value of the current TBS field becomes the full internal path
+        if (isset($this->ExtInfo['pic_path'])) $InternalPath = $this->ExtInfo['pic_path'].$InternalPath;
 
-			// the value of the current TBS field becomes the full internal path
-			if (isset($this->ExtInfo['pic_path'])) $InternalPath = $this->ExtInfo['pic_path'].$InternalPath;
+        // actually add the picture inside the archive
+        if ($this->FileGetIdxAdd($InternalPath)===false) $this->FileAdd($InternalPath, $ExternalPath, TBSZIP_FILE, true);
 
-			// actually add the picture inside the archive
-			if ($this->FileGetIdxAdd($InternalPath)===false) $this->FileAdd($InternalPath, $FullPath, TBSZIP_FILE, true);
+        // preparation for others file in the archive
+        $Rid = false;
+        if ($this->ExtType==='odf') {
+            // OpenOffice document
+            $this->OpenDoc_ManifestChange($InternalPath,'');
+        } elseif ($this->ExtType==='openxml') {
+            // Microsoft Office document
+            $this->OpenXML_CTypesPrepareExt($InternalPath, '');
+            $BackNbr = max(substr_count($TBS->OtbsCurrFile, '/') - 1, 0); // docx=>"media/img.png", xlsx & pptx=>"../media/img.png"
+            $TargetDir = str_repeat('../', $BackNbr).'media/';
+            $FileName = basename($InternalPath);
+            $Rid = $this->OpenXML_Rels_AddNewRid($TBS->OtbsCurrFile, $TargetDir, $FileName);
+        }
 
-			// preparation for others file in the archive
-			$Rid = false;
-			if ($this->ExtType==='odf') {
-				// OpenOffice document
-				$this->OpenDoc_ManifestChange($InternalPath,'');
-			} elseif ($this->ExtType==='openxml') {
-				// Microsoft Office document
-				$this->OpenXML_CTypesPrepareExt($InternalPath, '');
-				$BackNbr = max(substr_count($TBS->OtbsCurrFile, '/') - 1, 0); // docx=>"media/img.png", xlsx & pptx=>"../media/img.png"
-				$TargetDir = str_repeat('../', $BackNbr).'media/';
-				$FileName = basename($InternalPath);
-				$Rid = $this->OpenXML_Rels_AddNewRid($TBS->OtbsCurrFile, $TargetDir, $FileName);
-			}
-
-			// change the value of the field for the merging process
-			if ($Rid===false) {
-				$Value = $InternalPath;
-			} else {
-				$Value = $Rid; // the Rid is used instead of the file name for the merging
-			}
-
-		}
+        // change the value of the field for the merging process
+        if ($Rid===false) {
+            $Value = $InternalPath;
+        } else {
+            $Value = $Rid; // the Rid is used instead of the file name for the merging
+        }
 
 		// Change the dimensions of the picture
 		if (isset($Loc->otbsDim)) {
@@ -1360,27 +1409,58 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					$Loc->PosEnd = $Loc->otbsRealEnd;
 				}
 			}
-			if ($ok) $this->TbsPicAdjust($Txt, $Loc, $FullPath);
+			$this->TbsPicAdjust($Txt, $Loc, $ExternalPath);
 		}
 
-		// Unchanged value (must be done after redim)
-		if (!$ok) {
-			if (isset($PrmLst['att'])) {
-				// can happen when using MergeField()
-				unset($PrmLst['att']);
-				$Value = '';
-			} else {
-				// parameter att already applied during Field caching
-				$Value = substr($Txt, $Loc->PosBeg, $Loc->PosEnd - $Loc->PosBeg + 1);
-			}
-		}
-
-		$PrmLst['pic_prepared'] = true; // mark the locator as Picture prepared
-
-		return $ok;
+		return true;
 
 	}
 
+    function TbsPicReplace(&$Value, &$PrmLst, &$Txt, &$Loc) {
+
+        $TBS = &$this->TBS;
+        
+        // Force the move to the attribute
+        $TBS->f_Xml_AttFind($Txt,$Loc,true,$this->TBS->AttDelim);
+
+        // prevent from further att processing
+        $PrmLst['att-old'] = $PrmLst['att']; // for debuging
+        unset($PrmLst['att']);
+
+        // Get the path of the picture to insert
+        $ExternalPath = $this->TbsPicExternalPath($Value, $PrmLst);
+        if ($ExternalPath === false) return false;
+
+        // Get the value in the template
+        $Value = substr($Txt, $Loc->PosBeg, $Loc->PosEnd -  $Loc->PosBeg + 1);
+
+        if ($this->ExtType==='odf') {
+            // OpenOffice document
+            $InternalPath = $Value;
+        } elseif ($this->ExtType==='openxml') {
+            // Microsoft Office document
+            //$this->OpenXML_CTypesPrepareExt($InternalPath, '');
+            $TargetDir = $this->OpenXML_GetMediaRelativeToCurrent();
+            $o = $this->OpenXML_Rels_GetObj($TBS->OtbsCurrFile, $TargetDir);
+            if (isset($o->TargetLst[$Value])) {
+                $x = $o->TargetLst[$Value]; // relative path
+                $InternalPath = $this->OpenXML_GetAbsolutePath($x, $TBS->OtbsCurrFile);
+            } else {
+                return $this->RaiseError('The picture to merge with field ['.$Loc->FullName.'] cannot be found. Value=' . $Value);
+            }
+        }        
+
+        // Check the extension because it should be the same
+        $ext_ep = $this->Misc_FileExt($ExternalPath);
+        $ext_ip = $this->Misc_FileExt($InternalPath);
+        if ($ext_ep != $ext_ip) {
+            return $this->RaiseError("Field [".$Loc->FullName."] : parameter 'unique' needs the extension of the extral picture ($ext_ep) to be the same as the template picture ($ext_ip)." );
+        }
+        
+        $this->FileReplace($InternalPath, $ExternalPath, TBSZIP_FILE);
+        
+    }
+    
 	/**
 	 * Search a string in a list if several sub-file in the archive.
 	 * @param $files An associated array of sub-files to scann. Structure: $key => IdxOrName
@@ -2061,7 +2141,48 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return $path;
 		
 	}
+
+	/**
+	 * Return the absolute path of file $RelativePath which is relative to the full path $RelativeTo.
+	 * For example:
+	 * '../file_a.xml' relatively to 'dir1/dir2/file_b.xml' is 'dir1/file_a.xml'
+	 */    
+	function OpenXML_GetAbsolutePath($RelativePath, $RelativeTo) {
+		
+        // May be reltaive to the root
+		if (substr($RelativePath, 0, 1) == '/') {
+            return substr($RelativePath, 1);
+        }
+
+        $rp = explode('/', $RelativePath);
+        $rt = explode('/', $RelativeTo);
+		
+        // Get off the file name;
+        array_pop($rt);
+        
+        while ($rp[0] == '..') {
+			array_pop($rt);
+			array_shift($rp);
+        }
+        
+        while ($rp[0] == '.') {
+			array_shift($rp);
+        }
+        
+        $path = array_merge($rt, $rp);
+        $path = implode('/', $path);
+        
+		return $path;
+		
+	}
 	
+    function OpenXML_GetMediaRelativeToCurrent() {
+        $file = $this->TBS->OtbsCurrFile;
+        $x = explode('/', $file);
+        $dir = $x[0] . '/media';
+        return $this->OpenXML_GetRelativePath($dir, $file);
+    }
+    
 	/**
 	 * Delete an XML file in the OpenXML archive.
 	 * The file is delete from the declaration file [Content_Types].xml and from the relationships of the specified files.
