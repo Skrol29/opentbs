@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.1-beta-2014-04-29
- * @date 2014-04-10
+ * @version 1.9.1-beta-2014-05-05
+ * @date 2014-05-05
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -84,7 +84,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.9.1-beta-2014-04-29';
+		$this->Version = '1.9.1-beta-2014-05-05';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -1173,14 +1173,22 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	function TbsPicGetDim_OpenXML_dml($Txt, $Pos, $Forward, $Shift) {
 	
 		// find the drawing element
-		$Loc = clsTbsXmlLoc::FindElement($Txt, 'w:drawing', $Pos, false);
-		$Src = $Loc->GetSrc();
-	    
-		$Shift2 = $Shift - $Loc->PosBeg;
+		$Loc = false;
+		if (isset($this->ExtInfo['pic_entity'])) {
+			$tag = $this->ExtInfo['pic_entity'];
+			$Loc = clsTbsXmlLoc::FindElement($Txt, $this->ExtInfo['pic_entity'], $Pos, false);
+		}
+		if ($Loc) {
+			$Src = $Loc->GetSrc();
+			$ShiftSrc = $Shift - $Loc->PosBeg;
+		} else {
+			$Src = $Txt;
+			$ShiftSrc = $Shift;
+		}
 		
-		$dim_shape = $this->TbsPicGetDim_Any($Src, 0, true, $Shift2, 'wp:extent', 'cx="', 'cy="', 0, 12700, false);
-		$dim_inner = $this->TbsPicGetDim_Any($Src, 0, true, $Shift2, 'a:ext'    , 'cx="', 'cy="', 0, 12700, 'uri="');
-		$dim_drawing = $this->TbsPicGetDim_Drawings($Txt, $Pos, $dim_inner); // for XLSX
+		$dim_shape = $this->TbsPicGetDim_Any($Src, 0, true, $ShiftSrc, 'wp:extent', 'cx="', 'cy="', 0, 12700, false);
+		$dim_inner = $this->TbsPicGetDim_Any($Src, 0, true, $ShiftSrc, 'a:ext'    , 'cx="', 'cy="', 0, 12700, 'uri="');
+		$dim_drawing = $this->TbsPicGetDim_Drawings($Txt, $Pos, $dim_inner); // check for XLSX
 
 		// dims must be sorted in reverse order of location
 		$result = array();
@@ -1754,6 +1762,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			if ($this->FileExists('styles.xml')) $i['load'] = array('styles.xml'); // styles.xml may contain header/footer contents
 			if ($Ext==='odf') $i['br'] = false;
 			if ($Ext==='odm') $this->ExtEquiv = 'odt';
+			if ($Ext==='ots') $this->ExtEquiv = 'ods';
 			$this->ExtType = 'odf';
 			$ctype = array('t' => 'text', 's' => 'spreadsheet', 'g' => 'graphics', 'f' => 'formula', 'p' => 'presentation', 'm' => 'text-master');
 			$i['ctype'] .= $ctype[($Ext[2])];
@@ -1795,7 +1804,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			}
 			$ctype = 'application/vnd.openxmlformats-officedocument.';
 			if ($Ext==='docx') {
-				$i = array('br' => '<w:br/>', 'ctype' => $ctype . 'wordprocessingml.document', 'pic_path' => 'word/media/', 'rpl_what' => $x, 'rpl_with' => '\'');
+				$i = array('br' => '<w:br/>', 'ctype' => $ctype . 'wordprocessingml.document', 'pic_path' => 'word/media/', 'rpl_what' => $x, 'rpl_with' => '\'', 'pic_entity'=>'w:drawing');
 				$i['main'] = $this->OpenXML_MapGetMain('wordprocessingml.document.main+xml', 'word/document.xml');
 				$i['load'] = $this->OpenXML_MapGetFiles(array('wordprocessingml.header+xml', 'wordprocessingml.footer+xml'));
 				$block_alias = array(
@@ -1824,7 +1833,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				}
 			} elseif ( ($Ext==='xlsx') || ($Ext==='xlsm')) {
 				$this->MsExcel_DeleteCalcChain();
-				$i = array('br' => false, 'ctype' => $ctype . 'spreadsheetml.sheet', 'pic_path' => 'xl/media/');
+				$i = array('br' => false, 'ctype' => $ctype . 'spreadsheetml.sheet', 'pic_path' => 'xl/media/', 'pic_entity'=>'xdr:graphicFrame');
 				$i['main'] = $this->OpenXML_MapGetMain('spreadsheetml.worksheet+xml', 'xl/worksheets/sheet1.xml');
 				$this->ExtEquiv = 'xlsx';
 				$block_alias = array(
@@ -1835,7 +1844,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					'tbs:drawitem' => 'xdr:sp',
 				);
 			} elseif ($Ext==='pptx') {
-				$i = array('br' => false, 'ctype' => $ctype . 'presentationml.presentation', 'pic_path' => 'ppt/media/', 'rpl_what' => $x, 'rpl_with' => '\'');
+				$i = array('br' => false, 'ctype' => $ctype . 'presentationml.presentation', 'pic_path' => 'ppt/media/', 'rpl_what' => $x, 'rpl_with' => '\'', 'pic_entity'=>'p:pic');
 				$this->MsPowerpoint_InitSlideLst();
 				$i['main'] = (isset($this->OpenXmlSlideLst[0])) ? $this->OpenXmlSlideLst[0]['file'] : 'ppt/slides/slide1.xml';
 				$i['load'] = $this->OpenXML_MapGetFiles(array('presentationml.notesSlide+xml')); // auto-load comments
@@ -5079,6 +5088,11 @@ class clsTbsXmlLoc {
 		if ($this->pET_PosBeg!==false) $this->pET_PosBeg += $Diff;
 	}
 
+	// Return true is the ending position is a self-closing.
+	function _SelfClosing($PosEnd) {
+		return (substr($this->Txt, $PosEnd-1, 1)=='/');
+	}
+	
 	// Return the outer len of the locator.
 	function GetLen() {
 		return $this->PosEnd - $this->PosBeg + 1;
@@ -5115,21 +5129,21 @@ class clsTbsXmlLoc {
 	}
 
 	// Return the length of the inner content, or false if it's a self-closing tag
-	// Assume FindEndTag() is previsouly called.
+	// Assume FindEndTag() is previously called.
 	// Return false if SelfClosing.
 	function GetInnerLen() {
 		return ($this->pET_PosBeg===false) ? false : $this->pET_PosBeg - $this->pST_PosEnd - 1;
 	}
 
 	// Return the length of the inner content, or false if it's a self-closing tag 
-	// Assume FindEndTag() is previsouly called.
+	// Assume FindEndTag() is previously called.
 	// Return false if SelfClosing.
 	function GetInnerSrc() {
 		return ($this->pET_PosBeg===false) ? false : substr($this->Txt, $this->pST_PosEnd + 1, $this->pET_PosBeg - $this->pST_PosEnd - 1 );
 	}
 
 	// Replace the inner source of the locator in the TXT contents. Update the locator's positions.
-	// Assume FindEndTag() is previsouly called.
+	// Assume FindEndTag() is previously called.
 	function ReplaceInnerSrc($new) {
 		$len = $this->GetInnerLen();
 		if ($len===false) return false;
@@ -5146,7 +5160,7 @@ class clsTbsXmlLoc {
 		}
 	}
 
-	// Get an attribut's value. Or false if the attribute is not found.
+	// Get an attribute's value. Or false if the attribute is not found.
 	// It's a lazy way because the attribute is searched with the patern {attribute="value" }
 	function GetAttLazy($Att) {
 		$z = $this->_GetAttValPos($Att);
@@ -5163,7 +5177,9 @@ class clsTbsXmlLoc {
 			if ($AddIfMissing) {
 				// Add the attribute
 				$Value = ' '.$Att.'="'.$Value.'"';
-				$z = array($this->pST_PosEnd - $this->PosBeg, 0);
+				$pi = $this->pST_PosEnd;
+				if ($this->_SelfClosing($pi)) $pi--;
+				$z = array($pi - $this->PosBeg, 0);
 			} else {
 				return false;
 			}
@@ -5216,7 +5232,7 @@ class clsTbsXmlLoc {
 	function FindEndTag($Encaps=false) {
 		if (is_null($this->SelfClosing)) {
 			$pe = $this->PosEnd;
-			$SelfClosing = (substr($this->Txt, $pe-1, 1)=='/');
+			$SelfClosing = $this->_SelfClosing($pe);
 			if (!$SelfClosing) {
 				if ($Encaps) {
 					$loc = clsTinyButStrong::f_Xml_FindTag($this->Txt , $this->FindName(), null, $pe, true, -1, false, false);
