@@ -11,7 +11,7 @@ if (version_compare(PHP_VERSION,'5.1.0')>=0) {
 	}
 }
 
-// Initalize the TBS instance
+// Initialize the TBS instance
 $TBS = new clsTinyButStrong; // new instance of TBS
 $TBS->Plugin(TBS_INSTALL, OPENTBS_PLUGIN); // load the OpenTBS plugin
 
@@ -65,6 +65,7 @@ $TBS->PlugIn(OPENTBS_DISPLAY_SLIDES, 'slide to hide', false);
 // Delete a slide
 $TBS->PlugIn(OPENTBS_DELETE_SLIDES, 'slide to delete');
 
+$TBS->PlugIn(OPENTBS_EDIT_CREDITS);
 
 // -----------------
 // Output the result

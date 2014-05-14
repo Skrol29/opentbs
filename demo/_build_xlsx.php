@@ -3,7 +3,7 @@
 // Merge data in the first sheet
 $TBS->MergeBlock('a,b', $data);
 
-// Merge cells (exending columns)
+// Merge cells (extending columns)
 $TBS->MergeBlock('cell1,cell2', $data);
 
 // Change the current sheet
