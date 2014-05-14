@@ -11,7 +11,7 @@ if (version_compare(PHP_VERSION,'5.1.0')>=0) {
 	}
 }
 
-// Initalize the TBS instance
+// Initialize the TBS instance
 $TBS = new clsTinyButStrong; // new instance of TBS
 $TBS->Plugin(TBS_INSTALL, OPENTBS_PLUGIN); // load the OpenTBS plugin
 
@@ -70,6 +70,7 @@ $TBS->PlugIn(OPENTBS_DELETE_SHEETS, 'Delete me');
 // Display a sheet (make it visible)
 $TBS->PlugIn(OPENTBS_DISPLAY_SHEETS, 'Display me');
 
+$TBS->PlugIn(OPENTBS_EDIT_CREDITS);
 
 // -----------------
 // Output the result

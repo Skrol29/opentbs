@@ -11,7 +11,7 @@ if (version_compare(PHP_VERSION,'5.1.0')>=0) {
 	}
 }
 
-// Initalize the TBS instance
+// Initialize the TBS instance
 $TBS = new clsTinyButStrong; // new instance of TBS
 $TBS->Plugin(TBS_INSTALL, OPENTBS_PLUGIN); // load the OpenTBS plugin
 
@@ -59,7 +59,7 @@ if (isset($_POST['debug']) && ($_POST['debug']=='show'))    $TBS->Plugin(OPENTBS
 // Merge data in the first sheet
 $TBS->MergeBlock('a,b', $data);
 
-// Merge cells (exending columns)
+// Merge cells (extending columns)
 $TBS->MergeBlock('cell1,cell2', $data);
 
 // Change the current sheet
@@ -80,6 +80,7 @@ $TBS->PlugIn(OPENTBS_DELETE_SHEETS, 'Delete me');
 // Display a sheet (make it visible)
 $TBS->PlugIn(OPENTBS_DISPLAY_SHEETS, 'Display me');
 
+$TBS->PlugIn(OPENTBS_EDIT_CREDITS);
 
 // -----------------
 // Output the result
