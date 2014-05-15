@@ -1,0 +1,73 @@
+= Beta 1.9.1 =
+
+== Bug fixes ==
+
+* Adjusting size of image in docx.
+* When turn a sheet to hidden in an XLSX, then the file may be corrupted.
+* Command OPENTBS_COUNT_SLIDES did not work for ODP.
+* A PPTX can be corrupted when opening a template which is a previous result of a merge. Because an <a:r> must contain at least one <a:t>.
+
+== New features ==
+
+* New parameter "unique" for picture
+* ODT files are now recognized. It is equivalent to ODS. 
+* New command OPENTBS_COUNT_SHEETS
+* New command OPENTBS_EDIT_CREDITS
+
+== Enhancements ==
+
+* OPENTBS_CHANGE_PICTURE now use an array of parameters.
+
+= Release 1.9.0 =
+Released: 2014-04-10
+
+== Bug fixes ==
+
+* Corrupted MS Office files when inserting images named with space or accent.
+* XLSX warning for corrupted subfile "/xl/calcChain.xml-Part".
+* Some ODS templates compatible with Ms Excel can become erroneous for Ms 
+  Excel after the merge with OpenTBS. Message "The workbook cannot be opened 
+  or repaired by Microsoft Excel because it is corrupt".
+* Some XLSX templates built with LibreOffice can be very long to be opened 
+  with OpenTBS. That is because LibreOffice add some extra useless rows 
+  definition at the bottom limit of the sheets.
+* A big number merged in a XLSX with parameter "ope=tbs:num" can display 
+  another value. Example : 7580563123 displays -1009371469 in 32bits.
+* Inappropriate error message "ExtType is not defined" when execute a 
+  command but no template is loaded.
+* OPTBS_SELECT_SHEET with an ODS template do nothing. Now it selects the 
+   main file (contains all sheets).
+* OPTBS_SELECT_SLIDE with an ODP template do nothing. Now it selects the 
+  main file (contains all slides).
+
+== New features ==
+
+* new command OPENTBS_SELECT_FILE
+* new command OPENTBS_SELECT_HEADER
+* new command OPENTBS_SELECT_FOOTER
+* new command OPENTBS_GET_HEADERS_FOOTERS
+* new command OPENTBS_SEARCH_IN_SLIDES
+* new parameter $Master for command OPENTBS_SELECT_SLIDE
+  and OPENTBS_COUNT_SLIDES
+
+== Enhancements ==
+
+* Debug mode available even if no template is loaded.
+* Debug mode display the Zlib availability.
+* Based on TbsZip 2.16
+ 
+= Release 1.8.3 =
+
+= Release 1.8.2 =
+
+- Based on TbsZip 2.15
+
+- Supports new parameter "parallel" given with TBS 3.9.0
+
+- Manage RSID problem with ODT (with LibreOffice>=4).
+
+- Bug when merging numerical cells in ODS files built with LibreOffice>=4
+  it's about new attribute "calcext:value-type" in ODS cells in LibreOffice 4 
+  http://www.tinybutstrong.com/forum.php?thr=3246
+
+- Nouvelle option interne : $TBS->OtbsClearWriter

@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.1-beta-2014-05-05
- * @date 2014-05-05
+ * @version 1.9.1-beta-2014-05-15
+ * @date 2014-05-15
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -49,10 +49,12 @@ define('OPENTBS_DELETE_COMMENTS','clsOpenTBS.DeleteComments');
 define('OPENTBS_MERGE_SPECIAL_ITEMS','clsOpenTBS.MergeSpecialItems');
 define('OPENTBS_CHANGE_PICTURE','clsOpenTBS.ChangePicture');
 define('OPENTBS_COUNT_SLIDES','clsOpenTBS.CountSlides');
+define('OPENTBS_COUNT_SHEETS','clsOpenTBS.CountSheets');
 define('OPENTBS_SEARCH_IN_SLIDES','clsOpenTBS.SearchInSlides');
 define('OPENTBS_DISPLAY_SLIDES','clsOpenTBS.DisplaySlides');
 define('OPENTBS_DELETE_SLIDES','clsOpenTBS.DeleteSlides');
 define('OPENTBS_SELECT_FILE','clsOpenTBS.SelectFile');
+define('OPENTBS_EDIT_CREDITS','clsOpenTBS.EditCredits');
 define('OPENTBS_FIRST',1); // 
 define('OPENTBS_GO',2);    // = TBS_GO
 define('OPENTBS_ALL',4);   // = TBS_ALL
@@ -84,7 +86,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.9.1-beta-2014-05-05';
+		$this->Version = '1.9.1-beta-2014-05-15';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -531,11 +533,26 @@ class clsOpenTBS extends clsTbsZip {
 				$RefLst = $this->MsPowerpoint_InitSlideLst($master);
 				return count($RefLst);
 			} elseif ($this->ExtEquiv=='odp') {
-				return substr_count($TBS->Source, '</draw:page>');
+				$idx = $this->Ext_GetMainIdx();
+				$txt = $this->TbsStoreGet($idx, "Command OPENTBS_COUNT_SLIDES");
+				return substr_count($txt, '</draw:page>');
 			} else {
 				return 0;
 			}
+			
+		} elseif ($Cmd==OPENTBS_COUNT_SHEETS) {
 
+			if ($this->ExtEquiv=='xlsx') {
+				$this->MsExcel_SheetInit();
+				return count($this->MsExcel_Sheets);
+			} elseif ($this->ExtEquiv=='ods') {
+				$idx = $this->Ext_GetMainIdx();
+				$txt = $this->TbsStoreGet($idx, "Command OPENTBS_COUNT_SHEETS");
+				return substr_count($txt, '</table:table>');
+			} else {
+				return 0;
+			}
+			
 		} elseif ($Cmd==OPENTBS_SEARCH_IN_SLIDES) {
 
 			if ($this->ExtEquiv=='pptx') {
@@ -604,6 +621,12 @@ class clsOpenTBS extends clsTbsZip {
 			}
 			
 			return $res;
+		
+		} elseif ($Cmd==OPENTBS_EDIT_CREDITS) {
+		
+			$Credit = (is_null($x1)) ? ("Merged by OpenTBS " . $this->Version) : (''.$x1);
+			$Add = (is_null($x2)) ? true : $x2;
+			return $this->Misc_EditCredits($Credit, $Add);
 		
 		}
 
@@ -1560,7 +1583,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		// Retrieve the Main sub-file
 		if ($MainTags!==false) {
-			$idx = $this->FileGetIdx($this->ExtInfo['main']);
+			$idx = $this->Ext_GetMainIdx();
 			if ($idx===false) return false;
 			// Delete Comment locators
 			$Txt = $this->TbsStoreGet($idx, "Delete Comments");
@@ -1711,6 +1734,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 	}
 
+
+	
 	/**
 	 * Actualize property ExtInfo (Extension Info).
 	 * ExtInfo will be an array with keys 'load', 'br', 'ctype' and 'pic_path'. Keys 'rpl_what' and 'rpl_with' are optional.
@@ -2151,6 +2176,59 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		
 	}
 
+	/**
+	 * Add or replace a credit information in the appropriate property of the document.
+	 * Return the new credit text if succeed.
+	 * Return false if the expected file is not found.
+	 */
+	function Misc_EditCredits($NewCredit, $Add) {
+	
+		if ($this->ExtType=='odf') {
+			$File = 'meta.xml';
+			$Tag = 'meta:user-defined';
+			$Att = 'meta:name="Merged by"';
+			$Parent = 'office:meta';
+		} elseif ($this->ExtType=='openxml') {
+			$File = 'docProps/core.xml';
+			$Tag = 'dc:creator';
+			$Att = false;
+			$Parent = 'cp:coreProperties';
+		} else {
+			return false;
+		}
+	
+		$idx = $this->FileGetIdx($File);
+		if ($idx===false) return false;
+		 
+		$NewCredit = htmlspecialchars($NewCredit);
+		
+		$Txt = $this->TbsStoreGet($idx, "EditCredits");
+		
+		if ($Att) {
+			$loc = clsTbsXmlLoc::FindElementHavingAtt($Txt, $Att, 0);
+			$TagOpen = $Tag.' '.$Att;
+		} else {
+			$loc = clsTbsXmlLoc::FindElement($Txt, $Tag, 0);
+			$TagOpen = $Tag;
+		}
+		
+		if ($loc===false) {
+			$p = strpos($Txt, '</'.$Parent.'>');
+			if ($p===false) return $p;
+			$Txt = substr_replace($Txt, '<'.$TagOpen.'>'.$NewCredit.'</'.$Tag.'>', $p, 0);
+		} else {
+			if ($Add) {
+				$NewCredit = $loc->GetInnerSrc().';'.$NewCredit;
+			}
+			$loc->ReplaceInnerSrc($NewCredit);
+		}
+		
+		$this->TbsStorePut($idx, $Txt);
+		
+		return $NewCredit;
+		
+	}
+	
 	/**
 	 * Return the absolute path of file $RelativePath which is relative to the full path $RelativeTo.
 	 * For example:
@@ -2941,15 +3019,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	/**
-	 * Clear Rid in the Rels file that are missing in the parent file.
-	 */
-	function OpenXML_ClearRels() {
-		// TODO
-		// foreach($this->IdxToCheck as $ParentIdx=>$RelsIdx) {
-		// }
-	}
-
 	// Delete unreferenced images
 	function OpenMXL_GarbageCollector() {
 
@@ -3556,19 +3625,21 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	// Clean tags in an Ms Powerpoint slide
 	function MsPowerpoint_Clean(&$Txt) {
+
 		$this->MsPowerpoint_CleanRpr($Txt, 'a:rPr');
 		$Txt = str_replace('<a:rPr/>', '', $Txt);
 
 		$this->MsPowerpoint_CleanRpr($Txt, 'a:endParaRPr');
 		$Txt = str_replace('<a:endParaRPr/>', '', $Txt); // do not delete, can change layout
 
-		// join split elements
+		// Join split elements
 		$Txt = str_replace('</a:t><a:t>', '', $Txt);
 		$Txt = str_replace('</a:t></a:r><a:r><a:t>', '', $Txt); // this join TBS split tags
 
-		// delete empty elements
-		$Txt = str_replace('<a:t></a:t>', '', $Txt);
-		$Txt = str_replace('<a:r></a:r>', '', $Txt);
+		// Delete empty elements
+		// An <a:r> must contain at least one <a:t>. An empty <a:t> may exist after several merges or an OpenTBS cleans.
+		$Txt = str_replace('<a:r><a:t></a:t></a:r>', '', $Txt);
+
 	}
 
 	function MsPowerpoint_CleanRpr(&$Txt, $elem) {
@@ -3892,8 +3963,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 */
 	function MsWord_RenumDocPr() {
 
-		$file = $this->ExtInfo['main'];
-		$idx = $this->FileGetIdx($file);
+		$idx = $this->Ext_GetMainIdx();
 		if ($idx===false) return;
 
 		$Txt = $this->TbsStoreGet($idx, 'Word renume DocPr ids');
@@ -4340,7 +4410,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$this->OpenDoc_SheetSlides = array();     // sheet/slide info sorted by location
 
-		$idx = $this->FileGetIdx($this->ExtInfo['main']);
+		$idx = $this->Ext_GetMainIdx();
 		if ($idx===false) return;
 		$Txt = $this->TbsStoreGet($idx, 'Sheet/Slide Info');
 		if ($Txt===false) return false;
@@ -5341,7 +5411,7 @@ class clsTbsXmlLoc {
 		$XmlLoc = clsTbsXmlLoc::FindStartTag($TxtOrObj, $Tag, $PosBeg, $Forward);
 		if ($XmlLoc===false) return false;
 
-		$XmlLoc->FindEndTag();
+		$XmlLoc->FindEndTag('dc:creator');
 		return $XmlLoc;
 
 	}
