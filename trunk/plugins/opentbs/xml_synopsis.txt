@@ -681,8 +681,8 @@ Powerpoint: (PPTX)
 Excel: (XLSX)
 ======
 The presence of pictures in the sheet is mentioned with a single <drawing> entity at the bottom of the <worksheet> entity.
-The <drawing> entity has a reference to the file of all Rels of the sheet.
-All pictures of a sheet are finally references in a third XML file. 
+The <drawing> entity carries a reference id, which is defined the Rels file of the sheet.
+All properties of all the pictures in a sheet are finally saved in a third XML file. 
 
 * File "xl\worksheets\sheet1.xml"
 <worksheet ...>
