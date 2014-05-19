@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.1-beta-2014-05-15
- * @date 2014-05-15
+ * @version 1.9.1-beta-2014-05-18
+ * @date 2014-05-18
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -86,7 +86,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.9.1-beta-2014-05-15';
+		$this->Version = '1.9.1-beta-2014-05-18';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -1091,19 +1091,23 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		// In caching mode, the tag will be moved before the merging by parameter att. Thus Dim info must considerate the tbs tag as length zero.
-		$shift = ($IsCaching && (!$backward) ) ? ($Loc->PosEnd-$Loc->PosBeg+1) : 0;
-
+		if ($IsCaching) {
+			$FieldLen = ($Loc->PosEnd-$Loc->PosBeg+1);
+		} else {
+			$FieldLen = 0;
+		}
+		
 		if ($this->ExtType==='odf') {
 			$att = 'draw:image#xlink:href';
-			if (isset($Loc->PrmLst['adjust'])) $Loc->otbsDim = $this->TbsPicGetDim_ODF($Txt, $Loc->PosBeg, !$backward, $shift);
+			if (isset($Loc->PrmLst['adjust'])) $Loc->otbsDim = $this->TbsPicGetDim_ODF($Txt, $Loc->PosBeg, !$backward, $Loc->PosBeg, $FieldLen);
 		} elseif ($this->ExtType==='openxml') {
-			$att = $this->OpenXML_FirstPicAtt($Txt, $Loc->PosBeg, $backward, $shift);
+			$att = $this->OpenXML_FirstPicAtt($Txt, $Loc->PosBeg, $backward);
 			if ($att===false) return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] has failed to found the picture.');
 			if (isset($Loc->PrmLst['adjust'])) {
 				if (strpos($att,'v:imagedata')!==false) { 
-					$Loc->otbsDim = $this->TbsPicGetDim_OpenXML_vml($Txt, $Loc->PosBeg, !$backward, $shift);
+					$Loc->otbsDim = $this->TbsPicGetDim_OpenXML_vml($Txt, $Loc->PosBeg, !$backward, $Loc->PosBeg, $FieldLen);
 				} else {
-					$Loc->otbsDim = $this->TbsPicGetDim_OpenXML_dml($Txt, $Loc->PosBeg, !$backward, $shift);
+					$Loc->otbsDim = $this->TbsPicGetDim_OpenXML_dml($Txt, $Loc->PosBeg, !$backward, $Loc->PosBeg, $FieldLen);
 				}
 			}
 		} else {
@@ -1181,37 +1185,39 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 	}
 
-	function TbsPicGetDim_ODF($Txt, $Pos, $Forward, $Shift) {
+	function TbsPicGetDim_ODF($Txt, $Pos, $Forward, $FieldPos, $FieldLen) {
 	// Found the attributes for the image dimensions, in an ODF file
 		// unit (can be: mm, cm, in, pi, pt)
-		$dim = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $Shift, 'draw:frame', 'svg:width="', 'svg:height="', 3, false, false);
+		$Offset = 0;
+		$dim = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $FieldPos, $FieldLen, $Offset, 'draw:frame', 'svg:width="', 'svg:height="', 3, false, false);
 		return array($dim);
 	}
 
-	function TbsPicGetDim_OpenXML_vml($Txt, $Pos, $Forward, $Shift) {
-		$dim = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $Shift, 'v:shape', 'width:', 'height:', 2, false, false);
+	function TbsPicGetDim_OpenXML_vml($Txt, $Pos, $Forward, $FieldPos, $FieldLen) {
+		$Offset = 0;
+		$dim = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $FieldPos, $FieldLen, $Offset, 'v:shape', 'width:', 'height:', 2, false, false);
 		return array($dim);
 	}
 
-	function TbsPicGetDim_OpenXML_dml($Txt, $Pos, $Forward, $Shift) {
-	
-		// find the drawing element
-		$Loc = false;
+	function TbsPicGetDim_OpenXML_dml($Txt, $Pos, $Forward, $FieldPos, $FieldLen) {
+
+		$Offset = 0;
+
+		// Try to find the drawing element
 		if (isset($this->ExtInfo['pic_entity'])) {
 			$tag = $this->ExtInfo['pic_entity'];
 			$Loc = clsTbsXmlLoc::FindElement($Txt, $this->ExtInfo['pic_entity'], $Pos, false);
+			if ($Loc) {
+				$Txt = $Loc->GetSrc();
+				$Pos = 0;
+				$Forward = true;
+				$Offset = $Loc->PosBeg;
+			}
 		}
-		if ($Loc) {
-			$Src = $Loc->GetSrc();
-			$ShiftSrc = $Shift - $Loc->PosBeg;
-		} else {
-			$Src = $Txt;
-			$ShiftSrc = $Shift;
-		}
-		
-		$dim_shape = $this->TbsPicGetDim_Any($Src, 0, true, $ShiftSrc, 'wp:extent', 'cx="', 'cy="', 0, 12700, false);
-		$dim_inner = $this->TbsPicGetDim_Any($Src, 0, true, $ShiftSrc, 'a:ext'    , 'cx="', 'cy="', 0, 12700, 'uri="');
-		$dim_drawing = $this->TbsPicGetDim_Drawings($Txt, $Pos, $dim_inner); // check for XLSX
+
+		$dim_shape = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $FieldPos, $FieldLen, $Offset, 'wp:extent', 'cx="', 'cy="', 0, 12700, false);
+		$dim_inner = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $FieldPos, $FieldLen, $Offset, 'a:ext'    , 'cx="', 'cy="', 0, 12700, 'uri="');
+		$dim_drawing = $this->TbsPicGetDim_Drawings($Txt, $Pos, $FieldPos, $FieldLen, $Offset, $dim_inner); // check for XLSX
 
 		// dims must be sorted in reverse order of location
 		$result = array();
@@ -1224,7 +1230,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		
 	}
 
-	function TbsPicGetDim_Any($Txt, $Pos, $Forward, $Shift, $Element, $AttW, $AttH, $AllowedDec, $CoefToPt, $IgnoreIfAtt) {
+	function TbsPicGetDim_Any($Txt, $Pos, $Forward, $FieldPos, $FieldLen, $Offset, $Element, $AttW, $AttH, $AllowedDec, $CoefToPt, $IgnoreIfAtt) {
 	// Found the attributes for the image dimensions, in an ODF file
 
 		while (true) {
@@ -1257,7 +1263,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 						while ( ($pu>1) && (!is_numeric($t[$pu-1])) ) $pu--;
 						$u = ($pu>=$lt) ? '' : substr($t, $pu);
 						$v = floatval(substr($t, 0, $pu));
-						$res_lst[$i.'b'] = ($p+$b-$Shift); // start
+						$beg = $Offset+$p+$b;
+						if ($beg>$FieldPos) $beg = $beg - $FieldLen;
+						$res_lst[$i.'b'] = $beg; // start position in the main string
 						$res_lst[$i.'l'] = $lt; // length of the text
 						$res_lst[$i.'u'] = $u; // unit
 						$res_lst[$i.'v'] = $v; // value
@@ -1282,40 +1290,45 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	// Get Dim in a OpenXML Drawing (pictures in an XLSX)
-	function TbsPicGetDim_Drawings($Txt, $Pos, $dim_inner) {
+	// Get Dim in an OpenXML Drawing (pictures in an XLSX)
+	function TbsPicGetDim_Drawings($Txt, $Pos, $FieldPos, $FieldLen, $Offset, $dim_inner) {
 
+		// The <a:ext> coordinates must have been found previously.
 		if ($dim_inner===false) return false;
+		// The current file must be an XLSX drawing sub-file.
 		if (strpos($this->TBS->OtbsCurrFile, 'xl/drawings/')!==0) return false;
-
-		$cx = $dim_inner['wv'];
-		$cy = $dim_inner['hv'];
-
-		$loc = clsTbsXmlLoc::FindStartTag($Txt, 'xdr:twoCellAnchor', $Pos, false);
-		if ($loc===false) return false;
-		$loc = clsTbsXmlLoc::FindStartTag($Txt, 'xdr:to', $loc->PosBeg, true);
+		
+		if ($Pos==0) {
+			// The parent element has already been found
+			$PosEl = 0;
+		} else {
+			// Found  parent element
+			$loc = clsTbsXmlLoc::FindStartTag($Txt, 'xdr:twoCellAnchor', $Pos, false);
+			if ($loc===false) return false;
+			$PosEl = $loc->PosBeg;
+		}
+		
+		$loc = clsTbsXmlLoc::FindStartTag($Txt, 'xdr:to', $PosEl, true);
 		if ($loc===false) return false;
 		$p = $loc->PosBeg;
 
 		$res = array();
 
-		$loc = clsTbsXmlLoc::FindElement($Txt, 'xdr:colOff', $p, true);
-		if ($loc===false) return false;
-		$res['wb'] = $loc->GetInnerStart();
-		$res['wl'] = $loc->GetInnerLen();
-		$res['wu'] = '';
-		$res['wv'] = $cx;
-		$res['wt'] = $loc->GetInnerSrc();
-		$res['wo'] = intval($res['wt']) - $cx;
-
-		$loc = clsTbsXmlLoc::FindElement($Txt, 'xdr:rowOff', $p, true);
-		if ($loc===false) return false;
-		$res['hb'] = $loc->GetInnerStart();
-		$res['hl'] = $loc->GetInnerLen();
-		$res['hu'] = '';
-		$res['hv'] = $cy;
-		$res['ht'] = $loc->GetInnerSrc();
-		$res['ho'] = intval($res['ht']) - $cy;
+		$el_lst = array('w'=>'xdr:colOff', 'h'=>'xdr:rowOff');
+		foreach ($el_lst as $i=>$el) {
+			$loc = clsTbsXmlLoc::FindElement($Txt, $el, $p, true);
+			if ($loc===false) return false;
+			$beg =  $Offset + $loc->GetInnerStart();
+			if ($beg>$FieldPos) $beg = $beg - $FieldLen;
+			$val = $dim_inner[$i.'v'];
+			$tval = $loc->GetInnerSrc();
+			$res[$i.'b'] = $beg;
+			$res[$i.'l'] = $loc->GetInnerLen();
+			$res[$i.'u'] = '';
+			$res[$i.'v'] = $val;
+			$res[$i.'t'] = $tval;
+			$res[$i.'o'] = intval($tval) - $val;
+		}
 
 		$res['r'] = ($res['hv']==0) ? 0.0 : $res['wv']/$res['hv']; // ratio W/H;
 		$res['dec'] = 0;
@@ -1858,7 +1871,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				}
 			} elseif ( ($Ext==='xlsx') || ($Ext==='xlsm')) {
 				$this->MsExcel_DeleteCalcChain();
-				$i = array('br' => false, 'ctype' => $ctype . 'spreadsheetml.sheet', 'pic_path' => 'xl/media/', 'pic_entity'=>'xdr:graphicFrame');
+				$i = array('br' => false, 'ctype' => $ctype . 'spreadsheetml.sheet', 'pic_path' => 'xl/media/', 'pic_entity'=>'xdr:twoCellAnchor');
 				$i['main'] = $this->OpenXML_MapGetMain('spreadsheetml.worksheet+xml', 'xl/worksheets/sheet1.xml');
 				$this->ExtEquiv = 'xlsx';
 				$block_alias = array(
