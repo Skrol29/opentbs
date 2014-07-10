@@ -5,12 +5,13 @@
 * Adjusting size of image in docx.
 * When turn a sheet to hidden in an XLSX, then the file may be corrupted.
 * Command OPENTBS_COUNT_SLIDES did not work for ODP.
-* A PPTX can be corrupted when opening a template which is a previous result of a merge. Because an <a:r> must contain at least one <a:t>.
+* A PPTX can be corrupted when opening a template which is a previous result of a merge. This is because an <a:r> must contain at least one <a:t>.
+* Merging several XLSX with the same OpenTBS instance can produce erroneous merged cells.
 
 == New features ==
 
 * New parameter "unique" for picture
-* ODT files are now recognized. It is equivalent to ODS. 
+* ODS files are now recognized. It is equivalent to ODS. 
 * New command OPENTBS_COUNT_SHEETS
 * New command OPENTBS_EDIT_CREDITS
 

@@ -270,13 +270,14 @@ class clsOpenTBS extends clsTbsZip {
 	// in this event, ope is exploded, there is one function call for each ope command
 		$ope = $PrmLst['ope'];
 		if ($ope==='addpic') {
+		    // for compatibility
 			$this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=addpic');
 		} elseif ($ope==='changepic') {
 			if (!isset($PrmLst['pic_change'])) {
 				$this->TbsPicFound($Txt, $Loc, false);  // add parameter "att" which will be processed just before the value is merged
 				$PrmLst['pic_change'] = true;
 			}
-            if (isset($PrmLst['unique'])) {
+            if (isset($PrmLst['unique']) && $PrmLst['unique']) {
                 $this->TbsPicReplace($Value, $PrmLst, $Txt, $Loc); 
             } else {
                 $this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=changepic');
@@ -498,7 +499,7 @@ class clsOpenTBS extends clsTbsZip {
 
 		} elseif ($Cmd==OPENTBS_CHANGE_PICTURE) {
 
-			static $img_num = 0;
+			static $UniqueId = 0;
 
 			$code = $x1;
 			$file = $x2;
@@ -514,8 +515,8 @@ class clsOpenTBS extends clsTbsZip {
             foreach($prms as $p => $v) $prms_flat[] = $p.'='.$v;
             $prms_flat = implode(';', $prms_flat);
             
-			$img_num++;
-			$name = 'OpenTBS_Change_Picture_'.$img_num;
+			$UniqueId++;
+			$name = 'OpenTBS_Change_Picture_'.$UniqueId;
 			$tag = "[$name;ope=changepic;tagpos=inside;$prms_flat]";
 
 			$nbr = false;
@@ -645,6 +646,9 @@ class clsOpenTBS extends clsTbsZip {
 		$this->IdxToCheck = array(); // index of files to check
 		$this->PrevVals = array(); // Previous values for 'mergecell' operator
 
+		$this->ImageIndex = 0;          // Serial for inserted images
+		$this->ImageInternal = array(); // Internal names of inserted image
+
 		$this->ExtEquiv = false;
 		$this->ExtType = false;
 		
@@ -663,6 +667,7 @@ class clsOpenTBS extends clsTbsZip {
 		$this->OpenXmlSlideLst = false;
 		$this->OpenXmlSlideMasterLst = false;
 		$this->MsExcel_Sheets = false;
+		$this->MsExcel_NoTBS = array(); // shared string containing no TBS field
 		$this->MsWord_HeaderFooter = false;
 
 		$this->Ext_PrepareInfo(); // Set extension information
@@ -1374,12 +1379,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
         
     }
     
+	/**
+	 * Add a picture inside the archive, use parameters 'from' and 'as'.
+	 * Argument $Prm is only used for error messages.
+	 */
 	function TbsPicAdd(&$Value, &$PrmLst, &$Txt, &$Loc, $Prm) {
-	// Add a picture inside the archive, use parameters 'from' and 'as'.
-	// Argument $Prm is only used for error messages.
-
-		static $index = 0;
-		static $internal = array();
         
 		$TBS = &$this->TBS;
 
@@ -1407,12 +1411,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			// uniqueness by the name of the file, not its full path, this is a weakness
 			// OpenXML does not support spaces and accents in internal file names.
 			$x = basename($ExternalPath);
-			if (!isset($internal[$x])) {
+			if (!isset($this->ImageInternal[$x])) {
 				$ext = $this->Misc_FileExt(basename($ExternalPath));
-				$internal[$x] = 'opentbs_added_' . $index . '.' . $ext;
-				$index++;
+				$this->ImageInternal[$x] = 'opentbs_added_' . $this->ImageIndex . '.' . $ext;
+				$this->ImageIndex++;
 			}
-			$InternalPath = $internal[$x];
+			$InternalPath = $this->ImageInternal[$x];
 		}
 
         // the value of the current TBS field becomes the full internal path
@@ -1460,6 +1464,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	/**
+	 * Actually replace a picture instead of adding a new one.
+	 */
     function TbsPicReplace(&$Value, &$PrmLst, &$Txt, &$Loc) {
 
         $TBS = &$this->TBS;
@@ -1467,7 +1474,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
         // Force the move to the attribute
         $TBS->f_Xml_AttFind($Txt,$Loc,true,$this->TBS->AttDelim);
 
-        // prevent from further att processing
+        // Prevent from further att processing
         $PrmLst['att-old'] = $PrmLst['att']; // for debuging
         unset($PrmLst['att']);
 
@@ -1483,7 +1490,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
             $InternalPath = $Value;
         } elseif ($this->ExtType==='openxml') {
             // Microsoft Office document
-            //$this->OpenXML_CTypesPrepareExt($InternalPath, '');
+            // $this->OpenXML_CTypesPrepareExt($InternalPath, '');
             $TargetDir = $this->OpenXML_GetMediaRelativeToCurrent();
             $o = $this->OpenXML_Rels_GetObj($TBS->OtbsCurrFile, $TargetDir);
             if (isset($o->TargetLst[$Value])) {
@@ -1492,15 +1499,15 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
             } else {
                 return $this->RaiseError('The picture to merge with field ['.$Loc->FullName.'] cannot be found. Value=' . $Value);
             }
-        }        
+        }
 
         // Check the extension because it should be the same
         $ext_ep = $this->Misc_FileExt($ExternalPath);
         $ext_ip = $this->Misc_FileExt($InternalPath);
         if ($ext_ep != $ext_ip) {
-            return $this->RaiseError("Field [".$Loc->FullName."] : parameter 'unique' needs the extension of the extral picture ($ext_ep) to be the same as the template picture ($ext_ip)." );
+            return $this->RaiseError("Field [".$Loc->FullName."] : parameter 'unique' needs the extension of the external picture ($ext_ep) to be the same as the template picture ($ext_ip)." );
         }
-        
+
         $this->FileReplace($InternalPath, $ExternalPath, TBSZIP_FILE);
         
     }
@@ -2155,39 +2162,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$ext = strtolower($ext);
 		return $ext;
 	}
-	
-	/**
-	 * Return the path of file $FullPath relatively to the path of file $RelativeTo.
-	 * For example:
-	 * 'dir1/dir2/file_a.xml' relatively to 'dir1/dir2/file_b.xml' is 'file_a.xml'
-	 * 'dir1/file_a.xml' relatively to 'dir1/dir2/file_b.xml' is '../file_a.xml'
-	 */
-	function OpenXML_GetRelativePath($FullPath, $RelativeTo) {
-		
-		$fp = explode('/', $FullPath);
-		$fp_file = array_pop($fp);
-		$fp_max = count($fp)-1;
-		
-		$rt = explode('/', $RelativeTo);
-		$rt_file = array_pop($rt);
-		$rt_max = count($rt)-1;
-		
-		// First different item
-		$min = min($fp_max, $rt_max);
-		while( ($min>=0) && ($fp[0]==$rt[0])  ) {
-			$min--;
-			array_shift($fp);
-			array_shift($rt);
-		}
-
-		$path  = str_repeat('../', count($rt));
-		$path .= implode('/', $fp);
-		if (count($fp)>0) $path .= '/';
-		$path .= $fp_file;
-		
-		return $path;
-		
-	}
 
 	/**
 	 * Add or replace a credit information in the appropriate property of the document.
@@ -2242,6 +2216,39 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		
 	}
 	
+	/**
+	 * Return the path of file $FullPath relatively to the path of file $RelativeTo.
+	 * For example:
+	 * 'dir1/dir2/file_a.xml' relatively to 'dir1/dir2/file_b.xml' is 'file_a.xml'
+	 * 'dir1/file_a.xml' relatively to 'dir1/dir2/file_b.xml' is '../file_a.xml'
+	 */
+	function OpenXML_GetRelativePath($FullPath, $RelativeTo) {
+		
+		$fp = explode('/', $FullPath);
+		$fp_file = array_pop($fp);
+		$fp_max = count($fp)-1;
+		
+		$rt = explode('/', $RelativeTo);
+		$rt_file = array_pop($rt);
+		$rt_max = count($rt)-1;
+		
+		// First different item
+		$min = min($fp_max, $rt_max);
+		while( ($min>=0) && ($fp[0]==$rt[0])  ) {
+			$min--;
+			array_shift($fp);
+			array_shift($rt);
+		}
+
+		$path  = str_repeat('../', count($rt));
+		$path .= implode('/', $fp);
+		if (count($fp)>0) $path .= '/';
+		$path .= $fp_file;
+		
+		return $path;
+		
+	}
+
 	/**
 	 * Return the absolute path of file $RelativePath which is relative to the full path $RelativeTo.
 	 * For example:
@@ -3258,7 +3265,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		static $v1_len = 3;
 		static $v2 = '</v>';
 		static $v2_len = 4;
-		static $notbs = array();
 
 		// found position of the <c> element, and extract its contents
 		$p_close = strpos($Txt, $c, $PosEnd);
@@ -3276,12 +3282,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		// extract the SharedString id, and retrieve the corresponding text
 		$v = intval($vt);
 		if (($v==0) && ($vt!='0')) return false;
-		if (isset($notbs[$v])) return true;
+		if (isset($this->MsExcel_NoTBS[$v])) return true;
 		$s = $this->OpenXML_SharedStrings_GetVal($v);
 
 		// if the SharedSring has no TBS field, then we save the id in a list of known id, and we leave the function
 		if (strpos($s, $this->TBS->_ChrOpen)===false) {
-			$notbs[$v] = true;
+			$this->MsExcel_NoTBS[$v] = true;
 			return true;
 		}
 
