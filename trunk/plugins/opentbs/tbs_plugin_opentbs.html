@@ -77,8 +77,8 @@ body, td, th {
 <!-- main-body is used for insertion in the TBS menu -->
 <div id="main-body">
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.9.0, 2014-04-10, by Skrol29<br />
-  help file modified on 2014-04-10</div>
+<div>version 1.9.1, 2014-07-09, by Skrol29<br />
+  help file modified on 2014-07-09</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -129,13 +129,13 @@ body, td, th {
 <h5>Installation:</h5>
 <p> Just put the file &quot;tbs_plugin_opentbs.php&quot; with your PHP scripts.</p>
 <h2><a name="principles" id="principles"></a>3. Understanding principles</h2>
-<p>It is important to figure out that OpenOffice and Ms Office (since version 2007) documents are technically zip archives containing XML files, even if the extension of the document is not &quot;.zip&quot;. Those zip archives can contain other file types like pictures or sounds, but the document structure and the text contents are saved as  XML files. The <a href="xml_synopsis.txt">XML Synopsis</a> summarizes the key entities of XML sub-files contained in OpenOffice and Ms Office documents.</p>
-<p>TinyButStrong can merge XML files, but cannot read zip archives by itself. The plug-in OpenTBS extends the TinyButStrong methods <a href="http://www.tinybutstrong.com/manual.php#php_loadtemplate">LoadTemplate()</a> and <a href="http://www.tinybutstrong.com/manual.php#php_show">Show()</a> to make them working with zip archives. <span id="result_box"><span title="">But you   do not have to bother with it because OpenTBS is managing archives  in a way that is invisible for you.</span></span></p>
-<p> When the OpenTBS plugin is installed, the LoadTemplate() method becomes able to first load a zip archive (an OpenOffice or Ms Office document), and then to load the contents of any XML or Text files stored in the archive. You can then merge the contents of XML or Text files with all features of the TinyButStrong template engine. At the end, the Show() method does render the entire zip archive including  modified stored files. The render can be done as an HTTP download, a news file on the server's disk, or in a PHP string.</p>
-<p>Since OpenTBS version 1.3, you can also add and delete files in the archive. Before this version you could only modify existing files in the archive.</p>
-<p><a name="extension" id="extension"></a>OpenTBS has <strong>automatic extension recognition</strong>. When you load a document which has one of the following extensions { odt, odg, ods, odf, odp, odm, docx, xlsx, pptx }, then the main XML file of the archive are automatically  loaded, and some special character conversion are preset. For example, for all OpenDocument  files, the stored file  &quot;content.xml&quot; is automatically loaded.<br />
-  Since  version 1.6.0, 
-if the extension is not recognized then OpenTBS also try to find the document by the sub-file presence. And if all fails, then you can force the document type using a <a href="#force_doctype">special command</a>.</p>
+<p>It is important to figure out that documents made with LibreOffice, OpenOffice and Ms Office (since version 2007)  are technically zip archives containing XML files, even if the extension of the document is not &quot;.zip&quot;. Those zip archives can contain other file types like pictures or sounds, but the document structure and the text contents are saved as  XML files. The <a href="xml_synopsis.txt">XML Synopsis</a> summarizes the key entities of XML sub-files contained in LibreOffice, OpenOffice and Ms Office documents.</p>
+<p>TinyButStrong can merge XML files, but cannot read zip archives by itself. The plug-in OpenTBS extends the TinyButStrong methods <a href="http://www.tinybutstrong.com/manual.php#php_loadtemplate">LoadTemplate()</a> and <a href="http://www.tinybutstrong.com/manual.php#php_show">Show()</a> to make them working with zip archives. <span id="result_box"><span title="">But you   do not have to bother with it because OpenTBS is managing archives  in a way that is quite invisible for you.</span></span></p>
+<p> When the OpenTBS plugin is installed, the LoadTemplate() method becomes able to first load a zip archive (a LibreOffice,  OpenOffice or Ms Office document), and then to load the contents of any XML or Text files stored in the archive. Then you  can load an  merge the contents of XML or Text files with all features of the TinyButStrong template engine. TBS can merge fields and blocks only for the current loaded sub-file, but OpenTBS make you very easy to <a href="#modify_files">manage sub-files</a> and gives lot of facilities for special contents such as pictures, charts, ... . At the end, the Show() method does render the entire zip archive including  modified stored files. The render can be done as an HTTP download, or a new file on the server's disk, or as a PHP string containg the binary of the result archive.</p>
+<p>Since OpenTBS version 1.3, you can also add and delete files in the archive.</p>
+<p><a name="extension" id="extension"></a>OpenTBS has <strong>automatic extension recognition</strong>. When you load a document which has one of the following extensions { odt, odg, ods, odf, odp, odm, docx, xlsx, pptx }, then the main XML file of the archive are automatically  loaded, and some special character conversion are preset. For example, for all OpenDocument  files, the stored file  &quot;content.xml&quot; is automatically loaded.</p>
+<p> Since  version 1.6.0, 
+  if the extension is not recognized then OpenTBS also try to find the document by the sub-file presence. And if all fails, then you can force the document type using a <a href="#force_doctype">special command</a>.</p>
 <h2><a name="coding" id="coding"></a>4. Synopsis and code examples</h2>
 <h3><a name="preparation" id="preparation"></a>4.1. Preparation of TinyButStrong Template Engine with the OpenTBS plug-in</h3>
 <div class="shift code">include_once('tbs_class.php');<br />
@@ -440,51 +440,60 @@ if the extension is not recognized then OpenTBS also try to find the document by
           <li>This option won't work if you put the TBS tag inside the property Name of an image in LibreOffice/OpenOffice.</li>
           <li> In Ms Word 2007, property Description and Title are supported but not available for editing, but you can use &quot;Alternative text&quot; (in the &quot;Web&quot; tab of the Size dialog box) , ot the URL, or the Toolipt of a Link on the image.</li>
           <li> In Ms Excel, you must use &quot;tagpos=inside&quot; because pictures are not saved in the sheet, they are not positioned relativelly to cells.</li>
-        </ul>
-      <p> <span class="versioning">Parameter tagpos is supported since OpenTBS version 1.8.0. Previsouly the TBS tag had to be placed  after the picture.</span></p></td>
-    </tr>
-    <tr>
-      <td valign="top"><span class="smallcode">from</span></td>
-      <td>This option reformulates the path of the new picture to insert. The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file">file</a>&quot;.
-      <div class="template">Example: [onshow.x;ope=changepic;from='../pic/[val].gif']</div></td>
-    </tr>
-    <tr>
-      <td valign="top"><span class="smallcode">as</span></td>
-      <td> This option reformulates the name of the picture that it will take inside the document. It is rare to need it, but it can help in some cases. Note that the external picture file is not renamed. The new   name must be defined without path.
-        The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file">file</a>&quot;.
-        <div class="template">Example: [onshow.x;ope=changepic;as='[val].gif']</div></td>
-    </tr>
-    <tr>
-      <td valign="top"><span class="smallcode">default</span></td>
-      <td>This option defines the picture that should be used when the expected one is not found. The parameter's value must be the path of a file on the server, or the keyword &quot;<span class="smallcode">current&quot;</span>.<br />
-If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS will let the current picture of the template if the new picture is not found.<br />
-<span class="versioning">Since OpenTBS version 1.8.0 the default value is &quot;current&quot;. In prior versions, there was no default value and an OpenTBS error message was prompted if the new image was not found.<br />
-</span></td>
+          </ul>
+        <p> <span class="versioning">Parameter tagpos is supported since OpenTBS version 1.8.0. Previsouly the TBS tag had to be placed  after the picture.</span></p></td>
     </tr>
     <tr>
       <td valign="top"><span class="smallcode">adjust</span></td>
-      <td>Adjust the size of the picture in the document. This parameter requires that PHP is configured with the <a href="http://www.php.net/manual/en/book.image.php">GD</a> extension, which is usually the case.<br />
-        Values can be on of the followings:<br />
+      <td><p>Adjust the size of the picture in the document. This parameter requires that PHP is configured with the <a href="http://www.php.net/manual/en/book.image.php">GD</a> extension, which is usually the case.</p>
+        <p> Values can be on of the followings:        </p>
         <table border="0" cellspacing="0" cellpadding="3">
           <tr>
             <td valign="top"><span class="smallcode">adjust</span> (or <span class="smallcode">adjust=inside</span>)</td>
             <td>The picture is adjusted to enter into the picture bounds of the template.</td>
-          </tr>
+            </tr>
           <tr>
-            <td valign="top"><span class="smallcode">adjust=samewidth</span><br /></td>
+            <td valign="top"><span class="smallcode">adjust=samewidth</span></td>
             <td>The picture is adjusted to have the same width than the picture of the template.</td>
-          </tr>
+            </tr>
           <tr>
             <td valign="top" class="smallcode">adjust=sameheigth</td>
             <td>The picture is adjusted to have the same height than the picture of the template.</td>
-          </tr>
+            </tr>
           <tr>
             <td valign="top"><span class="smallcode">adjust=100%</span> (or 
               another pourcentage) </td>
             <td>The picture is adjusted to be  proportional to the originial size.</td>
-          </tr>
+            </tr>
         </table>
-        <span class="versioning">Parameter adjust is supported since OpenTBS version 1.7.0.</span></td>
+        <p class="versioning">Parameter adjust is supported since OpenTBS version 1.7.0.</p></td>
+    </tr>
+    <tr>
+      <td valign="top"><span class="smallcode">unique</span></td>
+      <td><p>Replace all the instances of the picture in the document. This actually saves size of the final document.<br />
+        The value must be different from zero (<span class="smallcode">0</span>) and empty string (<span class="smallcode">''</span>).</p>
+        <p>The new picture must have the same extension as the picture to replace in the template. Otherwise an OpenTBS error may occurs.</p>
+        <p> <span class="versioning">Parameter unique is supported since OpenTBS version 1.9.1.</span></p></td>
+    </tr>
+    <tr>
+      <td valign="top"><span class="smallcode">from</span></td>
+      <td><p>This option reformulates the path of the new picture to insert. The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file" class="smallcode">file</a>&quot;.
+      </p>        
+        <div class="template">Example: [onshow.x;ope=changepic;from='../pic/[val].gif']</div></td>
+    </tr>
+    <tr>
+      <td valign="top"><span class="smallcode">as</span></td>
+      <td> <p>This option reformulates the name of the picture that it will take inside the document. It is rare to need it, but it can help in some cases. Note that the external picture file is not renamed. The new   name must be defined without path.
+        The parameter's value can contain the [val] keyword or any [var] fields, they work the same way as with parameter &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_file" class="smallcode">file</a>&quot;.
+      </p>        
+        <div class="template">Example: [onshow.x;ope=changepic;as='[val].gif']</div></td>
+    </tr>
+    <tr>
+      <td valign="top"><span class="smallcode">default</span></td>
+      <td><p>This option defines the picture that should be used when the expected one is not found. The parameter's value must be the path of a file on the server, or the keyword &quot;<span class="smallcode">current&quot;</span>.<br />
+        If the value is <span class="smallcode">&quot;current&quot;</span> then OpenTBS will let the current picture of the template if the new picture is not found.</p>
+        <p> <span class="versioning">Since OpenTBS version 1.8.0 the default value is &quot;current&quot;. In prior versions, there was no default value and an OpenTBS error message was prompted if the new image was not found.
+</span></p></td>
     </tr>
   </table>
 </div>
@@ -588,19 +597,27 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
 <p><span class="versioning">Command OPENTBS_SELECT_FILE is supported since OpenTBS version 1.9.0.</span></p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_change_picture" id="modify23"></a>$TBS-&gt;PlugIn(OPENTBS_CHANGE_PICTURE, $PicRef, $File<br />
-      [, $Default]<br />
-      [, $Adjust]<br />
-      )</td>
-    <td valign="top"><p>Change one or several pictures in the current sub-file. This command does the same as the <a href="#pic">changepic</a> feature. The difference is that the command needs no TBS tags in the template.</p>
+    <td valign="top" nowrap="nowrap"><p><a name="opentbs_change_picture" id="modify23"></a><span class="smallcode">$TBS-&gt;PlugIn(OPENTBS_CHANGE_PICTURE, $PicRef, $File
+      [, $Prms])</span><br />
+    </p>
+      <p>&nbsp;</p>
+      <p>Deprecated:</p>
+      <p><span class="smallcode"><em>$TBS-&gt;PlugIn(OPENTBS_CHANGE_PICTURE, $PicRef, $File<br />
+          [, $Default]<br />
+          [, $Adjust]<br />
+      )    </em></span></p></td>
+    <td valign="top"><p class="warning">Does not work with XLSX yet.</p>
+      <p>Change one or several pictures in the current sub-file. This command does the same as the <a href="#pic">changepic</a> feature. The difference is that the command needs no TBS tags in the template.</p>
       <ul>
         <li> <span class="smallcode">$PicRef</span> must be a string that is saved in the Title or the Description of the picture. If several pictures have the same key string then they are all replaced with the picture. It won't work if you put the string reference tag inside the property Name of an image in LibreOffice/OpenOffice.  In Ms Word 2007, both properties Description and Title are supported but not available for editing, but you can use &quot;Alternative text&quot; (in the &quot;Web&quot; tab of the Size dialog box) , ot the URL, or the Toolipt of a Link on the image.</li>
-        <li><span class="smallcode">$File</span> must be path for picture file that will be copied inside the document. </li>
+        <li><span class="smallcode">$File</span> must be path for picture file that will be copied inside the document.</li>
+        <li><span class="smallcode">$Prms</span> can be an associated array of parameters supported by parameter <a href="#pic">changepic</a>.</li>
       </ul>
-      <p>Example:<br />
-        <span class="smallcode">$TBS-&gt;Plugin(OPENTBS_CHANGE_PICTURE, '#main_map#', 'pics/new_map.png'); </span></p>
-      <p class="warning">Does not work with XLSX yet.</p>
-      <p><span class="versioning">Command OPENTBS_CHANGE_PICTURE is supported since OpenTBS version 1.8.0.</span></p></td>
+      <p>Example: </p>
+<p><span class="smallcode">$prms = array('unique' =&gt; true);<br />
+  $TBS-&gt;Plugin(OPENTBS_CHANGE_PICTURE, '#main_map#', 'pics/new_map.png', $prms); </span></p>
+      <span class="versioning">Command OPENTBS_CHANGE_PICTURE is supported since OpenTBS version 1.8.0.<br />
+      Parameter $Prms is supported since version 1.9.1.</span></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_delete_comments" id="modify21"></a>$TBS-&gt;PlugIn(OPENTBS_DELETE_COMMENTS)</td>
@@ -667,9 +684,15 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
       <ul>
         <li> <span class="smallcode">$NumOrNames</span> must be an array of  identifiers, or even a single  identifier. See command <span class="smallcode">OPENTBS_SELECT_SHEET</span> for more details about  identifiers.</li>
         <li><span class="smallcode">$Delete</span> must be a boolean, default value is <span class="smallcode">true</span>.</li>
-      </ul>
+        </ul>
       <p><em class="warning">Please note that for now, you must not delete a sheet that contains a Pivot Table in a XLSX workbook because  this will produce an error when the workbook is opened.</em></p>
-    <p><span class="versioning">Command OPENTBS_DELETE_SLIDES is supported since OpenTBS version 1.8.0.</span></p></td>
+      <p><span class="versioning">Command OPENTBS_DELETE_SLIDES is supported since OpenTBS version 1.8.0.</span></p></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_count_sheets" id="modify24"></a>$TBS-&gt;PlugIn(OPENTBS_COUNT_SHEETS)</td>
+    <td valign="top"><p>Return the number of sheets in the workbook. Always return 0 if the document is neither an XLSX nor an ODS.
+      </p>
+      <p> <span class="versioning">Command OPENTBS_COUNT_SHEETS is supported since OpenTBS version 1.9.1.</span></p></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_merge_special_items" id="modify26"></a>$TBS-&gt;PlugIn(OPENTBS_MERGE_SPECIAL_ITEMS)</td>
@@ -872,6 +895,26 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
+<h3>version 1.9.1, on 2014-07-09</h3>
+<h4>Bug fixes</h4>
+<ul>
+  <li>Adjusting size of image in docx.</li>
+  <li>When turn a sheet to hidden in an XLSX, then the XLSX may be corrupted.</li>
+  <li> Command OPENTBS_COUNT_SLIDES did not work for ODP.</li>
+  <li>A PPTX can be corrupted when opening a template which is a previous result of a merge. This is because an &lt;a:r&gt; must contain at least one &lt;a:t&gt;.</li>
+  <li> Merging several XLSX with the same OpenTBS instance can produce erroneous merged cells.</li>
+</ul>
+<h4>New features</h4>
+<ul>
+  <li>New parameter &quot;<span class="smallcode">unique</span>&quot; for replacing all instances of the picture and save space.</li>
+  <li>New command OPENTBS_COUNT_SHEETS.</li>
+  <li>New command OPENTBS_EDIT_CREDITS.</li>
+  <li>ODS  files are now recognized. It is equivalent to ODS.</li>
+  </ul>
+<h4>Enhancements</h4>
+<ul>
+  <li> OPENTBS_CHANGE_PICTURE now use an array of parameters.  </li>
+</ul>
 <h3>version 1.9.0, on 2014-04-10</h3>
 <h4>Bug fixes</h4>
 <ul>
