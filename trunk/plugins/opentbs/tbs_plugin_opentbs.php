@@ -243,6 +243,7 @@ class clsOpenTBS extends clsTbsZip {
 			// Prepare to change picture
 			if (in_array('changepic', $ope_lst)) {
 				$this->TbsPicFound($Txt, $Loc, true); // add parameter "att" which will be processed just after this event, when the field is cached
+				$this->TbsPicCheckEmpty($Txt, $Loc);
 				$Loc->PrmLst['pic_change'] = true;
 			} elseif (in_array('mergecell', $ope_lst)) {
 				$this->TbsPrepareMergeCell($Txt, $Loc);
@@ -275,13 +276,10 @@ class clsOpenTBS extends clsTbsZip {
 		} elseif ($ope==='changepic') {
 			if (!isset($PrmLst['pic_change'])) {
 				$this->TbsPicFound($Txt, $Loc, false);  // add parameter "att" which will be processed just before the value is merged
+				$this->TbsPicCheckEmpty($Txt, $Loc);
 				$PrmLst['pic_change'] = true;
 			}
-            if (isset($PrmLst['unique']) && $PrmLst['unique']) {
-                $this->TbsPicReplace($Value, $PrmLst, $Txt, $Loc); 
-            } else {
-                $this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=changepic');
-            }
+            $this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=changepic');
 		} elseif ($ope==='delcol') {
 			$this->TbsDeleteColumns($Txt, $Value, $PrmLst, $PosBeg, $PosEnd);
 			return false; // prevent TBS from merging the field
@@ -646,7 +644,7 @@ class clsOpenTBS extends clsTbsZip {
 		$this->IdxToCheck = array(); // index of files to check
 		$this->PrevVals = array(); // Previous values for 'mergecell' operator
 
-		$this->ImageIndex = 0;          // Serial for inserted images
+		$this->ImageIndex = 1;          // Serial for inserted images
 		$this->ImageInternal = array(); // Internal names of inserted image
 
 		$this->ExtEquiv = false;
@@ -1465,22 +1463,24 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-	 * Actually replace a picture instead of adding a new one.
+	 * Empty the picture file so that it doest take size.
 	 */
-    function TbsPicReplace(&$Value, &$PrmLst, &$Txt, &$Loc) {
+    function TbsPicCheckEmpty(&$Txt, &$Loc) {
 
+		if ( isset($Loc->PrmLst['unique']) && $Loc->PrmLst['unique'] ) {
+			// ok
+		} else {
+			return;
+		}
+				
         $TBS = &$this->TBS;
-        
+
         // Force the move to the attribute
         $TBS->f_Xml_AttFind($Txt,$Loc,true,$this->TBS->AttDelim);
 
         // Prevent from further att processing
-        $PrmLst['att-old'] = $PrmLst['att']; // for debuging
-        unset($PrmLst['att']);
-
-        // Get the path of the picture to insert
-        $ExternalPath = $this->TbsPicExternalPath($Value, $PrmLst);
-        if ($ExternalPath === false) return false;
+        $Loc->PrmLst['att-old'] = $Loc->PrmLst['att']; // for debuging
+        unset($Loc->PrmLst['att']);
 
         // Get the value in the template
         $Value = substr($Txt, $Loc->PosBeg, $Loc->PosEnd -  $Loc->PosBeg + 1);
@@ -1501,14 +1501,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
             }
         }
 
-        // Check the extension because it should be the same
-        $ext_ep = $this->Misc_FileExt($ExternalPath);
-        $ext_ip = $this->Misc_FileExt($InternalPath);
-        if ($ext_ep != $ext_ip) {
-            return $this->RaiseError("Field [".$Loc->FullName."] : parameter 'unique' needs the extension of the external picture ($ext_ep) to be the same as the template picture ($ext_ip)." );
-        }
-
-        $this->FileReplace($InternalPath, $ExternalPath, TBSZIP_FILE);
+        $this->FileReplace($InternalPath, '', TBSZIP_STRING, false);
         
     }
     
