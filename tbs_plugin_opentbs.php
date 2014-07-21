@@ -1463,7 +1463,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-	 * Empty the picture file so that it doest take size.
+	 * Empty the picture file so that it does save space.
 	 */
     function TbsPicCheckEmpty(&$Txt, &$Loc) {
 
@@ -1475,15 +1475,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				
         $TBS = &$this->TBS;
 
-        // Force the move to the attribute
-        $TBS->f_Xml_AttFind($Txt,$Loc,true,$this->TBS->AttDelim);
-
-        // Prevent from further att processing
-        $Loc->PrmLst['att-old'] = $Loc->PrmLst['att']; // for debuging
-        unset($Loc->PrmLst['att']);
+        // Locate the attribute. Must not move because it may change the current content, and it may be a problem with potions of of sizing elements.
+        $TBS->f_Xml_AttFind($Txt,$Loc,false,$this->TBS->AttDelim);
 
         // Get the value in the template
-        $Value = substr($Txt, $Loc->PosBeg, $Loc->PosEnd -  $Loc->PosBeg + 1);
+        $Value = substr($Txt, $Loc->AttValBeg + 1, $Loc->AttEnd -  $Loc->AttValBeg -1);
 
         if ($this->ExtType==='odf') {
             // OpenOffice document
@@ -1501,6 +1497,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
             }
         }
 
+		// Set the picture file to empty
         $this->FileReplace($InternalPath, '', TBSZIP_STRING, false);
         
     }

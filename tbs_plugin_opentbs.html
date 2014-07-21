@@ -470,9 +470,9 @@ body, td, th {
     </tr>
     <tr>
       <td valign="top"><span class="smallcode">unique</span></td>
-      <td><p>Replace all the instances of the picture in the document. This actually saves size of the final document.<br />
-        The value must be different from zero (<span class="smallcode">0</span>) and empty string (<span class="smallcode">''</span>).</p>
-        <p>The new picture must have the same extension as the picture to replace in the template. Otherwise an OpenTBS error may occurs.</p>
+      <td><p>Indocate to OpenTBS that the original picture is unique in the template and can be deleted. This actually saves size of the final document.<br />
+        The value of argument <span class="smallcode">unique</span> can be omitted. If the value is 1 or ommited, then the original picture is deleted from the template.</p>
+        <p>If the original picture is in fact displayed somewhere else in the template, that may produce a missing picture.</p>
         <p> <span class="versioning">Parameter unique is supported since OpenTBS version 1.9.1.</span></p></td>
     </tr>
     <tr>
