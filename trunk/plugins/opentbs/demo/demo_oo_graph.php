@@ -59,8 +59,6 @@ if (isset($_POST['debug']) && ($_POST['debug']=='show'))    $TBS->Plugin(OPENTBS
 // Merge data
 $TBS->MergeBlock('a,b', $data);
 
-$TBS->PlugIn(OPENTBS_EDIT_CREDITS);
-
 // -----------------
 // Output the result
 // -----------------

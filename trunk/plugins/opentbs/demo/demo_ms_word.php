@@ -79,8 +79,6 @@ $TBS->PlugIn(OPENTBS_CHART, $ChartNameOrNum, $SeriesNameOrNum, $NewValues, $NewL
 // Delete comments
 $TBS->PlugIn(OPENTBS_DELETE_COMMENTS);
 
-$TBS->PlugIn(OPENTBS_EDIT_CREDITS);
-
 // -----------------
 // Output the result
 // -----------------

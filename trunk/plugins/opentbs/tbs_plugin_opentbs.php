@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.1-beta-2014-05-18
- * @date 2014-05-18
+ * @version 1.9.1-beta-2014-07-22
+ * @date 2014-07-22
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -54,7 +54,8 @@ define('OPENTBS_SEARCH_IN_SLIDES','clsOpenTBS.SearchInSlides');
 define('OPENTBS_DISPLAY_SLIDES','clsOpenTBS.DisplaySlides');
 define('OPENTBS_DELETE_SLIDES','clsOpenTBS.DeleteSlides');
 define('OPENTBS_SELECT_FILE','clsOpenTBS.SelectFile');
-define('OPENTBS_EDIT_CREDITS','clsOpenTBS.EditCredits');
+define('OPENTBS_ADD_CREDIT','clsOpenTBS.AddCredit');
+define('OPENTBS_SYSTEM_CREDIT','clsOpenTBS.SystemCredit');
 define('OPENTBS_FIRST',1); // 
 define('OPENTBS_GO',2);    // = TBS_GO
 define('OPENTBS_ALL',4);   // = TBS_ALL
@@ -86,7 +87,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.9.1-beta-2014-05-18';
+		$this->Version = '1.9.1-beta-2014-07-22';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -159,6 +160,10 @@ class clsOpenTBS extends clsTbsZip {
 
 		if ($TBS->_Mode!=0) return; // If we are in subtemplate mode, the we use the TBS default process
 
+		if ($this->TbsSystemCredits) {
+			$this->Misc_EditCredits("OpenTBS " . $this->Version, true, true);
+		}
+		
 		$this->TbsStorePark(); // Save the current loaded subfile if any
 
 		$TBS->Plugin(-4); // deactivate other plugins
@@ -621,12 +626,16 @@ class clsOpenTBS extends clsTbsZip {
 			
 			return $res;
 		
-		} elseif ($Cmd==OPENTBS_EDIT_CREDITS) {
-		
-			$Credit = (is_null($x1)) ? ("Merged by OpenTBS " . $this->Version) : (''.$x1);
-			$Add = (is_null($x2)) ? true : $x2;
-			return $this->Misc_EditCredits($Credit, $Add);
-		
+		} elseif ($Cmd==OPENTBS_SYSTEM_CREDIT) {
+
+			$x1 = (boolean) $x1;
+			$this->TbsSystemCredits = $x1;
+			return $x1;
+
+		} elseif ($Cmd==OPENTBS_ADD_CREDIT) {
+
+			return $this->Misc_EditCredits($x1, true, false, $x2);
+
 		}
 
 	}
@@ -640,6 +649,7 @@ class clsOpenTBS extends clsTbsZip {
 
 		$this->TbsStoreLst = array();
 		$this->TbsCurrIdx = false;
+		$this->TbsSystemCredits = true;
 		$this->TbsNoField = array(); // idx of sub-file having no TBS fields
 		$this->IdxToCheck = array(); // index of files to check
 		$this->PrevVals = array(); // Previous values for 'mergecell' operator
@@ -2157,17 +2167,26 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * Add or replace a credit information in the appropriate property of the document.
 	 * Return the new credit text if succeed.
 	 * Return false if the expected file is not found.
+	 * @param string  $NewCredit  The text to set.
+	 * @param boolean $Add        Add the item.
+	 * @param boolean $System     Automatic system information.
+	 * @param string  $Type       (optional) type of the item to add.
 	 */
-	function Misc_EditCredits($NewCredit, $Add) {
+	function Misc_EditCredits($NewCredit, $Add, $System, $Type = null) {
 	
 		if ($this->ExtType=='odf') {
 			$File = 'meta.xml';
 			$Tag = 'meta:user-defined';
-			$Att = 'meta:name="Merged by"';
+			if (is_string($Type)) {
+				$n = $Type;
+			} else {
+				$n = ($System) ? 'Producer' : 'Creator';
+			}
+			$Att = 'meta:name="' . $n .'"';
 			$Parent = 'office:meta';
 		} elseif ($this->ExtType=='openxml') {
 			$File = 'docProps/core.xml';
-			$Tag = 'dc:creator';
+			$Tag = (is_string($Type)) ? $Type : 'dc:creator';
 			$Att = false;
 			$Parent = 'cp:coreProperties';
 		} else {
@@ -2189,6 +2208,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$TagOpen = $Tag;
 		}
 		
+		// On both OpenXML and ODF, the item must be unique.
 		if ($loc===false) {
 			$p = strpos($Txt, '</'.$Parent.'>');
 			if ($p===false) return $p;
