@@ -68,8 +68,6 @@ $NewValues = array( array('Cat. A','Cat. B','Cat. C','Cat. D'), array(0.7, 1.0, 
 $NewLegend = "Merged";
 $TBS->PlugIn(OPENTBS_CHART, $ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend);
 
-$TBS->PlugIn(OPENTBS_EDIT_CREDITS);
-
 // -----------------
 // Output the result
 // -----------------

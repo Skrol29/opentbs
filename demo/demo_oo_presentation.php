@@ -65,8 +65,6 @@ $TBS->PlugIn(OPENTBS_DISPLAY_SLIDES, 'slide to hide', false);
 // Delete a slide
 $TBS->PlugIn(OPENTBS_DELETE_SLIDES, 'slide to delete');
 
-$TBS->PlugIn(OPENTBS_EDIT_CREDITS);
-
 // -----------------
 // Output the result
 // -----------------

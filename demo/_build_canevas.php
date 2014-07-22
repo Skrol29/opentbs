@@ -58,8 +58,6 @@ if (isset($_POST['debug']) && ($_POST['debug']=='show'))    $TBS->Plugin(OPENTBS
 
 // %code%
 
-$TBS->PlugIn(OPENTBS_EDIT_CREDITS);
-
 // -----------------
 // Output the result
 // -----------------
