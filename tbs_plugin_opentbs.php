@@ -2195,7 +2195,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	
 		$idx = $this->FileGetIdx($File);
 		if ($idx===false) return false;
-		 
+		
+		// prevent from XML injection
 		$NewCredit = htmlspecialchars($NewCredit);
 		
 		$Txt = $this->TbsStoreGet($idx, "EditCredits");
