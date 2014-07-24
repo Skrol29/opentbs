@@ -13,7 +13,8 @@
 * New parameter "unique" for picture
 * ODS files are now recognized. It is equivalent to ODS. 
 * New command OPENTBS_COUNT_SHEETS
-* New command OPENTBS_EDIT_CREDITS
+* New command OPENTBS_ADD_CREDIT
+* New command OPENTBS_SYSTEM_CREDIT
 
 == Enhancements ==
 

@@ -184,7 +184,7 @@ body, td, th {
 <div class="shift code">$TBS-&gt;Show(OPENTBS_DOWNLOAD, $file_name);</div>
 <h4>&bull; Render the merged archive as an HTTP output with your customized HTTP headers:</h4>
 <div class="shift code">header(...); // your custom headers here<br />
-  $TBS-&gt;Show(OPENTBS_NOHEADER); // output the binary file without header</div>
+  $TBS-&gt;Show(OPENTBS_DOWNLOAD + OPENTBS_NOHEADER); // output the binary file without header</div>
 <h4>&bull; Render the merged archive as a new file saved on the server's disk:</h4>
 <div class="shift code">$TBS-&gt;Show(OPENTBS_FILE, $file_name);</div>
 <h4>&bull; Render the merged archive as a PHP string:</h4>
