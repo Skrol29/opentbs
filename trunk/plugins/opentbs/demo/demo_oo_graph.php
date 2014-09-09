@@ -43,7 +43,7 @@ $x_delete = 1;
 // -----------------
 
 $template = 'demo_oo_graph.odg';
-$TBS->LoadTemplate($template); // Also merge some [onload] automatic fields (depends of the type of document).
+$TBS->LoadTemplate($template, OPENTBS_ALREADY_UTF8); // Also merge some [onload] automatic fields (depends of the type of document).
 
 // ----------------------
 // Debug mode of the demo
