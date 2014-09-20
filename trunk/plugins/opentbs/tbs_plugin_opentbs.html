@@ -77,8 +77,8 @@ body, td, th {
 <!-- main-body is used for insertion in the TBS menu -->
 <div id="main-body">
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.9.1, 2014-07-22, by Skrol29<br />
-  help file modified on 2014-07-22</div>
+<div>version 1.9.1, 2014-09-20, by Skrol29<br />
+  help file modified on 2014-09-20</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -636,7 +636,7 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap"><span class="smallcode"><a name="opentbs_system_credit" id="modify22"></a>$TBS-&gt;PlugIn(OPENTBS_SYSTEM_CREDIT, $Enable)</span></td>
-    <td valign="top"><p>Enable or disable the System Credit. By default the System Credit is enabled and it add the current version of OpenTBS into the properties of the document.</p>
+    <td valign="top"><p>Enable or disable the System Credit. System Credit add the current version of OpenTBS into a creator property of the document. The System Credit is enabled by default.</p>
       <p><span class="versioning">Command OPENTBS_SYSTEM_CREDIT is supported since OpenTBS version 1.9.1.</span></p></td>
   </tr>
   <tr>
@@ -905,11 +905,11 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
-<h3>version 1.9.1, on 2014-07-09</h3>
+<h3>version 1.9.1, on 2014-09-20</h3>
 <h4>Bug fixes</h4>
 <ul>
   <li>Adjusting size of image in docx.</li>
-  <li>When turn a sheet to hidden in an XLSX, then the XLSX may be corrupted.</li>
+  <li>When turn a sheet to hidden in an XLSX, then the document may be corrupted.</li>
   <li> Command OPENTBS_COUNT_SLIDES did not work for ODP.</li>
   <li>A PPTX can be corrupted when opening a template which is a previous result of a merge. This is because an &lt;a:r&gt; must contain at least one &lt;a:t&gt;.</li>
   <li> Merging several XLSX with the same OpenTBS instance can produce erroneous merged cells.</li>
