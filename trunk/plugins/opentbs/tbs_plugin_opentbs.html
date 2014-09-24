@@ -77,8 +77,8 @@ body, td, th {
 <!-- main-body is used for insertion in the TBS menu -->
 <div id="main-body">
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.9.1, 2014-09-20, by Skrol29<br />
-  help file modified on 2014-09-20</div>
+<div>version 1.9.2, 2014-09-25, by Skrol29<br />
+  help file modified on 2014-09-25</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -710,6 +710,16 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
       <p> <span class="versioning">Command OPENTBS_MERGE_SPECIAL_ITEMS is supported since OpenTBS version 1.8.0.</span></p></td>
   </tr>
   <tr>
+    <td valign="top" nowrap="nowrap"><span class="smallcode"><a name="opentbs_merge_special_items" id="modify25"></a>$TBS-&gt;PlugIn(OPENTBS_RELATIVE_CELLS, $Enabled[, $Options])</span></td>
+    <td valign="top"><p>This command may significatively optimize time generation for XLSX workbooks that contains sheets with large numerous rows. By default the Ms Excel software saves sheets with explicit cells positioning, and OpenTBS has the same behavior by default. This operation may be quite slowing OpenTBS for sheets with large numerous rows. In another hand saving sheets with relative cells positioning is quite faster and the final file may be smaller. Use this command in order to define the saving behavior about cells.</p>
+      <ul>
+        <li> <span class="smallcode">$Enabled</span> set to <span class="smallcode">true</span> in order  to activate the relative cells positioning for the current sheet only.</li>
+        <li><span class="smallcode">$Options </span> set to <span class="smallcode">OPENTBS_ALL</span> in order  to apply the command to all sheets in the current workbook.</li>
+      </ul>
+      <p> This command has no effects for other documents type than XLSX workbooks. </p>
+<p> <span class="versioning">Command OPENTBS_RELATIVE_CELLS is supported since OpenTBS version 1.9.2.</span></p></td>
+  </tr>
+  <tr>
     <td align="center" valign="top" nowrap="nowrap" class="category"> <span class="smallcode"><a name="commands_for_presentations" id="modify14"></a></span>For presentations (ODP and PPTX)</td>
     <td valign="top">&nbsp;</td>
   </tr>
@@ -905,6 +915,15 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
+<h3>version 1.9.2, on 2014-09-25</h3>
+<h4>Enhancements</h4>
+<ul>
+  <li>6 times faster when saving XLSX merged sheets with numerous rows.</li>
+</ul>
+<h4>New features</h4>
+<ul>
+  <li> OPENTBS_RELATIVE_CELLS  : optimizes XLSX merged sheets with numerous rows.</li>
+</ul>
 <h3>version 1.9.1, on 2014-09-20</h3>
 <h4>Bug fixes</h4>
 <ul>
