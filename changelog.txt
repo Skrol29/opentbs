@@ -1,4 +1,15 @@
 = Release 1.9.1 =
+Released: 2014-09-XX
+
+== Enhancements ==
+
+* 6 times faster when saving XLSX merged sheets with numerous rows.
+
+== New features ==
+
+* New command OPENTBS_RELATIVE_CELLS  : optimizes XLSX merged sheets with numerous rows.
+
+= Release 1.9.1 =
 Released: 2014-09-20
 
 == Bug fixes ==

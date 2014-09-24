@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.1
- * @date 2014-09-20
+ * @version 1.9.2
+ * @date 2014-09-25
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -56,6 +56,7 @@ define('OPENTBS_DELETE_SLIDES','clsOpenTBS.DeleteSlides');
 define('OPENTBS_SELECT_FILE','clsOpenTBS.SelectFile');
 define('OPENTBS_ADD_CREDIT','clsOpenTBS.AddCredit');
 define('OPENTBS_SYSTEM_CREDIT','clsOpenTBS.SystemCredit');
+define('OPENTBS_RELATIVE_CELLS','clsOpenTBS.RelativeCells');
 define('OPENTBS_FIRST',1); // 
 define('OPENTBS_GO',2);    // = TBS_GO
 define('OPENTBS_ALL',4);   // = TBS_ALL
@@ -87,7 +88,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.9.1';
+		$this->Version = '1.9.2';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -192,7 +193,9 @@ class clsOpenTBS extends clsTbsZip {
 			$TBS->OtbsCurrFile = $this->TbsGetFileName($idx); // usefull for TbsPicAdd()
 			$this->TbsCurrIdx = $idx; // usefull for debug mode
 			if ($TbsShow && $onshow) $TBS->Show(TBS_NOTHING);
-			if ($explicitRef) $this->MsExcel_ConvertToExplicit($TBS->Source);
+			if ($explicitRef && (!isset($this->MsExcel_KeepRelative[$idx])) ) {
+				$this->MsExcel_ConvertToExplicit($TBS->Source);
+			}
 			if ($Debug) $this->DebugLst[$this->TbsGetFileName($idx)] = $TBS->Source;
 			$this->FileReplace($idx, $TBS->Source, TBSZIP_STRING, $TBS->OtbsAutoUncompress);
 		}
@@ -635,7 +638,22 @@ class clsOpenTBS extends clsTbsZip {
 		} elseif ($Cmd==OPENTBS_ADD_CREDIT) {
 
 			return $this->Misc_EditCredits($x1, true, false, $x2);
+			
+		} elseif ($Cmd==OPENTBS_RELATIVE_CELLS) {
 
+			$KeepRelative = (boolean) $x1;
+			if ($x2 == OPENTBS_ALL) {
+				// Al$ sheets
+				$this->TBS->OtbsMsExcelExplicitRef = (!$KeepRelative);
+			} else {
+				// Current sheet
+				if ($KeepRelative) {
+					$this->MsExcel_KeepRelative[$this->TbsCurrIdx] = true;
+				} else {
+					unset($this->MsExcel_KeepRelative[$this->TbsCurrIdx]);
+				}
+			}
+			return $KeepRelative;
 		}
 
 	}
@@ -676,6 +694,7 @@ class clsOpenTBS extends clsTbsZip {
 		$this->OpenXmlSlideMasterLst = false;
 		$this->MsExcel_Sheets = false;
 		$this->MsExcel_NoTBS = array(); // shared string containing no TBS field
+		$this->MsExcel_KeepRelative = array();
 		$this->MsWord_HeaderFooter = false;
 
 		$this->Ext_PrepareInfo(); // Set extension information
@@ -3190,56 +3209,67 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	/**
 	 * Add the attribute that gives the reference of the item.
 	 * Return the number of inserted attributes.
+	 * Note: substr() and strpos() function's execution time are geometrically increasing with then string length.
+     *       So it is for this function. converting a sheet with 5.000 rows may have a duration of 15 sec.
 	 */
-	function MsExcel_ConvertToExplicit_Item(&$Txt, $Tag, $Att, $CellRow) {
+	function MsExcel_ConvertToExplicit_Item(&$Txt, $Tag, $Att, $ParentRowNum) {
 
 		$tag_pc = strlen($Tag) + 1;
 		$rpl = '<'.$Tag.' '.$Att.'="';
 		$rpl_len = strlen($rpl);
 		$rpl_nbr = 0;
-		$p = 0;
-		$empty_first_pos = false;
-		$empty_nbr = 0;
 		$item_num = 0;
-		$rpl_nbr = 0;
 
-		while (($p=clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true, $p, true, true))!==false) {
+		$p = clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true, 0, true, true);
+		if ($p === false) return;
+
+		if ($p === 0) {
+			$Txt_Done = '';
+		} else {
+			$Txt_Done = substr($Txt, 0, $p);
+			$Txt = substr($Txt, $p);
+		}
+		
+		do {
+
+			// Next item
+			$p_next = clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true, 0 + $tag_pc, true, true);
+			
+			// Small text containing the current item
+			if ($p_next === false) {
+				$Txt_Curr = $Txt;
+				$Txt = '';
+			} else {
+				$Txt_Curr = substr($Txt, 0, $p_next);
+				$Txt = substr($Txt, $p_next);
+			}
 
 			$item_num++;
 			
-			if ($empty_first_pos===false) $empty_first_pos = $p;
-			
-			$p = $p + $tag_pc;
-			if (substr($Txt, $p, 1) == '/') {
-				// It's an empty item
-				$empty_nbr++;
+			if (substr($Txt_Curr, 0 + $tag_pc, 1) == '/') {
+
+				// It's an empty item => Delete the item
+				$Txt_Done .= substr($Txt_Curr, $p);
+
 			} else {
-				// The item is not empty => relace attribute and delete the previus empty item in the same time
-				$ref = ($CellRow===false) ? $item_num : $this->Misc_CellRef($item_num, $CellRow);
-				$x = $rpl.$ref.'"';
-				$len = $p - $empty_first_pos;
-				$Txt = substr_replace($Txt, $x, $empty_first_pos, $len);
+
+				// The item is not empty => replace attribute and delete the previous empty item in the same time
+				$ref = ($ParentRowNum===false) ? $item_num : $this->Misc_CellRef($item_num, $ParentRowNum);
+				$Txt_Curr = $rpl . $ref . '"' . substr($Txt_Curr, 0 + $tag_pc);
 				$rpl_nbr++;
-				
+
 				// If it's a row => search for cells
-				if ($CellRow===false) {
-					$loc = new clsTbsXmlLoc($Txt, $Tag, $p);
-					$loc->FindEndTag();
-					$src = $loc->GetSrc();
-					$nbr = $this->MsExcel_ConvertToExplicit_Item($src, 'c', 'r', $item_num);
-					if ($nbr>0) {
-						$loc->ReplaceSrc($src);
-					}
-					$p = $loc->PosEnd;
-				} else {
-					$p = $empty_first_pos + $tag_pc;
+				if ($ParentRowNum===false) {
+					$nbr = $this->MsExcel_ConvertToExplicit_Item($Txt_Curr, 'c', 'r', $item_num);
 				}
-				// Ini variables
-				$empty_nbr = 0;
-				$empty_first_pos = false;
-			}
+				
+				$Txt_Done .= $Txt_Curr;
 			
-		}
+			}
+
+		} while ($p_next !== false);
+		
+		$Txt = $Txt_Done . $Txt;
 		
 		return $rpl_nbr;
 
