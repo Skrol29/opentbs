@@ -1,5 +1,6 @@
-= Release 1.9.1 =
-Released: 2014-09-XX
+= Release 1.9.2 =
+
+Released: 2014-09-25
 
 == Enhancements ==
 
