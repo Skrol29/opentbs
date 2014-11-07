@@ -78,7 +78,7 @@ body, td, th {
 <div id="main-body">
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
 <div>version 1.9.2, 2014-09-25, by Skrol29<br />
-  help file modified on 2014-09-25</div>
+  help file modified on 2014-11-06</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -129,7 +129,7 @@ body, td, th {
 <h5>Installation:</h5>
 <p> Just put the file &quot;tbs_plugin_opentbs.php&quot; with your PHP scripts.</p>
 <h2><a name="principles" id="principles"></a>3. Understanding principles</h2>
-<p>It is important to figure out that documents made with LibreOffice, OpenOffice and Ms Office (since version 2007)  are technically zip archives containing XML files, even if the extension of the document is not &quot;.zip&quot;. Those zip archives can contain other file types like pictures or sounds, but the document structure and the text contents are saved as  XML files. The <a href="xml_synopsis.txt">XML Synopsis</a> summarizes the key entities of XML sub-files contained in LibreOffice, OpenOffice and Ms Office documents.</p>
+<p>It is important to figure out that documents made with LibreOffice, OpenOffice and Ms Office (since version 2007)  are technically zip archives containing XML files, even if the extension of the document is not &quot;.zip&quot;. Those zip archives can contain other file types like pictures or sounds, but the document structure and the text contents are saved as  XML files. The <a href="./xml_synopsis.txt">XML Synopsis</a> summarizes the key entities of XML sub-files contained in LibreOffice, OpenOffice and Ms Office documents.</p>
 <p>TinyButStrong can merge XML files, but cannot read zip archives by itself. The plug-in OpenTBS extends the TinyButStrong methods <a href="http://www.tinybutstrong.com/manual.php#php_loadtemplate">LoadTemplate()</a> and <a href="http://www.tinybutstrong.com/manual.php#php_show">Show()</a> to make them working with zip archives. <span id="result_box"><span title="">But you   do not have to bother with it because OpenTBS is managing archives  in a way that is quite invisible for you.</span></span></p>
 <p> When the OpenTBS plugin is installed, the LoadTemplate() method becomes able to first load a zip archive (a LibreOffice,  OpenOffice or Ms Office document), and then to load the contents of any XML or Text files stored in the archive. Then you  can load an  merge the contents of XML or Text files with all features of the TinyButStrong template engine. TBS can merge fields and blocks only for the current loaded sub-file, but OpenTBS make you very easy to <a href="#modify_files">manage sub-files</a> and gives lot of facilities for special contents such as pictures, charts, ... . At the end, the Show() method does render the entire zip archive including  modified stored files. The render can be done as an HTTP download, or a new file on the server's disk, or as a PHP string containg the binary of the result archive.</p>
 <p>Since OpenTBS version 1.3, you can also add and delete files in the archive.</p>
@@ -546,35 +546,40 @@ body, td, th {
 <p class="versioning">The keywoks in the table above are supported since OpenTBS version 1.8.1.<br />
 In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime, odsCurr, odsPercent, xlsxNum, xlsxBool and xlsxDate.</p>
 <h3><a name="col" id="modify3"></a>4.8. Delete or merge columns in a table</h3>
-<p><span class="versioning">This feature is  supported since OpenTBS version 1.8.0</span>.</p>
 <h5>Delete columns in a table</h5>
-<p>Parameter &quot;<span class="smallcode">ope=delcol</span>&quot; enables you to delete the columns you want in any table of an Ms Word Document. It doesn't work for LibreOffice for now.</p>
+<p>Parameter &quot;<span class="smallcode">ope=delcol</span>&quot; enables you to delete the columns you want in any table of an Ms Word Document or a LibreOffice document.<br />
+  Limitations: Parameter &quot;<span class="smallcode">ope=delcol</span>&quot; will produce a wrong result if there is any merged cells before of within the columns to delete. <br />
+</p>
 <p> You have to put a TBS field anywhere inside the table with the following parameters:</p>
 <ul>
   <li> <span class="template">ope</span> = delcol</li>
-  <li> <span class="template">colnum</span> = the column numbers to delete, separated with commas (first colmun is number 1).</li>
-  <li> <span class="template">colshift</span> = (optional) if parameter &quot;colnum&quot; has only on value then &quot;colshift&quot; extends the number of columns to delete to the left of to the rigth.</li>
+  <li> <span class="template">colnum</span> = the column numbers to delete, separated with commas (first column is number 1).</li>
+  <li> <span class="template">colshift</span> = (optional) if parameter &quot;<span class="template">colnum</span>&quot; has only one value then &quot;<span class="template">colshift</span>&quot; extends the number of columns to delete to the left or to the right.</li>
 </ul>
-<p> Both parameters &quot;colnum&quot; and &quot;colshift&quot; can contain  [val] and [var] fields. When the TBS field is merged, the specified columns will be deleted and the TBS field is erased.</p>
-<div class="shift">
-<h5>Examples:</h5>
+<p> Both parameters &quot;<span class="template">colnum</span>&quot; and &quot;<span class="template">colshift</span>&quot; can contain  [val] and [var] fields. When the TBS field is merged, the specified columns will be deleted and the TBS field is erased.</p>
+<div class="shift"> Examples:
 <ul>
   <li><span class="template">[onload;ope=delcol;colnum=2,4,6]</span> =&gt; will delete columns {2,5,6}</li>
   <li> <span class="template">[onload;ope=delcol;colnum=2;colshift=2]</span> =&gt; will delete columns {2,3,4}</li>
   <li> <span class="template">[onload;ope=delcol;colnum=2;colshift=-1]</span> =&gt; will delete columns {1,2}</li>
-  <li><span class="template">[onload.col_to_delete;ope=delcol;colnum=[val];colshift=2]</span> =&gt; will delete 3 colmuns staring to column number $col_to_delete</li>
-</ul>
-</div>
+  <li><span class="template">[onload.col_to_delete;ope=delcol;colnum=[val];colshift=2]</span> =&gt; will delete 3 columns staring from column number <span class="smallcode">$col_to_delete</span></li></ul></div>
+<p class="versioning">Parameter &quot;ope=delcol&quot;  is  supported since OpenTBS version 1.8.0.</p>
 <h5>Merge cells in a table</h5>
-<p>Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; enables you to merge cells vertically in a table of an Ms Word Document. It doesn't work for LibreOffice for now.</p>
-<p>This can work only for a block merged on the rows of the table. Note that the TBS field with &quot;ope=mergecell&quot; does not display any value, it only produces the merge.</p>
-<div class="shift">
-  <h5>Example:</h5>
+<p>Parameter &quot;<span class="smallcode">parallel=tbs:table</span>&quot; enables you to merge cells vertically in a table of an Ms Word Document or any LibreOffice document.<br />
+  Limitations: Parameter &quot;<span class="smallcode">parallel=tbs:table</span>&quot; with OpenTBS will produce a wrong merge if there is any merged cells before of within the columns to merge with OpenTBS.<br />
+  See the <a href="http://www.tinybutstrong.com/manual.php#html_block_parallel">TBS manual</a> and the OpenTBS demo for more details about how to use parameter &quot;<span class="smallcode">parallel</span>&quot;.</p>
+<p><span class="versioning">Parameter &quot;parallel=tbs:table&quot;  is  supported since OpenTBS version 1.8.2.</span></p>
+<h5>Other solution supported for compatibility:</h5>
+<p> Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; enables you to merge cells vertically in a table of an Ms Word Document.<br />
+  Limitations:  It doesn't work for LibreOffice. Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; will produce a wrong merge if there is any merged cells before of within the columns to merge with OpenTBS.<br />
+</p>
+<p>Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; can work only for a block merged on the rows of the table. Note that the TBS field with &quot;<span class="smallcode">ope=mergecell</span>&quot; does not display any value, it only produces the merge.</p>
+<div class="shift"> Example:
   <ul>
-    <li><span class="template">[b.rank;block=tbs:row][b.rank;ope=mergecell]</span> =&gt; This will display the colmun rank and alos merge the cells vertically depending on the rank.</li>
+    <li><span class="template">[b.rank;block=tbs:row][b.rank;ope=mergecell]</span> =&gt; This will display the colmun rank and also merge the cells vertically depending on the rank.</li>
   </ul>
 </div>
-<p>&nbsp;</p>
+<p class="versioning">Parameter &quot;ope=mergecell&quot;  is  supported since OpenTBS version 1.8.0.</p>
 <h3><a name="modify_contents" id="modify2"></a>4.9. Commands to control the merging</h3>
 <p><span class="versioning">The following commands are supported since OpenTBS version 1.7.0 </span>:</p>
 <table  border="0" cellspacing="1" cellpadding="4">
@@ -710,7 +715,7 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
       <p> <span class="versioning">Command OPENTBS_MERGE_SPECIAL_ITEMS is supported since OpenTBS version 1.8.0.</span></p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap"><span class="smallcode"><a name="opentbs_merge_special_items" id="modify25"></a>$TBS-&gt;PlugIn(OPENTBS_RELATIVE_CELLS, $Enabled[, $Options])</span></td>
+    <td valign="top" nowrap="nowrap"><span class="smallcode"><a name="opentbs_relative_cells" id="modify25"></a>$TBS-&gt;PlugIn(OPENTBS_RELATIVE_CELLS, $Enabled[, $Options])</span></td>
     <td valign="top"><p>This command may significatively optimize time generation for XLSX workbooks that contains sheets with large numerous rows. By default the Ms Excel software saves sheets with explicit cells positioning, and OpenTBS has the same behavior by default. This operation may be quite slowing OpenTBS for sheets with large numerous rows. In another hand saving sheets with relative cells positioning is quite faster and the final file may be smaller. Use this command in order to define the saving behavior about cells.</p>
       <ul>
         <li> <span class="smallcode">$Enabled</span> set to <span class="smallcode">true</span> in order  to activate the relative cells positioning for the current sheet only.</li>
