@@ -1,3 +1,14 @@
+= Beta 1.9.3-beta =
+
+== Bug fixes ==
+
+* XLSX corruption when merging a float value to a cell when the decimal separator is not a dot because of the locale setting.
+* possible DOCX corruption when using text box or tables in header and footer.
+
+== Enhancements ==
+
+* OpenTBS clear error message when using Show() without template loaded. Instead of an ugly PHP error.
+
 = Release 1.9.2 =
 
 Released: 2014-09-25

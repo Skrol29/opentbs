@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.2
+ * @version 1.9.3-beta
  * @date 2014-09-25
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
@@ -88,7 +88,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.9.2';
+		$this->Version = '1.9.3-beta';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -159,6 +159,10 @@ class clsOpenTBS extends clsTbsZip {
 
 		$TBS =& $this->TBS;
 
+		if ($this->ArchFile==='') {
+			return $this->RaiseError('Command Show() cannot be processed because no archive is opened.');
+		}
+
 		if ($TBS->_Mode!=0) return; // If we are in subtemplate mode, the we use the TBS default process
 
 		if ($this->TbsSystemCredits) {
@@ -179,7 +183,6 @@ class clsOpenTBS extends clsTbsZip {
 			case 'odp':  $this->OpenDoc_SheetSlides_DeleteAndDisplay(false); break;
 			case 'xlsx': $this->MsExcel_SheetDeleteAndDisplay(); break;
 			case 'pptx': $this->MsPowerpoint_SlideDelete(); break;
-			case 'docx': $this->MsWord_RenumDocPr(); break;
 		}
 		
 		$explicitRef = ($TBS->OtbsMsExcelExplicitRef && ($this->ExtEquiv==='xlsx'));
@@ -193,6 +196,9 @@ class clsOpenTBS extends clsTbsZip {
 			$TBS->OtbsCurrFile = $this->TbsGetFileName($idx); // usefull for TbsPicAdd()
 			$this->TbsCurrIdx = $idx; // usefull for debug mode
 			if ($TbsShow && $onshow) $TBS->Show(TBS_NOTHING);
+            if ($this->ExtEquiv == 'docx') {
+                $this->MsWord_RenumDocPr($TBS->Source);
+            }
 			if ($explicitRef && (!isset($this->MsExcel_KeepRelative[$idx])) ) {
 				$this->MsExcel_ConvertToExplicit($TBS->Source);
 			}
@@ -696,6 +702,7 @@ class clsOpenTBS extends clsTbsZip {
 		$this->MsExcel_NoTBS = array(); // shared string containing no TBS field
 		$this->MsExcel_KeepRelative = array();
 		$this->MsWord_HeaderFooter = false;
+		$this->MsWord_DocPrId = 0;
 
 		$this->Ext_PrepareInfo(); // Set extension information
 
@@ -3416,14 +3423,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			if (is_numeric($Value)) {
 				// we have to check contents in order to avoid Excel errors. Note that value '0.00000000000000' makes an Excel error.
 				if (strpos($Value,'e')!==false) { // exponential representation
-					$Value = '' . ((float) $Value);
+					$Value = var_export((float) $Value, true); // this string conversion is not affected by the decimal separator given by the locale setting
 				} elseif (strpos($Value,'x')!==false) { // hexa representation
 					$Value = '' . hexdec($Value);
 				} elseif (strpos($Value,'.')===false) {
 					// it is better to not convert because of big numbers
 					// intval(7580563123) returns -1009371469 in 32bits
 				} else {
-					$Value = '' . ((float) $Value);
+					$Value = var_export((float) $Value, true);
 				}
 			} else {
 				$Value = '';
@@ -4021,14 +4028,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * Renumber attribute "id " of elements <wp:docPr> in order to ensure unicity.
 	 * Such elements are used in objects.
 	 */
-	function MsWord_RenumDocPr() {
+	function MsWord_RenumDocPr(&$Txt) {
 
-		$idx = $this->Ext_GetMainIdx();
-		if ($idx===false) return;
-
-		$Txt = $this->TbsStoreGet($idx, 'Word renume DocPr ids');
-		if ($Txt===false) return false;
-
+        $this->MsWord_DocPrId;
+    
 		$el = '<wp:docPr ';
 		$el_len = strlen($el);
 
@@ -4036,7 +4039,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$id_len = strlen($id);
 
 		$nbr = 0;
-		$last_id = 0;
 
 		$p = 0;
 		while ($p!==false) {
@@ -4056,11 +4058,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 							$i_len = $pq - $pi;
 							$i = intval(substr($x, $pi, $i_len));
 							if ($i>0) { // id="0" is erroneous
-								if ($i>$last_id) {
-									$last_id = $i; // nothing else to do
+								if ($i > $this->MsWord_DocPrId) {
+									$this->MsWord_DocPrId = $i; // nothing else to do
 								} else {
-									$last_id++;
-									$id_txt = ''.$last_id;
+									$this->MsWord_DocPrId++;
+									$id_txt = '' . $this->MsWord_DocPrId;
 									$Txt = substr_replace($Txt, $id_txt, $p + $pi, $i_len);
 									$nbr++;
 								}
@@ -4070,8 +4072,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				}
 			}
 		}
-
-		if ($nbr>0) $this->TbsStorePut($idx, $Txt);
 
 		return $nbr;
 
