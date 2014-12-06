@@ -25,6 +25,9 @@ body, td, th {
 	list-style-position:inside;
 	padding-left:0;
 }
+#main-body li {
+	height: 20px;
+}
 .shift {
 	margin-left: 10px;
 	padding: 3px;
@@ -42,6 +45,8 @@ body, td, th {
 	font-size: 12px;
 	color: #030;
 	background-color: #E1FFEB;
+	margin-top: 3px;
+	margin-bottom: 3px;
 	padding-top: 3px;
 	padding-bottom: 3px;
 }
@@ -78,7 +83,7 @@ body, td, th {
 <div id="main-body">
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
 <div>version 1.9.2, 2014-09-25, by Skrol29<br />
-  help file modified on 2014-11-06</div>
+  help file modified on 2014-12-06</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -552,14 +557,14 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
 </p>
 <p> You have to put a TBS field anywhere inside the table with the following parameters:</p>
 <ul>
-  <li> <span class="template">ope</span> = delcol</li>
+  <li> <span class="template">ope=delcol</span></li>
   <li> <span class="template">colnum</span> = the column numbers to delete, separated with commas (first column is number 1).</li>
   <li> <span class="template">colshift</span> = (optional) if parameter &quot;<span class="template">colnum</span>&quot; has only one value then &quot;<span class="template">colshift</span>&quot; extends the number of columns to delete to the left or to the right.</li>
 </ul>
 <p> Both parameters &quot;<span class="template">colnum</span>&quot; and &quot;<span class="template">colshift</span>&quot; can contain  [val] and [var] fields. When the TBS field is merged, the specified columns will be deleted and the TBS field is erased.</p>
 <div class="shift"> Examples:
 <ul>
-  <li><span class="template">[onload;ope=delcol;colnum=2,4,6]</span> =&gt; will delete columns {2,5,6}</li>
+  <li><span class="template">[onload;ope=delcol;colnum=2,4,6]</span> =&gt; will delete columns {2,4,6}</li>
   <li> <span class="template">[onload;ope=delcol;colnum=2;colshift=2]</span> =&gt; will delete columns {2,3,4}</li>
   <li> <span class="template">[onload;ope=delcol;colnum=2;colshift=-1]</span> =&gt; will delete columns {1,2}</li>
   <li><span class="template">[onload.col_to_delete;ope=delcol;colnum=[val];colshift=2]</span> =&gt; will delete 3 columns staring from column number <span class="smallcode">$col_to_delete</span></li></ul></div>

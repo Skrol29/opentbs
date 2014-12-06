@@ -3,7 +3,7 @@
 == Bug fixes ==
 
 * XLSX corruption when merging a float value to a cell when the decimal separator is not a dot because of the locale setting.
-* possible DOCX corruption when using text box or tables in header and footer.
+* Possible DOCX corruption when using text box or tables in header and footer.
 
 == Enhancements ==
 
