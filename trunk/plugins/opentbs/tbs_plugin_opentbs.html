@@ -24,9 +24,7 @@ body, td, th {
 	list-style-type:square;
 	list-style-position:inside;
 	padding-left:0;
-}
-#main-body li {
-	height: 20px;
+	line-height: 20px;
 }
 .shift {
 	margin-left: 10px;
@@ -82,8 +80,8 @@ body, td, th {
 <!-- main-body is used for insertion in the TBS menu -->
 <div id="main-body">
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.9.2, 2014-09-25, by Skrol29<br />
-  help file modified on 2014-12-06</div>
+<div>version 1.9.3, 2015-01-16, by Skrol29<br />
+  help file modified on 2015-01-16</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -298,7 +296,7 @@ body, td, th {
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">tbs:page</td>
-    <td>A page defined by an explicit page break before a paragraph.</td>
+    <td>A page defined by an explicit page break before a paragraph.(*)</td>
     <td align="center"><span class="yes">yes</span></td>
     <td align="center"><span class="no">no</span></td>
     <td align="center"><span class="no">no</span></td>
@@ -367,6 +365,8 @@ body, td, th {
     <td align="center"><span class="yes">yes</span></td>
   </tr>
 </table>
+<h5>Note (*)</h5>
+<p> Knowed bug for  DOCX:  the TBS tag using the alias <span class="smallcode">tbs:page</span> must not be placed in the last paragraph of the page when the page-break in done with an inserted page-break. Use the page-break property of the paragraph instead, or move the TBS tag in another paragraph.</p>
 <h3><a name="chart" id="chart"></a>4.5. Change data of series in charts</h3>
 <h4>&bull; Change series in charts:</h4>
 <div class="shift"> <span class="versioning">(supported since OpenTBS version 1.6.0, for Ms Word and Ms Powerpoint, since version 1.8.0 for LibreOffice)</span>
@@ -925,6 +925,13 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
+<h3>version 1.9.3, on 2015-01-16</h3>
+<h4>Bug fixes</h4>
+<ul>
+  <li>XLSX  corruption when merging a float value to a cell when the decimal separator is  not a dot because of the locale setting.</li>
+  <li>Possible DOCX corruption when using text box or tables in header and footer.</li>
+  <li>Produce a corrupted Ms Office document when delete the last series of a chart using command OPENTBS_CHART. May happens with other series.</li>
+</ul>
 <h3>version 1.9.2, on 2014-09-25</h3>
 <h4>Enhancements</h4>
 <ul>
