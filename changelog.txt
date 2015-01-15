@@ -1,9 +1,10 @@
-= Beta 1.9.3-beta =
+= Beta 1.9.3 =
 
 == Bug fixes ==
 
 * XLSX corruption when merging a float value to a cell when the decimal separator is not a dot because of the locale setting.
 * Possible DOCX corruption when using text box or tables in header and footer.
+* Produce a corrupted Ms Office document when delete the last series of a chart using command OPENTBS_CHART. May happens with other series.
 
 == Enhancements ==
 
