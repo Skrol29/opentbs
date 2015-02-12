@@ -80,8 +80,8 @@ body, td, th {
 <!-- main-body is used for insertion in the TBS menu -->
 <div id="main-body">
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.9.3, 2015-01-16, by Skrol29<br />
-  help file modified on 2015-01-16</div>
+<div>version 1.9.4, 2015-02-11 by Skrol29<br />
+  help file modified on 2015-02-11</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -925,6 +925,11 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
+<h3>version 1.9.4, on 2015-02-11</h3>
+<h4>Bug fixes</h4>
+<ul>
+  <li>Document corruption with OpenTBS 1.9.3 when merging pictures in a block and using parameter &quot;<span class="smallcode">adjust</span>&quot;.</li>
+</ul>
 <h3>version 1.9.3, on 2015-01-16</h3>
 <h4>Bug fixes</h4>
 <ul>
