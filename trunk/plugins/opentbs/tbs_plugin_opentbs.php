@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.3
- * @date 2015-01-16
+ * @version 1.9.4
+ * @date 2015-02-11
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL
@@ -88,7 +88,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.9.3';
+		$this->Version = '1.9.4';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -196,9 +196,9 @@ class clsOpenTBS extends clsTbsZip {
 			$TBS->OtbsCurrFile = $this->TbsGetFileName($idx); // usefull for TbsPicAdd()
 			$this->TbsCurrIdx = $idx; // usefull for debug mode
 			if ($TbsShow && $onshow) $TBS->Show(TBS_NOTHING);
-            if ($this->ExtEquiv == 'docx') {
-                $this->MsWord_RenumDocPr($TBS->Source);
-            }
+		    if ($this->ExtEquiv == 'docx') {
+		        $this->MsWord_RenumDocPr($TBS->Source);
+		    }
 			if ($explicitRef && (!isset($this->MsExcel_KeepRelative[$idx])) ) {
 				$this->MsExcel_ConvertToExplicit($TBS->Source);
 			}
@@ -283,11 +283,11 @@ class clsOpenTBS extends clsTbsZip {
 	// in this event, ope is exploded, there is one function call for each ope command
 		$ope = $PrmLst['ope'];
 		if ($ope==='addpic') {
-		    // for compatibility
+			// for compatibility
 			$this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=addpic');
 		} elseif ($ope==='changepic') {
 			$this->TbsPicPrepare($Txt, $Loc, false);
-            $this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=changepic');
+		    $this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=changepic');
 		} elseif ($ope==='delcol') {
 			$this->TbsDeleteColumns($Txt, $Value, $PrmLst, $PosBeg, $PosEnd);
 			return false; // prevent TBS from merging the field
@@ -509,18 +509,18 @@ class clsOpenTBS extends clsTbsZip {
 
 			$code = $x1;
 			$file = $x2;
-            $prms = array('default'=>'current', 'adjust' => 'inside');
-            if (is_array($x3)) {
-                $prms = array_merge($prms, $x3);
-            } else {
-                // Compatibility v <= 1.9.0
-                if (!is_null($x3)) $prms['default'] = $x3;
-                if (!is_null($x4)) $prms['adjust'] = $x4;
-            }
-            $prms_flat = array();
-            foreach($prms as $p => $v) $prms_flat[] = $p.'='.$v;
-            $prms_flat = implode(';', $prms_flat);
-            
+		    $prms = array('default'=>'current', 'adjust' => 'inside');
+		    if (is_array($x3)) {
+		        $prms = array_merge($prms, $x3);
+		    } else {
+		        // Compatibility v <= 1.9.0
+		        if (!is_null($x3)) $prms['default'] = $x3;
+		        if (!is_null($x4)) $prms['adjust'] = $x4;
+		    }
+		    $prms_flat = array();
+		    foreach($prms as $p => $v) $prms_flat[] = $p.'='.$v;
+		    $prms_flat = implode(';', $prms_flat);
+		    
 			$UniqueId++;
 			$name = 'OpenTBS_Change_Picture_'.$UniqueId;
 			$tag = "[$name;ope=changepic;tagpos=inside;$prms_flat]";
@@ -1149,7 +1149,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		// Delete parameter att to prevent TBS from another processing
 		unset($Loc->PrmLst['att']);
-
+	   
 		// Get picture dimension information
 		if (isset($Loc->PrmLst['adjust'])) {
 			$FieldLen = 0;
@@ -1280,7 +1280,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$res_lst['r'] = ($res_lst['hv']==0) ? 0.0 : $res_lst['wv']/$res_lst['hv']; // ratio W/H
 				$res_lst['dec'] = $AllowedDec; // save the allowed decimal for this attribute
 				$res_lst['cpt'] = $CoefToPt;
-
 				return $res_lst;
 
 			} else {
@@ -1342,13 +1341,13 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-    /**
-     * Return the path of the image on the server corresponding the current field being merged.
-     */
-    function TbsPicExternalPath(&$Value, &$PrmLst) {
-    
-        $TBS = &$this->TBS;
-    
+	/**
+	 * Return the path of the image on the server corresponding the current field being merged.
+	 */
+	function TbsPicExternalPath(&$Value, &$PrmLst) {
+	
+		$TBS = &$this->TBS;
+	
 		// set the path where files should be taken
 		if (isset($PrmLst['from'])) {
 			if (!isset($PrmLst['pic_prepared'])) $TBS->meth_Merge_AutoVar($PrmLst['from'],true); // merge automatic TBS fields in the path
@@ -1374,22 +1373,22 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			}
 		}
 
-        return $FullPath;
-        
-    }
-    
+		return $FullPath;
+		
+	}
+	
 	/**
 	 * Add a picture inside the archive, use parameters 'from' and 'as'.
 	 * Argument $Prm is only used for error messages.
 	 */
 	function TbsPicAdd(&$Value, &$PrmLst, &$Txt, &$Loc, $Prm) {
-        
+		
 		$TBS = &$this->TBS;
 
 		$PrmLst['pic_prepared'] = true; // mark the locator as Picture prepared
-        
-        $ExternalPath = $this->TbsPicExternalPath($Value, $PrmLst);
-        
+		
+		$ExternalPath = $this->TbsPicExternalPath($Value, $PrmLst);
+		
 		if ($ExternalPath === false) {
 			if (isset($PrmLst['att'])) {
 				// can happen when using MergeField()
@@ -1399,8 +1398,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				// parameter att already applied during Field caching
 				$Value = substr($Txt, $Loc->PosBeg, $Loc->PosEnd - $Loc->PosBeg + 1);
 			}
-            return false;
-        }
+		    return false;
+		}
 
 		// set the name of the internal file
 		if (isset($PrmLst['as'])) {
@@ -1418,32 +1417,32 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$InternalPath = $this->ImageInternal[$x];
 		}
 
-        // the value of the current TBS field becomes the full internal path
-        if (isset($this->ExtInfo['pic_path'])) $InternalPath = $this->ExtInfo['pic_path'].$InternalPath;
+		// the value of the current TBS field becomes the full internal path
+		if (isset($this->ExtInfo['pic_path'])) $InternalPath = $this->ExtInfo['pic_path'].$InternalPath;
 
-        // actually add the picture inside the archive
-        if ($this->FileGetIdxAdd($InternalPath)===false) $this->FileAdd($InternalPath, $ExternalPath, TBSZIP_FILE, true);
+		// actually add the picture inside the archive
+		if ($this->FileGetIdxAdd($InternalPath)===false) $this->FileAdd($InternalPath, $ExternalPath, TBSZIP_FILE, true);
 
-        // preparation for others file in the archive
-        $Rid = false;
-        if ($this->ExtType==='odf') {
-            // OpenOffice document
-            $this->OpenDoc_ManifestChange($InternalPath,'');
-        } elseif ($this->ExtType==='openxml') {
-            // Microsoft Office document
-            $this->OpenXML_CTypesPrepareExt($InternalPath, '');
-            $BackNbr = max(substr_count($TBS->OtbsCurrFile, '/') - 1, 0); // docx=>"media/img.png", xlsx & pptx=>"../media/img.png"
-            $TargetDir = str_repeat('../', $BackNbr).'media/';
-            $FileName = basename($InternalPath);
-            $Rid = $this->OpenXML_Rels_AddNewRid($TBS->OtbsCurrFile, $TargetDir, $FileName);
-        }
+		// preparation for others file in the archive
+		$Rid = false;
+		if ($this->ExtType==='odf') {
+		    // OpenOffice document
+		    $this->OpenDoc_ManifestChange($InternalPath,'');
+		} elseif ($this->ExtType==='openxml') {
+		    // Microsoft Office document
+		    $this->OpenXML_CTypesPrepareExt($InternalPath, '');
+		    $BackNbr = max(substr_count($TBS->OtbsCurrFile, '/') - 1, 0); // docx=>"media/img.png", xlsx & pptx=>"../media/img.png"
+		    $TargetDir = str_repeat('../', $BackNbr).'media/';
+		    $FileName = basename($InternalPath);
+		    $Rid = $this->OpenXML_Rels_AddNewRid($TBS->OtbsCurrFile, $TargetDir, $FileName);
+		}
 
-        // change the value of the field for the merging process
-        if ($Rid===false) {
-            $Value = $InternalPath;
-        } else {
-            $Value = $Rid; // the Rid is used instead of the file name for the merging
-        }
+		// change the value of the field for the merging process
+		if ($Rid===false) {
+		    $Value = $InternalPath;
+		} else {
+		    $Value = $Rid; // the Rid is used instead of the file name for the merging
+		}
 
 		// Change the dimensions of the picture
 		if (isset($Loc->otbsDim)) {
@@ -1456,6 +1455,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	// Adjust the dimensions if the picture
 	function TbsPicAdjust(&$Txt, &$Loc, &$File) {
+
 		$fDim = @getimagesize($File); // file dimensions
 		if (!is_array($fDim)) return;
 		$w = (float) $fDim[0];
@@ -1468,6 +1468,13 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$adjust_coef = floatval(str_replace('%','',$adjust))/100.0;
 			$adjust = '%';
 		}
+
+		// Save position of the locator before dims are modified
+		if (!isset($Loc->svPosBeg)) {
+			$Loc->svPosBeg = $Loc->PosBeg;
+			$Loc->svPosEnd = $Loc->PosEnd;
+		}
+
 		foreach ($Loc->otbsDim as $tDim) { // template dimensions. They must be sorted in reverse order of location
 			if ($tDim!==false) {
 				// find what dimensions should be edited
@@ -1506,10 +1513,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				}
 			}
 		}
-		if ($delta<>0) {
-			$Loc->PosBeg = $Loc->PosBeg + $delta;
-			$Loc->PosEnd = $Loc->PosEnd + $delta;
-		}
+
+		// Update the position
+		$Loc->PosBeg = $Loc->svPosBeg + $delta;
+		$Loc->PosEnd = $Loc->svPosEnd + $delta;
+
 	}
 	
 	/**
@@ -1742,7 +1750,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ($this->ExtEquiv=='docx') {
 			// Move the locator just inside the <w:tcPr> element.
 			// See OnOperation() for other process
-			$xml = clsTbsXmlLoc::FindStartTag($Txt, 'w:tcPr', $Loc->PosBeg, false); 
+			$xml = clsTbsXmlLoc::FindStartTag($Txt, 'w:tcPr', $Loc->PosBeg, false);
 			if ($xml) {
 				$Txt = substr_replace($Txt, '', $Loc->PosBeg, $Loc->PosEnd - $Loc->PosBeg + 1);
 				$Loc->PosBeg = $xml->PosEnd+1;
@@ -2267,44 +2275,44 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 */    
 	function OpenXML_GetAbsolutePath($RelativePath, $RelativeTo) {
 		
-        // May be reltaive to the root
+		// May be reltaive to the root
 		if (substr($RelativePath, 0, 1) == '/') {
-            return substr($RelativePath, 1);
-        }
+		    return substr($RelativePath, 1);
+		}
 
-        $rp = explode('/', $RelativePath);
-        $rt = explode('/', $RelativeTo);
+		$rp = explode('/', $RelativePath);
+		$rt = explode('/', $RelativeTo);
 		
-        // Get off the file name;
-        array_pop($rt);
-        
-        while ($rp[0] == '..') {
+		// Get off the file name;
+		array_pop($rt);
+		
+		while ($rp[0] == '..') {
 			array_pop($rt);
 			array_shift($rp);
-        }
-        
-        while ($rp[0] == '.') {
+		}
+		
+		while ($rp[0] == '.') {
 			array_shift($rp);
-        }
-        
-        $path = array_merge($rt, $rp);
-        $path = implode('/', $path);
-        
+		}
+		
+		$path = array_merge($rt, $rp);
+		$path = implode('/', $path);
+		
 		return $path;
 		
 	}
 	
-    function OpenXML_GetMediaRelativeToCurrent() {
-        $file = $this->TBS->OtbsCurrFile;
-        $x = explode('/', $file);
-        $dir = $x[0] . '/media';
-        return $this->OpenXML_GetRelativePath($dir, $file);
-    }
+	function OpenXML_GetMediaRelativeToCurrent() {
+		$file = $this->TBS->OtbsCurrFile;
+		$x = explode('/', $file);
+		$dir = $x[0] . '/media';
+		return $this->OpenXML_GetRelativePath($dir, $file);
+	}
 
 	/**
 	 * Return the absolute internal path of a target for a given Rid used in the current file.
 	 */
-    function OpenXML_GetInternalPicPath($Rid) {
+	function OpenXML_GetInternalPicPath($Rid) {
 		// $this->OpenXML_CTypesPrepareExt($InternalPicPath, '');
 		$TargetDir = $this->OpenXML_GetMediaRelativeToCurrent();
 		$o = $this->OpenXML_Rels_GetObj($this->TBS->OtbsCurrFile, $TargetDir);
@@ -2315,7 +2323,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			return false;
 		}
 	}
-    
+	
 	/**
 	 * Delete an XML file in the OpenXML archive.
 	 * The file is delete from the declaration file [Content_Types].xml and from the relationships of the specified files.
@@ -3122,8 +3130,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$missing = '<'.$Tag.'/>';
 		$closing = '</'.$Tag.'>';
 		$p = 0;
-        $compat_limit_miss = 1000;
-        $compat_limit_num = 1048576 - 10000;
+		$compat_limit_miss = 1000;
+		$compat_limit_num = 1048576 - 10000;
 		while (($p=clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true, $p, true, true))!==false) {
 
 			$Loc->PrmPos = array();
@@ -3131,7 +3139,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$p2 = $p + $tag_len + 2; // count the char '<' before and the char ' ' after
 			$PosEnd = strpos($Txt, '>', $p2);
 			clsTinyButStrong::f_Loc_PrmRead($Txt,$p2,true,'\'"','<','>',$Loc, $PosEnd, true); // read parameters
-            $Delete = false;
+		    $Delete = false;
 			if (isset($Loc->PrmPos[$Att])) {
 				// attribute found
 				$r = $Loc->PrmLst[$Att];
@@ -3143,10 +3151,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$missing_nbr = $r - $item_num -1;
 				if ($missing_nbr<0) {
 					return $this->RaiseError('(Excel Consistency) error in counting items <'.$Tag.'>, found number '.$r.', previous was '.$item_num);
-                } elseif($IsRow && ($missing_nbr > $compat_limit_miss) && ($r >= $compat_limit_num)) { // Excel limit is 1048576
-                    // Useless final rows: LibreOffice add several final useless rows in the sheet when saving as XLSX.
-                    $Delete = true;
-                    $item_num++;
+		        } elseif($IsRow && ($missing_nbr > $compat_limit_miss) && ($r >= $compat_limit_num)) { // Excel limit is 1048576
+		            // Useless final rows: LibreOffice add several final useless rows in the sheet when saving as XLSX.
+		            $Delete = true;
+		            $item_num++;
 				} else {
 					// delete the $Att attribute
 					$pp = $Loc->PrmPos[$Att];
@@ -3165,20 +3173,20 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 						$PosEnd = $PosEnd + $x_len;
 						$x = ''; // empty the memory
 					}
-                    $item_num = $r;
+		            $item_num = $r;
 				}
 			} else {
 				// nothing to change the item is already relative
 				$item_num++;
 			}
-            if ($Delete) {
-                if (($Txt[$PosEnd-1]!=='/')) {
-                    $x_p = strpos($Txt, $closing, $PosEnd);
-                    if ($x_p===false) return $this->RaiseError('(Excel Consistency) closing row tag is not found.');
-                    $PosEnd = $x_p + strlen($closing) - 1;
-                }
-                $Txt = substr_replace($Txt, '', $p, $PosEnd - $p + 1);
-            } elseif ($IsRow && ($Txt[$PosEnd-1]!=='/')) {
+		    if ($Delete) {
+		        if (($Txt[$PosEnd-1]!=='/')) {
+		            $x_p = strpos($Txt, $closing, $PosEnd);
+		            if ($x_p===false) return $this->RaiseError('(Excel Consistency) closing row tag is not found.');
+		            $PosEnd = $x_p + strlen($closing) - 1;
+		        }
+		        $Txt = substr_replace($Txt, '', $p, $PosEnd - $p + 1);
+		    } elseif ($IsRow && ($Txt[$PosEnd-1]!=='/')) {
 				// It's a row item that may contain columns
 				$x_p = strpos($Txt, $closing, $PosEnd);
 				if ($x_p===false) return $this->RaiseError('(Excel Consistency) closing row tag is not found.');
@@ -3188,11 +3196,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$Txt = substr_replace($Txt, $x, $PosEnd+1, $x_len0);
 				$x_len = strlen($x);
 				$p = $x_p + $x_len - $x_len0;
-            } else {
+		    } else {
 				$p = $PosEnd;
 			}
 		}
-    
+	
 	}
 
 	/**
@@ -3207,7 +3215,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * Add the attribute that gives the reference of the item.
 	 * Return the number of inserted attributes.
 	 * Note: substr() and strpos() function's execution time are geometrically increasing with then string length.
-     *       So it is for this function. converting a sheet with 5.000 rows may have a duration of 15 sec.
+	 *       So it is for this function. converting a sheet with 5.000 rows may have a duration of 15 sec.
 	 */
 	function MsExcel_ConvertToExplicit_Item(&$Txt, $Tag, $Att, $ParentRowNum) {
 
@@ -4020,8 +4028,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 */
 	function MsWord_RenumDocPr(&$Txt) {
 
-        $this->MsWord_DocPrId;
-    
+		$this->MsWord_DocPrId;
+	
 		$el = '<wp:docPr ';
 		$el_len = strlen($el);
 
