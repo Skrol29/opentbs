@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.4
+ * @version 1.9.5-beta
  * @date 2015-02-11
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
@@ -88,7 +88,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.9.4';
+		$this->Version = '1.9.5';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -1991,35 +1991,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * @param {boolean} $OnlyInner Set to true to keep the content inside the element. Set to false to delete the entire element. Default is false.
 	 */
 	function XML_DeleteElements(&$Txt, $TagLst, $OnlyInner=false) {
-		$nbr_del = 0;
+		$nb = 0;
+		$Content = !$OnlyInner;
 		foreach ($TagLst as $tag) {
-			$t_open = '<'.$tag;
-			$t_close = '</'.$tag;
-			$p1 = 0;
-			while (($p1=$this->XML_FoundTagStart($Txt, $t_open, $p1))!==false) {
-				// get the end of the tag
-				$pe1 = strpos($Txt, '>', $p1);
-				if ($pe1===false) return false; // error in the XML formating
-				$p2 = false;
-				if (substr($Txt, $pe1-1, 1)=='/') {
-					$pe2 = $pe1;
-				} else {
-					// it's an opening+closing
-					$p2 = $this->XML_FoundTagStart($Txt, $t_close, $pe1);
-					if ($p2===false) return false; // error in the XML formating
-					$pe2 = strpos($Txt, '>', $p2);
-				}
-				if ($pe2===false) return false; // error in the XML formating
-				// delete the tag
-				if ($OnlyInner) {
-					if ($p2!==false) $Txt = substr_replace($Txt, '', $pe1+1, $p2-$pe1-1);
-					$p1 = $pe1; // for next search
-				} else {
-					$Txt = substr_replace($Txt, '', $p1, $pe2-$p1+1);
-				}
-			} 
+			$p = 0;
+			while ($x = clsTbsXmlLoc::FindElement($Txt, $tag, $p)) {
+				$x->Delete($Content);
+				$p = $x->PosBeg;
+				$nb++;
+			}
 		}
-		return $nbr_del;
+		return $nb;
 	}
 
 	/**
@@ -2065,35 +2047,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		return $ModifNbr;
 
-	}
-
-	/**
-	 * Delete attributes in an XML element. The XML element is located by $Pos.
-	 * @param {string} $Txt Text containing XML elements.
-	 * @param {int}    $Pos Start of the XML element.
-	 * @param {array}  $AttLst List of attributes to search and delete
-	 * @param {array}  $StrLst List of strings to search and delete
-	 * @return {int} The new end of the element.
-	 */
-	function XML_DeleteAttributes(&$Txt, $Pos, $AttLst, $StrLst)	{
-		$end = strpos($Txt, '>', $Pos); // end of the element
-		if ($end===false) return (strlen($Txt)-1);
-		$x_len = $end - $Pos + 1;
-		$x = substr($Txt, $Pos, $x_len);
-		// delete attributes
-		foreach ($AttLst as $att) {
-			$a = ' '.$att.'="';
-			$p1 = strpos($x, $a);
-			if ($p1!==false) {
-				$p2 = strpos($x, '"', $p1+strlen($a));
-				if ($p2!==false) $x = substr_replace($x, '', $p1, $p2-$p1+1);
-			}
-		}
-		// Delete strings
-		foreach ($StrLst as $str) $x = str_replace('', $str, $x);
-		$x_len2 = strlen($x);
-		if ($x_len2!=$x_len) $Txt = substr_replace($Txt, $x, $Pos, $x_len);
-		return $Pos + $x_len2;
 	}
 
 	/**
@@ -3708,9 +3661,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	function MsPowerpoint_CleanRpr(&$Txt, $elem) {
-		$pe = 0;
-		while (($p=$this->XML_FoundTagStart($Txt, '<'.$elem, $pe))!==false) {
-			$pe = $this->XML_DeleteAttributes($Txt, $p, array('noProof', 'lang', 'err', 'smtClean', 'dirty'), array());
+		$p = 0;
+		while ($x = clsTbsXmlLoc::FindStartTag($Txt, $elem, $p)) {
+			$x->DeleteAtt('noProof');
+			$x->DeleteAtt('lang');
+			$x->DeleteAtt('err');
+			$x->DeleteAtt('smtClean');
+			$x->DeleteAtt('dirty');
+			$p = $x->PosEnd;
 		}
 	}
 
@@ -3970,30 +3928,30 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				if ($wrc_p===false) return false;
 				if ( ($wto_p<$wrc_p) && ($wtc_p<$wrc_p) ) { // if the <w:t> is actually included in the <w:r> element
 					if ($first) {
-						// text that is concatened and can be simplified
-						$superflous = '</w:t></w:r>'.substr($Txt, $wro_p, ($wto_p+$wto_len)-$wro_p); // without the last symbol, like: '</w:t></w:r><w:r>....<w:t'
-						$superflous = str_replace('<w:tab/>', '', $superflous); // tabs must not be deleted between parts => they nt be in the superflous string
-						$superflous_len = strlen($superflous);
+						// text that is concatenated and can be simplified
+						$superfluous = '</w:t></w:r>'.substr($Txt, $wro_p, ($wto_p+$wto_len)-$wro_p); // without the last symbol, like: '</w:t></w:r><w:r>....<w:t'
+						$superfluous = str_replace('<w:tab/>', '', $superfluous); // tabs must not be deleted between parts => they nt be in the superfluous string
+						$superfluous_len = strlen($superfluous);
 						$first = false;
 						$p_first_att = $wto_p+$wto_len;
 						$p =  strpos($Txt, '>', $wto_p);
 						if ($p!==false) $first_att = substr($Txt, $p_first_att, $p-$p_first_att);
 					}
 					// if the <w:r> layout is the same than the next <w:r>, then we join them
-					$p_att = $wtc_p + $superflous_len;
+					$p_att = $wtc_p + $superfluous_len;
 					$x = substr($Txt, $p_att, 1); // must be ' ' or '>' if the string is the superfluous AND the <w:t> tag has or not attributes
-					if ( (($x===' ') || ($x==='>')) && (substr($Txt, $wtc_p, $superflous_len)===$superflous) ) {
-						$p_end = strpos($Txt, '>', $wtc_p+$superflous_len); //
+					if ( (($x===' ') || ($x==='>')) && (substr($Txt, $wtc_p, $superfluous_len)===$superfluous) ) {
+						$p_end = strpos($Txt, '>', $wtc_p+$superfluous_len); //
 						if ($p_end===false) return false; // error in the structure of the <w:t> tag
 						$last_att = substr($Txt,$p_att,$p_end-$p_att);
-						$Txt = substr_replace($Txt, '', $wtc_p, $p_end-$wtc_p+1); // delete superflous part + <w:t> attributes
+						$Txt = substr_replace($Txt, '', $wtc_p, $p_end-$wtc_p+1); // delete superfluous part + <w:t> attributes
 						$nbr++;
 						$ok = true;
 					}
 				}
 			} while ($ok);
 
-			// Recover the 'preserve' attribute if the last join element was having it. We check alo the first one because the attribute must not be twice.
+			// Recover the 'preserve' attribute if the last join element was having it. We check also the first one because the attribute must not be twice.
 			if ( ($last_att!=='') && (strpos($first_att, $preserve)===false)  && (strpos($last_att, $preserve)!==false) ) {
 				$Txt = substr_replace($Txt, ' '.$preserve, $p_first_att, 0);
 			}
@@ -5463,13 +5421,13 @@ class clsTbsXmlLoc {
 
 	}
 
-	// Search an element in the TXT contents, and return an object if it is found.
+	// Search an element in the TXT contents, and return an object if it's found.
 	static function FindElement(&$TxtOrObj, $Tag, $PosBeg, $Forward=true) {
 
 		$XmlLoc = clsTbsXmlLoc::FindStartTag($TxtOrObj, $Tag, $PosBeg, $Forward);
 		if ($XmlLoc===false) return false;
 
-		$XmlLoc->FindEndTag('dc:creator');
+		$XmlLoc->FindEndTag();
 		return $XmlLoc;
 
 	}
