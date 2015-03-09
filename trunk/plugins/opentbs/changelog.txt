@@ -1,3 +1,27 @@
+= Release 1.9.5 =
+
+Netoyage de code : 
+- suppression de XML_DeleteAttributes()
+- recodage de MsPowerpoint_CleanRpr() [à tester]
+- recodage de XML_DeleteElements()    [à tester]
+- recodage BUG sur $XmlLoc->FindEndTag('dc:creator'); en $XmlLoc->FindEndTag();
+- ReplaceInnerSrc() accepte les entités auto-fermée
+- nouvelle fonction XML_ForceAtt()
+
+== Bug fixes ==
+
+* PHP error with ODT templates when changing the name of a Chart series that hadn't any name before.
+
+== New features ==
+
+* New command OPENTBS_EDIT_ENTITY
+
+= Release 1.9.4 =
+
+== Bug fixes ==
+
+* Document corruption with OpenTBS 1.9.3 when merging pictures in a block and using parameter "adjust".
+
 = Release 1.9.3 =
 
 == Bug fixes ==
