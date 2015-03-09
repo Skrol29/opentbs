@@ -149,7 +149,10 @@ body, td, th {
 <h3><a name="loadtemplate" id="loadtemplate"></a>4.2. Method LoadTemplate()</h3>
 <h4>&bull; Load an archive with the automatic extension recognition (<a href="#extension">explained above</a>): </h4>
 <div class="shift">
-  <div class="code">$TBS-&gt;LoadTemplate('document.odt'); // Load the archive 'document.odt'.</div>
+  <div class="code">$TBS-&gt;LoadTemplate('document.odt'); // Load the archive 'document.odt'.  </div>
+</div>
+<div class="shift">
+  <div class="code">$TBS-&gt;LoadTemplate('document.odt', OPENTBS_ALREADY_UTF8); // Load the archive and tells that the PHP script and merged data are already UTF8. </div>
 </div>
 <h4>&bull; Load an archive without the automatic extension recognition:</h4>
 <div class="shift"><span class="versioning">(supported since OpenTBS version 1.1)</span>

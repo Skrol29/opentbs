@@ -29,6 +29,7 @@ define('OPENTBS_RESET','clsOpenTBS.Reset');      // command to reset the changes
 define('OPENTBS_ADDFILE','clsOpenTBS.AddFile');    // command to add a new file in the archive
 define('OPENTBS_DELETEFILE','clsOpenTBS.DeleteFile'); // command to delete a file in the archive
 define('OPENTBS_REPLACEFILE','clsOpenTBS.ReplaceFile'); // command to replace a file in the archive
+define('OPENTBS_EDIT_ENTITY','clsOpenTBS.EditEntity'); // command to force an attribute
 define('OPENTBS_FILEEXISTS','clsOpenTBS.FileExists');
 define('OPENTBS_CHART','clsOpenTBS.Chart'); // command to delete a file in the archive
 define('OPENTBS_DEFAULT','');   // Charset
@@ -654,6 +655,12 @@ class clsOpenTBS extends clsTbsZip {
 				}
 			}
 			return $KeepRelative;
+			
+		} elseif ($Cmd==OPENTBS_EDIT_ENTITY) {
+			
+			$AddElIfMissing = (boolean) $x5;
+			return $this->XML_ForceAtt($x1, $x2, $x3, $x4, $AddElIfMissing);
+			
 		}
 
 	}
@@ -2050,9 +2057,106 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
+	 * Change an attribute's value in the first element in a given sub-file.
+	 * @param {mixed}  $SubFile : the name or the index of the sub-file. Use value false to get the current sub-file.
+	 * @param {string} $ElPath  : path of the element For example : 'w:document/w:body/w:p'.
+	 * @param {string|boolean} $Att    : the attribute, or false to replace the entity's value.
+	 * @param {string|boolean} $NewVal : the new value, or false to delete the attribute.
+	 * @return {boolean} True if the attribute is found and processed. False otherwise.
+	 */
+	function XML_ForceAtt($SubFile, $ElPath, $Att, $NewVal, $AddElIfMissing = false) {
+	
+		// Find the file
+		$idx = $this->FileGetIdx($SubFile);
+		if ($idx === false) return false;
+		$Txt = $this->TbsStoreGet($idx, 'XML_ForceAtt');
+	
+		// Find the element
+		$el_lst = explode('/', $ElPath);
+		$p = 0;
+		$el_idx = 0;
+		$el_nb = count($el_lst);
+		$end = $el_nb;
+		$loc = false;
+		$loc_prev = false;
+		while ($el_idx < $end) {
+			$loc_prev = $loc;
+			$loc = clsTbsXmlLoc::FindStartTag($Txt, $el_lst[$el_idx], $p);
+			if ($loc === false) {
+				if ($AddElIfMissing) {
+					// stop the loop
+					$end = $el_idx;
+				} else {
+					return false;
+				}
+			} else {
+				$p = $loc->PosEnd;
+				$el_idx++;
+			}
+		}
+
+		if (($loc === false) && ($loc_prev === false)) return false;
+
+		$save = true;
+		if ($el_idx < $el_nb) {
+			// One of the entities is not found => create entities
+			if ($NewVal === false) {
+				// Nothing to do
+				$save = false;
+			} else {
+				$before = '';
+				$after = '';
+				$i_end = ($end - 1);
+				for ($i = $el_idx ; $i < $i_end ; $i++) {
+					$before .= '<' .  $el_lst[$i] . '>';
+					$after = '</' .  $el_lst[$i] . '>' . $after;
+				}
+				if ($Att === false) {
+					$x = $before . '<' . $el_lst[$i] . '>' . $NewVal . '</' . $el_lst[$i] . '>' . $after;
+				} else {
+					$x = $before . '<' . $el_lst[$i] . ' ' . $Att . '="' . $NewVal . '" />' . $after;
+				}
+				$loc_prev->FindEndTag();
+				if ($loc_prev->pET_PosBeg === false) {
+					return $this->RaiseError("Cannot apply attribute because entity '" . $loc_prev->FindName() . "' has no ending tag in file [$SubFile].");
+				}
+				$Txt = substr_replace($Txt, $x, $loc_prev->pET_PosBeg, 0);
+			}
+		} else {
+			// The last entity is found => force the attribute
+			if ($NewVal === false) {
+				if ($Att === false) {
+					// delete the entity
+					$loc->Delete();
+				} else {
+					// delete the attribute
+					$loc->DeleteAtt($Att);
+				}
+			} else {
+				if ($Att === false) {
+					// change the entity's value
+					$loc->FindEndTag();
+					$loc->ReplaceInnerSrc($NewVal);
+				} else {
+					// change the attribute's value
+					$loc->ReplaceAtt($Att, $NewVal, true);
+				}
+			}
+		}
+
+		// Save the file
+		if ($save) {
+			$this->TbsStorePut($idx, $Txt);
+		}
+
+		return true;
+		
+	}
+	
+	/**
 	 * Function used by Block Alias
 	 * The first start tag on the left is supposed to be the good one.
-	 * Note: encapuslation is not yet supported in this version.
+	 * Note: encapsulation is not yet supported in this version.
 	 */
 	function XML_BlockAlias_Prefix($TagPrefix, $Txt, $PosBeg, $Forward, $LevelStop) {
 
@@ -5005,7 +5109,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$elP = clsTbsXmlLoc::FindElement($elCell, 'text:p', 0);
 		if ($elP===false) {
-			$elCell->ReplaceInnerSrc($elCell->InnerSrc.'<text:p>'.$NewName.'</text:p>');
+			$elCell->ReplaceInnerSrc($elCell->GetInnerSrc().'<text:p>'.$NewName.'</text:p>');
 		} else {
 			if($elP->SelfClosing) {
 				$elP->ReplaceSrc('<text:p>'.$NewName.'</text:p>');
@@ -5120,7 +5224,7 @@ class clsTbsXmlLoc {
 
 	var $pST_PosEnd = false; // start tag: position of the end
 	var $pST_Src = false;    // start tag: source
-	var $pET_PosBeg = false; // end tag: position of the begining
+	var $pET_PosBeg = false; // end tag: position of the beginning
 
 	var $Parent = false; // parent object
 
@@ -5230,12 +5334,22 @@ class clsTbsXmlLoc {
 
 	// Replace the inner source of the locator in the TXT contents. Update the locator's positions.
 	// Assume FindEndTag() is previously called.
+	// Convert a self-closing entity to a start+end entity if needed.
 	function ReplaceInnerSrc($new) {
-		$len = $this->GetInnerLen();
-		if ($len===false) return false;
-		$this->Txt = substr_replace($this->Txt, $new, $this->pST_PosEnd + 1, $len);
-		$this->PosEnd += strlen($new) - $len;
-		$this->pET_PosBeg += strlen($new) - $len;
+		if ($this->SelfClosing) {
+			$end = '>' . $new . '</' . $this->FindName() . '>';
+			$this->Txt = substr_replace($this->Txt, $end, $this->PosEnd - 1, 2);
+			$this->SelfClosing = false;
+			$this->pST_PosEnd = $this->PosEnd - 1;
+			$this->pET_PosBeg = $this->pST_PosEnd + strlen($new) + 1;
+			$this->PosEnd = $this->pST_PosEnd + strlen($end) - 1;
+		} else {
+			$len = $this->GetInnerLen();
+			if ($len===false) return false;
+			$this->Txt = substr_replace($this->Txt, $new, $this->pST_PosEnd + 1, $len);
+			$this->PosEnd += strlen($new) - $len;
+			$this->pET_PosBeg += strlen($new) - $len;
+		}
 	}
 
 	// Update the parent object, if any.
@@ -5291,6 +5405,9 @@ class clsTbsXmlLoc {
 		}
 	}
 	
+	/**
+	 * Return true if the attribute existed and is deleted, otherwise return false.
+	 */
 	function DeleteAtt($Att) {
 		$z = $this->_GetAttValPos($Att);
 		if ($z===false) return false;
