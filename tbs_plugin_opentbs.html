@@ -400,14 +400,13 @@ body, td, th {
       <td valign="top"><p>The new data of the series. Must be an array, or value <span class="smallcode">false</span> if you want to delete the series.</p>
         <p> The array can store data with 3 possibilities:</p>
         <p> 
-        	#1: <span class="code">$NewValues = array( array('cat1', 'cat2', 'cat3', ...), array(val1, val2, val3, ...) );</span><br />
-          or <br />
-          #2: <span class="code">$NewValues = array('cat1'=&gt;val1,  'cat2'=&gt;val2, 'cat3'=&gt;val3, ...);</span><br />
-          or <br />
-          #3: <span class="code">$NewValues = array( array(x1, y1),  array(x2,y2), array(x3, y3), ...);</span>
+       	  Structure #1: <span class="code">$NewValues = array( array('cat1', 'cat2', 'cat3', ...), array(val1, val2, val3, ...) );</span></p>
+        <p>          Structure #2: <span class="code">$NewValues = array('cat1'=&gt;val1,  'cat2'=&gt;val2, 'cat3'=&gt;val3, ...);</span></p>
+        <p>          Structure #3: <span class="code">$NewValues = array( array(x1, y1),  array(x2,y2), array(x3, y3), ...);</span>
         </p>
         <p>Notes :</p>
         <ul>
+          <li>A chart may have some values missing for one series and not for others. You can define a missing value for a category  using PHP values <span class="smallcode">null</span>, <span class="smallcode">'NULL'</span>, <span class="smallcode">false</span> or <span class="smallcode">''</span> (empty string).</li>
           <li>Structure #3 is supported only for LibreOffice, and is required when the chart type is <strong>XY (Scatter)</strong>, <strong>Bubble</strong> or<strong> Stock</strong>. Use  2  values in each items for XY, 3 for Bubble, and 4 for Stock.</li>
           <li>Structure #1 is required for Ms Office when the chart type is  <strong>XY (Scatter)</strong>. Bubble and Stock are not yet supported for Ms Office.</li>
         </ul></td>

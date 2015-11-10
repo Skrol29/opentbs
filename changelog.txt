@@ -3,9 +3,11 @@
 
 == Enhancements ==
 
-* new property $TBS->OtbsClearOldChartData = false;
+* new property $TBS->OtbsClearOldChartData = false; (Ms Office only)
 
 * OpenTBS do not redo optimisation on the loaded template it has already been done by OpenTBS previously.
+
+* Chart in Ms Office : Ensure the caption of a category is displayed even if is has missing data.
 
 * Code cleanup:
 	- delete XML_DeleteAttributes()
@@ -26,7 +28,7 @@
 
 * New command OPENTBS_EDIT_ENTITY
 
-* New command OPENTBS_CHART_INFO
+* New command OPENTBS_CHART_INFO (Ms Office only)
 
 ---------------------------------------------------------------------
 

@@ -8,7 +8,7 @@
  * and retrieve the content of a zipped file which is not compressed.
  *
  * @version 1.9.5-beta
- * @date 2015-11-09
+ * @date 2015-11-11
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -399,7 +399,7 @@ class clsOpenTBS extends clsTbsZip {
 			if ($this->ExtType=='odf') {
 				return false; // not supported yet
 			} else {
-                return $this->OpenXML_ChartReadSerials($ChartRef, $Complete);
+                return $this->OpenXML_ChartReadSeries($ChartRef, $Complete);
 			}
             
             
@@ -2991,11 +2991,18 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			if ($this->ExtEquiv=='pptx') {
 				// search in slides
 				$find = $this->MsPowerpoint_SearchInSlides(' title="'.$ChartRef.'"');
-				if ($find['idx']!==false) $charts = $this->OpenXML_ChartGetInfoFromFile($find['idx']);
+				if ($find['idx']!==false) {
+					$charts = $this->OpenXML_ChartGetInfoFromFile($find['idx']);
+					// For debuging
+					$charts['slide_idx'] = $find['idx'];
+					$charts['slide_path'] = $this->TbsGetFileName($find['idx']);
+				}
 			} else {
 				$charts = $this->OpenXML_ChartGetInfoFromFile($this->Ext_GetMainIdx());
 			}
-			foreach($charts as $c) if ($c['title']===$ChartRef) $ref = $c['name']; // try with $ChartRef as title
+			foreach($charts as $c) {
+				if ($c['title']===$ChartRef) $ref = $c['name']; // try with $ChartRef as title
+			}
 			if (!isset($this->OpenXmlCharts[$ref])) return $this->RaiseError("($ErrTitle) : unable to found the chart corresponding to '".$ChartRef."'.");
 		}
 
@@ -3032,8 +3039,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		} else {
 
 
-			$point1 = '';
-			$point2 = '';
+			$point1 = ''; // category
+			$point2 = ''; // value
 			$i = 0;
 			$v = reset($NewValues);
 			if (is_array($v)) {
@@ -3056,14 +3063,16 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					$x = $v;
 					$y = isset($val_lst[$k]) ? $val_lst[$k] : null;
 				}
+				// a category should not be missing otherwise it caption may not be display if the series is the first one
+				$point1 .= '<c:pt idx="'.$i.'"><c:v>'.$x.'</c:v></c:pt>';
+				// a missing value is possible
 				if ( (!is_null($y)) && ($y!==false) && ($y!=='') && ($y!=='NULL') ) {
-					$point1 .= '<c:pt idx="'.$i.'"><c:v>'.$x.'</c:v></c:pt>';
 					$point2 .= '<c:pt idx="'.$i.'"><c:v>'.$y.'</c:v></c:pt>';
-					$i++;
 				}
+				$i++;
 			} 
 			$point1 = '<c:ptCount val="'.$i.'"/>'.$point1;
-			$point2 = '<c:ptCount val="'.$i.'"/>'.$point2;
+			$point2 = '<c:ptCount val="'.$i.'"/>'.$point2; // yes, the count is the same as point1 whenever missing values
 
 			// change info in reverse order of placement in order to avoid exention problems
 			$p = $ser['p'];
@@ -3166,7 +3175,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
     /**
      * Return all serials and information
      */ 
-	function OpenXML_ChartReadSerials($ChartRef, $Complete) {
+	function OpenXML_ChartReadSeries($ChartRef, $Complete) {
 		
         // Search the chart
         $ref = $this->OpenXML_ChartFind($ChartRef, 'ChartReadSerials');
