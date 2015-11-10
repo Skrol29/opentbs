@@ -3,6 +3,8 @@
 
 == Enhancements ==
 
+* new property $TBS->OtbsClearOldChartData = false;
+
 * Code cleanup:
 	- delete XML_DeleteAttributes()
 	- recode MsPowerpoint_CleanRpr() [to-test]
@@ -10,6 +12,7 @@
 	- recode BUG $XmlLoc->FindEndTag('dc:creator'); into $XmlLoc->FindEndTag();
 	- ReplaceInnerSrc() support self-closed entities
 	- new function XML_ForceAtt()
+	- replace OpenXML_Rels_ReplaceTarget() with OpenXML_Rels_DeleteRel()
 
 == Bug fixes ==
 

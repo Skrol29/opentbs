@@ -8,10 +8,10 @@
  * and retrieve the content of a zipped file which is not compressed.
  *
  * @version 1.9.5-beta
- * @date 2015-02-11
+ * @date 2015-11-09
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
- * @license LGPL
+ * @license LGPL-3.0
  */
 
 /**
@@ -84,6 +84,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsSpacePreserve))        $TBS->OtbsSpacePreserve = true;
 		if (!isset($TBS->OtbsClearWriter))          $TBS->OtbsClearWriter = true;
 		if (!isset($TBS->OtbsClearMsWord))          $TBS->OtbsClearMsWord = true;
+		if (!isset($TBS->OtbsClearOldChartData))    $TBS->OtbsClearOldChartData = false;
 		if (!isset($TBS->OtbsMsExcelConsistent))    $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsMsExcelExplicitRef))   $TBS->OtbsMsExcelExplicitRef = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
@@ -2385,7 +2386,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * Delete an XML file in the OpenXML archive.
 	 * The file is delete from the declaration file [Content_Types].xml and from the relationships of the specified files.
 	 * @param {string} $FullPath The full path of the file to delete.
-	 * @param {array}  $$RelatedTo List of the the full paths of the files than may have relationship with the file to delete.
+	 * @param {array}  $RelatedTo List of the the full paths of the files than may have relationship with the file to delete.
 	 * @return {mixed} False if it is not possible to delete the file, or the number of modifier relations ship in case of success (may be 0). 
 	 */
 	function OpenXML_DeleteFile($FullPath, $RelatedTo) {
@@ -2402,8 +2403,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$nb = 0;
 		foreach ($RelatedTo as $file) {
 			$target = $this->OpenXML_GetRelativePath($FullPath, $file);
-			$rels_file = $this->OpenXML_Rels_GetPath($file);
-			if ($this->OpenXML_Rels_ReplaceTarget($rels_file, $target, false)) {
+			$att = 'Target="' . $target . '"';
+			if ($this->OpenXML_Rels_DeleteRel($file, $att)) {
 				$nb++;
 			}
 		}
@@ -2422,30 +2423,32 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-	 * Replace or delete a target in a Rels file.
-	 * The current function actually edit the Rels file.
+	 * Delete an element in a Rels file.
 	 * Take car that there is another technic for listing and adding targets wish is working with a persistent object which is commit at the end of the merge..
-	 * @param {string} $RelsPath  The path of the Rels file.
-	 * @param {string} $OldTarget The target value to find.
-	 * @param {string|boolean} $NewTarget The new target value, or false to delete the relation ship element.
-	 * @return {boolean} True if the change is applied.
+	 * @param string $DocPath   The fullpath of the document file.
+	 * @param string $AttExpr   The target att expression to find.
+	 * @param string|boolean $ReturnAttLst The list of att values to return.
+	 * @return mixed $ReturnAttVal (or True) if the change is applied.
 	 */
-	function OpenXML_Rels_ReplaceTarget($RelsPath, $OldTarget, $NewTarget) {
+	function OpenXML_Rels_DeleteRel($DocPath, $AttExpr, $ReturnAttLst = false) {
 	
+		$RelsPath = $this->OpenXML_Rels_GetPath($DocPath);
 		$idx = $this->FileGetIdx($RelsPath);
 		if ($idx===false) $this->RaiseError("Cannot edit target in '$RelsPath' because the file is not found.");
 		$txt = $this->TbsStoreGet($idx, 'Replace target in rels file');
 		
-		$att = 'Target="'.$OldTarget.'"';
-		$loc = clsTbsXmlLoc::FindStartTagHavingAtt($txt, $att, 0);
+		$loc = clsTbsXmlLoc::FindElementHavingAtt($txt, $AttExpr, 0);
 		if ($loc) {
-			if ($NewTarget === false) {
-				$loc->Delete();
-			} else {
-				$loc->ReplaceAtt('Target',$NewTarget);
+			$ret = true;
+			if (is_array($ReturnAttLst)) {
+				$ret = array();
+				foreach ($ReturnAttLst as $att) {
+					$ret[$att] = $loc->GetAttLazy($att);
+				}
 			}
+			$loc->Delete();
 			$this->TbsStorePut($idx, $txt);
-			return true;
+			return $ret;
 		} else {
 			return false;
 		}
@@ -2967,8 +2970,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ($Txt===false) return false;
 
 		if (!$chart['clean']) {
-			// delete tags that refere to the XLSX file containing original data
-			//$this->XML_DeleteElements($Txt, array('c:externalData', 'c:f'));
+			if ($this->TBS->OtbsClearOldChartData) {
+				$this->OpenXML_ChartDeleteExternalData($chart['idx'], $Txt);
+			}
 			$chart['nbr'] = substr_count($Txt, '<c:ser>');
 			$chart['clean'] = true;
 		}
@@ -3083,6 +3087,32 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	/**
+	 * Delete the external data from the chart.
+	 */
+	function OpenXML_ChartDeleteExternalData($idx, &$Txt) {
+		
+		if ($loc = clsTbsXmlLoc::FindElement($Txt, 'c:externalData', 0)) {
+			// Delete the relationship
+			$rid = $loc->GetAttLazy('r:id');
+			if ($rid) {
+				$doc = $this->TbsGetFileName($idx);
+				$att = 'Id="' . $rid . '"';
+				$res = $this->OpenXML_Rels_DeleteRel($doc, $att, array('Target', 'TargetMode'));
+				// Delete the target file if embedded
+				if ($res && ($res['TargetMode'] != 'External')) {
+					$file = $this->OpenXML_GetAbsolutePath($res['Target'], $doc);
+					$this->FileReplace($file, false);
+				}
+			}
+			// Delete the element
+			$loc->Delete();
+		}
+		
+		// Delete cells references to the data
+		$this->XML_DeleteElements($Txt, array('c:f'));
+	}
+	
 	function OpenXML_SharedStrings_Prepare() {
 
 		$file = 'xl/sharedStrings.xml';
