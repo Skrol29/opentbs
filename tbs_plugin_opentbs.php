@@ -31,7 +31,8 @@ define('OPENTBS_DELETEFILE','clsOpenTBS.DeleteFile'); // command to delete a fil
 define('OPENTBS_REPLACEFILE','clsOpenTBS.ReplaceFile'); // command to replace a file in the archive
 define('OPENTBS_EDIT_ENTITY','clsOpenTBS.EditEntity'); // command to force an attribute
 define('OPENTBS_FILEEXISTS','clsOpenTBS.FileExists');
-define('OPENTBS_CHART','clsOpenTBS.Chart'); // command to delete a file in the archive
+define('OPENTBS_CHART','clsOpenTBS.Chart');
+define('OPENTBS_CHART_INFO','clsOpenTBS.ChartInfo');
 define('OPENTBS_DEFAULT','');   // Charset
 define('OPENTBS_ALREADY_XML',false);
 define('OPENTBS_ALREADY_UTF8','already_utf8');
@@ -388,9 +389,20 @@ class clsOpenTBS extends clsTbsZip {
 			if ($this->ExtType=='odf') {
 				return $this->OpenDoc_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend);
 			} else {
-				return $this->OpenXML_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend);
+                return $this->OpenXML_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend);
 			}
+        } elseif ($Cmd==OPENTBS_CHART_INFO) {
 
+            $ChartRef = $x1;
+			$Complete = $x2;
+            
+			if ($this->ExtType=='odf') {
+				return false; // not supported yet
+			} else {
+                return $this->OpenXML_ChartReadSerials($ChartRef, $Complete);
+			}
+            
+            
 		} elseif ($Cmd==OPENTBS_DEBUG_XML_SHOW) {
 
 			$this->TBS->Show(OPENTBS_DEBUG_XML);
@@ -566,11 +578,11 @@ class clsOpenTBS extends clsTbsZip {
 
 			if ($this->ExtEquiv=='pptx') {
 				$option = (is_null($x2)) ? OPENTBS_FIRST : $x2;
-				$returnFirstFound = (($option & TBS_ALL)!=TBS_ALL);
+				$returnFirstFound = (($option & OPENTBS_ALL)!=OPENTBS_ALL);
 				$find = $this->MsPowerpoint_SearchInSlides($x1, $returnFirstFound);
 				if ($returnFirstFound) {
 					$slide = $find['key'];
-					if ( ($slide!==false) && (($option & TBS_GO)!=TBS_GO) ) $this->OnCommand(OPENTBS_SELECT_SLIDE, $slide);
+					if ( ($slide!==false) && (($option & OPENTBS_GO)==OPENTBS_GO) ) $this->OnCommand(OPENTBS_SELECT_SLIDE, $slide);
 					return ($slide);
 				} else {
 					$res = array();
@@ -745,26 +757,28 @@ class clsOpenTBS extends clsTbsZip {
 						if ($this->ExtInfo!==false) {
 							$i = $this->ExtInfo;
 							$e = $this->ExtEquiv;
-							if (isset($i['rpl_what'])) {
-								// auto replace strings in the loaded file
-								$TBS->Source = str_replace($i['rpl_what'], $i['rpl_with'], $TBS->Source);
-							}
-							if (($e==='odt') && $TBS->OtbsClearWriter) {
-								$this->OpenDoc_CleanRsID($TBS->Source);
-							}
-							if (($e==='ods') && $TBS->OtbsMsExcelCompatibility) {
-								$this->OpenDoc_MsExcelCompatibility($TBS->Source);
-							}
-							if ($e==='docx') {
-								if ($TBS->OtbsSpacePreserve) $this->MsWord_CleanSpacePreserve($TBS->Source);
-								if ($TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
-							}
-							if (($e==='pptx') && $TBS->OtbsClearMsPowerpoint) {
-								$this->MsPowerpoint_Clean($TBS->Source);
-							}
-							if (($e==='xlsx') && $TBS->OtbsMsExcelConsistent) {
-								$this->MsExcel_DeleteFormulaResults($TBS->Source);
-								$this->MsExcel_ConvertToRelative($TBS->Source);
+							if ($this->TbsApplyOptim($TBS->Source, true)) {
+								if (isset($i['rpl_what'])) {
+									// auto replace strings in the loaded file
+									$TBS->Source = str_replace($i['rpl_what'], $i['rpl_with'], $TBS->Source);
+								}
+								if (($e==='odt') && $TBS->OtbsClearWriter) {
+									$this->OpenDoc_CleanRsID($TBS->Source);
+								}
+								if (($e==='ods') && $TBS->OtbsMsExcelCompatibility) {
+									$this->OpenDoc_MsExcelCompatibility($TBS->Source);
+								}
+								if ($e==='docx') {
+									if ($TBS->OtbsSpacePreserve) $this->MsWord_CleanSpacePreserve($TBS->Source);
+									if ($TBS->OtbsClearMsWord) $this->MsWord_Clean($TBS->Source);
+								}
+								if (($e==='pptx') && $TBS->OtbsClearMsPowerpoint) {
+									$this->MsPowerpoint_Clean($TBS->Source);
+								}
+								if (($e==='xlsx') && $TBS->OtbsMsExcelConsistent) {
+									$this->MsExcel_DeleteFormulaResults($TBS->Source);
+									$this->MsExcel_ConvertToRelative($TBS->Source);
+								}
 							}
 						}
 						// apply default TBS behaviors on the uncompressed content: other plug-ins + [onload] fields
@@ -916,6 +930,27 @@ class clsOpenTBS extends clsTbsZip {
 		}
 	}
 
+	/**
+	 * Tells if optimisation can be applied on the current content.
+	 * @param  boolean $mark true to mark the doc as done because optim will be processed.
+	 * @return boolean True if the current doc is just been marked done. Null if the mark cannot be read.
+	 */
+	function TbsApplyOptim(&$Txt, $mark) {
+		if (substr($Txt, 0, 2) === '<?') {
+			$p = strpos($Txt, '?>');
+			if (substr($Txt, $p-1) === ' ') {
+				return false;
+			} else {
+				if ($mark) {
+					$Txt = substr_replace($Txt, ' ', $p, 0);
+				}
+				return true;
+			}
+		} else {
+			return null;
+		}
+	}
+	
 	/**
 	 * Display the header of the debug mode (only once)
 	 */
@@ -2944,12 +2979,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	function OpenXML_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend=false) {
-
+    function OpenXML_ChartFind($ChartRef, $ErrTitle) {
+        
 		if ($this->OpenXmlCharts===false) $this->OpenXML_ChartInit();
-
-		// search the chart
-		$ref = ''.$ChartRef;
+        
+ 		$ref = ''.$ChartRef;
 		if (!isset($this->OpenXmlCharts[$ref])) $ref = 'chart'.$ref; // try with $ChartRef as number
 		if (!isset($this->OpenXmlCharts[$ref])) {
 			// try with $ChartRef as name of the file
@@ -2962,17 +2996,26 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$charts = $this->OpenXML_ChartGetInfoFromFile($this->Ext_GetMainIdx());
 			}
 			foreach($charts as $c) if ($c['title']===$ChartRef) $ref = $c['name']; // try with $ChartRef as title
-			if (!isset($this->OpenXmlCharts[$ref])) return $this->RaiseError("(ChartChangeSeries) : unable to found the chart corresponding to '".$ChartRef."'.");
+			if (!isset($this->OpenXmlCharts[$ref])) return $this->RaiseError("($ErrTitle) : unable to found the chart corresponding to '".$ChartRef."'.");
 		}
 
+        return $ref;
+        
+    }
+    
+	function OpenXML_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend=false) {
+        
+        // Search the chart
+        $ref = $this->OpenXML_ChartFind($ChartRef, 'ChartChangeSeries');
+        if ($ref===false) return false;
+
+        // Open the chart doc
 		$chart =& $this->OpenXmlCharts[$ref];
 		$Txt = $this->TbsStoreGet($chart['idx'], 'ChartChangeSeries');
 		if ($Txt===false) return false;
 
 		if (!$chart['clean']) {
-			if ($this->TBS->OtbsClearOldChartData) {
-				$this->OpenXML_ChartDeleteExternalData($chart['idx'], $Txt);
-			}
+			$this->OpenXML_ChartUnlinklDataSheet($chart['idx'], $Txt, $this->TBS->OtbsClearOldChartData);
 			$chart['nbr'] = substr_count($Txt, '<c:ser>');
 			$chart['clean'] = true;
 		}
@@ -3088,29 +3131,128 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-	 * Delete the external data from the chart.
+	 * Unlink and eventually delete the data sheet from the chart.
+	 * Each chart can have only 1 linked data sheet. It may be external or internal.
+	 * Each internal data sheet can be linked to only 1 chart. So it is safe to delete the internal data sheet.
+	 * If the chart stay linked to the old data sheet afert the merge, then the chart is automatically updated when the user attempt to edit it. This is not good.
+	 * If the data sheet is simply unlinked, the user can open the data sheet from Word of Powerpoint. But that will not change the chart.
+	 * If the data sheet is delete, the user cannot open the data sheet and cannot add a new data sheet. Data of the chart stay uneditable.
 	 */
-	function OpenXML_ChartDeleteExternalData($idx, &$Txt) {
-		
-		if ($loc = clsTbsXmlLoc::FindElement($Txt, 'c:externalData', 0)) {
-			// Delete the relationship
-			$rid = $loc->GetAttLazy('r:id');
-			if ($rid) {
-				$doc = $this->TbsGetFileName($idx);
-				$att = 'Id="' . $rid . '"';
-				$res = $this->OpenXML_Rels_DeleteRel($doc, $att, array('Target', 'TargetMode'));
-				// Delete the target file if embedded
-				if ($res && ($res['TargetMode'] != 'External')) {
-					$file = $this->OpenXML_GetAbsolutePath($res['Target'], $doc);
-					$this->FileReplace($file, false);
+	function OpenXML_ChartUnlinklDataSheet($idx, &$Txt, $Delete) {
+
+		if ($Delete) {
+			if ($loc = clsTbsXmlLoc::FindElement($Txt, 'c:externalData', 0)) {
+				// Delete the relationship
+				$rid = $loc->GetAttLazy('r:id');
+				if ($rid) {
+					$doc = $this->TbsGetFileName($idx);
+					$att = 'Id="' . $rid . '"';
+					$res = $this->OpenXML_Rels_DeleteRel($doc, $att, array('Target', 'TargetMode'));
+					// Delete the target file if embedded
+					if ($res && ($res['TargetMode'] != 'External')) {
+						$file = $this->OpenXML_GetAbsolutePath($res['Target'], $doc);
+						$this->FileReplace($file, false);
+					}
 				}
+				// Delete the element
+				$loc->Delete();
 			}
-			// Delete the element
-			$loc->Delete();
 		}
-		
-		// Delete cells references to the data
+
+		// Unlink the data sheet by deleting references
 		$this->XML_DeleteElements($Txt, array('c:f'));
+	}
+
+    /**
+     * Return all serials and information
+     */ 
+	function OpenXML_ChartReadSerials($ChartRef, $Complete) {
+		
+        // Search the chart
+        $ref = $this->OpenXML_ChartFind($ChartRef, 'ChartReadSerials');
+        if ($ref===false) return false;
+
+        // Open the chart doc
+		$chart =& $this->OpenXmlCharts[$ref];
+
+		$Txt = $this->TbsStoreGet($chart['idx'], 'ChartReadSerials');
+		if ($Txt===false) return false;
+
+        // Prepare loops
+        $serials = array();
+        
+        $loop_conf = array(
+            'names' => array('parent' => 'c:tx',  'format' => false),
+            'cat'   => array('parent' => 'c:cat', 'format' => 'c:formatCode'),
+            'val'   => array('parent' => 'c:val', 'format' => 'c:formatCode'),
+        );
+
+        // Loop
+        $loop_res = array();
+        $ser_p = 0;
+		while ($ser_loc = clsTbsXmlLoc::FindElement($Txt, 'c:ser', $ser_p)) {
+            $res = array();
+            foreach ($loop_conf as $key => $conf) {
+                if ($loc_parent = clsTbsXmlLoc::FindElement($ser_loc, $conf['parent'], 0)) {
+                    // Search format
+                    $format = false;
+                    if ($conf['format']) {
+                        if ($loc = clsTbsXmlLoc::FindElement($loc_parent, $conf['format'], 0)) {
+                            $format = $loc->GetInnerSrc();
+                            $res[$key . '_format'] = $format;
+                        }
+                    }
+                    // Search items
+                    // It is possible that a val item is missing for a cat idx
+                    $items = array();
+                    $loc_p = 0;
+                    while ($loc_pt = clsTbsXmlLoc::FindElement($loc_parent, 'c:pt', $loc_p)) {
+                        $idx = $loc_pt->GetAttLazy('idx');
+                        $loc = clsTbsXmlLoc::FindElement($loc_pt, 'c:v', 0);
+                        $items[$idx] = $loc->GetInnerSrc();
+                        $loc_p = $loc_pt->PosEnd;
+                    }
+                    $res[$key] = $items;
+                } else {
+                    $res[$key] = false;
+                }
+            }
+            
+            // simplify name info
+            $names = $res['names'];
+            if (is_array($names) && isset($res['names'][0])) {
+                $res['name'] = $res['names'][0];
+            } else {
+                $res['name'] = false;
+            }
+            if (is_array($names)) {
+                if (count($names) > 0) {
+                    unset($res['names']);
+                }
+            } else {
+                unset($res['names']);
+            }
+
+            $loop_res[] = $res;
+            $ser_p = $ser_loc->PosEnd;
+		}
+        
+        if ($Complete) {
+            return array(
+                'file_idx' => $chart['idx'],
+                'file_name' => $this->TbsGetFileName($chart['idx']),
+                'serials' => $loop_res,
+            );
+        } else {
+            $serials = array();
+            foreach ($loop_res as $res) {
+                $serials[$res['name']] = array($res['cat'], $res['val']);
+            }
+            return $serials;
+        }
+        
+        return $loop_res;
+
 	}
 	
 	function OpenXML_SharedStrings_Prepare() {

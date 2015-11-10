@@ -5,6 +5,8 @@
 
 * new property $TBS->OtbsClearOldChartData = false;
 
+* OpenTBS do not redo optimisation on the loaded template it has already been done by OpenTBS previously.
+
 * Code cleanup:
 	- delete XML_DeleteAttributes()
 	- recode MsPowerpoint_CleanRpr() [to-test]
@@ -18,9 +20,13 @@
 
 * PHP error with ODT templates when changing the name of a Chart series that hadn't any name before.
 
+* PHP error when using command OPENTBS_SEARCH_IN_SLIDES
+
 == New features ==
 
 * New command OPENTBS_EDIT_ENTITY
+
+* New command OPENTBS_CHART_INFO
 
 ---------------------------------------------------------------------
 
