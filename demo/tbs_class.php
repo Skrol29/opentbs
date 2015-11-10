@@ -1,19 +1,22 @@
 <?php
-/*
-********************************************************
-TinyButStrong - Template Engine for Pro and Beginners
-------------------------
-Version  : 3.9.0 for PHP 5
-Date     : 2014-01-26
-Web site : http://www.tinybutstrong.com
-Author   : http://www.tinybutstrong.com/onlyyou.html
-********************************************************
-This library is free software.
-You can redistribute and modify it even for commercial usage,
-but you must accept and respect the LPGL License version 3.
-*/
+/**
+ *
+ * TinyButStrong - Template Engine for Pro and Beginners
+ *
+ * @version 3.10.0 for PHP 5
+ * @date    2015-11-08
+ * @link    http://www.tinybutstrong.com Web site
+ * @author  http://www.tinybutstrong.com/onlyyou.html
+ * @license http://opensource.org/licenses/LGPL-3.0 LGPL-3.0
+ *
+ * This library is free software.
+ * You can redistribute and modify it even for commercial usage,
+ * but you must accept and respect the LPGL License version 3.
+ */
+
 // Check PHP version
 if (version_compare(PHP_VERSION,'5.0')<0) echo '<br><b>TinyButStrong Error</b> (PHP Version Check) : Your PHP version is '.PHP_VERSION.' while TinyButStrong needs PHP version 5.0 or higher. You should try with TinyButStrong Edition for PHP 4.';
+/* COMPAT#1 */
 
 // Render flags
 define('TBS_NOTHING', 0);
@@ -128,6 +131,12 @@ public function DataPrepare(&$SrcId,&$TBS) {
 		$this->Type = 11;
 	} elseif ($SrcId instanceof Zend_Db_Adapter_Abstract) {
 		$this->Type = 12;
+	} elseif ($SrcId instanceof SQLite3) {
+		$this->Type = 13; $this->SubType = 1;
+	} elseif ($SrcId instanceof SQLite3Stmt) {
+		$this->Type = 13; $this->SubType = 2;
+	} elseif ($SrcId instanceof SQLite3Result) {
+		$this->Type = 13; $this->SubType = 3;
 	} elseif (is_object($SrcId)) {
 		$FctInfo = get_class($SrcId);
 		$FctCat = 'o';
@@ -193,10 +202,10 @@ public function DataOpen(&$Query,$QryPrms=false) {
 	case 0: // Array
 		if (($this->SubType===1) && (is_string($Query))) $this->SubType = 2;
 		if ($this->SubType===0) {
-			$this->RecSet = &$this->SrcId;
+			$this->RecSet = &$this->SrcId; /* COMPAT#2 */
 		} elseif ($this->SubType===1) {
 			if (is_array($Query)) {
-				$this->RecSet = &$Query;
+				$this->RecSet = &$Query; /* COMPAT#3 */
 			} else {
 				$this->DataAlert('type \''.gettype($Query).'\' not supported for the Query Parameter going with \'array\' Source Type.');
 			}
@@ -220,7 +229,7 @@ public function DataOpen(&$Query,$QryPrms=false) {
 				}
 			} else {
 				if (isset($this->TBS->VarRef[$Item0])) {
-					$Var = &$this->TBS->VarRef[$Item0];
+					$Var = &$this->TBS->VarRef[$Item0]; /* COMPAT#4 */
 					$i = 1;
 				} else {
 					$i = $this->DataAlert('invalid query \''.$Query.'\' because VarRef item \''.$Item0.'\' is not found.');
@@ -372,6 +381,41 @@ public function DataOpen(&$Query,$QryPrms=false) {
 			$this->DataAlert('Zend_DB_Adapter error message when opening the query: '.$e->getMessage());
 		}
 		break;
+	case 13: // SQLite3
+		try {
+			if ($this->SubType==3) {
+				$this->RecSet = $this->SrcId;
+			} elseif (($this->SubType==1) && (!is_array($QryPrms))) {
+				// SQL statement without parameters
+				$this->RecSet = $this->SrcId->query($Query);
+			} else {
+				if ($this->SubType==2) {
+					$stmt = $this->SrcId;
+					$prms = $Query;
+				} else {
+					// SQL statement with parameters
+					$stmt = $this->SrcId->prepare($Query);
+					$prms = $QryPrms;
+				}
+				// bind parameters
+				if (is_array($prms)) {
+					foreach ($prms as $p => $v) {
+						if (is_numeric($p)) {
+							$p = $p + 1;
+						}
+						if (is_array($v)) {
+							$stmt->bindValue($p, $v[0], $v[1]);
+						} else {
+							$stmt->bindValue($p, $v);
+						}
+					}
+				}
+				$this->RecSet = $stmt->execute();
+			}
+		} catch (Exception $e) {
+			$this->DataAlert('SQLite3 error message when opening the query: '.$e->getMessage());
+		}
+		break;
 	}
 
 	if (($this->Type===0) || ($this->Type===9)) {
@@ -460,7 +504,7 @@ public function DataFetch() {
 		$this->CurrRec = $this->SrcId->tbsdb_fetch($this->RecSet,$this->RecNum+1);
 		break;
 	case 7: // PostgreSQL
-		$this->CurrRec = pg_fetch_assoc($this->RecSet);
+		$this->CurrRec = pg_fetch_assoc($this->RecSet); /* COMPAT#5 */
 		break;
 	case 8: // SQLite
 		$this->CurrRec = sqlite_fetch_array($this->RecSet,SQLITE_ASSOC);
@@ -483,6 +527,9 @@ public function DataFetch() {
 		break;
 	case 12: // Zend_DB_Adapater
 		$this->CurrRec = $this->RecSet->fetch(Zend_Db::FETCH_ASSOC);
+		break;
+	case 13: // SQLite3
+		$this->CurrRec = $this->RecSet->fetchArray(SQLITE3_ASSOC);
 		break;
 	}
 
@@ -510,6 +557,11 @@ public function DataClose() {
 	case 5: $this->SrcId->tbsdb_close($this->RecSet); break;
 	case 7: pg_free_result($this->RecSet); break;
 	case 10: $this->RecSet->free(); break; // MySQLi
+	case 13: // SQLite3
+		if ($this->SubType!=3) {
+			$this->RecSet->finalize();
+		}
+		break;
 	//case 11: $this->RecSet->closeCursor(); break; // PDO
 	}
 	if ($this->RecSaving) {
@@ -536,7 +588,7 @@ public $Assigned = array();
 public $ExtendedMethods = array();
 public $ErrCount = 0;
 // Undocumented (can change at any version)
-public $Version = '3.9.0';
+public $Version = '3.10.0';
 public $Charset = '';
 public $TurboBlock = true;
 public $VarPrefix = '';
@@ -595,10 +647,11 @@ function __construct($Options=null,$VarPrefix='',$FctPrefix='') {
 	if (is_array($Options)) $this->SetOption($Options);
 
 	// Links to global variables (cannot be converted to static yet because of compatibility)
-	global $_TBS_FormatLst, $_TBS_UserFctLst, $_TBS_BlockAlias, $_TBS_AutoInstallPlugIns;
-	if (!isset($_TBS_FormatLst))  $_TBS_FormatLst  = array();
-	if (!isset($_TBS_UserFctLst)) $_TBS_UserFctLst = array();
-	if (!isset($_TBS_BlockAlias)) $_TBS_BlockAlias = array();
+	global $_TBS_FormatLst, $_TBS_UserFctLst, $_TBS_BlockAlias, $_TBS_AutoInstallPlugIns, $_TBS_ParallelLst;
+	if (!isset($_TBS_FormatLst))   $_TBS_FormatLst  = array();
+	if (!isset($_TBS_UserFctLst))  $_TBS_UserFctLst = array();
+	if (!isset($_TBS_BlockAlias))  $_TBS_BlockAlias = array();
+	if (!isset($_TBS_ParallelLst)) $_TBS_ParallelLst = array();
 	$this->_UserFctLst = &$_TBS_UserFctLst;
 
 	// Auto-installing plug-ins
@@ -658,7 +711,7 @@ function SetOption($o, $v=false, $d=false) {
 
 function GetOption($o) {
 	if ($o==='all') {
-		$x = explode(',', 'var_prefix,fct_prefix,noerr,auto_merge,onload,onshow,att_delim,protect,turbo_block,charset,chr_open,chr_close,tpl_frms,block_alias,include_path,render');
+		$x = explode(',', 'var_prefix,fct_prefix,noerr,auto_merge,onload,onshow,att_delim,protect,turbo_block,charset,chr_open,chr_close,tpl_frms,block_alias,parallel_conf,include_path,render');
 		$r = array();
 		foreach ($x as $o) $r[$o] = $this->GetOption($o);
 		return $r;
@@ -684,6 +737,8 @@ function GetOption($o) {
 	if ($o==='include_path') return $this->IncludePath;
 	if ($o==='render') return $this->Render;
 	if ($o==='methods_allowed') return $this->MethodsAllowed;
+	if ($o==='parallel_conf') return $GLOBALS['_TBS_ParallelLst'];
+	if ($o==='block_alias') return $GLOBALS['_TBS_BlockAlias'];
 	return $this->meth_Misc_Alert('with GetOption() method','option \''.$o.'\' is not supported.');;
 }
 
@@ -1008,10 +1063,12 @@ function &meth_Locator_SectionNewBDef(&$LocR,$BlockName,$Txt,$PrmLst,$Cache) {
 	$Chk = true;
 	$LocLst = array();
 	$LocNbr = 0;
-
+	$Pos = 0;
+	$Sort = false;
+	
 	if ($this->_PlugIns_Ok && isset($this->_piOnCacheField)) {
 		$pi = true;
-		$ArgLst = array(0=>$BlockName, 1=>false, 2=>&$Txt, 3=>array('att'=>true));
+		$ArgLst = array(0=>$BlockName, 1=>false, 2=>&$Txt, 3=>array('att'=>true), 4=>&$LocLst, 5=>&$Pos);
 	} else {
 		$pi = false;
 	}
@@ -1021,15 +1078,35 @@ function &meth_Locator_SectionNewBDef(&$LocR,$BlockName,$Txt,$PrmLst,$Cache) {
 	if ($Cache) {
 
 		$Chk = false;
-		$Pos = 0;
-		$PrevEnd = -1;
-		$PrevIsAMF = false; // AMF means Attribute Moved Forward
+		$PosEndPrec = -1;
 		while ($Loc = $this->meth_Locator_FindTbs($Txt,$BlockName,$Pos,'.')) {
 			
-			$IsAMF = false;
-			$IsAtt = false;
-			$NewIdx = false;
+			// Delete embeding fields
+			if ($Loc->PosBeg<$PosEndPrec) {
+				unset($LocLst[$LocNbr]);
+				$Chk = true;
+			}
 			
+			$LocNbr = 1 + count($LocLst);
+			$LocLst[$LocNbr] = &$Loc;
+			
+			// Next search position : always ("original PosBeg" + 1).
+			// Must be done here because loc can be moved by the plug-in.
+			if ($Loc->Enlarged) {
+				// Enlarged
+				$Pos = $Loc->PosBeg0 + 1;
+				$PosEndPrec = $Loc->PosEnd0;
+				$Loc->Enlarged = false;
+			} else {
+				// Normal
+				$Pos = $Loc->PosBeg + 1;
+				$PosEndPrec = $Loc->PosEnd;
+			}
+
+			// Note: the plug-in may move, delete and add one or several locs.
+			// Move   : backward or forward
+			// Delete : add property DelMe=true
+			// Add    : at the end of $LocLst
 			if ($pi) {
 				$ArgLst[1] = &$Loc;
 				$this->meth_Plugin_RunAll($this->_piOnCacheField,$ArgLst);
@@ -1042,68 +1119,51 @@ function &meth_Locator_SectionNewBDef(&$LocR,$BlockName,$Txt,$PrmLst,$Cache) {
 			} else {
 				$Loc->IsRecInfo = false;
 			}
-
-			if ($Loc->PosBeg>$PrevEnd) { // No embedding
-				if (isset($Loc->PrmLst['att'])) {
-					$LocSrc = substr($Txt,$Loc->PosBeg,$Loc->PosEnd-$Loc->PosBeg+1);
-					if ($this->f_Xml_AttFind($Txt,$Loc,true,$this->AttDelim)) {
+			
+			// Process parameter att for new added locators.
+			$NewNbr = count($LocLst);
+			for ($i=$LocNbr;$i<=$NewNbr;$i++) {
+				$li = &$LocLst[$i];
+				if (isset($li->PrmLst['att'])) {
+					$LocSrc = substr($Txt,$li->PosBeg,$li->PosEnd-$li->PosBeg+1); // for error message
+					if ($this->f_Xml_AttFind($Txt,$li,$LocLst,$this->AttDelim)) {
 						if (isset($Loc->PrmLst['atttrue'])) {
-							$Loc->PrmLst['magnet'] = '#';
-							$Loc->PrmLst['ope'] = (isset($Loc->PrmLst['ope'])) ? $Loc->PrmLst['ope'].',attbool' : 'attbool';
+							$li->PrmLst['magnet'] = '#';
+							$li->PrmLst['ope'] = (isset($li->PrmLst['ope'])) ? $li->PrmLst['ope'].',attbool' : 'attbool';
 						}
-						$IsAtt = true;
-						if ($Loc->AttForward) {
-							$IsAMF = true;
-						} else {
-							if ($Loc->AttInsLen>0) {
-								for ($i=$LocNbr;$i>0;$i--) {
-									if ($LocLst[$i]->PosEnd>=$Loc->PosBeg) {
-										$NewIdx = $i;
-										$li = $LocLst[$i];
-										$li->PosBeg += $Loc->AttInsLen;
-										$li->PosEnd += $Loc->AttInsLen;
-										$LocLst[$i+1] = $li;
-									} else {
-										$i = 0;
-									}
-								}
-							}
+						if ($i==$LocNbr) {
+							$Pos = $Loc->DelPos;
+							$PosEndPrec = -1;
 						}
 					} else {
 						$this->meth_Misc_Alert('','TBS is not able to merge the field '.$LocSrc.' because the entity targeted by parameter \'att\' cannot be found.');
 					}
-					unset($Loc->PrmLst['att']);
-				}
-				$LocNbr++;
-			} else {
-				// The previous tag is embedding => no increment, then previous Loc is overwrited
-				$Chk = true;
-				if ($PrevIsAMF) {
-					$l = &$LocLst[$LocNbr];
-					$this->meth_Misc_Alert('','TBS is not able to merge the field '.$LocSrc.' because parameter \'att\' makes this fied moving forward over another TBS field.');
 				}
 			}
 
-			$PrevIsAMF = false;
-			if ($IsAtt) {
-				$Pos = $Loc->PrevPosBeg;
-				if ($IsAMF) $PrevIsAMF = true;
-			} elseif ($Loc->Enlarged) {
-				$Pos = $Loc->PosBeg0+1;
-				$Loc->Enlarged = false;
-			} else {
-				$Pos = $Loc->PosBeg+1;
-			}
-
-			if ($NewIdx===false) {
-				$LocLst[$LocNbr] = $Loc;
-				$PrevEnd = $Loc->PosEnd;
-			} else {
-				$LocLst[$NewIdx] = $Loc;
-				$PrevEnd = $LocLst[$LocNbr]->PosEnd;
-			}
-
+			unset($Loc);
+			
 		}
+		
+		// Delete loc
+		/*
+		$iMax = count($LocLst);
+		$LocNbr = 0;
+		for ($i=1;$i<=$iMax;$i++) {
+			if (isset($LocLst[$i]->DelMe) && $LocLst[$i]->DelMe) {
+				unset($LocLst[$i]);
+			} else {
+				$LocNbr++;
+				if ($LocNbr !== $i) {
+					$LocLst[$LocNbr] = $LocLst[$i];
+					unset($LocLst[$i]);
+				}
+			}
+		}
+		*/
+		
+		// Re-order loc
+		self::f_Loc_Sort($LocLst, 1);
 
 	}
 
@@ -1386,7 +1446,7 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 			case 15: $CurrVal = ($Loc->OpeUtf8) ? mb_convert_case($CurrVal, MB_CASE_UPPER, 'UTF-8') : strtoupper($CurrVal); break;
 			case 16: $CurrVal = ($Loc->OpeUtf8) ? mb_convert_case($CurrVal, MB_CASE_LOWER, 'UTF-8') : strtolower($CurrVal); break;
 			case 17: $CurrVal = ucfirst($CurrVal); break;
-			case 18: $CurrVal = ($Loc->OpeUtf8) ? mb_convert_case($CurrVal, MB_CASE_TITLE, 'UTF-8') : ucwords($CurrVal); break;
+			case 18: $CurrVal = ($Loc->OpeUtf8) ? mb_convert_case($CurrVal, MB_CASE_TITLE, 'UTF-8') : ucwords(strtolower($CurrVal)); break;
 			}
 		}
 	}
@@ -1938,17 +1998,15 @@ function meth_Locator_FindBlockLst(&$Txt,$BlockName,$Pos,$SpePrm) {
 function meth_Locator_FindParallel(&$Txt, $ZoneBeg, $ZoneEnd, $ConfId) {
 
 	// Define configurations
-	global $_TBS_ParallelLst, $_TBS_BlockAlias;
-
-	if (!isset($_TBS_ParallelLst)) $_TBS_ParallelLst = array();
+	global $_TBS_ParallelLst;
 
 	if ( ($ConfId=='tbs:table')  && (!isset($_TBS_ParallelLst['tbs:table'])) ) {
 		$_TBS_ParallelLst['tbs:table'] = array(
 			'parent' => 'table',
-			'ignore' => array('!--', 'caption', 'thead', 'thbody', 'thfoot'),
+			'ignore' => array('!--', 'caption', 'thead', 'tbody', 'tfoot'),
 			'cols' => array(),
-			'rows' => array('tr'),
-			'cells' => array('td'=>'colspan', 'th'=>'colspan'),
+			'rows' => array('tr', 'colgroup'),
+			'cells' => array('td'=>'colspan', 'th'=>'colspan', 'col'=>'span'),
 		);
 	}
 
@@ -2349,7 +2407,7 @@ function meth_Merge_BlockSections(&$Txt,&$LocR,&$Src,&$RecSpe) {
 		$piOMG = false;
 		if ($LocR->FooterFound) $Src->PrevRec = (object) null;
 	}
-  // Plug-ins
+	// Plug-ins
 	$piOMS = false;
 	if ($this->_PlugIns_Ok) {
 		if (isset($this->_piBeforeMergeBlock)) {
@@ -2714,7 +2772,7 @@ function meth_Merge_SectionNormal(&$BDef,&$Src) {
 			}
 		}
 
-		// Unchached locators
+		// Uncached locators
 		if ($BDef->Chk) {
 			$BlockName = &$BDef->Name;
 			$Pos = 0;
@@ -2723,7 +2781,7 @@ function meth_Merge_SectionNormal(&$BDef,&$Src) {
 
 	} else {
 
-		// Chached locators
+		// Cached locators
 		for ($i=$iMax;$i>0;$i--) {
 			if ($LocLst[$i]->PosBeg<$PosMax) {
 				if ($LocLst[$i]->IsRecInfo) {
@@ -4074,6 +4132,7 @@ static function f_Loc_EnlargeToTag(&$Txt,&$Loc,$TagStr,$RetInnerSrc) {
 	$i = 0;
 	$TagFct = array();
 	$TagLst = array();
+	$TagBnd = array();
 	while ($TagStr!=='') {
 		// get next tag
 		$p = strpos($TagStr, '+');
@@ -4084,7 +4143,8 @@ static function f_Loc_EnlargeToTag(&$Txt,&$Loc,$TagStr,$RetInnerSrc) {
 			$t = substr($TagStr,0,$p);
 			$TagStr = substr($TagStr,$p+1);
 		}
- 		do { // Check parentheses, relative position and single tag
+		// Check parentheses, relative position and single tag
+ 		do {
  			$t = trim($t);
 	 		$e = strlen($t) - 1; // pos of last char
 	 		if (($e>1) && ($t[0]==='(') && ($t[$e]===')')) {
@@ -4096,19 +4156,36 @@ static function f_Loc_EnlargeToTag(&$Txt,&$Loc,$TagStr,$RetInnerSrc) {
 	 			$e = false;
 	 		}
  		} while ($e!==false);
+		// Check for multiples
+		$p = strpos($t, '*');
+		if ($p!==false) {
+			$n = intval(substr($t, 0, $p));
+			$t = substr($t, $p + 1);
+			$n = max($n ,1); // prevent for error: minimum valu is 1
+			$TagStr = str_repeat($t . '+', $n-1) . $TagStr;
+		}
+		// Reference
+		if (($t==='.') && ($Ref===0)) $Ref = $i;
+		// Take of the (!) prefix
+		$b = '';
+		if (($t!=='') && ($t[0]==='!')) {
+			$t = substr($t, 1);
+			$b = '!';
+		}
+		// Alias
+		$a = false;
 		if (isset($AliasLst[$t])) {
-			$a = $AliasLst[$t];
+			$a = $AliasLst[$t]; // a string or a function
 			if (is_string($a)) {
 				if ($i>999) return false; // prevent from circular alias
-				$TagStr = ($TagStr==='') ? $a : $a.'+'.$TagStr;
-			} else {
-				$TagLst[$i] = $t;
-				$TagFct[$i] = $a;
-				$i++;
+				$TagStr = $b . $a . (($TagStr==='') ? '' : '+') . $TagStr;
+				$t = false;
 			}
-		} else {
-			$TagLst[$i] = $t;
-			$TagFct[$i] = false;
+		}
+		if ($t!==false) {
+			$TagLst[$i] = $t; // with prefix ! if specified
+			$TagFct[$i] = $a;
+			$TagBnd[$i] = ($b==='');
 			$i++;
 		}
 	}
@@ -4119,18 +4196,30 @@ static function f_Loc_EnlargeToTag(&$Txt,&$Loc,$TagStr,$RetInnerSrc) {
 	if ($LevelStop===0) $LevelStop = 1;
 
 	// First tag of reference
-	$TagO = self::f_Loc_Enlarge_Find($Txt,$TagLst[$Ref],$TagFct[$Ref],$Loc->PosBeg-1,false,$LevelStop);
-	if ($TagO===false) return false;
-	$PosBeg = $TagO->PosBeg;
-	$LevelStop += -$TagO->RightLevel; // RightLevel=1 only if the tag is single and embeds $Loc, otherwise it is 0 
-	if ($LevelStop>0) {
-		$TagC = self::f_Loc_Enlarge_Find($Txt,$TagLst[$Ref],$TagFct[$Ref],$Loc->PosEnd+1,true,-$LevelStop);
-		if ($TagC==false) return false;
-		$PosEnd = $TagC->PosEnd;
-		$InnerLim = $TagC->PosBeg;
+	if ($TagLst[$Ref] === '.') {
+		$TagO = new clsTbsLocator;
+		$TagO->PosBeg = $Loc->PosBeg;
+		$TagO->PosEnd = $Loc->PosEnd;
+		$PosBeg = $Loc->PosBeg;
+		$PosEnd = $Loc->PosEnd;
 	} else {
-		$PosEnd = $TagO->PosEnd;
-		$InnerLim = $PosEnd + 1;
+		$TagO = self::f_Loc_Enlarge_Find($Txt,$TagLst[$Ref],$TagFct[$Ref],$Loc->PosBeg-1,false,$LevelStop);
+		if ($TagO===false) return false;
+		$PosBeg = $TagO->PosBeg;
+		$LevelStop += -$TagO->RightLevel; // RightLevel=1 only if the tag is single and embeds $Loc, otherwise it is 0 
+		if ($LevelStop>0) {
+			$TagC = self::f_Loc_Enlarge_Find($Txt,$TagLst[$Ref],$TagFct[$Ref],$Loc->PosEnd+1,true,-$LevelStop);
+			if ($TagC==false) return false;
+			$PosEnd = $TagC->PosEnd;
+			$InnerLim = $TagC->PosBeg;
+			if ((!$TagBnd[$Ref]) && ($TagMax==0)) {
+				$PosBeg = $TagO->PosEnd + 1;
+				$PosEnd = $TagC->PosBeg - 1;
+			}
+		} else {
+			$PosEnd = $TagO->PosEnd;
+			$InnerLim = $PosEnd + 1;
+		}
 	}
 
 	$RetVal = true;
@@ -4145,8 +4234,11 @@ static function f_Loc_EnlargeToTag(&$Txt,&$Loc,$TagStr,$RetInnerSrc) {
 	for ($i=$Ref+1;$i<=$TagMax;$i++) {
 		$x = $TagLst[$i];
 		if (($x!=='') && ($TagC!==false)) {
-			$TagC = self::f_Loc_Enlarge_Find($Txt,$x,$TagFct[$i],$PosEnd+1,true,0);
-			if ($TagC!==false) $PosEnd = $TagC->PosEnd;
+			$level = ($TagBnd[$i]) ? 0 : 1;
+			$TagC = self::f_Loc_Enlarge_Find($Txt,$x,$TagFct[$i],$PosEnd+1,true,$level);
+			if ($TagC!==false) {
+				$PosEnd = ($TagBnd[$i]) ? $TagC->PosEnd : $TagC->PosBeg -1 ;
+			}
 		}
 	}
 
@@ -4155,8 +4247,11 @@ static function f_Loc_EnlargeToTag(&$Txt,&$Loc,$TagStr,$RetInnerSrc) {
 	for ($i=$Ref-1;$i>=0;$i--) {
 		$x = $TagLst[$i];
 		if (($x!=='') && ($TagO!==false)) {
-			$TagO = self::f_Loc_Enlarge_Find($Txt,$x,$TagFct[$i],$PosBeg-1,false,0);
-			if ($TagO!==false) $PosBeg = $TagO->PosBeg;
+			$level = ($TagBnd[$i]) ? 0 : -1;
+			$TagO = self::f_Loc_Enlarge_Find($Txt,$x,$TagFct[$i],$PosBeg-1,false,$level);
+			if ($TagO!==false) {
+				$PosBeg = ($TagBnd[$i]) ? $TagO->PosBeg : $TagO->PosEnd + 1;
+			}
 		}
 	}
 
@@ -4180,6 +4275,7 @@ static function f_Loc_Enlarge_Find($Txt, $Tag, $Fct, $Pos, $Forward, $LevelStop)
 }
 
 static function f_Loc_AttBoolean($CurrVal, $AttTrue, $AttName) {
+
 // Return the good value for a boolean attribute
 	if ($AttTrue===true) {
 		if (self::meth_Misc_ToStr($CurrVal)==='') {
@@ -4194,10 +4290,58 @@ static function f_Loc_AttBoolean($CurrVal, $AttTrue, $AttName) {
 	}
 }
 
-static function f_Xml_AttFind(&$Txt,&$Loc,$Move=false,$AttDelim=false) {
+/**
+ * Affects the positions of a list of locators regarding to a specific moving locator.
+ */
+static function f_Loc_Moving(&$LocM, &$LocLst) {
+	foreach ($LocLst as &$Loc) {
+		if ($Loc !== $LocM) {
+			if ($Loc->PosBeg >= $LocM->InsPos) {
+				$Loc->PosBeg += $LocM->InsLen;
+				$Loc->PosEnd += $LocM->InsLen;
+			}
+			if ($Loc->PosBeg > $LocM->DelPos) {
+				$Loc->PosBeg -= $LocM->DelLen;
+				$Loc->PosEnd -= $LocM->DelLen;
+			}
+		}
+	}
+	return true;
+}
+
+/**
+ * Sort the locators in the list.
+ * Apply the bubble algorithm.
+ */
+static function f_Loc_Sort(&$LocLst, $iFirst = 0) {
+	$iEnd = count($LocLst) + $iFirst;
+	for ($i = $iFirst+1 ; $i<$iEnd ; $i++) {
+		$Loc = $LocLst[$i];
+		$p = $Loc->PosBeg;
+		for ($j=$i-1; $j>=$iFirst ; $j--) {
+			if ($p < $LocLst[$j]->PosBeg) {
+				$LocLst[$j+1] = $LocLst[$j];
+				$LocLst[$j] = $Loc;
+			} else {
+				$j = -1; // quit the loop
+			}
+		}
+	}
+	return true;
+}
+
+/**
+ * Prepare all informations to move a locator according to parameter "att".
+ * @param mixed $MoveLocLst true to simple move the loc, or an array of loc to rearrange the list after the move.
+ *              Note: rearrange doest not work with PHP4.
+ */
+static function f_Xml_AttFind(&$Txt,&$Loc,$MoveLocLst=false,$AttDelim=false,$LocLst=false) {
 // att=div#class ; att=((div))#class ; att=+((div))#class
 
 	$Att = $Loc->PrmLst['att'];
+	unset($Loc->PrmLst['att']); // prevent from processing the field twice
+	$Loc->PrmLst['att;'] = $Att; // for debug
+
 	$p = strrpos($Att,'#');
 	if ($p===false) {
 		$TagLst = '';
@@ -4239,7 +4383,8 @@ static function f_Xml_AttFind(&$Txt,&$Loc,$Move=false,$AttDelim=false) {
 		}
 		if ($Att==='.') return false;
 	}
-		
+	$Loc->AttName = $Att;
+	
 	$AttLC = strtolower($Att);
 	if (isset($LocO->PrmLst[$AttLC])) {
 		// The attribute is existing
@@ -4260,7 +4405,6 @@ static function f_Xml_AttFind(&$Txt,&$Loc,$Move=false,$AttDelim=false) {
 		// The attribute is not yet existing
 		$Loc->AttDelimCnt = 0;
 		$Loc->AttBeg = false;
-		$Loc->AttName = $Att;
 	}
 	
 	// Search for a delimitor
@@ -4270,24 +4414,25 @@ static function f_Xml_AttFind(&$Txt,&$Loc,$Move=false,$AttDelim=false) {
 		}
 	}
 
-	if ($Move) return self::f_Xml_AttMove($Txt,$Loc,$AttDelim);
+	if ($MoveLocLst) return self::f_Xml_AttMove($Txt,$Loc,$AttDelim,$MoveLocLst);
 
 	return true;
 
 }
 
-static function f_Xml_AttMove(&$Txt, &$Loc, $AttDelim=false) {
+static function f_Xml_AttMove(&$Txt, &$Loc, $AttDelim, &$MoveLocLst) {
 
-  if ($AttDelim===false) $AttDelim = $Loc->AttDelimChr;
-  if ($AttDelim===false) $AttDelim = '"';
+	if ($AttDelim===false) $AttDelim = $Loc->AttDelimChr;
+	if ($AttDelim===false) $AttDelim = '"';
 
-	$sz = $Loc->PosEnd - $Loc->PosBeg + 1;
-	$Txt = substr_replace($Txt,'',$Loc->PosBeg,$sz); // delete the current locator
+	$DelPos = $Loc->PosBeg;
+	$DelLen = $Loc->PosEnd - $Loc->PosBeg + 1;
+	$Txt = substr_replace($Txt,'',$DelPos,$DelLen); // delete the current locator
 	if ($Loc->AttForward) {
-		$Loc->AttTagBeg += -$sz;
-		$Loc->AttTagEnd += -$sz;
+		$Loc->AttTagBeg += -$DelLen;
+		$Loc->AttTagEnd += -$DelLen;
 	} elseif ($Loc->PosBeg<$Loc->AttTagEnd) {
-		$Loc->AttTagEnd += -$sz;
+		$Loc->AttTagEnd += -$DelLen;
 	}
 
 	$InsPos = false;
@@ -4300,8 +4445,8 @@ static function f_Xml_AttMove(&$Txt, &$Loc, $AttDelim=false) {
 		$Loc->AttBeg = $InsPos + 1;
 		$Loc->AttValBeg = $InsPos + strlen($Ins1) - 1;
 	} else {
-		if ($Loc->PosEnd<$Loc->AttBeg) $Loc->AttBeg += -$sz;
-		if ($Loc->PosEnd<$Loc->AttEnd) $Loc->AttEnd += -$sz;
+		if ($Loc->PosEnd<$Loc->AttBeg) $Loc->AttBeg += -$DelLen;
+		if ($Loc->PosEnd<$Loc->AttEnd) $Loc->AttEnd += -$DelLen;
 		if ($Loc->AttValBeg===false) {
 			$InsPos = $Loc->AttEnd+1;
 			$Ins1 = '='.$AttDelim;
@@ -4313,7 +4458,7 @@ static function f_Xml_AttMove(&$Txt, &$Loc, $AttDelim=false) {
 			$Ins2 = '';
 		} else {
 			// value already existing
-			if ($Loc->PosEnd<$Loc->AttValBeg) $Loc->AttValBeg += -$sz;
+			if ($Loc->PosEnd<$Loc->AttValBeg) $Loc->AttValBeg += -$DelLen;
 			$PosBeg = $Loc->AttValBeg;
 			$PosEnd = $Loc->AttEnd;
 			if ($Loc->AttDelimCnt>0) {$PosBeg++; $PosEnd--;}
@@ -4337,9 +4482,18 @@ static function f_Xml_AttMove(&$Txt, &$Loc, $AttDelim=false) {
 	$Loc->PosBeg = $PosBeg;
 	$Loc->PosEnd = $PosEnd;
 	$Loc->AttBegM = ($Txt[$Loc->AttBeg-1]===' ') ? $Loc->AttBeg-1 : $Loc->AttBeg; // for magnet=#
-	$Loc->AttInsLen = $InsLen; // for CacheField
 
-	return min($Loc->PrevPosEnd,$Loc->PosEnd); // New position to continue the search.
+	// for CacheField
+	if (is_array($MoveLocLst)) {
+		$Loc->InsPos = $InsPos;
+		$Loc->InsLen = $InsLen;
+		$Loc->DelPos = $DelPos;
+		if ($Loc->InsPos < $Loc->DelPos) $Loc->DelPos += $InsLen;
+		$Loc->DelLen = $DelLen;
+		self::f_Loc_Moving($Loc, $MoveLocLst);
+	}
+	
+	return true;
 
 }
 
@@ -4454,13 +4608,14 @@ static function f_Xml_GetPart(&$Txt, $TagLst, $AllIfNothing=false) {
 
 }
 
+/**
+ * Find the start of an XML tag. Used by OpenTBS.
+ * $Case=false can be useful for HTML.
+ * $Tag='' should work and found the start of the first tag.
+ * $Tag='/' should work and found the start of the first closing tag.
+ * Encapsulation levels are not featured yet.
+ */
 static function f_Xml_FindTagStart(&$Txt,$Tag,$Opening,$PosBeg,$Forward,$Case=true) {
-/* Find the start of an XML tag.
-$Case=false can be useful for HTML.
-$Tag='' should work and found the start of the first tag.
-$Tag='/' should work and found the start of the first closing tag.
-Encapsulation levels are not feataured yet.
-*/
 
 	if ($Txt==='') return false;
 
@@ -4473,13 +4628,14 @@ Encapsulation levels are not feataured yet.
 		do {
 			if ($Forward) $p = strpos($Txt,$x,$p+1);  else $p = strrpos(substr($Txt,0,$p+1),$x);
 			if ($p===false) return false;
-			if (substr($Txt,$p,$xl)!==$x) continue; // For PHP 4 only
+			/* COMPAT#6 */
 			$z = substr($Txt,$p+$xl,1);
 		} while ( ($z!==' ') && ($z!=="\r") && ($z!=="\n") && ($z!=='>') && ($z!=='/') && ($Tag!=='/') && ($Tag!=='') );
 	} else {
 		do {
 			if ($Forward) $p = stripos($Txt,$x,$p+1);  else $p = strripos(substr($Txt,0,$p+1),$x);
 			if ($p===false) return false;
+			/* COMPAT#7 */
 			$z = substr($Txt,$p+$xl,1);
 		} while ( ($z!==' ') && ($z!=="\r") && ($z!=="\n") && ($z!=='>') && ($z!=='/') && ($Tag!=='/') && ($Tag!=='') );
 	}
@@ -4488,13 +4644,14 @@ Encapsulation levels are not feataured yet.
 
 }
 
+/**
+ * This function is a smart solution to find an XML tag.
+ * It allows to ignore full opening/closing couple of tags that could be inserted before the searched tag.
+ * It allows also to pass a number of encapsulations.
+ * To ignore encapsulation and opengin/closing just set $LevelStop=false.
+ * $Opening is used only when $LevelStop=false.
+ */
 static function f_Xml_FindTag(&$Txt,$Tag,$Opening,$PosBeg,$Forward,$LevelStop,$WithPrm,$WithPos=false) {
-/* This function is a smart solution to find an XML tag.
-It allows to ignore full opening/closing couple of tags that could be inserted before the searched tag.
-It allows also to pass a number of encapsulations.
-To ignore encapsulation and opengin/closing just set $LevelStop=false.
-$Opening is used only when $LevelStop=false.
-*/
 
 	if ($Tag==='_') { // New line
 		$p = self::f_Xml_FindNewLine($Txt,$PosBeg,$Forward,($LevelStop!==0));
@@ -4532,10 +4689,12 @@ $Opening is used only when $LevelStop=false.
 
 			// Check the name of the tag
 			if (strcasecmp(substr($Txt,$Pos+1,$TagL),$Tag)==0) {
+				// It's an opening tag
 				$PosX = $Pos + 1 + $TagL; // The next char
 				$TagOk = true;
 				$TagIsOpening = true;
 			} elseif (strcasecmp(substr($Txt,$Pos+1,$TagClosingL),$TagClosing)==0) {
+				// It's a closing tag
 				$PosX = $Pos + 1 + $TagClosingL; // The next char
 				$TagOk = true;
 				$TagIsOpening = false;
@@ -4544,9 +4703,9 @@ $Opening is used only when $LevelStop=false.
 			if ($TagOk) {
 				// Check the next char
 				$x = $Txt[$PosX];
-				if (($x===' ') || ($x==="\r") || ($x==="\n") || ($x==='>') || ($Tag==='/') || ($Tag==='')) {
+				if (($x===' ') || ($x==="\r") || ($x==="\n") || ($x==='>') || ($x==='/') || ($Tag==='/') || ($Tag==='')) {
 					// Check the encapsulation count
-					if ($LevelStop===false) { // No encaplusation check
+					if ($LevelStop===false) { // No encapsulation check
 						if ($TagIsOpening!==$Opening) $TagOk = false;
 					} else { // Count the number of level
 						if ($TagIsOpening) {
