@@ -1,13 +1,15 @@
 
 = Release 1.9.5 =
 
-Netoyage de code : 
-- suppression de XML_DeleteAttributes()
-- recodage de MsPowerpoint_CleanRpr() [à tester]
-- recodage de XML_DeleteElements()    [à tester]
-- recodage BUG sur $XmlLoc->FindEndTag('dc:creator'); en $XmlLoc->FindEndTag();
-- ReplaceInnerSrc() accepte les entités auto-fermée
-- nouvelle fonction XML_ForceAtt()
+== Enhancements ==
+
+* Code cleanup:
+	- delete XML_DeleteAttributes()
+	- recode MsPowerpoint_CleanRpr() [to-test]
+	- recode XML_DeleteElements()    == Enhancements ==
+	- recode BUG $XmlLoc->FindEndTag('dc:creator'); into $XmlLoc->FindEndTag();
+	- ReplaceInnerSrc() support self-closed entities
+	- new function XML_ForceAtt()
 
 == Bug fixes ==
 
@@ -17,11 +19,15 @@ Netoyage de code :
 
 * New command OPENTBS_EDIT_ENTITY
 
+---------------------------------------------------------------------
+
 = Release 1.9.4 =
 
 == Bug fixes ==
 
 * Document corruption with OpenTBS 1.9.3 when merging pictures in a block and using parameter "adjust".
+
+---------------------------------------------------------------------
 
 = Release 1.9.3 =
 
@@ -35,6 +41,8 @@ Netoyage de code :
 
 * OpenTBS clear error message when using Show() without template loaded. Instead of an ugly PHP error.
 
+---------------------------------------------------------------------
+
 = Release 1.9.2 =
 
 Released: 2014-09-25
@@ -46,6 +54,8 @@ Released: 2014-09-25
 == New features ==
 
 * New command OPENTBS_RELATIVE_CELLS  : optimizes XLSX merged sheets with numerous rows.
+
+---------------------------------------------------------------------
 
 = Release 1.9.1 =
 Released: 2014-09-20
@@ -69,6 +79,8 @@ Released: 2014-09-20
 == Enhancements ==
 
 * OPENTBS_CHANGE_PICTURE now use an array of parameters.
+
+---------------------------------------------------------------------
 
 = Release 1.9.0 =
 Released: 2014-04-10
@@ -107,8 +119,12 @@ Released: 2014-04-10
 * Debug mode available even if no template is loaded.
 * Debug mode display the Zlib availability.
 * Based on TbsZip 2.16
+
+---------------------------------------------------------------------
  
 = Release 1.8.3 =
+
+---------------------------------------------------------------------
 
 = Release 1.8.2 =
 
