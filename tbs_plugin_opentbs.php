@@ -2843,19 +2843,23 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 	}
 
+    /**
+     * Build the list of chart files.
+     */
 	function OpenXML_ChartInit() {
 
 		$this->OpenXmlCharts = array();
 
 		foreach ($this->CdFileByName as $f => $i) {
+            // Note : some of liste files are style or color files, not chart.
 			if (strpos($f, '/charts/')!==false) {
-				$f = explode('/',$f);
-				$n = count($f) -1;
-				if ( ($n>=2) && ($f[$n-1]==='charts') ) {
-					$f = $f[$n]; // name of the xml file
-					if (substr($f,-4)==='.xml') {
-						$f = substr($f,0,strlen($f)-4);
-						$this->OpenXmlCharts[$f] = array('idx'=>$i, 'clean'=>false, 'series'=>false);
+				$x = explode('/',$f);
+				$n = count($x) -1;
+				if ( ($n>=2) && ($x[$n-1]==='charts') ) {
+					$x = $x[$n]; // name of the xml file
+					if (substr($x,-4)==='.xml') {
+						$x = substr($x,0,strlen($x)-4);
+						$this->OpenXmlCharts[$x] = array('idx'=>$i, 'clean'=>false, 'series'=>false);
 					}
 				}
 			}
@@ -2984,28 +2988,38 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ($this->OpenXmlCharts===false) $this->OpenXML_ChartInit();
         
  		$ref = ''.$ChartRef;
-		if (!isset($this->OpenXmlCharts[$ref])) $ref = 'chart'.$ref; // try with $ChartRef as number
+        // try with $ChartRef as number
 		if (!isset($this->OpenXmlCharts[$ref])) {
-			// try with $ChartRef as name of the file
+            $ref = 'chart'.$ref;
+        }
+		// try with $ChartRef as name of the file
+		if (!isset($this->OpenXmlCharts[$ref])) {
 			$charts = array();
+            $idx = false;
 			if ($this->ExtEquiv=='pptx') {
 				// search in slides
 				$find = $this->MsPowerpoint_SearchInSlides(' title="'.$ChartRef.'"');
-				if ($find['idx']!==false) {
-					$charts = $this->OpenXML_ChartGetInfoFromFile($find['idx']);
-					// For debuging
-					$charts['slide_idx'] = $find['idx'];
-					$charts['slide_path'] = $this->TbsGetFileName($find['idx']);
-				}
+                $idx = $find['idx'];
 			} else {
-				$charts = $this->OpenXML_ChartGetInfoFromFile($this->Ext_GetMainIdx());
+				$idx =$this->Ext_GetMainIdx();
 			}
+            if ($idx !== false) {
+                $charts = $this->OpenXML_ChartGetInfoFromFile($idx);
+            }
+            // Search the chart having the title
 			foreach($charts as $c) {
-				if ($c['title']===$ChartRef) $ref = $c['name']; // try with $ChartRef as title
+				if ($c['title']===$ChartRef) $ref = $c['name'];
 			}
-			if (!isset($this->OpenXmlCharts[$ref])) return $this->RaiseError("($ErrTitle) : unable to found the chart corresponding to '".$ChartRef."'.");
+			if (isset($this->OpenXmlCharts[$ref])) {
+                $chart = &$this->OpenXmlCharts[$ref];
+                $this->OpenXmlCharts[$ChartRef] = &$chart; 
+                // For debug
+                $chart['parent_idx'] = $idx;
+            } else {
+                return $this->RaiseError("($ErrTitle) : unable to found the chart corresponding to '".$ChartRef."'.");
+            }
 		}
-
+        
         return $ref;
         
     }
@@ -3250,14 +3264,16 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
             return array(
                 'file_idx' => $chart['idx'],
                 'file_name' => $this->TbsGetFileName($chart['idx']),
-                'serials' => $loop_res,
+                'parent_idx' => $chart['parent_idx'],
+                'parent_name' => $this->TbsGetFileName($chart['parent_idx']),
+                'series' => $loop_res,
             );
         } else {
-            $serials = array();
+            $series = array();
             foreach ($loop_res as $res) {
-                $serials[$res['name']] = array($res['cat'], $res['val']);
+                $series[$res['name']] = array($res['cat'], $res['val']);
             }
-            return $serials;
+            return $series;
         }
         
         return $loop_res;
