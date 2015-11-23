@@ -253,7 +253,7 @@ body, td, th {
     <td align="center" class="yes">yes</td>
     <td align="center"><span class="no">no</span></td>
     <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes (*)</span></td>
     <td align="center"><span class="no">no</span></td>
     <td align="center"><span class="no">no</span></td>
   </tr>
@@ -303,7 +303,7 @@ body, td, th {
     <td align="center"><span class="yes">yes</span></td>
     <td align="center"><span class="no">no</span></td>
     <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="yes">yes</span></td>
+    <td align="center"><span class="yes">yes (*)</span></td>
     <td align="center"><span class="no">no</span></td>
     <td align="center"><span class="no">no</span></td>
   </tr>
@@ -368,8 +368,12 @@ body, td, th {
     <td align="center"><span class="yes">yes</span></td>
   </tr>
 </table>
-<h5>Note (*)</h5>
-<p> Knowed bug for  DOCX:  the TBS tag using the alias <span class="smallcode">tbs:page</span> must not be placed in the last paragraph of the page when the page-break in done with an inserted page-break. Use the page-break property of the paragraph instead, or move the TBS tag in another paragraph.</p>
+<h5>Notes (*)</h5>
+<ul>
+  <li><span class="code">tbs:page</span> in a DOCX: works with the two ways for defining a page break: (1) insert a section break doing a page break, or (2) use the paragraph property named <em>page break before</em>.</li>
+  <li><span class="code">tbs:page</span> in a DOCX: the TBS tag using the alias <span class="smallcode">tbs:page</span> must not be placed in the last paragraph of the page if it uses a section break doing a page break. This is a knowed bug. Instead, use the paragraph property named <em>page break before</em>, or move the TBS tag in another paragraph.</li>
+  <li><span class="smallcode">tbs:section</span> in a DOCX: this alias points out avery kind of sections, including thoses defined with a section break doing a page break</li>
+</ul>
 <h3><a name="chart" id="chart"></a>4.5. Change data of series in charts</h3>
 <h4>&bull; Change series in charts:</h4>
 <div class="shift"> <span class="versioning">(supported since OpenTBS version 1.6.0, for Ms Word and Ms Powerpoint, since version 1.8.0 for LibreOffice)</span>
@@ -642,8 +646,10 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
       <p> For example: <span class="smallcode">$Elements = array('w:bookmarkStart', 'w:bookmarkEnd')</span> This will delete all bookmarks in an Ms Word document. </p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap"><span class="smallcode"><a name="opentbs_add_credit" id="modify22"></a>$TBS-&gt;PlugIn(OPENTBS_ADD_CREDIT, $Name)</span></td>
-    <td valign="top"><p>Add a new credit in the properties of the document.</p>
+    <td valign="top" nowrap="nowrap"><span class="smallcode"><a name="opentbs_add_credit" id="modify22"></a>$TBS-&gt;PlugIn(OPENTBS_ADD_CREDIT, $Text [, $Name])</span></td>
+    <td valign="top"><p>Add a new credit text in the properties of the document. </p>
+      <p>For  LibreOffice/OpenOffice, this will add the text as  a new  Custom Property of the document. You can use argument <span class="smallcode">$Name</span> for the custom property's name.</p>
+      <p>For  Ms Office, this will add the text in the Author property of the document. You can use argument <span class="smallcode">$Name</span> to specify another XML element for placing the text. Exemple : <span class="smallcode">'dc:description'</span> will add the text in the Comment property. Take care that using an unsupported value can corrupt the document.</p>
       <p><span class="versioning">Command OPENTBS_ADD_CREDIT is supported since OpenTBS version 1.9.1.</span></p></td>
   </tr>
   <tr>
