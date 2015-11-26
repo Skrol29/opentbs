@@ -2915,38 +2915,44 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	/**
+	 * Search for the series in the chart definition
+	 * @return mixed An Array if success, or a string if error.
+	 */
 	function OpenXML_ChartSeriesFound(&$Txt, $SeriesNameOrNum, $OnlyBounds=false) {
 
 		$IsNum = is_numeric($SeriesNameOrNum);
 		if ($IsNum) {
 			$p = strpos($Txt, '<c:order val="'.($SeriesNameOrNum-1).'"/>');
+			if ($p===false) return "Number of the series not found.";
 		} else {
 			$SeriesNameOrNum = htmlentities($SeriesNameOrNum);
 			$p = strpos($Txt, '>'.$SeriesNameOrNum.'<');
+			if ($p===false) return "Name of the series not found.";
+			$p++;
 		}
-		if ($p===false) return false;
 
-		if (!$IsNum) $p++;
 		$res = array('p'=>$p);
 
 		if ($OnlyBounds) {
-			$p1 = clsTinyButStrong::f_Xml_FindTagStart($Txt, 'c:ser', true, $p, false, true);
-			$x = '</c:ser>';
-			$p2 = strpos($Txt, '</c:ser>', $p1);
-			if ($p2===false) return false;
-			$res['l'] = $p2 + strlen($x) - $p1;
-			$res['p'] = $p1;
-			return $res;
+			if ($loc = clsTbsXmlLoc::FindElement($Txt, 'c:ser', $p, false)) {
+				$res['p'] = $loc->PosBeg;
+				$res['l'] = $loc->PosEnd - $loc->PosBeg + 1;
+				return $res;
+			} else {
+				return "XML entity not found.";
+			}
 		}
 
+		// faster than clsTbsXmlLoc::FindElement
 		$end_tag = '</c:ser>';
-		$end = strpos($Txt, '</c:ser>', $p);
+		$end = strpos($Txt, $end_tag, $p);
 		$len = $end + strlen($end_tag) - $p;
 		$res['l'] = $len;
 
 		$x = substr($Txt, $p, $len);
 
-		// Legend, may be abensent
+		// Legend, may be absent
 		$p = 0;
 		if ($IsNum) {
 			$p1 = strpos($x, '<c:tx>');
@@ -2968,11 +2974,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		// Data X & Y, we assume that (X or Category) are always first and (Y or Value) are always second
+		// Some charts may not have categories, they cannot be merged :-(
 		for ($i=1; $i<=2; $i++) {
 			$p1 = strpos($x, '<c:ptCount ', $p);
-			if ($p1===false) return false;
+			if ($p1===false) return ($i==1) ? "categories or values not found." : "categories not found, check the chart to add categories.";
 			$p2 = strpos($x, 'Cache>', $p1); // the closing tag can be </c:numCache> or </c:strCache>
-			if ($p2===false) return false; 
+			if ($p2===false) return "Cached data not found for categories or values.";
 			$p2 = $p2 - 7;
 			$res['point'.$i.'_p'] = $p1;
 			$res['point'.$i.'_l'] = $p2 - $p1;
@@ -3044,7 +3051,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$Delete = ($NewValues===false);
 		if (is_array($SeriesNameOrNum)) return $this->RaiseError("(ChartChangeSeries) '$ChartRef' : The series reference is an array, a string or a number is expected. ".$ChartRef."'."); // usual mistake in arguments
 		$ser = $this->OpenXML_ChartSeriesFound($Txt, $SeriesNameOrNum, $Delete);
-		if ($ser===false) return $this->RaiseError("(ChartChangeSeries) '$ChartRef' : unable to found series '".$SeriesNameOrNum."' in the chart '".$ref."'.");
+		if (!is_array($ser)) return $this->RaiseError("(ChartChangeSeries) '$ChartRef' : unable change series '".$SeriesNameOrNum."' in the chart '".$ref."' : ".$ser);
 
 		if ($Delete) {
 
