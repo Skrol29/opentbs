@@ -3,8 +3,8 @@
  *
  * TinyButStrong - Template Engine for Pro and Beginners
  *
- * @version 3.10.0 for PHP 5
- * @date    2015-11-08
+ * @version 3.10.1 for PHP 5
+ * @date    2015-12-03
  * @link    http://www.tinybutstrong.com Web site
  * @author  http://www.tinybutstrong.com/onlyyou.html
  * @license http://opensource.org/licenses/LGPL-3.0 LGPL-3.0
@@ -588,7 +588,7 @@ public $Assigned = array();
 public $ExtendedMethods = array();
 public $ErrCount = 0;
 // Undocumented (can change at any version)
-public $Version = '3.10.0';
+public $Version = '3.10.1';
 public $Charset = '';
 public $TurboBlock = true;
 public $VarPrefix = '';
@@ -799,7 +799,6 @@ public function GetBlockSource($BlockName,$AsArray=false,$DefTags=true,$ReplaceW
 	$P1 = false;
 	$Mode = ($DefTags) ? 3 : 2;
 	$PosBeg1 = 0;
-	$PosEndPrec = false;
 	while ($Loc = $this->meth_Locator_FindBlockNext($this->Source,$BlockName,$Pos,'.',$Mode,$P1,$FieldOutside)) {
 		$Nbr++;
 		$Sep = '';
@@ -1062,7 +1061,6 @@ function &meth_Locator_SectionNewBDef(&$LocR,$BlockName,$Txt,$PrmLst,$Cache) {
 
 	$Chk = true;
 	$LocLst = array();
-	$LocNbr = 0;
 	$Pos = 0;
 	$Sort = false;
 	
@@ -1078,15 +1076,8 @@ function &meth_Locator_SectionNewBDef(&$LocR,$BlockName,$Txt,$PrmLst,$Cache) {
 	if ($Cache) {
 
 		$Chk = false;
-		$PosEndPrec = -1;
 		while ($Loc = $this->meth_Locator_FindTbs($Txt,$BlockName,$Pos,'.')) {
-			
-			// Delete embeding fields
-			if ($Loc->PosBeg<$PosEndPrec) {
-				unset($LocLst[$LocNbr]);
-				$Chk = true;
-			}
-			
+
 			$LocNbr = 1 + count($LocLst);
 			$LocLst[$LocNbr] = &$Loc;
 			
@@ -1095,18 +1086,16 @@ function &meth_Locator_SectionNewBDef(&$LocR,$BlockName,$Txt,$PrmLst,$Cache) {
 			if ($Loc->Enlarged) {
 				// Enlarged
 				$Pos = $Loc->PosBeg0 + 1;
-				$PosEndPrec = $Loc->PosEnd0;
 				$Loc->Enlarged = false;
 			} else {
 				// Normal
 				$Pos = $Loc->PosBeg + 1;
-				$PosEndPrec = $Loc->PosEnd;
 			}
 
 			// Note: the plug-in may move, delete and add one or several locs.
-			// Move   : backward or forward
+			// Move   : backward or forward (will be sorted)
 			// Delete : add property DelMe=true
-			// Add    : at the end of $LocLst
+			// Add    : at the end of $LocLst (will be sorted)
 			if ($pi) {
 				$ArgLst[1] = &$Loc;
 				$this->meth_Plugin_RunAll($this->_piOnCacheField,$ArgLst);
@@ -1133,7 +1122,6 @@ function &meth_Locator_SectionNewBDef(&$LocR,$BlockName,$Txt,$PrmLst,$Cache) {
 						}
 						if ($i==$LocNbr) {
 							$Pos = $Loc->DelPos;
-							$PosEndPrec = -1;
 						}
 					} else {
 						$this->meth_Misc_Alert('','TBS is not able to merge the field '.$LocSrc.' because the entity targeted by parameter \'att\' cannot be found.');
@@ -1144,34 +1132,18 @@ function &meth_Locator_SectionNewBDef(&$LocR,$BlockName,$Txt,$PrmLst,$Cache) {
 			unset($Loc);
 			
 		}
-		
-		// Delete loc
-		/*
-		$iMax = count($LocLst);
-		$LocNbr = 0;
-		for ($i=1;$i<=$iMax;$i++) {
-			if (isset($LocLst[$i]->DelMe) && $LocLst[$i]->DelMe) {
-				unset($LocLst[$i]);
-			} else {
-				$LocNbr++;
-				if ($LocNbr !== $i) {
-					$LocLst[$LocNbr] = $LocLst[$i];
-					unset($LocLst[$i]);
-				}
-			}
-		}
-		*/
-		
-		// Re-order loc
-		self::f_Loc_Sort($LocLst, 1);
 
+		// Re-order loc
+		$e = self::f_Loc_Sort($LocLst, true, 1);
+		$Chk = ($e > 0);
+		
 	}
 
 	// Create the object
 	$o = (object) null;
 	$o->Prm = $PrmLst;
 	$o->LocLst = $LocLst;
-	$o->LocNbr = $LocNbr;
+	$o->LocNbr = count($LocLst);
 	$o->Name = $BlockName;
 	$o->Src = $Txt;
 	$o->Chk = $Chk;
@@ -4310,24 +4282,48 @@ static function f_Loc_Moving(&$LocM, &$LocLst) {
 }
 
 /**
- * Sort the locators in the list.
- * Apply the bubble algorithm.
+ * Sort the locators in the list. Apply the bubble algorithm.
+ * Deleted locators maked with DelMe.
+ * @param array   $LocLst An array of locators.
+ * @param boolean $DelEmbd True to deleted locators that embded other ones.
+ * @param boolean $iFirst Index of the first item.
+ * @return integer Return the number of met embedding locators.
  */
-static function f_Loc_Sort(&$LocLst, $iFirst = 0) {
-	$iEnd = count($LocLst) + $iFirst;
-	for ($i = $iFirst+1 ; $i<$iEnd ; $i++) {
+static function f_Loc_Sort(&$LocLst, $DelEmbd, $iFirst = 0) {
+
+	$iLast = $iFirst + count($LocLst) - 1;
+	$embd = 0;
+	
+	for ($i = $iLast ; $i>=$iFirst ; $i--) {
 		$Loc = $LocLst[$i];
-		$p = $Loc->PosBeg;
-		for ($j=$i-1; $j>=$iFirst ; $j--) {
-			if ($p < $LocLst[$j]->PosBeg) {
-				$LocLst[$j+1] = $LocLst[$j];
+		$d = (isset($Loc->DelMe) && $Loc->DelMe);
+		$b = $Loc->PosBeg;
+		$e = $Loc->PosEnd;
+		for ($j=$i+1; $j<=$iLast ; $j++) {
+			// If DelMe, then the loc will be put at the end and deleted
+			$jb = $LocLst[$j]->PosBeg;
+			if ($d || ($b > $jb)) {
+				$LocLst[$j-1] = $LocLst[$j];
 				$LocLst[$j] = $Loc;
+			} elseif ($e > $jb) {
+				$embd++;
+				if ($DelEmbd) {
+					$d = true;
+					$j--; // replay the current position
+				} else {
+					$j = $iLast; // quit the loop
+				}
 			} else {
-				$j = -1; // quit the loop
+				$j = $iLast; // quit the loop
 			}
 		}
+		if ($d) {
+			unset($LocLst[$iLast]);
+			$iLast--;
+		}
 	}
-	return true;
+	
+	return $embd;
 }
 
 /**
