@@ -3,7 +3,7 @@
 
 == Enhancements ==
 
-* new property $TBS->OtbsClearOldChartData = false; (Ms Office only)
+* new property $TBS->OtbsDeleteObsoleteChartData = false; (Ms Office only)
 
 * OpenTBS do not redo optimisation on the loaded template it has already been done by OpenTBS previously.
 
@@ -23,6 +23,8 @@
 * PHP error with ODT templates when changing the name of a Chart series that hadn't any name before.
 
 * PHP error when using command OPENTBS_SEARCH_IN_SLIDES
+
+* OpenTBS error « unable to found the chart corresponding to 'xxx' » in DOCX when the chart is not formated as "inline with text".
 
 == New features ==
 

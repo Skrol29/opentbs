@@ -85,7 +85,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsSpacePreserve))        $TBS->OtbsSpacePreserve = true;
 		if (!isset($TBS->OtbsClearWriter))          $TBS->OtbsClearWriter = true;
 		if (!isset($TBS->OtbsClearMsWord))          $TBS->OtbsClearMsWord = true;
-		if (!isset($TBS->OtbsClearOldChartData))    $TBS->OtbsClearOldChartData = false;
+		if (!isset($TBS->OtbsDeleteObsoleteChartData))    $TBS->OtbsDeleteObsoleteChartData = false;
 		if (!isset($TBS->OtbsMsExcelConsistent))    $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsMsExcelExplicitRef))   $TBS->OtbsMsExcelExplicitRef = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
@@ -3043,7 +3043,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ($Txt===false) return false;
 
 		if (!$chart['clean']) {
-			$this->OpenXML_ChartUnlinklDataSheet($chart['idx'], $Txt, $this->TBS->OtbsClearOldChartData);
+			$this->OpenXML_ChartUnlinklDataSheet($chart['idx'], $Txt, $this->TBS->OtbsDeleteObsoleteChartData);
 			$chart['nbr'] = substr_count($Txt, '<c:ser>');
 			$chart['clean'] = true;
 		}
@@ -3135,8 +3135,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$name = false;
 				$title = false;
 				$descr = false;
-				$parent = clsTbsXmlLoc::FindStartTag($Txt, 'wp:inline', $t->PosBeg, false); // docx
-				if ($parent===false) $parent = clsTbsXmlLoc::FindStartTag($Txt, 'p:nvGraphicFramePr', $t->PosBeg, false); // pptx
+				$parent = clsTbsXmlLoc::FindStartTag($Txt, 'w:drawing', $t->PosBeg, false); // DOCX <w:drawing> can embeds <wp:inline> if inline with text, or <wp:anchor> otherwise
+				if ($parent===false) $parent = clsTbsXmlLoc::FindStartTag($Txt, 'p:nvGraphicFramePr', $t->PosBeg, false); // PPTX
 				if ($parent!==false) {
 					$parent->FindEndTag();
 					$src = $parent->GetInnerSrc();
