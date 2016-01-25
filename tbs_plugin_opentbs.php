@@ -8,7 +8,7 @@
  * and retrieve the content of a zipped file which is not compressed.
  *
  * @version 1.9.5-beta
- * @date 2015-11-11
+ * @date 2016-01-25
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -103,6 +103,14 @@ class clsOpenTBS extends clsTbsZip {
 		$TBS =& $this->TBS;
 		if ($TBS->_Mode!=0) return; // If we are in subtemplate mode, the we use the TBS default process
 
+		if ($File === false) {
+			// Close the current template if any
+			@$this->Close();
+			// Save memory space
+			$this->TbsInitArchive();
+			return false;
+		}
+		
 		// Decompose the file path. The syntaxe is 'Archive.ext#subfile', or 'Archive.ext', or '#subfile'
 		$FilePath = $File;
 		$SubFileLst = false;
