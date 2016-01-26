@@ -92,7 +92,7 @@ body, td, th {
       <li>4.2. <a href="#loadtemplate">Method LoadTemplate()</a></li>
       <li>4.3. <a href="#show">Method Show()</a></li>
       <li>4.4. <a href="#blockalias">Block Alias</a></li>
-      <li>4.5. <a href="#chart">Change data of series in charts</a></li>
+      <li>4.5. <a href="#chart">Change or read data of series in a chart</a></li>
       <li>4.6. <a href="#pic">Change pictures in the document</a></li>
       <li>4.7. <a href="#cells">Merging data in spreadsheet cells</a></li>
       <li>4.8. <a href="#col">Delete or merge columns in tables</a></li>
@@ -141,11 +141,11 @@ body, td, th {
   if the extension is not recognized then OpenTBS also try to find the document by the sub-file presence. And if all fails, then you can force the document type using a <a href="#force_doctype">special command</a>.</p>
 <h2><a name="coding" id="coding"></a>4. Synopsis and code examples</h2>
 <h3><a name="preparation" id="preparation"></a>4.1. Preparation of TinyButStrong Template Engine with the OpenTBS plug-in</h3>
-<div class="shift code">include_once('tbs_class.php');<br />
-  include_once('tbs_plugin_opentbs.php');<br />
-  <br />
-  $TBS = new clsTinyButStrong;<br />
-  $TBS-&gt;Plugin(TBS_INSTALL, OPENTBS_PLUGIN);</div>
+<pre class="shift code">include_once('tbs_class.php');
+include_once('tbs_plugin_opentbs.php');
+
+$TBS = new clsTinyButStrong;
+$TBS-&gt;Plugin(TBS_INSTALL, OPENTBS_PLUGIN);</pre>
 <h3><a name="loadtemplate" id="loadtemplate"></a>4.2. Method LoadTemplate()</h3>
 <h4>&bull; Load an archive with the automatic extension recognition (<a href="#extension">explained above</a>): </h4>
 <div class="shift">
@@ -160,9 +160,9 @@ body, td, th {
 </div>
 <h4>&bull; Load an archive with a PHP file handle:</h4>
 <div class="shift"><span class="versioning">(supported since OpenTBS version 1.8.1)</span>
-  <div class="code">$handle = tmpfile();<br />
-    fwrite($handle, $binary_contents);<br />
-  $TBS-&gt;LoadTemplate($handle);</div>
+  <pre class="code">$handle = tmpfile();
+fwrite($handle, $binary_contents);
+$TBS-&gt;LoadTemplate($handle);</pre>
 </div>
 <h4>&bull; Load an archive and one file stored in this archive:</h4>
 <div class="shift code">$TBS-&gt;LoadTemplate('document.odt#content.xml');</div>
@@ -378,8 +378,8 @@ body, td, th {
   <li><span class="code">tbs:page</span> in a DOCX: the TBS tag using the alias <span class="smallcode">tbs:page</span> must not be placed in the last paragraph of the page if it uses a section break doing a page break. This is a knowed bug. Instead, use the paragraph property named <em>page break before</em>, or move the TBS tag in another paragraph.</li>
   <li><span class="smallcode">tbs:section</span> in a DOCX: this alias points out avery kind of sections, including thoses defined with a section break doing a page break</li>
 </ul>
-<h3><a name="chart" id="chart"></a>4.5. Change data of series in charts</h3>
-<h4>&bull; Change series in charts:</h4>
+<h3><a name="chart" id="chart"></a>4.5. Change or read data of series in a chart</h3>
+<h4>&bull; <a name="opentbs_chart" id="chart2"></a>Change series in a chart:</h4>
 <div class="shift"> <span class="versioning">(supported since OpenTBS version 1.6.0, for Ms Word and Ms Powerpoint, since version 1.8.0 for LibreOffice)</span>
   <div class="code">Example: $TBS-&gt;PlugIn(OPENTBS_CHART, $ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend=false)</div>
   <p>This command changes the values of a series in a Chart of the document. The chart will be automatically actualized when the merged document is opened because OpenTBS also breaks the link between the chart and its cached view. It can also delete or rename the series in the chart.</p>
@@ -391,12 +391,13 @@ body, td, th {
     </tr>
     <tr>
       <td valign="top" class="smallcode"><p>$ChartRef</p></td>
-      <td valign="top"><p>This value can be either:</p>
+      <td valign="top"><p>The reference to find the chart. This value can be either:</p>
         <ul>
           <li>  The title of the chart <span class="versioning">(supported since OpenTBS 1.8.0)</span>. In both Ms Office and LibreOffice, that is the property &quot;Title&quot; of the frame that embeds the chart.</li>
           <li> The  order number of the chart in the document (first is number 1).</li>
         </ul>
-        <p> You can use the command <a href="#debugmode">OPENTBS_DEBUG_INFO</a> in order to view all  charts in the document that OpenTBS can manage.</p>
+        <p> You can use the command <a href="#debugmode">OPENTBS_DEBUG_INFO</a> in order to view all  charts in the document that OpenTBS can manage.<br />
+          You can use the command <a href="#opentbs_chart_info">OPENTBS_CHART_INFO</a> in order to read data in the chart.        </p>
         <p>Deprecated since version 1.8.0: in previous version, <span class="smallcode">$ChartRef</span> could be the internal name of the XML file that contains the chart definition, with or without the extension. Such as <span class="smallcode">'chart1'</span>.</p></td>
     </tr>
     <tr>
@@ -429,7 +430,66 @@ body, td, th {
     <li>The type of the chart cannot be changed.</li>
     <li>Some charts may not be recognized by this feature when the Word document is created with Word &lt;= 2007 or is saved with a Compatibility Mode. You have to convert charts to have it work (right on the chart and choose &quot;Convert&quot;). You can use the command <a href="#debugmode">OPENTBS_DEBUG_INFO</a> in order to view all unsupported   charts in the document.</li>
     <li>Charts in worksheets (Ms Office and LibreOffice) are not supported. This is because such charts are linked to cells.</li>
-    <li>With Ms Office, charts must not be linked to external data (such as Excel worksheet). Otherwise the chart will be automatically actualized back the previous values when it will be opened.</li></ul></div>
+    <li>With Ms Office, the chart must not be linked to external data (such as an Excel worksheet). Otherwise the chart will be automatically actualized back the previous values when it will be opened.</li>
+    <li>With Ms Office, the visual Data Editor becomes unavailable on a merged chart. If you set property <span class="smallcode">$TBS-&gt;OtbsDeleteObsoleteChartData = false</span> then the Data Editor of Ms Office can be opened but it displays only  previous values, which may be quite confusing.  <span class="versioning">This property is supported since OpenTBS version 1.9.5, before that the visual Data Editor could be opened but displayed only previous data.</span></li>
+  </ul>
+</div>
+<h4>&bull; <a name="opentbs_chart_info" id="chart3"></a>Read series in a chart:</h4>
+<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.9.5)</span>
+  <div class="code">Example: $info = $TBS-&gt;PlugIn(OPENTBS_CHART_INFO, $ChartRef, $Complete=false)</div>
+  <p>This command returns information about all series in the chart.</p>
+  <p> The result is an associative array whose structure depends on argument <span class="smallcode">$Complete</span>. </p>
+  <table width="100%"  border="0" cellspacing="1" cellpadding="4">
+    <tr>
+      <th align="left" valign="top">Argument</th>
+      <th align="left">Description</th>
+    </tr>
+    <tr>
+      <td valign="top" class="smallcode"><p>$ChartRef</p></td>
+      <td valign="top"><p>The reference to find the  chart. Same as <a href="#opentbs_chart">OPENTBS_CHART</a>.</p></td>
+    </tr>
+    <tr>
+      <td valign="top" class="smallcode"><p>$Complete</p></td>
+      <td valign="top"><p>If<span class="smallcode"> $Complete</span> = <span class="smallcode">false</span>, the command returns a simple list of all series and theirs corresponding data with structue  #1 described in <span class="smallcode"><a href="#chart">OPENTBS_CHART</a></span>.</p>
+        <pre class="code">
+// Example :
+array (
+  'Series 1' =&gt; array(
+      0 =&gt; array (0 =&gt; 'Category A', 1 =&gt; 'Category B', 2 =&gt; 'Category C'),
+      1 =&gt; array (0 =&gt; '2', 1 =&gt; '2.1', 2 =&gt; false,),
+  ),
+  'Series 2' =&gt; array(
+      0 =&gt; array (0 =&gt; 'Category A', 1 =&gt; 'Category B', 2 =&gt; 'Category C',),
+      1 =&gt; array (0 =&gt; '7', 1 =&gt; '7.1', 2 =&gt; '6.9',),
+  ),
+  ...
+); </pre>
+<p>If<span class="smallcode"> $Complete</span> = <span class="smallcode">true</span>, the command return an array with information about subfiles, and also all the series (name, categories,  values) in a different structure.</p>
+<pre class="code">
+// Example :
+array (
+  'file_idx' => 17,
+  'file_name' => 'Object 1/content.xml',
+  'parent_idx' => 19,
+  'parent_name' => 'content.xml',
+  'series' => array (
+    0 => array (
+      'name' => 'Series 1',
+      'cat' => array (0 => 'Category A', 1 => 'Category B', 2 => 'Category C',),
+      'val' => array (0 => '2', 1 => '2.1', 2 => false,),
+    ),
+    1 =&gt; array (
+      'name' =&gt; 'Series 2',
+      'cat' =&gt; array (0 =&gt; 'Category A', 1 =&gt; 'Category B', 2 =&gt; 'Category C',),
+      'val' =&gt; array (0 =&gt; '7', 1 =&gt; '7.1', 2 =&gt; '6.9',),
+    ),
+  ...
+); </pre>
+
+</td>
+    </tr>
+  </table>
+</div>
 <h3><a name="pic" id="pic2"></a>4.6. Change pictures in the document</h3>
 <h4>&bull; Change an internal picture with a new one:</h4>
 <div class="shift"> <span class="versioning">(supported since OpenTBS version 1.4.0, for OpenOffice and MsOffice documents only)</span>
@@ -698,13 +758,6 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
       <p class="versioning">Command OPENTBS_GET_HEADERS_FOOTERS is supported since OpenTBS version 1.9.0.</p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_chart_info" id="modify28"></a>$TBS-&gt;PlugIn(OPENTBS_CHART_INFO, $ChartRef, $Complete=false)</td>
-    <td valign="top"><p>Return technical informations about a chart in the template. Veryusefull for debuging charts.</p>
-      <p>If<span class="smallcode"> $Complete</span> = <span class="smallcode">false</span>, the command returns an array of all the series in the chart, with series's name as keys and the list of couples of (category, value) as items.</p>
-      <p>If<span class="smallcode"> $Complete</span> = <span class="smallcode">true</span>, the command return an array with information about subfiles, and also all the series (name, categories,  values) with indexes as keys.</p>
-      <p><span class="versioning">Command OPENTBS_CHART_INFO is supported since OpenTBS version 1.9.5.</span></p></td>
-  </tr>
-  <tr>
     <td align="center" valign="top" nowrap="nowrap" class="category"><span class="smallcode"><a name="commands_for_workbooks" id="modify15"></a></span>For workbooks (ODS and XLSX)</td> 
     ()
     <td valign="top">&nbsp;</td>
@@ -802,19 +855,18 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
 <h3><a name="modify_files" id="modify_files"></a>4.10. Manual modification of files in the archive</h3>
 <h4 style="display:inline">&bull; Check if a file does exists in the archive:</h4>
 <div class="shift">
-  <div class="code">$TBS-&gt;Plugin(OPENTBS_FILEEXISTS, $Name)
+  <div class="code">$TBS-&gt;Plugin(OPENTBS_FILEEXISTS, $Name);
 </div>
-  <p>Return <span class="smallcode">true</span> or <span class="smallcode">false</span>. $Name must include the inner path.<br />
-  For example : $Name = 'META-INF/manifest.xml';</p>
+  <p>Return <span class="smallcode">true</span> or <span class="smallcode">false</span>. $Name must include the inner path. For example : <span class="smallcode">$Name = 'META-INF/manifest.xml';</span></p>
   <div class="versioning">(supported since OpenTBS version 1.7.4)</div>
 </div>
 <h4>&bull; Add any new file in the archive:</h4>
 <div class="shift">
-  <div class="code">// OpenTBS &gt;= 1.6.0<br />
-    $TBS-&gt;Plugin(OPENTBS_ADDFILE, $Name, $Data, $DataType=OPENTBS_STRING, $Compress=true); <br />
-    <br />
-    // Deprecated since OpenTBS 1.6.0<br />
-    $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_ADDFILE, $Name, $Data, $DataType=OPENTBS_STRING, $Compress=true);  </div>
+  <pre class="code">// OpenTBS &gt;= 1.6.0
+$TBS-&gt;Plugin(OPENTBS_ADDFILE, $Name, $Data, $DataType=OPENTBS_STRING, $Compress=true);
+
+// Deprecated since OpenTBS 1.6.0
+$TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_ADDFILE, $Name, $Data, $DataType=OPENTBS_STRING, $Compress=true);  </pre>
   <p> If $Data is false then the previously add file with the given name is canceled if any.</p>
 <p> $DataType must be  <span class="smallcode">OPENTBS_STRING</span> if $Data is  the content to add ; it must be <span class="smallcode">OPENTBS_FILE</span> if $Data is the path of the external file to insert.</p>
   <p> $Compress can be true, false or an array with keys ('meth','len_u','crc32') which means that the data is already previously compressed.</p>
@@ -824,28 +876,28 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
 <div class="shift"> 
   <div class="code">$TBS-&gt;Plugin(OPENTBS_REPLACEFILE, $Name, $Data, $DataType=OPENTBS_STRING, $Compress=true);
   </div>
-  <p>The arguments are the same as command <span class="smallcode">OPENTBS_ADDFILE</span>.<br />
-    Please note that any TBS 
-  merge on a file in the archive will cancel previous or future replacements.</p>
+  <p>The arguments are the same as command <span class="smallcode">OPENTBS_ADDFILE</span>.</p>
+  <p> Please note that any TBS 
+    merge on a file in the archive will cancel previous or future replacements.</p>
   <div class="versioning">(supported since OpenTBS version 1.7.4)</div>
 </div>
 <h4>&bull; Delete an existing file in the archive:</h4>
 <div class="shift"> 
-  <div class="code">// OpenTBS &gt;= 1.6.0<br />
-    $TBS-&gt;Plugin(OPENTBS_DELETEFILE, $Name);<br />
-    <br />
-// Deprecated since OpenTBS 1.6.0<br />
-    $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_DELETEFILE, $Name);</div>
+  <pre class="code">// OpenTBS &gt;= 1.6.0
+$TBS-&gt;Plugin(OPENTBS_DELETEFILE, $Name);
+
+// Deprecated since OpenTBS 1.6.0
+$TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_DELETEFILE, $Name);</pre>
   <p>Delete the existing file in the archive, or a file previously   added using the <span class="smallcode">OPENTBS_ADDFILE</span> command.</p>
   <div class="versioning">(supported since OpenTBS version 1.3)</div>
 </div>
 <h4>&bull; Reset all modifications in the  archive:</h4>
 <div class="shift"> 
-  <div class="code">// OpenTBS &gt;= 1.6.0<br />
-    $TBS-&gt;Plugin(OPENTBS_RESET);<br />
-    <br />
-// Deprecated since OpenTBS 1.6.0<br />
-    $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</div>
+  <pre class="code">// OpenTBS &gt;= 1.6.0
+$TBS-&gt;Plugin(OPENTBS_RESET);
+
+// Deprecated since OpenTBS 1.6.0
+$TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   <p>The automatic extension recognition is also applied as it was applied for the first load of the archive.</p>
 </div>
 <h3><a name="misc" id="misc"></a>4.11. Miscellaneous</h3>
@@ -960,14 +1012,13 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
 <h4>New features</h4>
 <ul>
   <li>New command OPENTBS_EDIT_ENTITY</li>
-  <li>New command OPENTBS_CHART_INFO (Ms Office only)</li>
-  <li>LoadTemplate(false) does close the current template so the template file is no longer locked.<br />
-  </li>
+  <li>New command OPENTBS_CHART_INFO</li>
+  <li>$TBS-&gt;LoadTemplate(false) does close the current template so the template file is no longer locked.  </li>
 </ul>
 <h4>Enhancements</h4>
 <ul>
-  <li>new property $TBS-&gt;OtbsDeleteObsoleteChartData = false; (Ms Office only)</li>
-  <li>OpenTBS do not redo optimisation on the loaded template it has already been done by OpenTBS previously.</li>
+  <li>new property $TBS-&gt;OtbsDeleteObsoleteChartData = true; (Ms Office only)</li>
+  <li>OpenTBS do not redo optimisation on the loaded template if it has already been done by OpenTBS previously.</li>
   <li>Chart in Ms Office : Ensure the caption of a category is displayed even if is has missing data.</li>
   <li>Some code cleanup.</li>
 </ul>

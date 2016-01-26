@@ -5,7 +5,7 @@
 
 * New command OPENTBS_EDIT_ENTITY
 
-* New command OPENTBS_CHART_INFO (Ms Office only)
+* New command OPENTBS_CHART_INFO
 
 * LoadTemplate(false) does close the current template so the template file is no longer locked.
 
@@ -13,18 +13,11 @@
 
 * new property $TBS->OtbsDeleteObsoleteChartData = false; (Ms Office only)
 
-* OpenTBS do not redo optimisation on the loaded template it has already been done by OpenTBS previously.
+* OpenTBS do not redo optimisation on the loaded template if it has already been done by OpenTBS previously.
 
 * Chart in Ms Office : Ensure the caption of a category is displayed even if is has missing data.
 
-* Some code cleanup:
-	- delete XML_DeleteAttributes()
-	- recode MsPowerpoint_CleanRpr() [to-test]
-	- recode XML_DeleteElements()    == Enhancements ==
-	- recode BUG $XmlLoc->FindEndTag('dc:creator'); into $XmlLoc->FindEndTag();
-	- ReplaceInnerSrc() support self-closed entities
-	- new function XML_ForceAtt()
-	- replace OpenXML_Rels_ReplaceTarget() with OpenXML_Rels_DeleteRel()
+* Some code cleanup.
 
 == Bug fixes ==
 
