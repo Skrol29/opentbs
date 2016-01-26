@@ -1,6 +1,14 @@
 
 = Release 1.9.5 =
 
+== New features ==
+
+* New command OPENTBS_EDIT_ENTITY
+
+* New command OPENTBS_CHART_INFO (Ms Office only)
+
+* LoadTemplate(false) does close the current template so the template file is no longer locked.
+
 == Enhancements ==
 
 * new property $TBS->OtbsDeleteObsoleteChartData = false; (Ms Office only)
@@ -9,9 +17,7 @@
 
 * Chart in Ms Office : Ensure the caption of a category is displayed even if is has missing data.
 
-* LoadTemplate(false) does close the current template so the template file is no longer locked.
-
-* Code cleanup:
+* Some code cleanup:
 	- delete XML_DeleteAttributes()
 	- recode MsPowerpoint_CleanRpr() [to-test]
 	- recode XML_DeleteElements()    == Enhancements ==
@@ -24,15 +30,10 @@
 
 * PHP error with ODT templates when changing the name of a Chart series that hadn't any name before.
 
-* PHP error when using command OPENTBS_SEARCH_IN_SLIDES
+* PHP error when using command OPENTBS_SEARCH_IN_SLIDES.
 
 * OpenTBS error « unable to found the chart corresponding to 'xxx' » in DOCX when the chart is not formated as "inline with text".
 
-== New features ==
-
-* New command OPENTBS_EDIT_ENTITY
-
-* New command OPENTBS_CHART_INFO (Ms Office only)
 
 ---------------------------------------------------------------------
 

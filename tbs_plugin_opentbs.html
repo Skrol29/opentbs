@@ -80,8 +80,8 @@ body, td, th {
 <!-- main-body is used for insertion in the TBS menu -->
 <div id="main-body">
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.9.4, 2015-02-11 by Skrol29<br />
-  help file modified on 2015-02-11</div>
+<div>version 1.9.5, 2016-01-25 by Skrol29<br />
+  help file modified on 2016-01-25</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -168,6 +168,10 @@ body, td, th {
 <div class="shift code">$TBS-&gt;LoadTemplate('document.odt#content.xml');</div>
 <h4>&bull; Load an archive and several files stored in this archive:</h4>
 <div class="shift code">$TBS-&gt;LoadTemplate('document.odt#content.xml;settings.xml');</div>
+<h4>&bull; Unload the current template,  so the template file is no longer locked:</h4>
+<div class="shift"><span class="versioning">(supported since OpenTBS version 1.9.5)</span>
+  <div class="code">$TBS-&gt;LoadTemplate(false);</div>
+</div>
 <h4>&bull; Load a stored file from the current archive:</h4>
 <div class="shift">
   <p>See command <a href="#opentbs_select_file">OPENTBS_SELECT_FILE</a>.</p>
@@ -658,6 +662,18 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
       <p><span class="versioning">Command OPENTBS_SYSTEM_CREDIT is supported since OpenTBS version 1.9.1.</span></p></td>
   </tr>
   <tr>
+    <td valign="top" nowrap="nowrap"><span class="smallcode"><a name="opentbs_edit_entity" id="modify27"></a>$TBS-&gt;PlugIn(OPENTBS_EDIT_ENTITY, $SubFile<br />
+      , $ElPath, $Att, $NewVal, $AddElIfMissing = false)</span></td>
+    <td valign="top"><p>Change an attribute's value or  an entity's value in the first element in a given sub-file. Return <span class="smallcode">true</span> if the attribute is found and processed, <span class="smallcode"> false</span> otherwise.</p>
+      <ul>
+        <li><span class="smallcode">$SubFile</span> (string|boolean): the name or the index of the sub-file. Use value <span class="smallcode">false</span> to get the current sub-file.</li>
+        <li> <span class="smallcode">$ElPath</span> (string): path of the element. For example : <span class="smallcode">'w:document/w:body/w:p'</span>.</li>
+        <li> <span class="smallcode">$Att</span> (string|boolean): the attribute, or <span class="smallcode">false</span> to replace the entity's value.</li>
+        <li> <span class="smallcode">$NewVal</span> (string|boolean): the new value, or <span class="smallcode">false</span> to delete the attribute.</li>
+        </ul>
+      <p><span class="versioning">Command OPENTBS_EDIT_ENTITY is supported since OpenTBS version 1.9.5.</span></p></td>
+  </tr>
+  <tr>
     <td align="center" valign="top" nowrap="nowrap" class="category"><span class="smallcode"><a name="commands_for_documents" id="modify16"></a></span>For documents (ODT and DOCX)</td>
     <td valign="top">&nbsp;</td>
   </tr>
@@ -680,6 +696,13 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
     <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_get_headers_footers" id="modify20"></a>$TBS-&gt;PlugIn(OPENTBS_GET_HEADERS_FOOTERS)</td>
     <td valign="top"><p>Return an array of all sub-file corresponding to any header and footer in the document.</p>
       <p class="versioning">Command OPENTBS_GET_HEADERS_FOOTERS is supported since OpenTBS version 1.9.0.</p></td>
+  </tr>
+  <tr>
+    <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_chart_info" id="modify28"></a>$TBS-&gt;PlugIn(OPENTBS_CHART_INFO, $ChartRef, $Complete=false)</td>
+    <td valign="top"><p>Return technical informations about a chart in the template. Veryusefull for debuging charts.</p>
+      <p>If<span class="smallcode"> $Complete</span> = <span class="smallcode">false</span>, the command returns an array of all the series in the chart, with series's name as keys and the list of couples of (category, value) as items.</p>
+      <p>If<span class="smallcode"> $Complete</span> = <span class="smallcode">true</span>, the command return an array with information about subfiles, and also all the series (name, categories,  values) with indexes as keys.</p>
+      <p><span class="versioning">Command OPENTBS_CHART_INFO is supported since OpenTBS version 1.9.5.</span></p></td>
   </tr>
   <tr>
     <td align="center" valign="top" nowrap="nowrap" class="category"><span class="smallcode"><a name="commands_for_workbooks" id="modify15"></a></span>For workbooks (ODS and XLSX)</td> 
@@ -933,6 +956,27 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
+<h3>version 1.9.5, on 2016-01-26</h3>
+<h4>New features</h4>
+<ul>
+  <li>New command OPENTBS_EDIT_ENTITY</li>
+  <li>New command OPENTBS_CHART_INFO (Ms Office only)</li>
+  <li>LoadTemplate(false) does close the current template so the template file is no longer locked.<br />
+  </li>
+</ul>
+<h4>Enhancements</h4>
+<ul>
+  <li>new property $TBS-&gt;OtbsDeleteObsoleteChartData = false; (Ms Office only)</li>
+  <li>OpenTBS do not redo optimisation on the loaded template it has already been done by OpenTBS previously.</li>
+  <li>Chart in Ms Office : Ensure the caption of a category is displayed even if is has missing data.</li>
+  <li>Some code cleanup.</li>
+</ul>
+<h4>Bug fixes</h4>
+<ul>
+  <li>PHP error with ODT templates when changing the name of a Chart series that hadn't any name before.</li>
+  <li>PHP error when using command OPENTBS_SEARCH_IN_SLIDES.</li>
+  <li>OpenTBS error « <span class="warning">unable to found the chart corresponding to 'xxx'</span> » in DOCX when the chart is not formated as <em>inline with text</em>.</li>
+</ul>
 <h3>version 1.9.4, on 2015-02-11</h3>
 <h4>Bug fixes</h4>
 <ul>
@@ -955,6 +999,18 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
   <li> OPENTBS_RELATIVE_CELLS  : optimizes XLSX merged sheets with numerous rows.</li>
 </ul>
 <h3>version 1.9.1, on 2014-09-20</h3>
+<h4>New features</h4>
+<ul>
+  <li>New parameter &quot;<span class="smallcode">unique</span>&quot; for replacing all instances of the picture and save space.</li>
+  <li>New command OPENTBS_COUNT_SHEETS.</li>
+  <li>New command OPENTBS_ADD_CREDIT.</li>
+  <li>New command OPENTBS_SYSTEM_CREDIT.</li>
+  <li>ODS  files are now recognized. It is equivalent to ODS.</li>
+</ul>
+<h4>Enhancements</h4>
+<ul>
+  <li> OPENTBS_CHANGE_PICTURE now use an array of parameters.  </li>
+</ul>
 <h4>Bug fixes</h4>
 <ul>
   <li>Adjusting size of image in docx.</li>
@@ -963,34 +1019,7 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
   <li>A PPTX can be corrupted when opening a template which is a previous result of a merge. This is because an &lt;a:r&gt; must contain at least one &lt;a:t&gt;.</li>
   <li> Merging several XLSX with the same OpenTBS instance can produce erroneous merged cells.</li>
 </ul>
-<h4>New features</h4>
-<ul>
-  <li>New parameter &quot;<span class="smallcode">unique</span>&quot; for replacing all instances of the picture and save space.</li>
-  <li>New command OPENTBS_COUNT_SHEETS.</li>
-  <li>New command OPENTBS_ADD_CREDIT.</li>
-  <li>New command OPENTBS_SYSTEM_CREDIT.</li>
-  <li>ODS  files are now recognized. It is equivalent to ODS.</li>
-  </ul>
-<h4>Enhancements</h4>
-<ul>
-  <li> OPENTBS_CHANGE_PICTURE now use an array of parameters.  </li>
-</ul>
 <h3>version 1.9.0, on 2014-04-10</h3>
-<h4>Bug fixes</h4>
-<ul>
-  <li>Corrupted MS Office files when inserting images named with space or accent.</li>
-  <li>XLSX warning for corrupted subfile &quot;/xl/calcChain.xml-Part&quot;.</li>
-  <li>Some ODS  templates compatible with Ms Excel can
-become erroneous for Ms Excel after the merge with OpenTBS. Message <span class="warning">&quot;The workbook cannot be opened or repaired by Microsoft Excel because it is corrupt&quot;</span>.</li>
-  <li>Some XLSX  templates built with LibreOffice
-can be very long to be opened with OpenTBS. That is because LibreOffice add some extra useless rows definition at the bottom limit of the
-sheets.</li>
-  <li>A big number merged in a XLSX with parameter &quot;ope=tbs:num&quot; can display another value.
-Example : 7580563123 displays -1009371469 in 32bits.</li>
-  <li>Inappropriate error message &quot;ExtType is not defined&quot; when execute a command but no template is loaded.</li>
-  <li>OPTBS_SELECT_SHEET with an ODS template do nothing. Now it selects the main file (contains all sheets).</li>
-  <li>OPTBS_SELECT_SLIDE with an ODP template do nothing. Now it selects the main file (contains all slides).</li>
-</ul>
 <h4>New features</h4>
 <ul>
   <li>new command OPENTBS_SELECT_FILE </li>
@@ -1005,6 +1034,21 @@ Example : 7580563123 displays -1009371469 in 32bits.</li>
   <li>Debug mode available even if no template is loaded.</li>
   <li>Debug mode display the Zlib availability.</li>
   <li>Based on TbsZip 2.16</li>
+</ul>
+<h4>Bug fixes</h4>
+<ul>
+  <li>Corrupted MS Office files when inserting images named with space or accent.</li>
+  <li>XLSX warning for corrupted subfile &quot;/xl/calcChain.xml-Part&quot;.</li>
+  <li>Some ODS  templates compatible with Ms Excel can
+    become erroneous for Ms Excel after the merge with OpenTBS. Message <span class="warning">&quot;The workbook cannot be opened or repaired by Microsoft Excel because it is corrupt&quot;</span>.</li>
+  <li>Some XLSX  templates built with LibreOffice
+    can be very long to be opened with OpenTBS. That is because LibreOffice add some extra useless rows definition at the bottom limit of the
+    sheets.</li>
+  <li>A big number merged in a XLSX with parameter &quot;ope=tbs:num&quot; can display another value.
+    Example : 7580563123 displays -1009371469 in 32bits.</li>
+  <li>Inappropriate error message &quot;ExtType is not defined&quot; when execute a command but no template is loaded.</li>
+  <li>OPTBS_SELECT_SHEET with an ODS template do nothing. Now it selects the main file (contains all sheets).</li>
+  <li>OPTBS_SELECT_SLIDE with an ODP template do nothing. Now it selects the main file (contains all slides).</li>
 </ul>
 <h3>version 1.8.3, on 2014-02-02</h3>
 <ul>
