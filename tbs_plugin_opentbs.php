@@ -405,7 +405,7 @@ class clsOpenTBS extends clsTbsZip {
 			$Complete = $x2;
             
 			if ($this->ExtType=='odf') {
-				return false; // not supported yet
+				return $this->OpenDoc_ChartReadSeries($ChartRef, $Complete);
 			} else {
                 return $this->OpenXML_ChartReadSeries($ChartRef, $Complete);
 			}
@@ -2101,9 +2101,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-	 * Change an attribute's value in the first element in a given sub-file.
+	 * Change an attribute's value or an entity's value in the first element in a given sub-file.
 	 * @param {mixed}  $SubFile : the name or the index of the sub-file. Use value false to get the current sub-file.
-	 * @param {string} $ElPath  : path of the element For example : 'w:document/w:body/w:p'.
+	 * @param {string} $ElPath  : path of the element. For example : 'w:document/w:body/w:p'.
 	 * @param {string|boolean} $Att    : the attribute, or false to replace the entity's value.
 	 * @param {string|boolean} $NewVal : the new value, or false to delete the attribute.
 	 * @return {boolean} True if the attribute is found and processed. False otherwise.
@@ -2998,6 +2998,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	/**
+	 * Find a chart in the template by its reference.
+	 * Returns the OpenTBS's internal chart ref if found.
+	 */
     function OpenXML_ChartFind($ChartRef, $ErrTitle) {
         
 		if ($this->OpenXmlCharts===false) $this->OpenXML_ChartInit();
@@ -5002,15 +5006,19 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return $this->XML_BlockAlias_Prefix('draw:', $Txt, $Pos, $Forward, $LevelStop);
 	}
 
-	function OpenDoc_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend=false) {
-
+	/**
+	 * Find a chart in the template by its reference.
+	 * Return an array of technical information about the sub-file.
+	 */
+	function OpenDoc_ChartFind($ChartRef, &$Txt, $ErrTitle) {
+		
 		if ($this->OpenDocCharts===false) $this->OpenDoc_ChartInit();
 
 		// Find the chart
 		if (is_numeric($ChartRef)) {
 			$ChartCaption = 'number '.$ChartRef;
 			$idx = intval($ChartRef) -1;
-			if (!isset($this->OpenDocCharts[$idx])) return $this->RaiseError("(ChartChangeSeries) : unable to found the chart $ChartCaption.");
+			if (!isset($this->OpenDocCharts[$idx])) return $this->RaiseError("($ErrTitle) : unable to found the chart $ChartCaption.");
 		} else {
 			$ChartCaption = 'with title "'.$ChartRef.'"';
 			$idx = false;
@@ -5018,7 +5026,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			foreach($this->OpenDocCharts as $i=>$c) {
 				if ($c['title']==$x) $idx = $i;
 			}
-			if ($idx===false) return $this->RaiseError("(ChartChangeSeries) : unable to found the chart $ChartCaption.");
+			if ($idx===false) return $this->RaiseError("($ErrTitle) : unable to found the chart $ChartCaption.");
 		}
 		$this->_ChartCaption = $ChartCaption; // for error messages
 
@@ -5027,15 +5035,30 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ($chart['to_clear']) $this->OpenDoc_ChartClear($chart);
 
 		// Retrieve the XML of the data
-		$data_idx = $this->FileGetIdx($chart['href'].'/content.xml');
-		if ($data_idx===false) return $this->RaiseError("(ChartChangeSeries) : unable to found the data in the chart $ChartCaption.");
-		$Txt = $this->TbsStoreGet($data_idx, 'OpenDoc_ChartChangeSeries');
+		$data_file = $chart['href'] . '/content.xml';
+		$data_idx = $this->FileGetIdx($data_file);
+		if ($data_idx===false) return $this->RaiseError("($ErrTitle) : unable to found the data in the chart $ChartCaption.");
+		$chart['data_file'] = $data_file;
+		$chart['data_idx'] = $data_idx;
+
+		$Txt = $this->TbsStoreGet($chart['data_idx'], 'OpenDoc_ChartChangeSeries');
 
 		// Found all chart series
 		if (!isset($chart['series'])) {
 			$ok = $this->OpenDoc_ChartFindSeries($chart, $Txt);
-			if (!$ok) return;
+			if (!$ok) return false;
 		}
+		
+		return $chart;
+		
+	}
+	
+	function OpenDoc_ChartChangeSeries($ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend=false) {
+
+		$Txt = false;
+		$chart = $this->OpenDoc_ChartFind($ChartRef, $Txt, 'ChartChangeSeries');
+		if ($chart === false) return;
+		
 		$series = &$chart['series'];
 
 		// Found the asked series
@@ -5152,7 +5175,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ($x!=='') $Txt = substr_replace($Txt, $x, $p, 0);
 
 		// Save the result
-		$this->TbsStorePut($data_idx, $Txt);
+		$this->TbsStorePut($chart['data_idx'], $Txt);
 
 	}
 
@@ -5249,7 +5272,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			}
 			// rearrange col numbers
 			ksort($s_cols);
-			$s_cols = array_keys($s_cols); // nedded for havinf first col on index 0
+			$s_cols = array_keys($s_cols); // nedded for having first col on index 0
 			// Attribute to re-find the series
 			$ref = $elSeries->GetAttLazy('chart:label-cell-address');
 			// Add the series
@@ -5333,6 +5356,19 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	function OpenDoc_ChartReadSeries($ChartRef, $Complete) {
+		
+		$Txt = false;
+		$chart = $this->OpenDoc_ChartFind($ChartRef, $Txt, 'ChartReadSeries');
+		if ($chart === false) return;
+
+		$series = &$chart['series'];
+		
+		return $chart; // TODO: reformat info in order to be compatible with OpenXML
+		
+		
+	}
+	
 	function OpenDoc_ChartDebug($nl, $sep, $bull) {
 
 		if ($this->OpenDocCharts===false) $this->OpenDoc_ChartInit();
