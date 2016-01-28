@@ -3,6 +3,14 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>OpenTBS Demo</title>
+<script language="javascript">
+  // redirection if open without the menu at the TBS site
+  if ( (document.location.href.indexOf('www.tinybutstrong.com') > 0)
+        && (document.location.href.indexOf('demo.html') > 0)
+	  ) {
+  	document.location.href = "/opentbs.php?demo";
+  }
+</script>
 <script type="text/javascript">
 	function download_template() {
 		var file = document.forms['form1'].elements['tpl'].value;
