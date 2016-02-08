@@ -9,6 +9,8 @@
 
 * LoadTemplate(false) does close the current template so the template file is no longer locked.
 
+* New OpenTBS add-in for Microsoft Word: it helps to clean TBS tags.
+
 == Enhancements ==
 
 * new property $TBS->OtbsDeleteObsoleteChartData = false; (Ms Office only)
