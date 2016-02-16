@@ -88,8 +88,8 @@ body, td, th {
 <!-- main-body is used for insertion in the TBS menu -->
 <div id="main-body">
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.9.5, 2016-02-09 by Skrol29<br />
-  help file modified on 2016-02-09</div>
+<div>version 1.9.5, 2016-02-09 by Skrol29</div>
+<div>help file modified on 2016-02-16</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -213,8 +213,7 @@ $TBS-&gt;LoadTemplate($handle);</pre>
 </div>
 <h3><a name="blockalias" id="modify"></a>4.4. Block alias</h3>
 <p><span class="versioning">Block Alias are supported since OpenTBS version 1.8.0, they can work only with TBS 3.8.0 or higher</span>.</p>
-<p>The Block Alias are wrappers for defining TBS blocks on  usual Libre Office and Ms Office entities.<br />
-  This helps to not referring directly to XML entities and to harmonize block definitions between types of documents.<br />
+<p>The Block Alias are wrappers for defining TBS blocks on  usual Libre Office and Ms Office entities. This helps to not referring directly to XML entities and to harmonize block definitions between types of documents.
   For example:  you can use <span class="smallcode">block=tbs:row</span> instead of <span class="smallcode">block=table:table-row</span>.</p>
 <p> Some Block Alias, such as <span class="smallcode">tbs:page</span> and <span class="smallcode">tbs:section</span>, are also defining an entity that you cannot have with normal XML entities.</p>
 <h5>Block alias available according to the type of document :</h5>
@@ -977,17 +976,21 @@ $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   </tr>
 </table>
 <p>Otherwise, here are some indications that may help for the issues you can met with merging:</p>
-<h3>a) The merged document is producing error messages when opened with its application (OpenOffice or Ms Office)</h3>
+<h3><a name="debug_error" id="debug_error"></a>a) The merged document is producing error messages when opened with its application (OpenOffice or Ms Office)</h3>
 <p>The most likely causes are:</p>
 <p>&bull; You've chosen the <span class="smallcode">OPENTBS_DOWNLOAD</span> render option but a php error message or any other unexpected content has been output before by PHP.</p>
 <p class="shift">Activate the <a href="#debugmode">debug mode</a> using the command <span class="smallcode">OPENTBS_DEBUG_XML_SHOW</span>, it helps to check PHP error message and other unexpected content.</p>
 <p>&bull; The merging has produced an invalid document or an invalid XML content in an XML file  of the document.</p>
 <p class="shift">Activate the <a href="#debugmode">debug mode</a> using  it helps to check the XML contents of merged files.</p>
 <p> See section (b) below for more information in the XML structure of the files.</p>
-<h3>b) The merged document is well opened by its application (OpenOffice or Ms Office) but the content is not designed as expected</h3>
-<p>First, you can have a look the <a href="#demo">demo templates</a>, they contain examples and advices for each type of document.<br />
-  And to go further: even if you can edit your template using directly OpenOffice or Ms Office, you will probably need to understand the XML tags and attributes to complete your merge. The file <a href="xml_synopsis.txt">xml_synopsis.txt</a> is a small synopsis of the XML structure you can found in the inner source of those documents. Have a look to it if you feel lost.</p>
-<h3>c) Go deeper in the debugging</h3>
+<h3><a name="debug_tags" id="debug_error4"></a>b) Some TBS tags are not merged</h3>
+<p>First be sure that the TBS tag is a in a part of the document which is loaded and selected. Since a sub-file is loaded, automatic block ([onload] and [onshow]) will be merged. And you need to have the sub-file selected in order to use MergeBlock() and MergeField() on it. See commands like OPENTBS_SELECT_*. For example, in Ms Word , header and footers are loaded, and the main document is loaded and selected, but your need to select back a header part in order to use MergeBlock() on it.</p>
+<p>Then, it  may happens that a TBS tag seems uniformly formatted, while in fact the inner  XML is split because of small difference in format, small different spelling information,  or other...  In order to avoid inner split, you can select the TBS tags, then  cut it, and then paste it back without formatting.  It is &ldquo;Paste special / Unformatted text&rdquo; in LibreOffice,  or &ldquo;Paste / Keep Text Only&rdquo; is Ms Office.</p>
+<p> For MS  Word, you can also use &ldquo;OpenTBS plug-in for Microsoft Word&rdquo;, which is given with  the standard OpenTBS package. This plug-in gives a tag cleaner tool.</p>
+<h3><a name="debug_design" id="debug_error2"></a>c) The merged document is well opened by its application (OpenOffice or Ms Office) but the content is not designed as expected</h3>
+<p>First, you can have a look the <a href="#demo">demo templates</a>, they contain examples and advices for each type of document.</p>
+<p> And to go further: even if you can edit your template using directly OpenOffice or Ms Office, you will probably need to understand the XML tags and attributes to complete your merge. The file <a href="xml_synopsis.txt">xml_synopsis.txt</a> is a small synopsis of the XML structure you can found in the inner source of those documents. Have a look to it if you feel lost.</p>
+<h3><a name="debug_unzip" id="debug_error3"></a>d) Go deeper in the debugging</h3>
 <p>You can view the inner source of a document using a zip software like <a href="http://www.7-zip.org/">7-Zip</a>. It allows you to open an archive even if the extension is not &quot;.zip&quot;.<br />
 </p>
 <ul>
@@ -1000,19 +1003,23 @@ $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
 </ul>
 <h2><a name="zlib" id="zlib"></a>7. What to do if Zlib extension is not enabled with PHP?</h2>
 <p>OpenTBS uses  Zlib functions in order to automatically uncompress and recompress files stored in the zip archive. If Zlib is not enabled, then you have to use your own uncompress/compress tool, or to prepare the template to have files uncompressed in the zip archive.</p>
-<p><u>Example to uncompress the &quot;content.xml&quot; file in an ODT document using 7-Zip:</u><br />
-  1) open the ODT file with 7-Zip<br />
-  2) extract the &quot;content.xml&quot; file from the ODT file in the same folder than the ODT file<br />
-  3) 
-  close 7-Zip<br />
-  4) 
-  open 7-Zip, and change current directory to be the same as the ODT file<br />
-  5) select the 
-  &quot;content.xml&quot; file and click on button [Add], or menu [File][7-Zip][Add to archive...]<br />
-  6) A new  window named &quot;Add to archive&quot; is opened,<br />
-  &nbsp;&nbsp;&nbsp;&nbsp;- replace the archive name with the ODT file name,<br />
-  &nbsp;&nbsp;&nbsp;&nbsp;- set the Compression level to &quot;None&quot;.<br />
-  7) Click on [Ok]<br />
+<p><u>Example to uncompress the &quot;content.xml&quot; file in an ODT document using 7-Zip:</u>
+<ol>
+  <li>open the ODT file with 7-Zip,</li>
+  <li>extract the &quot;content.xml&quot; file from the ODT file in the same folder than the ODT file,</li>
+  <li>close 7-Zip,</li>
+  <li> 
+  open 7-Zip, and change current directory to be the same as the ODT file</li>
+  <li>select the 
+  &quot;content.xml&quot; file and click on button [Add], or menu [File][7-Zip][Add to archive...],</li>
+  <li>a new  window named &quot;Add to archive&quot; is opened,
+    <ul>
+  <li>replace the archive name with the ODT file name,</li>
+  <li>set the Compression level to &quot;None&quot;,</li>
+  </ul>
+  </li>
+  <li>click on [Ok].</li>
+  </ol>
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
@@ -1188,7 +1195,7 @@ $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
 </ul>
 <h3>version 1.7.0, on 2011-08-21</h3>
 <ul>
-  <li>   new parameter 'adjust' for changing picture size</li>
+  <li> new parameter 'adjust' for changing picture size</li>
   <li> new command OPENTBS_DEBUG_INFO </li>
   <li> new command OPENTBS_SELECT_MAIN </li>
   <li> new command OPENTBS_SELECT_SHEET</li>
