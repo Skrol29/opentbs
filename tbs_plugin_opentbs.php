@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.5
- * @date 2016-02-09
+ * @version 1.9.6-beta
+ * @date 2016-03-10
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -91,7 +91,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.9.5';
+		$this->Version = '1.9.6-beta';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -452,7 +452,7 @@ class clsOpenTBS extends clsTbsZip {
 
 			// Only XLSX files have sheets in separated subfiles.
 			if ($this->ExtEquiv==='xlsx') {
-				$o = $this->MsExcel_SheetGet($x1);
+				$o = $this->MsExcel_SheetGet($x1, $x2);
 				if ($o===false) return;
 				if ($o->file===false) return $this->RaiseError("($Cmd) Error with sheet '$x1'. The corresponding XML subfile is not referenced.");
 				return $this->TbsLoadSubFileAsTemplate('xl/'.$o->file);
@@ -3752,6 +3752,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$rels = array();
 		while ($loc=clsTbsXmlLoc::FindStartTag($Txt, 'sheet', $p, true) ) {
 			$o = (object) null;
+			$o->num = $i + 1;
+			// SheetId is not the numbered sheet in the workbook. It may have a missing sheet id.
 			$o->sheetId   = $loc->GetAttLazy('sheetId');
 			$o->rid   = $loc->GetAttLazy('r:id');
 			$o->name  = $loc->GetAttLazy('name');
@@ -3778,13 +3780,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	function MsExcel_SheetGet($IdOrName) {
+	function MsExcel_SheetGet($IdOrName, $bySheetId = false) {
 		$this->MsExcel_SheetInit();
 		foreach($this->MsExcel_Sheets as $o) {
 			if ($o->name==$IdOrName) return $o;
-			if ($o->sheetId==$IdOrName) return $o;
+			if ($bySheetId) {
+				if ($o->sheetId==$IdOrName) return $o;
+			} else {
+				if ($o->num==$IdOrName) return $o;
+			}
 		}
-		return $this->RaiseError("($Caller) The sheet '$IdOrName' is not found inside the Workbook. Try command OPENTBS_DEBUG_INFO to check all sheets inside the current Workbook.");
+		return $this->RaiseError("(MsExcel_SheetInit) The sheet '$IdOrName' is not found inside the Workbook. Try command OPENTBS_DEBUG_INFO to check all sheets inside the current Workbook.");
 	}
 
 	/**
@@ -3807,7 +3813,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		echo $nl."-----------------------";
 		foreach ($this->MsExcel_Sheets as $o) {
 			$name = str_replace(array('&amp;','&quot;','&lt;','&gt;'), array('&','"','<','>'), $o->name);
-			echo $bull."id: ".$o->sheetId.", name: [".$name."], state: ".$o->stateR.", file: xl/".$o->file;
+			echo $bull."num: ".$o->num.", id: ".$o->sheetId.", name: [".$name."], state: ".$o->stateR.", file: xl/".$o->file;
 		}
 
 	}
@@ -3827,7 +3833,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		// process sheet in reverse order of their positions
 		foreach ($this->MsExcel_Sheets as $o) {
-			$zid = 'i:'.$o->sheetId;
+			$zid = 'i:'.$o->num;
 			$zname = 'n:'.$o->name; // the value in the name attribute is XML protected
 			if ( isset($this->OtbsSheetSlidesDelete[$zname]) || isset($this->OtbsSheetSlidesDelete[$zid]) ) {
 				// Delete the sheet
@@ -4130,12 +4136,32 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	// Cleaning tags in MsWord
 	function MsWord_Clean(&$Txt) {
 		$Txt = str_replace('<w:lastRenderedPageBreak/>', '', $Txt); // faster
+		//$this->MsWord_CleanFallbacks($Txt);
 		$this->XML_DeleteElements($Txt, array('w:proofErr', 'w:noProof', 'w:lang', 'w:lastRenderedPageBreak'));
 		$this->MsWord_CleanSystemBookmarks($Txt);
 		$this->MsWord_CleanRsID($Txt);
 		$this->MsWord_CleanDuplicatedLayout($Txt);
 	}
+	
+	/**
+	 * <mc:Fallback> entities may contains duplicated TBS fields and this may corrupt the merging.
+	 * This function delete such entities if they seems to contain TBS fields. This make the DOCX content less compatible with previous Word versions.
+	 * https://wiki.openoffice.org/wiki/OOXML/Markup_Compatibility_and_Extensibility
+	 */ 
+	function MsWord_CleanFallbacks(&$Txt) {
+		
+		$p = 0;
+		$nb = 0;
+		while ( ($loc = clsTbsXmlLoc::FindElement($Txt,'mc:Fallback',$p))!==false ) {
+			if (strpos($loc->GetSrc(), $this->TBS->_ChrOpen) !== false ) {
+				$loc->Delete();
+				$nb++;
+			}
+			$p = $loc->PosEnd;
+		}
 
+	}
+	
 	function MsWord_CleanSystemBookmarks(&$Txt) {
 	// Delete GoBack hidden bookmarks that appear since Office 2010. Example: <w:bookmarkStart w:id="0" w:name="_GoBack"/><w:bookmarkEnd w:id="0"/>
 

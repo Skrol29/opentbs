@@ -88,8 +88,8 @@ body, td, th {
 <!-- main-body is used for insertion in the TBS menu -->
 <div id="main-body">
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.9.5, 2016-02-09 by Skrol29</div>
-<div>help file modified on 2016-02-16</div>
+<div>version 1.9.6, 2016-03-11 by Skrol29</div>
+<div>help file modified on 2016-03-11</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -625,13 +625,12 @@ array (
     <td nowrap="nowrap">For XLSX, it's an alias of <span class="smallcode">ope=tbs:num</span></td>
   </tr>
 </table>
-<p class="versioning">The keywoks in the table above are supported since OpenTBS version 1.8.1.<br />
-In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime, odsCurr, odsPercent, xlsxNum, xlsxBool and xlsxDate.</p>
+<p class="versioning">The keywoks in the table above are supported since OpenTBS version 1.8.1.</p>
+<p class="versioning"> In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime, odsCurr, odsPercent, xlsxNum, xlsxBool and xlsxDate.</p>
 <h3><a name="col" id="modify3"></a>4.8. Delete or merge columns in a table</h3>
 <h5>Delete columns in a table</h5>
-<p>Parameter &quot;<span class="smallcode">ope=delcol</span>&quot; enables you to delete the columns you want in any table of an Ms Word Document or a LibreOffice document.<br />
-  Limitations: Parameter &quot;<span class="smallcode">ope=delcol</span>&quot; will produce a wrong result if there is any merged cells before of within the columns to delete. <br />
-</p>
+<p>Parameter &quot;<span class="smallcode">ope=delcol</span>&quot; enables you to delete the columns you want in any table of an Ms Word Document or  any LibreOffice document.</p>
+<p> Limitations: Parameter &quot;<span class="smallcode">ope=delcol</span>&quot; will produce a wrong result if there is any  cell with a merged style before of within the columns to delete using OpenTBS.</p>
 <p> You have to put a TBS field anywhere inside the table with the following parameters:</p>
 <ul>
   <li> <span class="template">ope=delcol</span></li>
@@ -646,15 +645,22 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
   <li> <span class="template">[onload;ope=delcol;colnum=2;colshift=-1]</span> =&gt; will delete columns {1,2}</li>
   <li><span class="template">[onload.col_to_delete;ope=delcol;colnum=[val];colshift=2]</span> =&gt; will delete 3 columns staring from column number <span class="smallcode">$col_to_delete</span></li></ul></div>
 <p class="versioning">Parameter &quot;ope=delcol&quot;  is  supported since OpenTBS version 1.8.0.</p>
-<h5>Merge cells in a table</h5>
-<p>Parameter &quot;<span class="smallcode">parallel=tbs:table</span>&quot; enables you to merge cells vertically in a table of an Ms Word Document or any LibreOffice document.<br />
-  Limitations: Parameter &quot;<span class="smallcode">parallel=tbs:table</span>&quot; with OpenTBS will produce a wrong merge if there is any merged cells before of within the columns to merge with OpenTBS.<br />
-  See the <a href="http://www.tinybutstrong.com/manual.php#html_block_parallel">TBS manual</a> and the OpenTBS demo for more details about how to use parameter &quot;<span class="smallcode">parallel</span>&quot;.</p>
+<h5>Merge dynamic colmuns in a table</h5>
+<p>Parameter &quot;<span class="smallcode">parallel=tbs:table</span>&quot; enables you to create dynamic columns in a table of an Ms Word Document or any LibreOffice document.</p>
+<p> Limitations: </p>
+<ul>
+  <li>Parameter &quot;<span class="smallcode">parallel=tbs:table</span>&quot; doesn't work with Ms Excel and Ms Powerpoint documents.</li>
+  <li> Parameter &quot;<span class="smallcode">parallel=tbs:table</span>&quot; with OpenTBS will produce a wrong result if there is any  cell with a merged style before of within the columns to merge with data using OpenTBS.</li>
+</ul>
+<p> See the <a href="http://www.tinybutstrong.com/manual.php#html_block_parallel">TBS manual</a> and the OpenTBS demo for more details about how to use parameter &quot;<span class="smallcode">parallel</span>&quot;.</p>
 <p><span class="versioning">Parameter &quot;parallel=tbs:table&quot;  is  supported since OpenTBS version 1.8.2.</span></p>
-<h5>Other solution supported for compatibility:</h5>
-<p> Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; enables you to merge cells vertically in a table of an Ms Word Document.<br />
-  Limitations:  It doesn't work for LibreOffice. Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; will produce a wrong merge if there is any merged cells before of within the columns to merge with OpenTBS.<br />
-</p>
+<h5>Other solution supported for compatibility</h5>
+<p> Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; enables you to merge cells vertically in a table of an Ms Word Document.</p>
+<p> Limitations:  </p>
+<ul>
+  <li>Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; doesn't work with LibreOffice.</li>
+  <li> Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; will produce a wrong merge if there is any  cell with a maged style before of within the columns to merge with data using OpenTBS.</li>
+</ul>
 <p>Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; can work only for a block merged on the rows of the table. Note that the TBS field with &quot;<span class="smallcode">ope=mergecell</span>&quot; does not display any value, it only produces the merge.</p>
 <div class="shift"> Example:
   <ul>
@@ -770,14 +776,17 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
     <td valign="top">&nbsp;</td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_select_sheet" id="modify9"></a>$TBS-&gt;PlugIn(OPENTBS_SELECT_SHEET, $NumOrName)</td>
+    <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_select_sheet" id="modify9"></a>$TBS-&gt;PlugIn(OPENTBS_SELECT_SHEET, $NumOrName [, $ById])</td>
     <td valign="top"><p>Select the sub-file corresponding to <span class="smallcode">$NumOrName</span>. This command will raise an error if the opened template is not an expected document.</p>
       <p>This command is useless for LibreOffice/OpenOffice because all sheets/slides are all saved in the main sub-file. Nevertheless using it will select the main sub-file without raising an error.</p>
       <p><span class="smallcode">$NumOrName</span> is an identifier that can be 
-        either an integer corresponding to the index of the sheet/slide, or a string corresponding to the name of the sheet/slide.</p>
-      <p> Use command <span class="smallcode">$TBS-&gt;PlugIn(<a href="#debugmode">OPENTBS_DEBUG_INFO</a>)</span> to list all id and name of sheets/slides in the current document.</p>
+        either an integer corresponding to the number of the sheet in the sheet list (first is number 1), or a string corresponding to the name of the sheet.</p>
+      <p>Use command <span class="smallcode">$TBS-&gt;PlugIn(<a href="#debugmode">OPENTBS_DEBUG_INFO</a>)</span> to list all id and name of sheets/slides in the current document.</p>
+<p>Use command <span class="smallcode">$TBS-&gt;PlugIn(<a href="#opentbs_count_sheets">OPENTBS_COUNT_SHEETS</a>)</span> get the number of sheets in the workbook.</p>
+      <p><span class="smallcode">$ById</span> is false by default, set it to <span class="smallcode">true</span> if you want to select the sheet by its internal ID instead of its number in the sheet list. This can be used for compatibility with previous OpenTBS vesions (see version history below).      </p>
       <p class="versioning">Command OPENTBS_SELECT_SLIDE is supported since OpenTBS version 1.8.0.<br />
-    Argument $Master is supported since OpenTBS version 1.9.0.</p></td>
+    Argument $ById is supported since OpenTBS version 1.9.6.<br />
+    Before OpenTBS version 1.9.6, the sheet was not find by its number in the sheet list but only by its internal id, which may be different. </p></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_display_sheet" id="modify17"></a>$TBS-&gt;PlugIn(OPENTBS_DISPLAY_SHEETS, $NumOrNames[, $Visible])</td>
@@ -786,7 +795,8 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
         <li> <span class="smallcode">$NumOrNames</span> must be an array of  identifiers, or even a single  identifier. See command <span class="smallcode">OPENTBS_SELECT_SHEET</span> for more details about  identifiers.</li>
         <li><span class="smallcode">$Visible</span> must be a boolean, default value is <span class="smallcode">true</span>.</li>
       </ul>
-    <p><span class="versioning">Command OPENTBS_DISPLAY_SLIDES is supported since OpenTBS version 1.8.0.</span></p></td>
+    <p><span class="versioning">Command OPENTBS_DISPLAY_SLIDES is supported since OpenTBS version 1.8.0.</span><br />
+      <span class="versioning">Before OpenTBS version 1.9.6, the sheet was not selected by its number in the sheet list but only by its internal id, which may be different. </span>    </p></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_delete_sheets" id="modify13"></a>$TBS-&gt;PlugIn(OPENTBS_DELETE_SHEETS, $NumOrNames[, $Delete])</td>
@@ -797,7 +807,8 @@ In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime,
         <li><span class="smallcode">$Delete</span> must be a boolean, default value is <span class="smallcode">true</span>.</li>
         </ul>
       <p><em class="warning">Please note that for now, you must not delete a sheet that contains a Pivot Table in a XLSX workbook because  this will produce an error when the workbook is opened.</em></p>
-      <p><span class="versioning">Command OPENTBS_DELETE_SLIDES is supported since OpenTBS version 1.8.0.</span></p></td>
+      <p><span class="versioning">Command OPENTBS_DELETE_SLIDES is supported since OpenTBS version 1.8.0.</span><br />
+      <span class="versioning">Before OpenTBS version 1.9.6, the sheet was not find by its number in the sheet list but only by its internal id, which may be different. </span>      </p></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_count_sheets" id="modify24"></a>$TBS-&gt;PlugIn(OPENTBS_COUNT_SHEETS)</td>
@@ -1023,6 +1034,11 @@ $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
+<h3>version 1.9.5, on 2016-02-09</h3>
+<h4>Bug fixes</h4>
+<ul>
+  <li>The commands OPENTBS_SELECT_SHEET, OPENTBS_DELETE_SHEET and OPENTBS_DELETE_SHEETS used to find the sheet by its internal id instead of its number in the sheet list.</li>
+</ul>
 <h3>version 1.9.5, on 2016-02-09</h3>
 <h4>New features</h4>
 <ul>

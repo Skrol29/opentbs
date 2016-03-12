@@ -1,3 +1,13 @@
+= Release 1.9.6 =
+
+== Bug fixes ==
+
+* OPENTBS_SELECT_SHEET select the sheet by its sheetId which may not be ordered nore sequential.
+  same for OPENTBS_DELETE_SHEETS and OPENTBS_DISPLAY_SHEETS
+  
+  http://www.tinybutstrong.com/forum.php?thr=3630
+
+
 
 = Release 1.9.5 =
 
