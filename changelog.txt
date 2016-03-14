@@ -7,7 +7,7 @@
   
   http://www.tinybutstrong.com/forum.php?thr=3630
 
-
+* Merging text with line-breaks in a DOCX was not dipslayed correctly in Libre Office.
 
 = Release 1.9.5 =
 

@@ -1908,7 +1908,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			}
 			$ctype = 'application/vnd.openxmlformats-officedocument.';
 			if ($Ext==='docx') {
-				$i = array('br' => '<w:br/>', 'ctype' => $ctype . 'wordprocessingml.document', 'pic_path' => 'word/media/', 'rpl_what' => $x, 'rpl_with' => '\'', 'pic_entity'=>'w:drawing');
+				// Notes: (1) '<w:br/>' works but '</w:t><w:br/><w:t>' enforce compatibility with Libre Office. (2) Line-breaks merged in attributes will corrupt the DOCX anyway.
+				$i = array('br' => '</w:t><w:br/><w:t>', 'ctype' => $ctype . 'wordprocessingml.document', 'pic_path' => 'word/media/', 'rpl_what' => $x, 'rpl_with' => '\'', 'pic_entity'=>'w:drawing');
 				$i['main'] = $this->OpenXML_MapGetMain('wordprocessingml.document.main+xml', 'word/document.xml');
 				$i['load'] = $this->OpenXML_MapGetFiles(array('wordprocessingml.header+xml', 'wordprocessingml.footer+xml'));
 				$block_alias = array(
