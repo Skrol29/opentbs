@@ -1,0 +1,675 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Synopsis</title>
+<style type="text/css">
+pre {
+	background-color: #A0CFCF;
+}
+code {
+	background-color: #B4BBFC;
+	color: #036;
+}
+li {
+	line-height: 24px;
+}
+.comm {
+	color: #060;
+}
+.txt {
+	color: #666;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- div main-body is used for insertion in the TBS menu -->
+<div id="main-body">
+
+<h1>Synopsis of XML files stored in the archives supported by OpenTBS</h1>
+<p> Version 2016-03-24</p>
+<p>Extensions:  odt, odg, ods, odf, odp, docx, xlsx and pptx</p>
+<p>This file is incomplete, feel free to send your own comments to: <a href="http://www.tinybutstrong.com/onlyyou.html">http://www.tinybutstrong.com/onlyyou.html</a></p>
+<h2>Table of Contents</h2>
+<ul>
+  <li>1 <a href="#libreoffice">LibreOffice &amp; OpenOffice documents</a></li>
+  <li>1.1 <a href="#libreoffice_mainfile">Main file</a></li>
+  <li>1.1.1 <a href="#libreoffice_sections">Sections</a></li>
+  <li>1.1.2 <a href="#libreoffice_slides">Slides in a presentation</a></li>
+  <li>1.1.3 <a href="#libreoffice_tables">Table in a document</a></li>
+  <li>1.1.3.a Cells merged vertically</li>
+  <li>1.1.3.b Cells merged horizontally</li>
+  <li>1.1.4 <a href="#libreoffice_comments">Comments</a></li>
+  <li>1.1.4.a Comments in ODS workbooks (OpenOffice Calc)</li>
+  <li>1.1.4.b Comments in ODT documents (OpenOffice Write)</li>
+  <li>1.1.5  <a href="#libreoffice_header">Headers and footers in a document </a></li>
+  <li>1.1.5.a ODT and ODS</li>
+  <li>1.1.5.b ODP</li>
+  <li>1.1.6 <a href="#libreoffice_charts">Charts</a></li>
+  <li>1.1.7 <a href="#libreoffice_textboxes">Textboxes</a></li>
+  <li>1.1.8 <a href="#libreoffice_odf">Special to ODF</a> (OpenOffice Math Formula)</li>
+  <li>1.1.9 <a href="#libreoffice_pictures">Pictures</a></li>
+  <li>2 <a href="#msoffice">Microsoft Office documents</a></li>
+  <li>2.1 <a href="#msoffice_docx">Word document (DOCX</a>)</li>
+  <li>2.1.1 <a href="#msoffice_docx_main">The maine file</a></li>
+  <li>2.1.2 <a href="#msoffice_docx_tables">Tables</a></li>
+  <li>2.1.3 <a href="#msoffice_docx_headers">Headers and footers</a></li>
+  <li>2.1.4 <a href="#msoffice_docx_comments">Comments, footnotes and endnotes</a></li>
+  <li>2.1.5 <a href="#msoffice_docx_bookmarks">Bookmarks</a></li>
+  <li>2.1.6 <a href="#msoffice_docx_textboxes">Textboxes</a></li>
+  <li>2.1.7 <a href="#msoffice_docx_charts">Charts</a></li>
+  <li>2.1.8 <a href="#msoffice_docx_pictures">Pictures</a></li>
+  <li>2.2 <a href="#msoffice_xlsx">Excel spreadsheet (XLSX</a>)</li>
+  <li>2.2.1 <a href="#msoffice_xlsx">General</a></li>
+  <li>2.2.2 <a href="#msoffice_xlsx_headers">Headers and footers</a></li>
+  <li>2.2.3 <a href="#msoffice_xlsx_pictures">Pictures</a></li>
+  <li>2.3 <a href="#msoffice_pptx">PowerPoint presentation (PPTX</a>)</li>
+  <li>2.3.1 <a href="#msoffice_pptx">General</a></li>
+  <li>2.3.2 <a href="#msoffice_pptx_headers">Headers and footers</a></li>
+  <li>2.3.3 <a href="#msoffice_pptx_pictures">Pictures</a></li>
+</ul>
+<h2> <a name="libreoffice"></a>LibreOffice &amp; OpenOffice documents</h2>
+<p> That is extensions ODT, ODS, ODG, ODF, ODP, ODM.</p>
+<p>All simple quotes <code>&quot;'&quot;</code> in texts are coded with <code>&quot;&amp;apos;&quot;</code> but they are automatically replaced by the OpenTBS plugin.</p>
+<p>The main information is stored in the file <em>'content.xml'</em>. </p>
+<p> The pictures are stored in the directory <em>'Pictures'</em> and should be registered into the file <em>'META-INF/manifest.xml'</em>. (OpenTBS does it automatically for you when you use parameter &quot;addpic&quot;).</p>
+<p> Since OpenOffice 3.2, if a picture is not registered in the Manifest file, then it can produce a message error when opening the document.</p>
+<p> Video and sound cannot be stored in OpenOffice documents.</p>
+<h2><a name="libreoffice_mainfile" id="libreoffice_mainfile"></a>Main file (content.xml)</h2>
+<h3>Synopsis</h3>
+<pre>&lt;office:document-content&gt;
+   ...
+   &lt;office:body&gt;
+&lt;office:text&gt;
+&lt;text:p text:style-name=&quot;Standard&quot;&gt;
+<span class="comm">   Normal new lines are made with a new paragraphs &lt;text:p&gt;...&lt;/text:p&gt;
+   Simple new lines are made with &lt;text:line-break/&gt;
+   Tabs are made with &lt;text:tab/&gt;
+   Page-breaks are made with a new paragraph having a style which has the attribute fo:break-before=&quot;page&quot; or fo:break-after=&quot;page&quot;.
+   Note that the page-break does not work if the attribute is in the paragraph element. A &quot;break-before&quot; at the first page, or a &quot;break-after&quot; on the last page has no effect.
+   Local styles (bold, color,...) are made with &lt;text:span text:style-name=&quot;T1&quot;&gt;...&lt;/text:span&gt;
+</span>&lt;/text:p&gt;
+&lt;text:h&gt;...&lt;/text:h&gt; A paragraph typed as Header
+   &lt;text:list&gt;...&lt;/text:list&gt; A list of items
+   &lt;table:table&gt;...&lt;/table:table&gt; A table
+   &lt;/office:text&gt;
+&lt;/office:body&gt;
+&lt;/office:document-content&gt;</pre>
+<h3><a name="libreoffice_sections" id="libreoffice_mainfile2"></a>Sections</h3>
+<pre>&lt;text:p&gt; ... &lt;/text:p&gt;
+&lt;text:section text:style-name=&quot;Sect1&quot; text:name=&quot;Section1&quot;&gt;
+&lt;text:p&gt; ... &lt;/text:p&gt;
+&lt;text:p&gt; ... &lt;/text:p&gt;
+&lt;/text:section&gt;
+&lt;text:p&gt; ... &lt;/text:p&gt;</pre>
+<h3><a name="libreoffice_slides" id="libreoffice_mainfile3"></a>Slides in a presentation</h3>
+<pre>&lt;draw:page ....&gt;
+&lt;/draw:page&gt;</pre>
+<h3><a name="libreoffice_tables" id="libreoffice_mainfile4"></a>Tables in a document</h3>
+<pre>&lt;table:table&gt;
+  &lt;table:table-column ... /&gt;
+  &lt;table:table-column ... /&gt;
+  &lt;table:table-column ... /&gt;
+  &lt;table:table-row&gt;
+    &lt;table:table-cell&gt; ... &lt;/table:table-cell&gt;
+    &lt;table:table-cell table:number-columns-spanned=&quot;2&quot;&gt; ... &lt;/table:table-cell&gt;
+    &lt;table:covered-table-cell/&gt; <span class="comm">// virtual column that is covered by the span</span>
+    &lt;table:table-cell&gt; ... &lt;/table:table-cell&gt;
+  &lt;/table:table-row&gt;
+&lt;/table:table&gt;</pre>
+<h4>Cells merged vertically</h4>
+<pre>&lt;table:table-cell table:number-rows-spanned=&quot;2&quot; office:value-type=&quot;string&quot;&gt;
+  &lt;text:p&gt;
+    &lt;text:span&gt; <span class="txt">CONTENT OF THE CELL</span> &lt;/text:span&gt;
+  &lt;/text:p&gt;
+&lt;/table:table-cell&gt;</pre>
+<p>Cell that are not displayed because of vertical merging or horizontal mergin, are replaced with <code>&lt;table:covered-table-cell/&gt;</code>. But such entities seems to be optionnal: LibreOffice display correclty the table if they are ommited.</p>
+<p>Attributes<code> table:number-rows-spanned=&quot;1&quot;</code> seems to be supported and has no effect.</p>
+<h4> Cells merged horizontally</h4>
+<pre>&lt;table:table-cell table:number-columns-spanned=&quot;2&quot; office:value-type=&quot;string&quot;&gt;
+  &lt;text:p&gt;
+    &lt;text:span&gt; <span class="txt">CONTENT OF THE CELL</span> &lt;/text:span&gt;
+  &lt;/text:p&gt;
+&lt;/table:table-cell&gt;
+
+&lt;table:covered-table-cell/&gt;
+</pre>
+<h3><a name="libreoffice_comments" id="libreoffice_mainfile5"></a>Comments</h3>
+<h4>Comments in ODS workbooks (OpenOffice Calc)</h4>
+<pre>&lt;table:table-row table:style-name=&quot;ro2&quot;&gt;
+
+  &lt;table:table-cell ...&gt; ... &lt;/table:table-cell&gt;
+
+  &lt;table:table-cell office:value-type=&quot;float&quot; office:value=&quot;3.6&quot;&gt;
+    &lt;office:annotation draw:style-name=&quot;gr1&quot; draw:text-style-name=&quot;P1&quot; svg:width=&quot;2.899cm&quot; svg:height=&quot;0.991cm&quot; svg:x=&quot;9.632cm&quot; svg:y=&quot;2.786cm&quot; draw:caption-point-x=&quot;-0.61cm&quot; draw:caption-point-y=&quot;1.511cm&quot;&gt;
+      &lt;dc:date&gt;2011-02-02T00:00:00&lt;/dc:date&gt;
+      &lt;text:p text:style-name=&quot;P1&quot;&gt;<span class="txt">Here is my comment.</span>&lt;/text:p&gt;
+    &lt;/office:annotation&gt;
+    &lt;text:p&gt;3,60&lt;/text:p&gt;
+  &lt;/table:table-cell&gt;
+
+  &lt;table:table-cell ...&gt; ... &lt;/table:table-cell&gt;
+
+&lt;/table:table-row&gt;</pre>
+<h4>Comments in ODT documents (OpenOffice Write)</h4>
+<pre>&lt;text:p text:style-name=&quot;Standard&quot;&gt;
+   Here is the start of the text and now 
+   &lt;office:annotation&gt;
+     &lt;dc:creator&gt;Skrol29&lt;/dc:creator&gt;
+     &lt;dc:date&gt;2011-02-02T16:13:58.42&lt;/dc:date&gt;
+     &lt;text:p text:style-name=&quot;P1&quot;&gt;
+       &lt;text:span text:style-name=&quot;T1&quot;&gt;<span class="txt">Here is my comment.</span>&lt;/text:span&gt;
+     &lt;/text:p&gt;
+   &lt;/office:annotation&gt;
+   comment is just inserted there.
+ &lt;/text:p&gt;</pre>
+<h3><a name="libreoffice_headers" id="libreoffice_mainfile6"></a>Headers and footers in a document </h3>
+<h4><a name="libreoffice_headers_odt" id="libreoffice_mainfile9"></a>ODT and ODS</h4>
+<p> Header and footer contents are saved in the <em>&quot;sytles.xml&quot;</em> file:  You can choose for each page to hide or display the header and footer. Nevertheless, the contents is always the same for each page.</p>
+<pre>&lt;office:document-styles ...&gt;
+  &lt;office:master-styles&gt;
+    &lt;style:master-page ...&gt;
+      &lt;style:header&gt;
+        &lt;text:p text:style-name=&quot;Header&quot;&gt;<span class="txt">here is the header</span>&lt;/text:p&gt;
+      &lt;/style:header&gt;
+      &lt;style:footer&gt;
+        &lt;text:p text:style-name=&quot;Footer&quot;&gt;<span class="txt">here is the footer</span>&lt;/text:p&gt;
+      &lt;/style:footer&gt; 
+    &lt;/style:master-page&gt;
+  &lt;/office:master-styles&gt;
+&lt;/office:document-styles&gt;</pre>
+<h4><a name="libreoffice_headers_odp" id="libreoffice_mainfile8"></a>ODP</h4>
+<p> Header and footer contents are saved in <em>&quot;content.xml&quot;</em> file.
+  They are defined as available styles and can be use for any slide and for the whole document in the &quot;handout&quot; view which is a set of several slide.</p>
+<pre>&lt;office:presentation&gt;
+
+  &lt;presentation:header-decl presentation:name=&quot;hdr1&quot;&gt;<span class="txt">Here is my header</span>&lt;/presentation:header-decl&gt;
+  &lt;presentation:footer-decl presentation:name=&quot;ftr1&quot;&gt;<span class="txt">Here is my footer for slide 1</span>&lt;/presentation:footer-decl&gt;
+  &lt;presentation:footer-decl presentation:name=&quot;ftr2&quot;&gt;<span class="txt">Here is my footer</span>&lt;/presentation:footer-decl&gt;
+
+  &lt;draw:page ... presentation:use-footer-name=&quot;ftr1&quot;&gt;
+  &lt;/draw:page&gt;
+  ...
+&lt;/office:presentation&gt; </pre>
+<h3> <a name="libreoffice_charts" id="libreoffice_mainfile7"></a>Charts</h3>
+<p> The location of the chart is defined in the main subfile <em>&quot;contents.xml&quot;</em>.</p>
+<pre>&lt;text:p text:style-name=&quot;Standard&quot;&gt;
+  &lt;draw:frame draw:name=&quot;<span class="txt">My name</span>&quot; text:anchor-type=&quot;paragraph&quot; svg:x=&quot;2.401cm&quot; svg:y=&quot;1.379cm&quot; svg:width=&quot;14.102cm&quot; svg:height=&quot;7.622cm&quot; draw:z-index=&quot;0&quot;&gt;
+    &lt;draw:object xlink:href=&quot;./Object 1&quot; xlink:type=&quot;simple&quot; xlink:show=&quot;embed&quot; xlink:actuate=&quot;onLoad&quot; /&gt;
+    &lt;draw:image xlink:href=&quot;./ObjectReplacements/Object 1&quot; xlink:type=&quot;simple&quot; xlink:show=&quot;embed&quot; xlink:actuate=&quot;onLoad&quot; /&gt;
+    &lt;svg:title&gt;<span class="txt">My title</span>&lt;/svg:title&gt;
+    &lt;svg:desc&gt;<span class="txt">My description</span>&lt;/svg:desc&gt;
+  &lt;/draw:frame&gt;
+&lt;/text:p&gt;</pre>
+<p>An image preview is saved in the file <em>&quot;ObjectReplacements/Object 1&quot;</em>, and this image will be displayed
+automatically instead of the real Chart view until the chart is manually changed in the document.</p>
+<p> In order to avoid this preview, the followings must be deteled :</p>
+<ul>
+  <li> the file <em>&quot;ObjectReplacements/Object 1&quot;</em>,</li>
+  <li> the reference <code>&lt;draw:image&gt;</code> in the <em>&quot;contents.xml&quot;</em> file,</li>
+  <li> the reference <code>&lt;draw:image&gt;</code> in the <em>&quot;META-INF/manifest.xml&quot;</em> file.</li>
+</ul>
+<p>Data and properties of the chart are saved into the corresponding subdirectory <em>&quot;Object 1&quot;</em>.
+Data are saved in <em>&quot;Object 1/contents.xml&quot;</em> in a table that groups data of all series of the chart.</p>
+<pre>&lt;table:table table:name=&quot;local-table&quot;&gt;
+
+  &lt;table:table-header-columns&gt;
+    &lt;table:table-column /&gt;
+  &lt;/table:table-header-columns&gt;
+  &lt;table:table-columns&gt;
+    &lt;table:table-column table:number-columns-repeated=&quot;3&quot; /&gt;
+  &lt;/table:table-columns&gt;
+
+  &lt;table:table-header-rows&gt;
+    &lt;table:table-row&gt;
+      &lt;table:table-cell&gt;&lt;text:p /&gt;&lt;/table:table-cell&gt;
+      &lt;table:table-cell office:value-type=&quot;string&quot;&gt;&lt;text:p&gt;<span class="txt">column 1</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+      &lt;table:table-cell office:value-type=&quot;string&quot;&gt;&lt;text:p&gt;<span class="txt">column 2</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+      &lt;table:table-cell office:value-type=&quot;string&quot;&gt;&lt;text:p&gt;<span class="txt">column 3</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+    &lt;/table:table-row&gt;
+  &lt;/table:table-header-rows&gt;
+
+  &lt;table:table-rows&gt;
+
+    &lt;table:table-row&gt;
+      &lt;table:table-cell office:value-type=&quot;string&quot;&gt;&lt;text:p&gt;<span class="txt">line 1</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+      &lt;table:table-cell office:value-type=&quot;float&quot; office:value=&quot;9.1&quot;&gt;&lt;text:p&gt;<span class="txt">9.1</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+      &lt;table:table-cell office:value-type=&quot;float&quot; office:value=&quot;3.2&quot;&gt;&lt;text:p&gt;<span class="txt">3.2</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+      &lt;table:table-cell office:value-type=&quot;float&quot; office:value=&quot;4.54&quot;&gt;&lt;text:p&gt;<span class="txt">4.54</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+    &lt;/table:table-row&gt;
+
+    &lt;table:table-row&gt;
+      &lt;table:table-cell office:value-type=&quot;string&quot;&gt;&lt;text:p&gt;<span class="txt">line 2</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+      &lt;table:table-cell office:value-type=&quot;float&quot; office:value=&quot;2.4&quot;&gt;&lt;text:p&gt;<span class="txt">2.4</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+      &lt;table:table-cell office:value-type=&quot;float&quot; office:value=&quot;8.8&quot;&gt;&lt;text:p&gt;<span class="txt">8.8</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+      &lt;table:table-cell office:value-type=&quot;float&quot; office:value=&quot;9.65&quot;&gt;&lt;text:p&gt;<span class="txt">9.65</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+    &lt;/table:table-row&gt;
+
+    &lt;table:table-row&gt;
+      &lt;table:table-cell office:value-type=&quot;string&quot;&gt;&lt;text:p&gt;<span class="txt">line 3</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+      &lt;table:table-cell office:value-type=&quot;float&quot; office:value=&quot;3.1&quot;&gt;&lt;text:p&gt;<span class="txt">3.1</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+      &lt;table:table-cell office:value-type=&quot;float&quot; office:value=&quot;1.5&quot;&gt;&lt;text:p&gt;<span class="txt">1.5</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+      &lt;table:table-cell office:value-type=&quot;float&quot; office:value=&quot;3.7&quot;&gt;&lt;text:p&gt;<span class="txt">3.7</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+    &lt;/table:table-row&gt;
+
+    &lt;table:table-row&gt;
+      &lt;table:table-cell office:value-type=&quot;string&quot;&gt;&lt;text:p&gt;<span class="txt">line 4</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+      &lt;table:table-cell office:value-type=&quot;float&quot; office:value=&quot;4.3&quot;&gt;&lt;text:p&gt;<span class="txt">4.3</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+      &lt;table:table-cell office:value-type=&quot;float&quot; office:value=&quot;9.02&quot;&gt;&lt;text:p&gt;<span class="txt">9.02</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+      &lt;table:table-cell office:value-type=&quot;float&quot; office:value=&quot;6.2&quot;&gt;&lt;text:p&gt;<span class="txt">6.2</span>&lt;/text:p&gt;&lt;/table:table-cell&gt;
+    &lt;/table:table-row&gt;
+
+  &lt;/table:table-rows&gt;
+
+&lt;/table:table&gt;</pre>
+<h3><a name="libreoffice_textboxes" id="libreoffice_mainfile10"></a>Textboxes</h3>
+<pre>&lt;text:p text:style-name=&quot;Standard&quot;&gt;
+  &lt;draw:frame draw:style-name=&quot;fr1&quot; draw:name=&quot;Frame1&quot; text:anchor-type=&quot;paragraph&quot; svg:width=&quot;4.535cm&quot; draw:z-index=&quot;0&quot;&gt;
+    &lt;draw:text-box fo:min-height=&quot;2.461cm&quot;&gt;
+      &lt;text:p text:style-name=&quot;Frame_20_contents&quot;&gt;<span class="txt">Message in a textbox</span>&lt;/text:p&gt;
+    &lt;/draw:text-box&gt;
+  &lt;/draw:frame&gt;
+  <span class="txt">Usual text</span>
+&lt;/text:p&gt;
+</pre>
+<h3><a name="libreoffice_odf" id="libreoffice_mainfile11"></a>Special to ODF (OpenOffice Math Formula)</h3>
+<p> Any comment in the formula must be entered between text delimiters which are the double quotes (<code>&quot;</code>).
+Newlines are made with the keyword <code>'newline'</code> outside the text delimiter. </p>
+<h3><a name="libreoffice_pictures" id="libreoffice_mainfile12"></a>Pictures/Images</h3>
+<p>  Binary contents is saved as a file in <em>&quot;Pictures/&quot;</em>.</p>
+<p>Short synopsis of the control in the document:</p>
+<pre>&lt;text:p ...&gt;
+  &lt;draw:frame ...&gt;
+    &lt;draw:text-box ...&gt;
+      &lt;text:p ...&gt;
+        &lt;draw:a ...&gt;
+          &lt;draw:frame draw:style-name=&quot;fr1&quot; draw:name=&quot;images1&quot; text:anchor-type=&quot;paragraph&quot; svg:width=&quot;0.847cm&quot; svg:height=&quot;0.847cm&quot; draw:z-index=&quot;0&quot;&gt;
+            &lt;draw:image xlink:href=&quot;Pictures/100000000000002000000020A0D29467.jpg&quot; xlink:type=&quot;simple&quot; xlink:show=&quot;embed&quot; xlink:actuate=&quot;onLoad&quot;/&gt;
+          &lt;/draw:frame&gt;
+        &lt;/draw:a&gt;
+      &lt;/text:p&gt;
+    &lt;/draw:text-box&gt;
+  &lt;/draw:frame&gt;
+&lt;/text:p&gt;</pre>
+<h2> <a name="msoffice" id="msoffice"></a>Microsoft Office documents</h2>
+<p>That is documents with extension DOCX, XLSX, PPTX.</p>
+<h3>  <a name="msoffice_docx" id="msoffice2"></a>Microsoft Word document (.DOCX)</h3>
+<p>The main file is usually <em>&quot;word/document.xml&quot;</em>, but its actual location is defined in the file <em>&quot;[Content_Types].xml&quot;</em>, in the element: <code>&lt;Override PartName=&quot;/word/document.xml&quot; ContentType=&quot;application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml&quot;/&gt;</code></p>
+<p>Note: I've test to change the <em>&quot;word/document.xml&quot;</em> name in both the <em>&quot;[Content_Types].xml&quot;</em> file and the archive, but this makes 
+  Word 2010 to be unable to open the document, saying it is corrupted.</p>
+<h4><a name="msoffice_docx_main" id="msoffice11"></a>The main file &quot;word/document.xml&quot; (DOCX)</h4>
+<pre>&lt;w:document&gt;
+  &lt;w:body&gt;
+
+    &lt;w:p&gt; <span class="comm">// New paragraph</span>
+
+      &lt;w:pPr&gt; <span class="comm">// Parameters of the paragraph</span>
+        &lt;w:rPr&gt; ... &lt;/w:rPr&gt; <span class="comm">// Set of parameters for a Run</span>
+        &lt;w:sectPr&gt; <span class="comm">// Start a new section. Sections are a set of page layout (margin, columns, ...) available until the next section.</span>
+          &lt;w:type w:val=&quot;continuous&quot;/&gt; <span class="comm">// May be present whe the section is defined manually.</span>
+        &lt;/w:sectPr&gt;
+        &lt;w:pageBreakBefore/&gt; <span class="comm">// Page break before the paragraph (way #1)</span>
+      &lt;/w:pPr&gt;
+
+     &lt;w:r&gt; <span class="comm">// New run item. A run item is a set of content having common layout properties.</span>
+       &lt;w:rPr&gt; <span class="comm">// Set of parameters for a Run. Examples: &lt;w:i/&gt; is italic, &lt;w:b/&gt; is bold. &lt;/w:rPr&gt;</span>
+         &lt;w:t&gt;<span class="txt">Your text is here</span>&lt;/w:t&gt;
+          <span class="comm">// Simple new lines are made with &lt;w:br/&gt;</span>
+          <span class="comm">// Page breaks can also be made with &lt;w:br w:type=&quot;page&quot;/&gt; (way #2)</span>
+     &lt;/w:r&gt;
+
+     &lt;w:tab/&gt; <span class="comm">// Tabs are placed between &lt;w:r&gt; elements.</span>
+
+     &lt;w:r&gt;
+       &lt;w:t xml:space=&quot;preserve&quot;&gt;<span class="txt"> Next text </span>&lt;/w:t&gt;
+     &lt;/w:r&gt; <span class="comm">// spaces between entities are dealt using attribute xml:space=&quot;preserve&quot;</span>
+
+   &lt;/w:p&gt;
+
+  &lt;/w:body&gt;
+&lt;/w:document&gt;</pre>
+<p>What are attributes <code>&quot;w:rsidR&quot;</code> and <code>&quot;w:rsidRPr&quot;</code> for?</p>
+<p>Attribute <code>&quot;w:rsidR&quot;</code> is a Revision ID. Each new user on a doc has a new id, 
+and each of its modification is marked with its RsID. </p>
+<p>  More info: <a href="http://blogs.msdn.com/brian_jones/archive/2006/12/11/what-s-up-with-all-those-rsids.aspx">http://blogs.msdn.com/brian_jones/archive/2006/12/11/what-s-up-with-all-those-rsids.aspx</a></p>
+<h4><a name="msoffice_docx_tables" id="msoffice12"></a>Tables (DOCX)</h4>
+<pre>&lt;w:p&gt;...&lt;/w:p&gt;
+
+&lt;w:tbl&gt; <span class="comm">// a table takes the same place as a paragraph</span>
+  &lt;w:tblPr&gt;&lt;/w:tblPr&gt;
+  &lt;w:tblGrid&gt;
+    &lt;w:gridCol ... /&gt; <span class="comm">// principally define colmun widths</span>
+    &lt;w:gridCol ... /&gt;
+  &lt;/w:tblGrid&gt;
+  &lt;w:tr&gt;
+    &lt;w:tc&gt; ... &lt;/w:tc&gt;
+    &lt;w:tc&gt; ... &lt;/w:tc&gt;
+    ...
+  &lt;/w:tr&gt;
+&lt;/w:tbl&gt;
+
+&lt;w:p&gt;...&lt;/w:p&gt; </pre>
+<h5>Cells merged vertically</h5>
+<pre>&lt;w:tc&gt; 
+  &lt;w:tcPr&gt;
+    &lt;w:vMerge w:val=&quot;restart&quot;/&gt;  <span class="comm">// marks the cell to start a new cell-merging</span>
+    &lt;w:vMerge w:val=&quot;continue&quot;/&gt; <span class="comm">// marks the cell to continue the cell-mergin (the cell is merged with a previous one having &quot;restart&quot; or &quot;continue&quot;)</span>
+    &lt;w:vMerge/&gt; <span class="comm">// same as above</span>
+   <span class="comm"> // no &lt;w:vMerge&gt; entity means the cell is not merged. </span>
+  &lt;/w:tcPr&gt;
+  ...
+&lt;/w:tc&gt;</pre>
+<h5>Cells mertged horizontally</h5>
+<pre>&lt;w:tc&gt; 
+  &lt;w:tcPr&gt;
+    &lt;w:gridSpan w:val=&quot;2&quot;/&gt; <span class="comm">// It works like &quot;colspan&quot; in HTML.</span>
+  &lt;/w:tcPr&gt;
+  ...
+&lt;/w:tc&gt;</pre>
+<h4>  <a name="msoffice_docx_headers" id="msoffice13"></a>Headers and footers (DOCX)</h4>
+<p>The headers and footers files are usually <em>&quot;word/header1.xml&quot;</em> and <em>&quot;word/footer1.xml&quot;</em>. They exists only if header/footer is defined.  There also may have an optional couple of XML files for odd numbered pages (usually <em>&quot;word/header2.xml&quot;</em> and <em>&quot;word/footer2.xml&quot;</em>). And an optional couple of files for the first page (usually <em>&quot;word/header3.xml&quot;</em> and <em>&quot;word/footer3.xml&quot;</em>).</p>
+<p>The actual type and locations of Headers and Footers are defined in the main document <em>&quot;word/document.xml&quot;</em>.  Close to the bottom of it may have :</p>
+<pre>&lt;w:sectPr&gt;
+  &lt;w:headerReference w:type=&quot;default&quot; r:id=&quot;rId13&quot;/&gt;
+  &lt;w:footerReference w:type=&quot;default&quot; r:id=&quot;rId14&quot;/&gt;
+  &lt;w:headerReference w:type=&quot;first&quot; r:id=&quot;rId15&quot;/&gt;
+  &lt;w:footerReference w:type=&quot;first&quot; r:id=&quot;rId16&quot;/&gt;
+  ...
+&lt;w:sectPr&gt;</pre>
+<h5>Relation files</h5>
+<p>The information related to r:id are stored in the file <em>&quot;word/_rels/document.xml.rels&quot;</em></p>
+<pre>&lt;Relationships xmlns=&quot;http://schemas.openxmlformats.org/package/2006/relationships&quot;&gt;
+  &lt;Relationship Id=&quot;rId8&quot; Type=&quot;http://schemas.openxmlformats.org/officeDocument/2006/relationships/image&quot; Target=&quot;media/image1.png&quot;/&gt;
+  &lt;Relationship Id=&quot;rId13&quot; Type=&quot;http://schemas.openxmlformats.org/officeDocument/2006/relationships/header&quot; Target=&quot;header1.xml&quot;/&gt;
+  ...
+&lt;/Relationships&gt;</pre>
+<p>Locations are also appering in the file <em>&quot;[Content_Types].xml&quot;</em>, in the elements like:
+</p>
+<pre>&lt;Override PartName=&quot;/word/header1.xml&quot; ContentType=&quot;application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml&quot;/&gt;
+   // <span class="comm">and</span>
+&lt;Override PartName=&quot;/word/footer1.xml&quot; ContentType=&quot;application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml&quot;/&gt;</pre>
+<p>Some referenced header/footers may have no actual files because of no data.</p>
+<h5>Example of header source:</h5>
+<pre>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;yes&quot;?&gt;
+
+&lt;w:hdr ...&gt;
+  &lt;w:p&gt;
+    &lt;w:pPr&gt;&lt;w:pStyle w:val=&quot;my_header&quot;/&gt;&lt;/w:pPr&gt;
+    &lt;w:r&gt;
+      &lt;w:t&gt;<span class="txt">here is the text of the header</span>&lt;/w:t&gt;
+    &lt;/w:r&gt;
+  &lt;/w:p&gt;
+&lt;/w:hdr&gt;</pre>
+<h4><a name="msoffice_docx_comments" id="msoffice14"></a>Comments, footnotes and endnotes (DOCX)</h4>
+<p>  Like headers and footers, they are aslo saved in separated XML files.</p>
+<h4><a name="msoffice_docx_bookmarks" id="msoffice15"></a>Bookmarks</h4>
+<pre>&lt;w:p&gt;
+  &lt;w:r&gt;&lt;w:t xml:space=&quot;preserve&quot;&gt;<span class="txt">Here is a </span>&lt;/w:t&gt;&lt;/w:r&gt;
+  &lt;w:bookmarkStart w:id=&quot;0&quot; w:name=&quot;mybookmark&quot;/&gt;
+  &lt;w:r&gt;&lt;w:t&gt;<span class="txt">bookmark</span>&lt;/w:t&gt;&lt;/w:r&gt;
+  &lt;w:bookmarkEnd w:id=&quot;0&quot;/&gt;
+  &lt;w:r&gt;&lt;w:t&gt;.&lt;/w:t&gt;&lt;/w:r&gt;
+&lt;/w:p&gt;</pre>
+<h4><a name="msoffice_docx_textboxes" id="msoffice16"></a>Textboxes</h4>
+<pre>&lt;w:p&gt;
+  &lt;w:r&gt;
+    &lt;mc:AlternateContent&gt; <span class="comm">// indicate a liste of different possible choices</span>
+
+      &lt;mc:Choice Requires=&quot;wps&quot;&gt; <span class="comm">// first choice and its condition</span>
+        &lt;w:drawing&gt;
+          &lt;wp:anchor ...&gt;
+            ...
+          &lt;/wp:anchor&gt;
+        &lt;/w:drawing&gt;
+      &lt;/mc:Choice&gt;
+
+      &lt;mc:Fallback&gt; <span class="comm">// last choice if no condition is true</span>
+         &lt;w:pict&gt;
+          &lt;v:shapetype ...&gt;
+          ...
+          &lt;/v:shapetype&gt;
+          &lt;v:shape ...&gt;
+            &lt;v:textbox ...&gt;
+              &lt;w:txbxContent&gt;
+                &lt;w:p&gt; &lt;w:r&gt; &lt;w:t&gt;<span class="txt">Here s a text box.</span>&lt;/w:t&gt;  &lt;/w:r&gt; &lt;/w:p&gt;
+              &lt;/w:txbxContent&gt;
+            &lt;/v:textbox&gt;
+          &lt;/v:shape&gt;
+        &lt;/w:pict&gt;
+      &lt;/mc:Fallback&gt;
+
+    &lt;/mc:AlternateContent&gt;
+  &lt;/w:r&gt;
+&lt;/w:p&gt;</pre>
+<h4><a name="msoffice_docx_charts" id="msoffice5"></a>Charts (DOCX)</h4>
+<p>The first chart is saved under <em>&quot;word/charts/chart1.xml&quot;</em>, and so on for the next ones.  The XML file of the chart contains a copy of the data used for the chart.</p>
+<p> If the chart is designed manually, then <em>&quot;chart1.xml&quot;</em> also contains references to cells of an Ms Excel files that is used by Ms Word for managing series.</p>
+<p> The Excel file is emmbeded in the Docx file, for exemple: <em>&quot;word/embeddings/Worksheet_Microsoft_Excel1.xlsx&quot;</em>.  The path of the Excel file is saved into <em>&quot;word/charts/_rels/chart1.xml.rels&quot;</em>. 
+  Nevertheless the references to that Excel file are optional and can be deleted from the XML of the chart.</p>
+<p>Title of the chart, the axes and the series are saved in <em>&quot;chart1.xml&quot;</em>. Other custom text boxes are saved in a shape file. For example :<em> &quot;word/drawings/drawing1.xml&quot;</em>.</p>
+<p>Example of a series saved in the XML (the tags are different for an XY series):</p>
+<pre>&lt;c:ser&gt;
+
+  &lt;c:idx val=&quot;0&quot;/&gt;
+  &lt;c:order val=&quot;0&quot;/&gt;
+
+  &lt;c:tx&gt;
+    &lt;c:strRef&gt;
+      &lt;c:f&gt;Sheet1!$A$2&lt;/c:f&gt;
+      &lt;c:strCache&gt;&lt;c:ptCount val=&quot;1&quot;/&gt;&lt;c:pt idx=&quot;0&quot;&gt;&lt;c:v&gt;<span class="txt">Here is the name of the Series</span>&lt;/c:v&gt;&lt;/c:pt&gt;&lt;/c:strCache&gt;
+    &lt;/c:strRef&gt;
+  &lt;/c:tx&gt;
+
+  &lt;c:spPr&gt;
+    &lt;a:solidFill&gt;&lt;a:srgbClr val=&quot;9999FF&quot;/&gt;&lt;/a:solidFill&gt;
+    &lt;a:ln w=&quot;12700&quot;&gt;&lt;a:solidFill&gt;&lt;a:srgbClr val=&quot;000000&quot;/&gt;&lt;/a:solidFill&gt;&lt;a:prstDash val=&quot;solid&quot;/&gt;&lt;/a:ln&gt;
+  &lt;/c:spPr&gt;
+  &lt;c:invertIfNegative val=&quot;0&quot;/&gt;
+
+  &lt;c:cat&gt;
+    &lt;c:strRef&gt;
+      &lt;c:f&gt;Sheet1!$B$1:$E$1&lt;/c:f&gt;
+      &lt;c:strCache&gt;
+        &lt;c:ptCount val=&quot;4&quot;/&gt;
+        &lt;c:pt idx=&quot;0&quot;&gt;&lt;c:v&gt;<span class="txt">Category A</span>&lt;/c:v&gt;&lt;/c:pt&gt;
+        &lt;c:pt idx=&quot;1&quot;&gt;&lt;c:v&gt;<span class="txt">Category B</span>&lt;/c:v&gt;&lt;/c:pt&gt;
+        &lt;c:pt idx=&quot;2&quot;&gt;&lt;c:v&gt;<span class="txt">Category C</span>&lt;/c:v&gt;&lt;/c:pt&gt;
+        &lt;c:pt idx=&quot;3&quot;&gt;&lt;c:v&gt;<span class="txt">Category D</span>&lt;/c:v&gt;&lt;/c:pt&gt;
+      &lt;/c:strCache&gt;
+    &lt;/c:strRef&gt;
+  &lt;/c:cat&gt;
+
+  &lt;c:val&gt;
+    &lt;c:numRef&gt;
+      &lt;c:f&gt;Sheet1!$B$2:$E$2&lt;/c:f&gt;
+      &lt;c:numCache&gt;
+        &lt;c:formatCode&gt;General&lt;/c:formatCode&gt;
+        &lt;c:ptCount val=&quot;4&quot;/&gt;
+        &lt;c:pt idx=&quot;0&quot;&gt;&lt;c:v&gt;<span class="txt">20.399999999999999</span>&lt;/c:v&gt;&lt;/c:pt&gt;
+        &lt;c:pt idx=&quot;1&quot;&gt;&lt;c:v&gt;<span class="txt">27.4</span>&lt;/c:v&gt;&lt;/c:pt&gt;
+        &lt;c:pt idx=&quot;2&quot;&gt;&lt;c:v&gt;<span class="txt">90</span>&lt;/c:v&gt;&lt;/c:pt&gt;
+        &lt;c:pt idx=&quot;3&quot;&gt;&lt;c:v&gt;<span class="txt">20.399999999999999</span>&lt;/c:v&gt;&lt;/c:pt&gt;
+      &lt;/c:numCache&gt;
+    &lt;/c:numRef&gt;
+  &lt;/c:val&gt;
+
+&lt;/c:ser&gt;</pre>
+<p>&nbsp;</p>
+<h4><a name="msoffice_docx_pictures" id="msoffice6"></a>Pictures  (DOCX)</h4>
+<p>Binary contents is saved as a file in <em>&quot;word/media/&quot;</em>. </p>
+<p>Image link saved into <em>&quot;word/_rels/document.xml.rels&quot;</em>: <code>&lt;Relationship Id=&quot;rId6&quot; Type=&quot;http://schemas.openxmlformats.org/officeDocument/2006/relationships/image&quot; Target=&quot;media/image1.png&quot;/&gt;</code></p>
+<p>They are two ways to insert a picture.</p>
+<h5>1) VML (old  way)</h5>
+<p> (short synopsis)</p>
+<pre>&lt;w:pict&gt;
+  &lt;v:shapetype ...&gt;
+  ...
+  &lt;/v:shapetype&gt;
+  &lt;v:shape style=&quot;width:89.25pt;height:119.25pt&quot; ...&gt; <span class="comm">// this element contains the size of the picture</span>
+    &lt;v:imagedata r:id=&quot;rId6&quot; o:title=&quot;&quot;/&gt; <span class="comm">// this element contains the link to the picture internal file</span>
+  &lt;/v:shape&gt;
+&lt;/w:pict&gt;
+</pre>
+<h5>2) DrawingML (the new way that includes 2D/3D effects)</h5>
+<p> (short synopsis)</p>
+<pre>&lt;w:drawing&gt; 
+  &lt;wp:inline ...&gt;
+    &lt;wp:extent cx=&quot;1130400&quot; cy=&quot;1512000&quot; /&gt; <span class="comm">// this element gives the size of the shape box that contains the picture</span>
+    &lt;wp:docPr id=&quot;1&quot; name=&quot;Image 1&quot; descr=&quot;My description&quot; title=&quot;<span class="txt">My title</span>&quot;/&gt; <span class="comm">// this optional element gives the description and title of the image</span>
+    &lt;wp:docPr id=&quot;1&quot; name=&quot;Image 0&quot; descr=&quot;2884414-my_picture.jpg&quot;&gt;
+      &lt;a:hlinkClick xmlns:a=&quot;http://schemas.openxmlformats.org/drawingml/2006/main&quot; r:id=&quot;rId4&quot; tooltip=&quot;<span class="txt">My tooltip</span>&quot;/&gt; <span class="comm">// this optional element gives the URL and tooltip of the link if any. In Word 2007 you cannot customize the title and desciption</span>
+    &lt;/wp:docPr&gt;
+    &lt;a:graphic ...&gt;
+      &lt;a:graphicData ...&gt;
+        &lt;pic:pic ...&gt;
+
+          &lt;pic:blipFill&gt;
+            &lt;a:blip r:embed=&quot;rId4&quot; /&gt; <span class="comm">// this element contains the link to the picture internal file</span>
+          &lt;/pic:blipFill&gt;
+
+          &lt;pic:spPr ...&gt;
+            &lt;a:xfrm&gt;
+              &lt;a:off x=&quot;0&quot; y=&quot;0&quot; /&gt;
+              &lt;a:ext cx=&quot;1130400&quot; cy=&quot;1512000&quot; /&gt; <span class="comm">// this element gives the size of the picture inside its shape box, it can be rescaled to fit in the shape box</span>
+            &lt;/a:xfrm&gt;
+            &lt;a:prstGeom prst=&quot;rect&quot;&gt;&lt;a:avLst /&gt;&lt;/a:prstGeom&gt;
+            &lt;a:noFill /&gt;
+            &lt;a:ln&gt;&lt;a:noFill /&gt;&lt;/a:ln&gt;
+          &lt;/pic:spPr&gt;
+
+        &lt;/pic:pic&gt;
+      &lt;/a:graphicData&gt;
+    &lt;/a:graphic&gt;
+  &lt;/wp:inline&gt;
+&lt;/w:drawing&gt;</pre>
+<h4>&nbsp;</h4>
+<h3><a name="msoffice_xlsx" id="msoffice3"></a>Microsoft Excel spreadsheet (XLSX)</h3>
+<h4>General</h4>
+<p>An Excel workbook can have one or several worksheets. The contents of cells are saved in worksheets. 
+  Worksheets files are named <em>&quot;xl/worksheets/sheet1.xml&quot;</em>, and also <em>sheet2.xml</em>, <em>sheet3.xml</em>...</p>
+<p>  The file names are not the names defined in Excel by the user, they are internal names. But it seems  that there is always at least a worksheet named <em>&quot;sheet1.xml&quot;</em>.</p>
+<p>All string values of cells are stored in the file <em>&quot;xl/sharedStrings.xml&quot;</em>. The cells contains  in fact the index of the string in the sharedStrings.xml file. This separation will probably make difficulties  to merge an Excel sheet. </p>
+<p>All sheets of the workbook are listed in the file <em>&quot;xl/workbook.xml&quot;</em>.</p>
+<p>Synopsis of a sheet file like <em>&quot;xl/worksheets/sheet1.xml&quot;</em>  (XLSX)</p>
+<pre>&lt;worksheet&gt;
+   ...
+   &lt;sheetData&gt;
+
+     &lt;row r=&quot;2&quot; spans=&quot;2:2&quot; ht=&quot;90&quot;&gt;
+       <span class="comm">// A range of one row in wich several cells are defined</span>
+       &lt;c r=&quot;B2&quot; s=&quot;1&quot; t=&quot;s&quot;&gt;
+<span class="comm">         /* Definition of a cell:
+          * Attribute r is the address if the cell in the sheet (format A1). This attribute is optional.
+          * Attribute s is the style of the cell (the format). Styles are saved into the file 'xl/styles.xml' but I have not found the link yet.
+          * Attribute t is the type of data, by default it is numerical
+          * t=&quot;s&quot; means that the displayed value is a string, the saved value is the index if the string taken in file sharedStrings.xml.
+          */
+</span>         &lt;f&gt;B13+B14&lt;/f&gt; <span class="comm">//the formula. If there is no formula, this tag is absent.</span>
+         &lt;v&gt;0&lt;/v&gt; <span class="comm">//the inner value without formatting. If t=&quot;s&quot; then the value is in fact the index of the string in the &quot;xl/sharedStrings.xml&quot; file.</span>
+       &lt;/c&gt;
+    &lt;/row&gt;
+
+  &lt;/sheetData&gt;
+&lt;/worksheet&gt;</pre>
+<p>Synopsis of the Shared String file <em>&quot;xl/sharedStrings.xml&quot;</em>: (XLSX)</p>
+<pre>&lt;sst&gt;
+  &lt;si&gt;
+    &lt;t&gt;<span class="txt">value or text</span>&lt;/t&gt;
+  &lt;/si&gt;
+  &lt;si&gt;
+    &lt;t&gt;<span class="txt">value or text</span>&lt;/t&gt;
+  &lt;/si&gt;
+&lt;/sst&gt;</pre>
+<h4><a name="msoffice_xlsx_headers" id="msoffice10"></a>Headers and footers  (XLSX)</h4>
+<p> Like as DCX, they can be up to 6 headers/footers for each sheet.<br>
+  Header and footers are saved in the sheet file.</p>
+<pre>&lt;headerFooter differentOddEven=&quot;1&quot; differentFirst=&quot;1&quot;&gt;
+  &lt;oddHeader&gt;<span class="txt">My header for odd page in this sheet</span>&lt;/oddHeader&gt;
+  &lt;evenHeader&gt;<span class="txt">My header for even page in this sheet</span>&lt;/evenHeader&gt;
+  &lt;firstHeader&gt;<span class="txt">My header for first page in this sheet</span>&lt;/firstHeader&gt;
+&lt;/headerFooter&gt;</pre>
+<h4><a name="msoffice_xlsx_pictures" id="msoffice8"></a>Pictures (XLSX)</h4>
+<p>Binary contents is saved as a file in <em>&quot;xl/media/&quot;</em>. </p>
+<p>The presence of pictures in the sheet is mentioned with a single <code>&lt;drawing&gt;</code> entity at the bottom of the <code>&lt;worksheet&gt;</code> entity. The <code>&lt;drawing&gt;</code> entity carries a reference id, which is defined the Rels file of the sheet.  All properties of all the pictures in a sheet are finally saved in a third XML file.</p>
+<h5> File &quot;xl\worksheets\sheet1.xml&quot;</h5>
+<pre>&lt;worksheet ...&gt;
+   ...
+   &lt;drawing r:id=&quot;rId2&quot;/&gt; <span class="comm">// (only one entity for all pictures in the sheet)</span>
+&lt;/worksheet&gt; </pre>
+<h5>File &quot;xl\worksheets\_rels\sheet1.xml.rels&quot; </h5>
+<pre>&lt;Relationship Id=&quot;rId2&quot; Type=&quot;http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing&quot; Target=&quot;../drawings/drawing1.xml&quot;/&gt;
+<span class="comm">// (only one entity for all pictures in the sheet)</span></pre>
+<h5> File &quot;xl\drawings\drawing1.xml&quot;</h5>
+<p> (short synopsis, one entity per picture in the sheet)</p>
+<pre>&lt;xdr:twoCellAnchor ...&gt;
+  &lt;xdr:pic&gt;
+    &lt;xdr:nvPicPr&gt;
+      &lt;xdr:cNvPr id=&quot;2&quot; name=&quot;Image 1&quot; descr=&quot;xxx my description&quot; title=&quot;xxx my title&quot;/&gt;
+    &lt;/xdr:nvPicPr&gt;
+    &lt;xdr:blipFill&gt;
+      &lt;a:blip xmlns:r=&quot;http://schemas.openxmlformats.org/officeDocument/2006/relationships&quot; r:embed=&quot;rId1&quot;&gt;
+      &lt;/a:blip&gt;
+    &lt;/xdr:blipFill&gt;
+  &lt;/xdr:pic&gt;
+&lt;/xdr:twoCellAnchor&gt;
+</pre>
+<h3>&nbsp;  </h3>
+<h3><a name="msoffice_pptx" id="msoffice4"></a>Microsoft PowerPoint presentation (PPTX)</h3>
+<h4>General</h4>
+<p>Think to set all texts to <em>&quot;Tools » Language » No check&quot;</em> when you edit the PowerPoint presentation, otherwise some TBS fields can be split by XML tags about the language and spell checking.</p>
+<p>Slides are listed in the file <em>&quot;ppt/_rels/presentation.xml.rels&quot;</em>, where an internal id is affected to them.</p>
+<p>The first slide is quite always corresponding to the file <em>&quot;ppt/slides/slide1.xml&quot;</em>.</p>
+<p>Synopsis of a slide file like <em>&quot;ppt/slides/slide1.xml&quot;</em>: (PPTX)</p>
+<pre>&lt;p:sld&gt;
+  &lt;p:cSld&gt;
+    &lt;p:spTree&gt;
+      &lt;p:sp&gt;
+      
+        &lt;p:txBody&gt;
+          &lt;a:p&gt;
+            &lt;a:pPr eaLnBrk=&quot;1&quot; hangingPunct=&quot;1&quot;/&gt;
+            &lt;a:r&gt;
+              &lt;a:t&gt;<span class="txt">Some text here</span>&lt;/a:t&gt;
+            &lt;/a:r&gt;
+          &lt;/a:p&gt;
+        &lt;/p:txBody&gt;
+      
+      &lt;/p:sp&gt;
+    &lt;/p:spTree&gt;
+  &lt;/p:cSld&gt;
+&lt;/p:sld&gt;</pre>
+<h4><a name="msoffice_pptx_headers" id="msoffice9"></a>Headers and footers (PPTX)</h4>
+<p>They can be headers and footers for each slide, and aslo an header and footer for the &quot;handout&quot; view, wich is a set of several slides.</p>
+<p> Header and footer of each slide is saved in the sub-file of the slide (&quot;ppt/slides/slide1.xml&quot; for example).</p>
+<p> Header and footer of the handout is saved ins ubs-file <em>&quot;ppt/handoutMasters/handoutMaster1.xml&quot;</em>.</p>
+<h4><a name="msoffice_pptx_pictures" id="msoffice7"></a>Pictures (PPTX)</h4>
+<p>Binary contents is saved as a file in <em>&quot;ppt/media/&quot;</em>.</p>
+<p>(short synopsis)</p>
+<pre>&lt;p:pic&gt;
+  &lt;p:nvPicPr&gt;
+    &lt;p:cNvPr id=&quot;4&quot; name=&quot;Image 3&quot; descr=&quot;<span class="txt">My description</span>&quot; title=&quot;<span class="txt">My title</span>&quot;&gt;  <span class="comm">// this optional element gives the description and title of the image</span>
+      &lt;a:hlinkClick r:id=&quot;rId2&quot; action=&quot;ppaction://hlinkfile&quot; tooltip=&quot;<span class="txt">My toolip</span>&quot;/&gt;
+    &lt;/p:cNvPr&gt;
+  &lt;/p:nvPicPr&gt;
+  &lt;p:blipFill&gt;
+    &lt;a:blip r:embed=&quot;rId2&quot;&gt;
+    &lt;/a:blip&gt;
+  &lt;/p:blipFill&gt;
+  &lt;p:spPr&gt;
+    &lt;a:xfrm&gt;
+      &lt;a:off x=&quot;2667000&quot; y=&quot;4365104&quot; /&gt;
+      &lt;a:ext cx=&quot;3810000&quot; cy=&quot;1200150&quot; /&gt;
+    &lt;/a:xfrm&gt;
+  &lt;/p:spPr&gt;
+&lt;/p:pic&gt;</pre>
+<h4></h4>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+
+</div>
+
+</body>
+</html>
