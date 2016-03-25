@@ -29,9 +29,13 @@ body, td, th {
 	margin-bottom: 5px;
 }
 #main-body ul {
-	list-style-type:square;
-	list-style-position:inside;
-	padding-left:0;
+	list-style-type: square;
+	padding-left: 10px;
+	line-height: 20px;
+}
+#main-body ul li ul {
+	list-style-type: circle;
+	padding-left: 14px;
 	line-height: 20px;
 }
 .shift {
@@ -85,11 +89,11 @@ body, td, th {
 </head>
 
 <body>
-<!-- main-body is used for insertion in the TBS menu -->
+<!-- div main-body is used for insertion in the TBS menu -->
 <div id="main-body">
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.9.6, 2016-03-11 by Skrol29</div>
-<div>help file modified on 2016-03-11</div>
+<div>version 1.9.6, 2016-03-24 by Skrol29</div>
+<div>help file modified on 2016-03-24</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -140,7 +144,7 @@ body, td, th {
 <h5>Installation:</h5>
 <p> Just put the file &quot;tbs_plugin_opentbs.php&quot; with your PHP scripts.</p>
 <h2><a name="principles" id="principles"></a>3. Understanding principles</h2>
-<p>It is important to figure out that documents made with LibreOffice, OpenOffice and Ms Office (since version 2007)  are technically zip archives containing XML files, even if the extension of the document is not &quot;.zip&quot;. Those zip archives can contain other file types like pictures or sounds, but the document structure and the text contents are saved as  XML files. The <a href="./xml_synopsis.txt">XML Synopsis</a> summarizes the key entities of XML sub-files contained in LibreOffice, OpenOffice and Ms Office documents.</p>
+<p>It is important to figure out that documents made with LibreOffice, OpenOffice and Ms Office (since version 2007)  are technically zip archives containing XML files, even if the extension of the document is not &quot;.zip&quot;. Those zip archives can contain other file types like pictures or sounds, but the document structure and the text contents are saved as  XML files. The <a href="./xml_synopsis.html">XML Synopsis</a> summarizes the key entities of XML sub-files contained in LibreOffice, OpenOffice and Ms Office documents.</p>
 <p>TinyButStrong can merge XML files, but cannot read zip archives by itself. The plug-in OpenTBS extends the TinyButStrong methods <a href="http://www.tinybutstrong.com/manual.php#php_loadtemplate">LoadTemplate()</a> and <a href="http://www.tinybutstrong.com/manual.php#php_show">Show()</a> to make them working with zip archives. <span id="result_box"><span title="">But you   do not have to bother with it because OpenTBS is managing archives  in a way that is quite invisible for you.</span></span></p>
 <p> When the OpenTBS plugin is installed, the LoadTemplate() method becomes able to first load a zip archive (a LibreOffice,  OpenOffice or Ms Office document), and then to load the contents of any XML or Text files stored in the archive. Then you  can load an  merge the contents of XML or Text files with all features of the TinyButStrong template engine. TBS can merge fields and blocks only for the current loaded sub-file, but OpenTBS make you very easy to <a href="#modify_files">manage sub-files</a> and gives lot of facilities for special contents such as pictures, charts, ... . At the end, the Show() method does render the entire zip archive including  modified stored files. The render can be done as an HTTP download, or a new file on the server's disk, or as a PHP string containg the binary of the result archive.</p>
 <p>Since OpenTBS version 1.3, you can also add and delete files in the archive.</p>
@@ -1034,10 +1038,24 @@ $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
-<h3>version 1.9.5, on 2016-02-09</h3>
+<h3>version 1.9.6, on 2016-03-24</h3>
 <h4>Bug fixes</h4>
 <ul>
-  <li>The commands OPENTBS_SELECT_SHEET, OPENTBS_DELETE_SHEET and OPENTBS_DELETE_SHEETS used to find the sheet by its internal id instead of its number in the sheet list.</li>
+  <li>Some commands  used to find a worksheet by its internal id instead of its number in the worksheet list. Now they all search by number in the worksheet list.<br />
+    <span class="warning">Please  not that you may have to change your code if you are using those command with  the number if the sheet rather of the name of the sheet.</span><br />
+Concerned commands are:
+<ul>
+        <li>OPENTBS_SELECT_SHEET</li>
+        <li>OPENTBS_DELETE_SHEET</li>
+        <li>OPENTBS_DISPLAY_SHEETS</li>
+      </ul>
+  </li>
+  <li> Merging text with line-breaks in a DOCX was not displayed correctly in LibreOffice.</li>
+  </ul>
+<p>Enhancements</p>
+<ul>
+  <li> DOCX: Some special merging of enhanced graphical objects (like merging fill color in a shape) may corrupt the document    because they are stored in several ways by Ms Word.</li>
+  <li> The XML synopsis in now available in HTML.</li>
 </ul>
 <h3>version 1.9.5, on 2016-02-09</h3>
 <h4>New features</h4>

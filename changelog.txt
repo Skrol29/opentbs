@@ -2,13 +2,23 @@
 
 == Bug fixes ==
 
-* OPENTBS_SELECT_SHEET select the sheet by its sheetId which may not be ordered nore sequential.
-  same for OPENTBS_DELETE_SHEETS and OPENTBS_DISPLAY_SHEETS
+* Some commands used to find a worksheet by its internal id instead of its number in the worksheet list.
+  Now they all search by number in the worksheet list.
+  Please not that you may have to change your code if you are using those command with the number if the sheet rather of the name of the sheet.
+  Concerned commands are:
+  - OPENTBS_SELECT_SHEET
+  - OPENTBS_DELETE_SHEET
+  - OPENTBS_DISPLAY_SHEETS
+
+* Merging text with line-breaks in a DOCX was not displayed correctly in LibreOffice.
+
+== Enhancements ==
+
+* DOCX: Some special merging of enhanced graphical objects (like merging fill color in a shape) may corrupt the document
+  because they are stored in several ways by Ms Word.
+
+* The XML synopsis in now available in HTML.
   
-  http://www.tinybutstrong.com/forum.php?thr=3630
-
-* Merging text with line-breaks in a DOCX was not dipslayed correctly in Libre Office.
-
 = Release 1.9.5 =
 
 == New features ==
