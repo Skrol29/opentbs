@@ -1,9 +1,9 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE HTML>
+<html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>OpenTBS documentation - create OpenOffice and Ms Office documents with PHP</title>
-<script language="javascript">
+<script>
   // redirection if open without the menu at the TBS site
   if ( (document.location.href.indexOf('www.tinybutstrong.com') > 0)
         && (document.location.href.indexOf('tbs_plugin_opentbs.html') > 0)
@@ -83,6 +83,9 @@ body, td, th {
 .no {
 	color: #C30;
 }
+.centered {
+	text-align:center;
+}
 -->
 </style>
 <meta name="Keywords" content="openxml, odf, template" />
@@ -108,9 +111,10 @@ body, td, th {
       <li>4.6. <a href="#pic">Change pictures in the document</a></li>
       <li>4.7. <a href="#cells">Merging data in spreadsheet cells</a></li>
       <li>4.8. <a href="#col">Delete or merge columns in tables</a></li>
-      <li>4.9. <a href="#modify_contents">Commands to control the merging</a></li>
-      <li>4.10. <a href="#modify_files">Manual modification of files in the archive</a></li>
-      <li>4.11. <a href="#misc">Miscellaneous</a></li>
+      <li>4.9. <a href="#mergecell">Merge cells vertically</a></li>
+      <li>4.10. <a href="#modify_contents">Commands to control the merging</a></li>
+      <li>4.11. <a href="#modify_files">Manual modification of files in the archive</a></li>
+      <li>4.12. <a href="#misc">Miscellaneous</a></li>
     </ul>
   </li>
   <li><a href="#demo">Demo</a></li>
@@ -119,7 +123,7 @@ body, td, th {
   <li><a href="#changelog">Changelog</a></li>
   <li><a href="#license">License</a></li>
 </ol>
-<h2><a name="intro" id="intro"></a>1. Introduction</h2>
+<h2><a id="intro"></a>1. Introduction</h2>
 <p>OpenTBS is a plug-in for the <a href="http://www.tinybutstrong.com">TinyButStrong</a> Template Engine. </p>
 <p>  TinyButStrong is a  PHP Template Engine which has  special template syntax and allows you to design templates in their natural editing tools. But it normally works only for  Text files, including XML and HTML.</p>
 <p>  With TinyButStrong and its plug-in OpenTBS, you can use the template engine to  merge <strong>OpenOffice</strong> documents and <strong>Ms Office </strong> documents with lot of facilities.   All <strong>OpenDocument Format</strong> (ODF) and <strong> Office Open XML</strong> (OOXML) can be merged with OpenTBS, and also XPS files (XPS is a PDF competitor provided by Microsoft). In fact, all zip archives containing Xml/Html/Text files can be merged with OpenTBS.</p>
@@ -134,7 +138,7 @@ body, td, th {
 </ul>
 <p> You should know Template Engines and more specifically <a href="http://www.tinybutstrong.com">TinyButStrong</a> to use 
   OpenTBS.</p>
-<h2><a name="install" id="install"></a>2. Installing</h2>
+<h2><a id="install"></a>2. Installing</h2>
 <h5>Requirements:</h5>
 <ul>
   <li>TinyButStrong version 3.8.0 or higher. (OpenTBS versions &lt;= 1.5.0 require TinyButStrong version 3.6.0 or higher)</li>
@@ -143,22 +147,22 @@ body, td, th {
 </ul>
 <h5>Installation:</h5>
 <p> Just put the file &quot;tbs_plugin_opentbs.php&quot; with your PHP scripts.</p>
-<h2><a name="principles" id="principles"></a>3. Understanding principles</h2>
+<h2><a id="principles"></a>3. Understanding principles</h2>
 <p>It is important to figure out that documents made with LibreOffice, OpenOffice and Ms Office (since version 2007)  are technically zip archives containing XML files, even if the extension of the document is not &quot;.zip&quot;. Those zip archives can contain other file types like pictures or sounds, but the document structure and the text contents are saved as  XML files. The <a href="./xml_synopsis.html">XML Synopsis</a> summarizes the key entities of XML sub-files contained in LibreOffice, OpenOffice and Ms Office documents.</p>
 <p>TinyButStrong can merge XML files, but cannot read zip archives by itself. The plug-in OpenTBS extends the TinyButStrong methods <a href="http://www.tinybutstrong.com/manual.php#php_loadtemplate">LoadTemplate()</a> and <a href="http://www.tinybutstrong.com/manual.php#php_show">Show()</a> to make them working with zip archives. <span id="result_box"><span title="">But you   do not have to bother with it because OpenTBS is managing archives  in a way that is quite invisible for you.</span></span></p>
 <p> When the OpenTBS plugin is installed, the LoadTemplate() method becomes able to first load a zip archive (a LibreOffice,  OpenOffice or Ms Office document), and then to load the contents of any XML or Text files stored in the archive. Then you  can load an  merge the contents of XML or Text files with all features of the TinyButStrong template engine. TBS can merge fields and blocks only for the current loaded sub-file, but OpenTBS make you very easy to <a href="#modify_files">manage sub-files</a> and gives lot of facilities for special contents such as pictures, charts, ... . At the end, the Show() method does render the entire zip archive including  modified stored files. The render can be done as an HTTP download, or a new file on the server's disk, or as a PHP string containg the binary of the result archive.</p>
 <p>Since OpenTBS version 1.3, you can also add and delete files in the archive.</p>
-<p><a name="extension" id="extension"></a>OpenTBS has <strong>automatic extension recognition</strong>. When you load a document which has one of the following extensions { odt, odg, ods, odf, odp, odm, docx, xlsx, pptx }, then the main XML file of the archive are automatically  loaded, and some special character conversion are preset. For example, for all OpenDocument  files, the stored file  &quot;content.xml&quot; is automatically loaded.</p>
+<p><a id="extension"></a>OpenTBS has <strong>automatic extension recognition</strong>. When you load a document which has one of the following extensions { odt, odg, ods, odf, odp, odm, docx, xlsx, pptx }, then the main XML file of the archive are automatically  loaded, and some special character conversion are preset. For example, for all OpenDocument  files, the stored file  &quot;content.xml&quot; is automatically loaded.</p>
 <p> Since  version 1.6.0, 
   if the extension is not recognized then OpenTBS also try to find the document by the sub-file presence. And if all fails, then you can force the document type using a <a href="#force_doctype">special command</a>.</p>
-<h2><a name="coding" id="coding"></a>4. Synopsis and code examples</h2>
-<h3><a name="preparation" id="preparation"></a>4.1. Preparation of TinyButStrong Template Engine with the OpenTBS plug-in</h3>
+<h2><a id="coding"></a>4. Synopsis and code examples</h2>
+<h3><a id="preparation"></a>4.1. Preparation of TinyButStrong Template Engine with the OpenTBS plug-in</h3>
 <pre class="shift code">include_once('tbs_class.php');
 include_once('tbs_plugin_opentbs.php');
 
 $TBS = new clsTinyButStrong;
 $TBS-&gt;Plugin(TBS_INSTALL, OPENTBS_PLUGIN);</pre>
-<h3><a name="loadtemplate" id="loadtemplate"></a>4.2. Method LoadTemplate()</h3>
+<h3><a id="loadtemplate"></a>4.2. Method LoadTemplate()</h3>
 <h4>&bull; Load an archive with the automatic extension recognition (<a href="#extension">explained above</a>): </h4>
 <div class="shift">
   <div class="code">$TBS-&gt;LoadTemplate('document.odt'); // Load the archive 'document.odt'.  </div>
@@ -200,7 +204,7 @@ $TBS-&gt;LoadTemplate($handle);</pre>
   <p> Please note that if 
     you need to change the data conversion for one or few fields only in your template, then you can use parameter &quot;<span class="smallcode">htmlconv</span>&quot; (see the TBS documentation for more details). </p>
 </div>
-<h3><a name="show" id="show"></a>4.3. Method Show()</h3>
+<h3><a id="show"></a>4.3. Method Show()</h3>
 <p>Render options for OpenTBS:</p>
 <h4>&bull; Render the merged archive as an HTTP download: ($file_name is optional)</h4>
 <div class="shift code">$TBS-&gt;Show(OPENTBS_DOWNLOAD, $file_name);</div>
@@ -215,7 +219,7 @@ $TBS-&gt;LoadTemplate($handle);</pre>
     $string = $TBS-&gt;Source; </div>
   <p>When you use <span class="smallcode">OPENTBS_STRING</span> then there is no output for the client. But instead, the binary source of the archive is placed into property $TBS-&gt;Source. This feature can be useful, for example, when you want to place the merged document into an email as an attached file.</p>
 </div>
-<h3><a name="blockalias" id="modify"></a>4.4. Block alias</h3>
+<h3><a id="blockalias"></a>4.4. Block alias</h3>
 <p><span class="versioning">Block Alias are supported since OpenTBS version 1.8.0, they can work only with TBS 3.8.0 or higher</span>.</p>
 <p>The Block Alias are wrappers for defining TBS blocks on  usual Libre Office and Ms Office entities. This helps to not referring directly to XML entities and to harmonize block definitions between types of documents.
   For example:  you can use <span class="smallcode">block=tbs:row</span> instead of <span class="smallcode">block=table:table-row</span>.</p>
@@ -229,158 +233,158 @@ $TBS-&gt;LoadTemplate($handle);</pre>
     <th colspan="3" align="center">Ms Office</th>
   </tr>
   <tr>
-    <th align="center">Writer<br />
+    <th class="centered">Writer<br />
       (odt)</th>
-    <th align="center">Calc<br />
+    <th class="centered">Calc<br />
       (ods)</th>
-    <th align="center">Impress<br />
+    <th class="centered">Impress<br />
       (odp)</th>
-    <th align="center">Word<br />
+    <th class="centered">Word<br />
       (docx)</th>
-    <th align="center">Excel<br />
+    <th class="centered">Excel<br />
       (xlsx)</th>
-    <th align="center">PowerPoint<br />
+    <th class="centered">PowerPoint<br />
       (pptx)</th>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">tbs:p</td>
     <td>A paragraph.</td>
-    <td align="center" class="yes">yes</td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="yes">yes</span></td>
+    <td class="yes centered">yes</td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">tbs:title</td>
     <td>A title.</td>
-    <td align="center" class="yes">yes</td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="yes">yes</span></td>
+    <td class="centered yes">yes</td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">tbs:section</td>
     <td>A section of text.</td>
-    <td align="center" class="yes">yes</td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="yes">yes (*)</span></td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="no">no</span></td>
+    <td class="centered yes">yes</td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="yes">yes (*)</span></td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="no">no</span></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">tbs:table</td>
     <td>A table inserted in the document.</td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><em>a sheet</em></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><em>a sheet</em></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">tbs:row</td>
     <td>A row of a table.</td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">tbs:cell</td>
     <td>A cell of a table.</td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">tbs:comment</td>
     <td>A comment.</td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="no">no</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="no">no</span></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">tbs:page</td>
     <td>A page defined by an explicit page break before a paragraph.(*)</td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="yes">yes (*)</span></td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="no">no</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="yes">yes (*)</span></td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="no">no</span></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">tbs:slide</td>
     <td>A slide.</td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center" class="no">no</td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered" class="no">no</td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">tbs:sheet</td>
     <td>A worksheet.</td>
-    <td align="center"><em>a table</em></td>
-    <td align="center" class="yes">yes</td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="no">no</span></td>
+    <td class="centered"><em>a table</em></td>
+    <td class="centered yes">yes</td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="no">no</span></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">tbs:draw</td>
     <td>A single draw, or set of draws (Ms Word)</td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">tbs:drawgroup</td>
     <td>A group of draws.</td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">tbs:drawitem</td>
     <td>A single draw item among a set of items.</td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">tbs:listitem</td>
     <td>An item of a bullet list.</td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="yes">yes</span></td>
-    <td align="center"><span class="no">no</span></td>
-    <td align="center"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
+    <td class="centered"><span class="no">no</span></td>
+    <td class="centered"><span class="yes">yes</span></td>
   </tr>
 </table>
 <h5>Notes (*)</h5>
@@ -389,8 +393,8 @@ $TBS-&gt;LoadTemplate($handle);</pre>
   <li><span class="code">tbs:page</span> in a DOCX: the TBS tag using the alias <span class="smallcode">tbs:page</span> must not be placed in the last paragraph of the page if it uses a section break doing a page break. This is a knowed bug. Instead, use the paragraph property named <em>page break before</em>, or move the TBS tag in another paragraph.</li>
   <li><span class="smallcode">tbs:section</span> in a DOCX: this alias points out avery kind of sections, including thoses defined with a section break doing a page break</li>
 </ul>
-<h3><a name="chart" id="chart"></a>4.5. Change or read data of series in a chart</h3>
-<h4>&bull; <a name="opentbs_chart" id="chart2"></a>Change series in a chart:</h4>
+<h3><a id="chart"></a>4.5. Change or read data of series in a chart</h3>
+<h4>&bull; <a id="opentbs_chart"></a>Change series in a chart:</h4>
 <div class="shift"> <span class="versioning">(supported since OpenTBS version 1.6.0, for Ms Word and Ms Powerpoint, since version 1.8.0 for LibreOffice)</span>
   <div class="code">Example: $TBS-&gt;PlugIn(OPENTBS_CHART, $ChartRef, $SeriesNameOrNum, $NewValues, $NewLegend=false)</div>
   <p>This command changes the values of a series in a Chart of the document. The chart will be automatically actualized when the merged document is opened because OpenTBS also breaks the link between the chart and its cached view. It can also delete or rename the series in the chart.</p>
@@ -445,7 +449,7 @@ $TBS-&gt;LoadTemplate($handle);</pre>
     <li>With Ms Office, the visual Data Editor becomes unavailable on a merged chart. If you set property <span class="smallcode">$TBS-&gt;OtbsDeleteObsoleteChartData = false</span> then the Data Editor of Ms Office can be opened but it displays only  previous values, which may be quite confusing.  <span class="versioning">This property is supported since OpenTBS version 1.9.5, before that the visual Data Editor could be opened but displayed only previous data.</span></li>
   </ul>
 </div>
-<h4>&bull; <a name="opentbs_chart_info" id="chart3"></a>Read series in a chart:</h4>
+<h4>&bull; <a id="opentbs_chart_info"></a>Read series in a chart:</h4>
 <div class="shift"> <span class="versioning">(supported since OpenTBS version 1.9.5)</span>
   <div class="code">Example: $info = $TBS-&gt;PlugIn(OPENTBS_CHART_INFO, $ChartRef, $Complete=false)</div>
   <p>This command returns information about all series in the chart.</p>
@@ -479,20 +483,20 @@ array (
 <pre class="code">
 // Example :
 array (
-  'file_idx' => 17,
-  'file_name' => 'Object 1/content.xml',
-  'parent_idx' => 19,
-  'parent_name' => 'content.xml',
-  'series' => array (
-    0 => array (
-      'name' => 'Series 1',
-      'cat' => array (0 => 'Category A', 1 => 'Category B', 2 => 'Category C',),
-      'val' => array (0 => '2', 1 => '2.1', 2 => false,),
+  'file_idx' =&gt; 17,
+  'file_name' =&gt; 'Object 1/content.xml',
+  'parent_idx' =&gt; 19,
+  'parent_name' =&gt; 'content.xml',
+  'series' =&gt; array (
+    0 =&gt; array (
+      'name' =&gt; 'Series 1',
+      'cat' =&gt; array (0 =&gt; 'Category A', 1 =&gt; 'Category B', 2 =&gt; 'Category C',),
+      'val' =&gt; array (0 =&gt; '2', 1 =&gt; '2.1', 2 =&gt; false,),
     ),
     1 =&gt; array (
       'name' =&gt; 'Series 2',
       'cat' =&gt; array (0 =&gt; 'Category A', 1 =&gt; 'Category B', 2 =&gt; 'Category C',),
-      'val' =&gt; array (0 =&gt; '7', 1 =&gt; '7.1', 2 =&gt; '6.9',),
+      'val' =&gt; array (0 =&gt; '7', 1 =&gt; '7.1', 2 =&gt;'6.9',),
     ),
   ...
 ); </pre>
@@ -501,7 +505,7 @@ array (
     </tr>
   </table>
 </div>
-<h3><a name="pic" id="pic2"></a>4.6. Change pictures in the document</h3>
+<h3><a id="pic"></a>4.6. Change pictures in the document</h3>
 <h4>&bull; Change an internal picture with a new one:</h4>
 <div class="shift"> <span class="versioning">(supported since OpenTBS version 1.4.0, for OpenOffice and MsOffice documents only)</span>
   <div class="template">Example: [onshow.x;ope=changepic]</div>
@@ -583,7 +587,7 @@ array (
     </tr>
   </table>
 </div>
-<h3><a name="cells" id="modify4"></a>4.7. Merging data in spreadsheet cells</h3>
+<h3><a id="cells"></a>4.7. Merging data in spreadsheet cells</h3>
 <p>In speaksheets (Ms Excel or LibreOffice Calc), cells values may be formated but also typed. For example, a cell value may be typed as String, Numerical, Boolean or Date.</p>
 <p>Unfortunately, as soon as you enter a TBS tag in a cell, the cell it is typed as String by the software. This may not be corresponding to the final value you wanted after the merging.</p>
 <p>For those situations, TBS offers a parameter like &quot;<span class="smallcode">ope=cellType</span>&quot;. The cell type will be changed during the merging and the merged value will be implicitly   converted by TBS to fit to the expected type.</p>
@@ -595,8 +599,8 @@ array (
 <table border="0" cellspacing="1" cellpadding="4">
   <tr>
     <th align="left">Expected Cell Type</th>
-    <th align="center">Parameter</th>
-    <th align="center">Note</th>
+    <th class="centered">Parameter</th>
+    <th class="centered">Note</th>
   </tr>
   <tr>
     <td nowrap="nowrap">Number</td>
@@ -631,8 +635,8 @@ array (
 </table>
 <p class="versioning">The keywoks in the table above are supported since OpenTBS version 1.8.1.</p>
 <p class="versioning"> In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime, odsCurr, odsPercent, xlsxNum, xlsxBool and xlsxDate.</p>
-<h3><a name="col" id="modify3"></a>4.8. Delete or merge columns in a table</h3>
-<h5>Delete columns in a table</h5>
+<h3><a id="col"></a>4.8. Delete or merge columns in a table</h3>
+<h5><a id="delcol"></a>Delete columns in a table</h5>
 <p>Parameter &quot;<span class="smallcode">ope=delcol</span>&quot; enables you to delete the columns you want in any table of an Ms Word Document or  any LibreOffice document.</p>
 <p> Limitations: Parameter &quot;<span class="smallcode">ope=delcol</span>&quot; will produce a wrong result if there is any  cell with a merged style before of within the columns to delete using OpenTBS.</p>
 <p> You have to put a TBS field anywhere inside the table with the following parameters:</p>
@@ -649,7 +653,7 @@ array (
   <li> <span class="template">[onload;ope=delcol;colnum=2;colshift=-1]</span> =&gt; will delete columns {1,2}</li>
   <li><span class="template">[onload.col_to_delete;ope=delcol;colnum=[val];colshift=2]</span> =&gt; will delete 3 columns staring from column number <span class="smallcode">$col_to_delete</span></li></ul></div>
 <p class="versioning">Parameter &quot;ope=delcol&quot;  is  supported since OpenTBS version 1.8.0.</p>
-<h5>Merge dynamic colmuns in a table</h5>
+<h5><a id="parallell"></a>Merge dynamic colmuns in a table</h5>
 <p>Parameter &quot;<span class="smallcode">parallel=tbs:table</span>&quot; enables you to create dynamic columns in a table of an Ms Word Document or any LibreOffice document.</p>
 <p> Limitations: </p>
 <ul>
@@ -658,9 +662,9 @@ array (
 </ul>
 <p> See the <a href="http://www.tinybutstrong.com/manual.php#html_block_parallel">TBS manual</a> and the OpenTBS demo for more details about how to use parameter &quot;<span class="smallcode">parallel</span>&quot;.</p>
 <p><span class="versioning">Parameter &quot;parallel=tbs:table&quot;  is  supported since OpenTBS version 1.8.2.</span></p>
-<h5>Other solution supported for compatibility</h5>
-<p> Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; enables you to merge cells vertically in a table of an Ms Word Document.</p>
-<p> Limitations:  </p>
+<h3><a id="mergecell"></a>4.9. Delete or merge columns in a table</h3>
+ Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; enables you to merge cells vertically in a table of an Ms Word Document.
+ <p> Limitations:</p>
 <ul>
   <li>Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; doesn't work with LibreOffice.</li>
   <li> Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; will produce a wrong merge if there is any  cell with a maged style before of within the columns to merge with data using OpenTBS.</li>
@@ -672,29 +676,29 @@ array (
   </ul>
 </div>
 <p class="versioning">Parameter &quot;ope=mergecell&quot;  is  supported since OpenTBS version 1.8.0.</p>
-<h3><a name="modify_contents" id="modify2"></a>4.9. Commands to control the merging</h3>
+<h3><a id="modify_contents"></a>4.10. Commands to control the merging</h3>
 <p><span class="versioning">The following commands are supported since OpenTBS version 1.7.0 </span>:</p>
 <table  border="0" cellspacing="1" cellpadding="4">
   <tr>
     <th align="left">Command</th>
-    <th align="left">Desciption</th>
+    <th align="left">Description</th>
   </tr>
   <tr>
-    <td align="center" valign="top" nowrap="nowrap" class="category">For all types of documents</td>
+    <td valign="top" nowrap="nowrap" class="category centered">For all types of documents</td>
     <td valign="top">&nbsp;</td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap"><span class="smallcode"><a name="opentbs_select_main" id="modify6"></a>$TBS-&gt;PlugIn(OPENTBS_SELECT_MAIN)</span></td>
+    <td valign="top" nowrap="nowrap"><span class="smallcode"><a id="opentbs_select_main"></a>$TBS-&gt;PlugIn(OPENTBS_SELECT_MAIN)</span></td>
     <td valign="top"><p>Select and load the main sub-file in the opened template. For example in a Writer document, or an Ms Word document, this command can bring you back from the merging of a header to the main body.</p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap"><span class="smallcode"><a name="opentbs_select_file" id="modify5"></a>$TBS-&gt;PlugIn(OPENTBS_SELECT_FILE, $SubFile)</span></td>
+    <td valign="top" nowrap="nowrap"><span class="smallcode"><a id="opentbs_select_file"></a>$TBS-&gt;PlugIn(OPENTBS_SELECT_FILE, $SubFile)</span></td>
     <td valign="top"><p>Select a sub-file in the opened template. Return <span class="smallcode">false</span> if the sub-file is not found. If the sub- file is stored in a subfolder, then indicate the full path. For example: 'word/document.xml'.</p>
       <p>Before OpenTBS 1.9.0, selecting a sub-file had to be done using  <span class="smallcode">$TBS-&gt;LoadTemplate('#' . $SubFile);.</span></p>
 <p><span class="versioning">Command OPENTBS_SELECT_FILE is supported since OpenTBS version 1.9.0.</span></p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap"><p><a name="opentbs_change_picture" id="modify23"></a><span class="smallcode">$TBS-&gt;PlugIn(OPENTBS_CHANGE_PICTURE, $PicRef, $File
+    <td valign="top" nowrap="nowrap"><p><a id="opentbs_change_picture"></a><span class="smallcode">$TBS-&gt;PlugIn(OPENTBS_CHANGE_PICTURE, $PicRef, $File
       [, $Prms])</span><br />
     </p>
       <p>&nbsp;</p>
@@ -717,29 +721,29 @@ array (
       Parameter $Prms is supported since version 1.9.1.</span></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_delete_comments" id="modify21"></a>$TBS-&gt;PlugIn(OPENTBS_DELETE_COMMENTS)</td>
+    <td valign="top" nowrap="nowrap" class="smallcode"><a id="opentbs_delete_comments"></a>$TBS-&gt;PlugIn(OPENTBS_DELETE_COMMENTS)</td>
     <td valign="top"><p>Delete all usual user comments in the opened template. </p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap"><span class="smallcode"><a name="opentbs_delete_elements" id="modify22"></a>$TBS-&gt;PlugIn(OPENTBS_DELETE_ELEMENTS, $Elements)</span></td>
+    <td valign="top" nowrap="nowrap"><span class="smallcode"><a id="opentbs_delete_elements"></a>$TBS-&gt;PlugIn(OPENTBS_DELETE_ELEMENTS, $Elements)</span></td>
     <td valign="top"><p>Delete XML elements in the current sub-file.</p>
       <p> <span class="smallcode">$Elements</span> must be an array of strings.</p>
       <p> For example: <span class="smallcode">$Elements = array('w:bookmarkStart', 'w:bookmarkEnd')</span> This will delete all bookmarks in an Ms Word document. </p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap"><span class="smallcode"><a name="opentbs_add_credit" id="modify22"></a>$TBS-&gt;PlugIn(OPENTBS_ADD_CREDIT, $Text [, $Name])</span></td>
+    <td valign="top" nowrap="nowrap"><span class="smallcode"><a id="opentbs_add_credit"></a>$TBS-&gt;PlugIn(OPENTBS_ADD_CREDIT, $Text [, $Name])</span></td>
     <td valign="top"><p>Add a new credit text in the properties of the document. </p>
       <p>For  LibreOffice/OpenOffice, this will add the text as  a new  Custom Property of the document. You can use argument <span class="smallcode">$Name</span> for the custom property's name.</p>
       <p>For  Ms Office, this will add the text in the Author property of the document. You can use argument <span class="smallcode">$Name</span> to specify another XML element for placing the text. Exemple : <span class="smallcode">'dc:description'</span> will add the text in the Comment property. Take care that using an unsupported value can corrupt the document.</p>
       <p><span class="versioning">Command OPENTBS_ADD_CREDIT is supported since OpenTBS version 1.9.1.</span></p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap"><span class="smallcode"><a name="opentbs_system_credit" id="modify22"></a>$TBS-&gt;PlugIn(OPENTBS_SYSTEM_CREDIT, $Enable)</span></td>
+    <td valign="top" nowrap="nowrap"><span class="smallcode"><a id="opentbs_system_credit"></a>$TBS-&gt;PlugIn(OPENTBS_SYSTEM_CREDIT, $Enable)</span></td>
     <td valign="top"><p>Enable or disable the System Credit. System Credit add the current version of OpenTBS into a creator property of the document. The System Credit is enabled by default.</p>
       <p><span class="versioning">Command OPENTBS_SYSTEM_CREDIT is supported since OpenTBS version 1.9.1.</span></p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap"><span class="smallcode"><a name="opentbs_edit_entity" id="modify27"></a>$TBS-&gt;PlugIn(OPENTBS_EDIT_ENTITY, $SubFile<br />
+    <td valign="top" nowrap="nowrap"><span class="smallcode"><a id="opentbs_edit_entity"></a>$TBS-&gt;PlugIn(OPENTBS_EDIT_ENTITY, $SubFile<br />
       , $ElPath, $Att, $NewVal, $AddElIfMissing = false)</span></td>
     <td valign="top"><p>Change an attribute's value or  an entity's value in the first element in a given sub-file. Return <span class="smallcode">true</span> if the attribute is found and processed, <span class="smallcode"> false</span> otherwise.</p>
       <ul>
@@ -751,12 +755,12 @@ array (
       <p><span class="versioning">Command OPENTBS_EDIT_ENTITY is supported since OpenTBS version 1.9.5.</span></p></td>
   </tr>
   <tr>
-    <td align="center" valign="top" nowrap="nowrap" class="category"><span class="smallcode"><a name="commands_for_documents" id="modify16"></a></span>For documents (ODT and DOCX)</td>
+    <td valign="top" nowrap="nowrap" class="category centered"><span class="smallcode"><a id="commands_for_documents"></a></span>For documents (ODT and DOCX)</td>
     <td valign="top">&nbsp;</td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_select_header" id="modify19"></a>$TBS-&gt;PlugIn(OPENTBS_SELECT_HEADER, [$Type[, $Offset])<br />
-    <a name="opentbs_select_footer" id="modify18"></a>$TBS-&gt;PlugIn(OPENTBS_SELECT_FOOTER, [$Type[, $Offset])</td>
+    <td valign="top" nowrap="nowrap" class="smallcode"><a id="opentbs_select_header"></a>$TBS-&gt;PlugIn(OPENTBS_SELECT_HEADER, [$Type[, $Offset])<br />
+    <a id="opentbs_select_footer"></a>$TBS-&gt;PlugIn(OPENTBS_SELECT_FOOTER, [$Type[, $Offset])</td>
     <td valign="top"><p>Select the sub-file corresponding to the header of the footer. Return <span class="smallcode">true</span> if succeed, <span class="code">false</span> if it fails.</p>
       <p>This command is useless for LibreOffice/OpenOffice because all headers and footers are  saved in the main sub-file. Nevertheless using it will select the main sub-file without raising an error.</p>
       <p>Those commands do not work for XLSX or PPTX since headers and footers are saved in each sheet or slide. The command will return <span class="smallcode">false</span>.</p>
@@ -770,17 +774,16 @@ array (
       <p class="versioning">Command OPENTBS_SELECT_HEADER and OPENTBS_SELECT_FOOTER are supported since OpenTBS version 1.9.0.</p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_get_headers_footers" id="modify20"></a>$TBS-&gt;PlugIn(OPENTBS_GET_HEADERS_FOOTERS)</td>
+    <td valign="top" nowrap="nowrap" class="smallcode"><a id="opentbs_get_headers_footers"></a>$TBS-&gt;PlugIn(OPENTBS_GET_HEADERS_FOOTERS)</td>
     <td valign="top"><p>Return an array of all sub-file corresponding to any header and footer in the document.</p>
       <p class="versioning">Command OPENTBS_GET_HEADERS_FOOTERS is supported since OpenTBS version 1.9.0.</p></td>
   </tr>
   <tr>
-    <td align="center" valign="top" nowrap="nowrap" class="category"><span class="smallcode"><a name="commands_for_workbooks" id="modify15"></a></span>For workbooks (ODS and XLSX)</td> 
-    ()
+    <td valign="top" nowrap="nowrap" class="category centered"><span class="smallcode"><a id="commands_for_workbooks"></a></span>For workbooks (ODS and XLSX)</td> 
     <td valign="top">&nbsp;</td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_select_sheet" id="modify9"></a>$TBS-&gt;PlugIn(OPENTBS_SELECT_SHEET, $NumOrName [, $ById])</td>
+    <td valign="top" nowrap="nowrap" class="smallcode"><a id="opentbs_select_sheet"></a>$TBS-&gt;PlugIn(OPENTBS_SELECT_SHEET, $NumOrName [, $ById])</td>
     <td valign="top"><p>Select the sub-file corresponding to <span class="smallcode">$NumOrName</span>. This command will raise an error if the opened template is not an expected document.</p>
       <p>This command is useless for LibreOffice/OpenOffice because all sheets/slides are all saved in the main sub-file. Nevertheless using it will select the main sub-file without raising an error.</p>
       <p><span class="smallcode">$NumOrName</span> is an identifier that can be 
@@ -793,7 +796,7 @@ array (
     Before OpenTBS version 1.9.6, the sheet was not find by its number in the sheet list but only by its internal id, which may be different. </p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_display_sheet" id="modify17"></a>$TBS-&gt;PlugIn(OPENTBS_DISPLAY_SHEETS, $NumOrNames[, $Visible])</td>
+    <td valign="top" nowrap="nowrap" class="smallcode"><a id="opentbs_display_sheet"></a>$TBS-&gt;PlugIn(OPENTBS_DISPLAY_SHEETS, $NumOrNames[, $Visible])</td>
     <td valign="top"><p>Make one or several sheets/slides visible or hidden.  This command will raise an error if the opened template is not an expected document.</p>
       <ul>
         <li> <span class="smallcode">$NumOrNames</span> must be an array of  identifiers, or even a single  identifier. See command <span class="smallcode">OPENTBS_SELECT_SHEET</span> for more details about  identifiers.</li>
@@ -803,7 +806,7 @@ array (
       <span class="versioning">Before OpenTBS version 1.9.6, the sheet was not selected by its number in the sheet list but only by its internal id, which may be different. </span>    </p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_delete_sheets" id="modify13"></a>$TBS-&gt;PlugIn(OPENTBS_DELETE_SHEETS, $NumOrNames[, $Delete])</td>
+    <td valign="top" nowrap="nowrap" class="smallcode"><a id="opentbs_delete_sheets"></a>$TBS-&gt;PlugIn(OPENTBS_DELETE_SHEETS, $NumOrNames[, $Delete])</td>
     <td valign="top"><p>Make one or several sheets te be deleted or not. 
       This command will raise an error if the opened template is not a Workbook.</p>
       <ul>
@@ -815,18 +818,18 @@ array (
       <span class="versioning">Before OpenTBS version 1.9.6, the sheet was not find by its number in the sheet list but only by its internal id, which may be different. </span>      </p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_count_sheets" id="modify24"></a>$TBS-&gt;PlugIn(OPENTBS_COUNT_SHEETS)</td>
+    <td valign="top" nowrap="nowrap" class="smallcode"><a id="opentbs_count_sheets"></a>$TBS-&gt;PlugIn(OPENTBS_COUNT_SHEETS)</td>
     <td valign="top"><p>Return the number of sheets in the workbook. Always return 0 if the document is neither an XLSX nor an ODS.
       </p>
       <p> <span class="versioning">Command OPENTBS_COUNT_SHEETS is supported since OpenTBS version 1.9.1.</span></p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_merge_special_items" id="modify26"></a>$TBS-&gt;PlugIn(OPENTBS_MERGE_SPECIAL_ITEMS)</td>
+    <td valign="top" nowrap="nowrap" class="smallcode"><a id="opentbs_merge_special_items"></a>$TBS-&gt;PlugIn(OPENTBS_MERGE_SPECIAL_ITEMS)</td>
     <td valign="top"><p>Merge special items relatively   to the current sub-file. For now, it only works with Ms Excel workbooks. This command makes automatic fields ([onload] and [onshow]) merged in pictures embedded   in the current selected sheet. This can be useful for changing pictures in Ms Excel.</p>
       <p> <span class="versioning">Command OPENTBS_MERGE_SPECIAL_ITEMS is supported since OpenTBS version 1.8.0.</span></p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap"><span class="smallcode"><a name="opentbs_relative_cells" id="modify25"></a>$TBS-&gt;PlugIn(OPENTBS_RELATIVE_CELLS, $Enabled[, $Options])</span></td>
+    <td valign="top" nowrap="nowrap"><span class="smallcode"><a id="opentbs_relative_cells"></a>$TBS-&gt;PlugIn(OPENTBS_RELATIVE_CELLS, $Enabled[, $Options])</span></td>
     <td valign="top"><p>This command may significatively optimize time generation for XLSX workbooks that contains sheets with large numerous rows. By default the Ms Excel software saves sheets with explicit cells positioning, and OpenTBS has the same behavior by default. This operation may be quite slowing OpenTBS for sheets with large numerous rows. In another hand saving sheets with relative cells positioning is quite faster and the final file may be smaller. Use this command in order to define the saving behavior about cells.</p>
       <ul>
         <li> <span class="smallcode">$Enabled</span> set to <span class="smallcode">true</span> in order  to activate the relative cells positioning for the current sheet only.</li>
@@ -836,33 +839,33 @@ array (
 <p> <span class="versioning">Command OPENTBS_RELATIVE_CELLS is supported since OpenTBS version 1.9.2.</span></p></td>
   </tr>
   <tr>
-    <td align="center" valign="top" nowrap="nowrap" class="category"> <span class="smallcode"><a name="commands_for_presentations" id="modify14"></a></span>For presentations (ODP and PPTX)</td>
+    <td align="center" valign="top" nowrap="nowrap" class="category"> <span class="smallcode"><a id="commands_for_presentations"></a></span>For presentations (ODP and PPTX)</td>
     <td valign="top">&nbsp;</td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_select_slide" id="modify8"></a>$TBS-&gt;PlugIn(OPENTBS_SELECT_SLIDE, $NumOrName[, $Master])</td>
+    <td valign="top" nowrap="nowrap" class="smallcode"><a id="opentbs_select_slide"></a>$TBS-&gt;PlugIn(OPENTBS_SELECT_SLIDE, $NumOrName[, $Master])</td>
     <td valign="top"><p>Same as  command <a href="#opentbs_select_sheet">OPENTBS_SELECT_SHEET</a> but for slides.</p>
       <p><span class="smallcode">$Master </span>is a boolean to indicate if you want to select a master slide in the document. Default value is <span class="smallcode">false</span>.</p>
       <p><span class="versioning">Command OPENTBS_SELECT_SLIDE is supported since OpenTBS version 1.8.0.<br />
     Argument $Master is supported since OpenTBS version 1.9.0.</span></p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode">    <a name="opentbs_display_slide" id="modify7"></a>$TBS-&gt;PlugIn(OPENTBS_DISPLAY_SLIDES, $NumOrNames[, $Visible])</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">    <a id="opentbs_display_slide"></a>$TBS-&gt;PlugIn(OPENTBS_DISPLAY_SLIDES, $NumOrNames[, $Visible])</td>
     <td valign="top"><p>Same as  command <a href="#opentbs_display_sheet">OPENTBS_DISPLAY_SHEET</a> but for slides.</p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_delete_slides" id="modify10"></a>$TBS-&gt;PlugIn(OPENTBS_DELETE_SLIDES, $NumOrNames[, $Delete])</td>
+    <td valign="top" nowrap="nowrap" class="smallcode"><a id="opentbs_delete_slides"></a>$TBS-&gt;PlugIn(OPENTBS_DELETE_SLIDES, $NumOrNames[, $Delete])</td>
     <td valign="top"><p>Same as  command <a href="#opentbs_delete_sheets">OPENTBS_DELETE_SHEETS</a> but for slides.</p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_count_slides" id="modify11"></a>$TBS-&gt;PlugIn(OPENTBS_COUNT_SLIDES[, $Master])</td>
+    <td valign="top" nowrap="nowrap" class="smallcode"><a id="opentbs_count_slides"></a>$TBS-&gt;PlugIn(OPENTBS_COUNT_SLIDES[, $Master])</td>
     <td valign="top"><p>Return the number of slides in the presentation. Always return 0 if the document is neither a PPTX nor an ODP.</p>
       <p><span class="smallcode">$Master </span>is a boolean to indicate if you want to count master slides in the document. Default value is <span class="smallcode">false</span>.</p>
     <p> <span class="versioning">Command OPENTBS_COUNT_SLIDES is supported since OpenTBS version 1.8.0.</span><br />
     <span class="versioning">Argument $Master is supported since OpenTBS version 1.9.0.</span>    </p></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode"><a name="opentbs_search_in_slides" id="modify12"></a>$TBS-&gt;PlugIn(OPENTBS_SEARCH_IN_SLIDES, $Str[, $Options])</td>
+    <td valign="top" nowrap="nowrap" class="smallcode"><a id="opentbs_search_in_slides"></a>$TBS-&gt;PlugIn(OPENTBS_SEARCH_IN_SLIDES, $Str[, $Options])</td>
     <td valign="top"><p>Search for the string <span class="smallcode">$Str</span> trough the slides of the current document. Return the id of the first slide where the string is found. Return <span class="smallcode">false</span> if the string is not found.</p>
       <p><span class="smallcode">$Options</span> must be a combination of the following constants. Default value is OPENTBS_FIRST.      </p>
       <ul>
@@ -874,7 +877,7 @@ array (
     <p><span class="versioning">Command OPENTBS_SEARCH_IN_SLIDES is supported since OpenTBS version 1.9.0.</span></p></td>
   </tr>
 </table>
-<h3><a name="modify_files" id="modify_files"></a>4.10. Manual modification of files in the archive</h3>
+<h3><a id="modify_files"></a>4.11. Manual modification of files in the archive</h3>
 <h4 style="display:inline">&bull; Check if a file does exists in the archive:</h4>
 <div class="shift">
   <div class="code">$TBS-&gt;Plugin(OPENTBS_FILEEXISTS, $Name);
@@ -922,14 +925,14 @@ $TBS-&gt;Plugin(OPENTBS_RESET);
 $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   <p>The automatic extension recognition is also applied as it was applied for the first load of the archive.</p>
 </div>
-<h3><a name="misc" id="misc"></a>4.11. Miscellaneous</h3>
+<h3><a id="misc"></a>4.12. Miscellaneous</h3>
 <h4>Dealing with apostrophes:</h4>
 <div class="shift">
   <p> Both OpenOffice and Ms Office may automatically convert single quotes (') into typographic apostrophes (&rsquo;), depending to the auto-correction options. This may be annoying   when you need to code a TBS fields that have a single quote. That's why OpenTBS automatically convert by default all (&rsquo;) back to single quotes (') in documents.<br />
     If you want to stop this conversion, you can set <span class="smallcode">$TBS-&gt;OtbsConvertApostrophes = false;</span> and no apostrophes   will be converted. Note that you can avoid the auto-correction of single quotes (') in Ms Word using keys[ctrl]+[z], and in OpenOffice using the cancel button.<br />
    </p> <div class="versioning">Property OtbsConvertApostrophes is supported since OpenTBS version 1.6.0.</div>
 </div>
-<h4><a name="force_doctype" id="demo4"></a>&bull; Forcing the document type recognition:</h4>
+<h4><a id="force_doctype"></a>&bull; Forcing the document type recognition:</h4>
 <div class="shift">
   <p>You can force the document type recognition using command OPENTBS_FORCE_DOCTYPE. Example:</p>
   <div class="code"> $TBS-&gt;PlugIn(OPENTBS_FORCE_DOCTYPE, 'docx');</div>
@@ -940,11 +943,11 @@ $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   <p> Other TinyButStrong methods and properties stay unchanged and are available for merging your template. </p>
   <div class="versioning">(supported since OpenTBS version 1.1)</div>
 </div>
-<h2><a name="demo" id="demo"></a>5. Demo</h2>
+<h2><a id="demo"></a>5. Demo</h2>
 <p>The OpenTBS package includes a full set of runnable templates. Some templates can contain useful complementary information for designing.<br />
   Run the following demo under PHP: <a href="http://www.tinybutstrong.com/plugins/opentbs/demo">OpenTBS demo</a></p>
-<h2><a name="debug" id="debug"></a>6. Debugging your template</h2>
-<p><a name="debugmode" id="debugmode2"></a>Since OpenTBS version 1.6.0, there are several commands for debugging. Please note that those commands do not exit the process.</p>
+<h2><a id="debug"></a>6. Debugging your template</h2>
+<p><a id="debugmode"></a>Since OpenTBS version 1.6.0, there are several commands for debugging. Please note that those commands do not exit the process.</p>
 <table border="0" cellspacing="1" cellpadding="0">
   <tr>
     <th align="left">Command</th>
@@ -991,21 +994,21 @@ $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   </tr>
 </table>
 <p>Otherwise, here are some indications that may help for the issues you can met with merging:</p>
-<h3><a name="debug_error" id="debug_error"></a>a) The merged document is producing error messages when opened with its application (OpenOffice or Ms Office)</h3>
+<h3><a id="debug_error"></a>a) The merged document is producing error messages when opened with its application (OpenOffice or Ms Office)</h3>
 <p>The most likely causes are:</p>
 <p>&bull; You've chosen the <span class="smallcode">OPENTBS_DOWNLOAD</span> render option but a php error message or any other unexpected content has been output before by PHP.</p>
 <p class="shift">Activate the <a href="#debugmode">debug mode</a> using the command <span class="smallcode">OPENTBS_DEBUG_XML_SHOW</span>, it helps to check PHP error message and other unexpected content.</p>
 <p>&bull; The merging has produced an invalid document or an invalid XML content in an XML file  of the document.</p>
 <p class="shift">Activate the <a href="#debugmode">debug mode</a> using  it helps to check the XML contents of merged files.</p>
 <p> See section (b) below for more information in the XML structure of the files.</p>
-<h3><a name="debug_tags" id="debug_error4"></a>b) Some TBS tags are not merged</h3>
+<h3><a id="debug_tags"></a>b) Some TBS tags are not merged</h3>
 <p>First be sure that the TBS tag is a in a part of the document which is loaded and selected. Since a sub-file is loaded, automatic block ([onload] and [onshow]) will be merged. And you need to have the sub-file selected in order to use MergeBlock() and MergeField() on it. See commands like OPENTBS_SELECT_*. For example, in Ms Word , header and footers are loaded, and the main document is loaded and selected, but your need to select back a header part in order to use MergeBlock() on it.</p>
 <p>Then, it  may happens that a TBS tag seems uniformly formatted, while in fact the inner  XML is split because of small difference in format, small different spelling information,  or other...  In order to avoid inner split, you can select the TBS tags, then  cut it, and then paste it back without formatting.  It is &ldquo;Paste special / Unformatted text&rdquo; in LibreOffice,  or &ldquo;Paste / Keep Text Only&rdquo; is Ms Office.</p>
 <p> For MS  Word, you can also use &ldquo;OpenTBS plug-in for Microsoft Word&rdquo;, which is given with  the standard OpenTBS package. This plug-in gives a tag cleaner tool.</p>
-<h3><a name="debug_design" id="debug_error2"></a>c) The merged document is well opened by its application (OpenOffice or Ms Office) but the content is not designed as expected</h3>
+<h3><a id="debug_design"></a>c) The merged document is well opened by its application (OpenOffice or Ms Office) but the content is not designed as expected</h3>
 <p>First, you can have a look the <a href="#demo">demo templates</a>, they contain examples and advices for each type of document.</p>
 <p> And to go further: even if you can edit your template using directly OpenOffice or Ms Office, you will probably need to understand the XML tags and attributes to complete your merge. The file <a href="xml_synopsis.txt">xml_synopsis.txt</a> is a small synopsis of the XML structure you can found in the inner source of those documents. Have a look to it if you feel lost.</p>
-<h3><a name="debug_unzip" id="debug_error3"></a>d) Go deeper in the debugging</h3>
+<h3><a id="debug_unzip"></a>d) Go deeper in the debugging</h3>
 <p>You can view the inner source of a document using a zip software like <a href="http://www.7-zip.org/">7-Zip</a>. It allows you to open an archive even if the extension is not &quot;.zip&quot;.<br />
 </p>
 <ul>
@@ -1016,9 +1019,9 @@ $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   <li>check the structure of the XMK, try some fix and arrangements, deleted suspicious parts, ...</li>
   <li>put the modified XML file back to the archive, and test if it's correctly opened with its application (OpenOffice, Ms Office)</li>
 </ul>
-<h2><a name="zlib" id="zlib"></a>7. What to do if Zlib extension is not enabled with PHP?</h2>
+<h2><a id="zlib"></a>7. What to do if Zlib extension is not enabled with PHP?</h2>
 <p>OpenTBS uses  Zlib functions in order to automatically uncompress and recompress files stored in the zip archive. If Zlib is not enabled, then you have to use your own uncompress/compress tool, or to prepare the template to have files uncompressed in the zip archive.</p>
-<p><u>Example to uncompress the &quot;content.xml&quot; file in an ODT document using 7-Zip:</u>
+<p style="text-decoration: underline;">Example to uncompress the &quot;content.xml&quot; file in an ODT document using 7-Zip:</p>
 <ol>
   <li>open the ODT file with 7-Zip,</li>
   <li>extract the &quot;content.xml&quot; file from the ODT file in the same folder than the ODT file,</li>
@@ -1035,9 +1038,10 @@ $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   </li>
   <li>click on [Ok].</li>
   </ol>
+  <p>
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
-<h2><a name="changelog" id="demo3"></a>8. Changelog</h2>
+<h2><a id="changelog"></a>8. Changelog</h2>
 <h3>version 1.9.6, on 2016-03-24</h3>
 <h4>Bug fixes</h4>
 <ul>
@@ -1174,7 +1178,7 @@ Concerned commands are:
 <ul>
   <li>new feature: automatically cleans up spelling in PPTX templates (such information may 
   deconstruct the TBS tags). This feature can be disabled.</li>
-  <li>new feature: Block Alias helps to define TBS blocks <span id="result_box2" lang="en" xml:lang="en">easily</span> on pages, sections,....</li>
+  <li>new feature: Block Alias helps to define TBS blocks easily on pages, sections,....</li>
   <li>new feature: merging a chart from its title.</li>
   <li>new parameter &quot;<span class="smallcode">tagpos</span>&quot; to define the position of the TBS tag realtively to the image (when using &quot;<span class="smallcode">ope=changepic</span>&quot;).</li>
   <li>new parameter &quot;<span class="smallcode">delcol</span>&quot; to delete columns in  tables.</li>
@@ -1268,8 +1272,8 @@ Concerned commands are:
   <li> new feature: automatically cleans up spelling and change trackings  information in MsWord templates (such information may 
     deconstruct the TBS tags). This feature can be disabled.</li>
   <li> new constant OPENTBS_DEBUG_AVOIDAUTOFIELDS</li>
-  <li><span id="result_box4" lang="en" xml:lang="en"><span title="Cliquer ici pour voir d'autres traductions">improvement</span></span>: Debug doesn't stopped if an OpenTBS alert occurs.</li>
-  <li><span id="result_box3" lang="en" xml:lang="en"><span title="Cliquer ici pour voir d'autres traductions">improvement</span></span>: OpenTBS alerts say if the process will be stopped.</li>
+  <li>improvement: Debug doesn't stopped if an OpenTBS alert occurs.</li>
+  <li>improvement: OpenTBS alerts say if the process will be stopped.</li>
   <li> fixed bug: in debug mode: &quot;warning function.str-repeat: Second argument has to be greater than or equal to 0&quot;</li>
   <li> fixed bug: when using OPENTBS_RESET: &quot;Warning: Missing argument 2 for clsOpenTBS::OnCommand() in ... on line 225&quot;</li>
   <li> fixed bug: DML images were not found   when using parameter &quot;ope=changepic&quot; in a DOCX document</li>
@@ -1311,7 +1315,7 @@ Concerned commands are:
   <li> New behavior: extension of the archive is ignored by <span class="smallcode">LoadTemplate()</span> if the name is ended with '<span class="smallcode">#</span>'</li>
   <li> Bug fixed: in case of several files to take from the archive in one shot, then only the last one had [onload] fields merged.</li>
 </ul>
-<h2><a name="license" id="demo2"></a>9. License</h2>
+<h2><a id="license"></a>9. License</h2>
 <p>OpenTBS is under <a href="http://www.gnu.org/licenses/lgpl.html">LGPL</a> (Lesser General Public License)</p>
 <p>&nbsp;</p>
 </div>
