@@ -6532,7 +6532,7 @@ class clsTbsZip {
 		// Output "end of central directory record"
 		$b2 = $this->CdInfo['bin'];
 		$DelNbr = count($DelLst);
-		if ( ($AddNbr>0) or ($DelNbr>0) ) {
+		if ( ($AddNbr>0) || ($DelNbr>0) ) {
 			// total number of entries in the central directory on this disk
 			$n = $this->_GetDec($b2, 8, 2);
 			$this->_PutDec($b2, $n + $AddNbr - $DelNbr,  8, 2);
