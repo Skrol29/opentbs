@@ -1693,12 +1693,13 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * @return string The merged value of the parameter.
 	 */
 	function TbsMergeVarFields($PrmVal, $FldVal) {
+        if ($PrmVal === true) $PrmVal = ''; // TBS set the value to true if no value set, but it is converted into '1'.
 		$this->TBS->meth_Merge_AutoVar($PrmVal, true);
 		$PrmVal = str_replace($this->TBS->_ChrVal, $FldVal, $PrmVal);
 		return $PrmVal;
 	}
 
-	function TbsDeleteColumns(&$Txt, $Value, $PrmLst, $PosBeg, $PosEnd) {
+	function TbsDeleteColumns(&$Txt, $Value, $PrmLst, $PosBeg) {
 
 		$ext = $this->ExtEquiv;
 		if ($ext==='docx') {
@@ -1720,13 +1721,13 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if (is_array($Value)) $Value = implode(',', $Value);
 
 		// Retreive the list of columns id to delete
-		$col_lst = $this->TbsMergeVarFields($PrmLst['colnum'], $Value);
+		$col_lst = $this->TbsMergeVarFields($PrmLst['colnum'], $Value); // prm equal to true if value is not given
 		$col_lst = str_replace(' ', '', $col_lst);
 		if ( ($col_lst=='') || ($col_lst=='0') ) return false; // there is nothing to do
 		$col_lst = explode(',', $col_lst);
 		$col_nbr = count($col_lst);
 		for ($c=0; $c<$col_nbr; $c++) $col_lst[$c] = intval($col_lst[$c]); // Conversion into numerical
-
+        
 		// Add columns by shifting
 		if (isset($PrmLst['colshift'])) {
 			$col_shift = intval($this->TbsMergeVarFields($PrmLst['colshift'], $Value));
@@ -1742,10 +1743,13 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$col_lst = array_unique($col_lst, SORT_NUMERIC); // Delete duplicated columns
 		sort($col_lst, SORT_NUMERIC); // Sort colmun id in order
 		$col_max = $col_lst[(count($col_lst)-1)]; // Last column to delete
-
-		// Delete the TBS tag
-		$Txt = substr_replace($Txt, '', $PosBeg, $PosEnd - $PosBeg + 1);
-
+        
+        // Delete impossible col num (like zero)
+        while ( (count($col_lst) > 0) && ($col_lst[0] <= 0) ) {
+            array_shift($col_lst);
+        }
+        if (count($col_lst) == 0) return false;
+        
 		// Look for the source of the table
 		$Loc = clsTbsXmlLoc::FindElement($Txt, $el_table, $PosBeg, false);
 		if ($Loc===false) return false;

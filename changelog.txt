@@ -1,3 +1,9 @@
+= Release 1.9.7 beta =
+
+== Bug fixes ==
+
+* Parameter "ope=delcol" : if parameter "colnum" is empty then first colmun is deleted. It should be no column.
+
 = Release 1.9.6 =
 
 == Bug fixes ==

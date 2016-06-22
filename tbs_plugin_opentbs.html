@@ -642,7 +642,7 @@ array (
 <p> You have to put a TBS field anywhere inside the table with the following parameters:</p>
 <ul>
   <li> <span class="template">ope=delcol</span></li>
-  <li> <span class="template">colnum</span> = the column numbers to delete, separated with commas (first column is number 1).</li>
+  <li> <span class="template">colnum</span> = the column numbers to delete, separated with commas (first column is number 1). An empty value makes no column to be deleted. A column number of zero or negative is ignored.</li>
   <li> <span class="template">colshift</span> = (optional) if parameter &quot;<span class="template">colnum</span>&quot; has only one value then &quot;<span class="template">colshift</span>&quot; extends the number of columns to delete to the left or to the right.</li>
 </ul>
 <p> Both parameters &quot;<span class="template">colnum</span>&quot; and &quot;<span class="template">colshift</span>&quot; can contain  [val] and [var] fields. When the TBS field is merged, the specified columns will be deleted and the TBS field is erased.</p>
