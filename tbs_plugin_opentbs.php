@@ -1159,6 +1159,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return false;
 	}
 
+	/**
+	 * Return the item of an array if exits, or the default value.
+	 */
+	function getItem($array, $item, $default) {
+		if (isset($array[$item])) {
+			return $array[$item];
+		} else {
+			return $default;
+		}
+	}
+	
 	// Found the relevant attribute for the image source, and then add parameter 'att' to the TBS locator.
 	function TbsPicPrepare(&$Txt, &$Loc, $IsCaching) {
 
@@ -3922,6 +3933,70 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return $lst;
 	}
 
+	/**
+	 * Return the array of the cells
+	 * Problem to solve: the results of formulas are deleted because of OtbsMsExcelConsistent
+	 */
+	function MsExcel_AsArray($Txt, $options = array()) {
+	
+		$rBeg = $this->getItem($options, 'row_beg', 1);
+		$rEnd = $this->getItem($options, 'row_end', 0);
+		$cBeg = $this->getItem($options, 'col_beg', 1);
+		$cEnd = $this->getItem($options, 'col_end', 0);
+		$formulas = $this->getItem($options, 'formulas', false);
+		$fill = $this->getItem($options, 'fill', true);
+		
+		$result = array();
+	
+		$rp = 0;
+		$rn = -1;
+		while ($re=clsTbsXmlLoc::FindElement($Txt, 'row', $rp, true) ) {
+			$rn++;
+			$row = array();
+			if ($re->GetInnerStart() !== false) {
+				$cn = -1;
+				$cp = 0;
+				while ($ce=clsTbsXmlLoc::FindElement($re, 'c', $cp, true) ) {
+					$cn++;
+					$x = null;
+					if ($ce->GetInnerStart() !== false) {
+						$type = $ce->GetAttLazy('t');
+						$vtag = ($type === 'inlineStr') ? 't' : 'v';
+						$ve = clsTbsXmlLoc::FindElement($ce, $vtag, 0, true);
+						if ($ve === false) {
+							$x = "(tag $vtag non trouvé)";
+						} else {
+							$v = $ve->GetInnerSrc();
+							switch ($type) {
+							case 'b': // boolean
+								$x = (boolean) $v; break;
+							case 's': // shared string
+								$x = $this->OpenXML_SharedStrings_GetVal($v); break;
+							case 'inlineStr': // inlinde string
+								$x = $v;
+							case 'str': // formula returing a string				
+								$x = $v;
+							case 'd': // date
+								$x = $v;
+							case 'e': // error
+								$x = $v;
+							default: // false or 'n' : number
+								$x = $v;
+							}
+						}
+					}
+					$row[] = $x;
+					$cp = $ce->PosEnd;
+				}
+			}
+			$result[]= $row;
+			$rp = $re->PosEnd;
+		}
+
+		return $result;
+		
+	}
+	
 	/**
 	 * Return the list of slides in the Ms Powerpoint presentation.
 	 * @param {boolean} $Master Trye to operate on master slides.
