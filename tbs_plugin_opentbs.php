@@ -2322,7 +2322,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ($idx===false) return false;
 		
 		// prevent from XML injection
-		$NewCredit = htmlspecialchars($NewCredit);
+		$NewCredit = htmlspecialchars($NewCredit, ENT_NOQUOTES); // ENT_NOQUOTES because target is an element's content
 		
 		$Txt = $this->TbsStoreGet($idx, "EditCredits");
 		
@@ -2950,7 +2950,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$p = strpos($Txt, '<c:order val="'.($SeriesNameOrNum-1).'"/>');
 			if ($p===false) return "Number of the series not found.";
 		} else {
-			$SeriesNameOrNum = htmlentities($SeriesNameOrNum);
+			$SeriesNameOrNum = htmlspecialchars($SeriesNameOrNum, ENT_NOQUOTES); // ENT_NOQUOTES because target is an element's content
 			$p = strpos($Txt, '>'.$SeriesNameOrNum.'<');
 			if ($p===false) return "Name of the series not found.";
 			$p++;
@@ -3128,7 +3128,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$Txt = substr_replace($Txt, $point2, $p+$ser['point2_p'], $ser['point2_l']);
 			$Txt = substr_replace($Txt, $point1, $p+$ser['point1_p'], $ser['point1_l']);
 			if ( (is_string($NewLegend)) && isset($ser['leg_p']) && ($ser['leg_p']<$ser['point1_p']) ) {
-				$NewLegend = htmlspecialchars($NewLegend);
+				$NewLegend = htmlspecialchars($NewLegend, ENT_NOQUOTES); // ENT_NOQUOTES because target is an element's content
 				$Txt = substr_replace($Txt, $NewLegend, $p+$ser['leg_p'], $ser['leg_l']);
 			}
 
@@ -5129,7 +5129,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		} else {
 			$ChartCaption = 'with title "'.$ChartRef.'"';
 			$idx = false;
-			$x = htmlspecialchars($ChartRef);
+			$x = htmlspecialchars($ChartRef, ENT_NOQUOTES); // ENT_NOQUOTES because target is an element's content
 			foreach($this->OpenDocCharts as $i=>$c) {
 				if ($c['title']==$x) $idx = $i;
 			}
@@ -5270,7 +5270,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					}
 				} else {
 					if ($s_use_cat && ($i==$col_cat) ) {
-						$x .= '<table:table-cell office:value-type="string"><text:p>'.htmlspecialchars($cat).'</text:p></table:table-cell>';
+						// ENT_NOQUOTES because target is an element's content
+						$x .= '<table:table-cell office:value-type="string"><text:p>'.htmlspecialchars($cat, ENT_NOQUOTES).'</text:p></table:table-cell>';
 					} else {
 						$x .= $x_nan;
 					}
@@ -5446,7 +5447,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	function OpenDoc_ChartRenameSeries(&$Txt, &$series, $NewName) {
 
-		$NewName = htmlspecialchars($NewName);
+		$NewName = htmlspecialchars($NewName, ENT_NOQUOTES); // ENT_NOQUOTES because target is an element's content
 		$col_name = $series['col_name'];
 
 		$el = clsTbsXmlLoc::FindStartTag($Txt, 'table:table-header-rows', 0);
