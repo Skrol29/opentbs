@@ -566,13 +566,15 @@ and each of its modification is marked with its RsID. </p>
           * Attribute s is the style of the cell (the format). Styles are saved into the file 'xl/styles.xml' but I have not found the link yet.
           * Attribute t is the type of data, by default it is numerical
           * t=&quot;s&quot; means that the displayed value is a string, the saved value is the index if the string taken in file &quot;sharedStrings.xml&quot;.
-          * b: boolean, d: date, e: error, inlineStr: inlinde string, n: number, s: shared string, str: formula returning a string
+          * b: boolean, d: date, e: error, n: number, s: shared string, inlineStr: inlinde string, str: string as the result of a formula
           */
-</span>         &lt;f&gt;B13+B14&lt;/f&gt; <span class="comm">//the formula. If there is no formula, this tag is absent.</span>
-         &lt;v&gt;0&lt;/v&gt; <span class="comm">//the inner value without formatting. If t=&quot;s&quot; then the value is in fact the index of the string in the &quot;xl/sharedStrings.xml&quot; file.</span>
-       &lt;/c&gt;        
+</span>         &lt;f&gt;B13+B14&lt;/f&gt; <span class="comm">// The formula if any. If there is no formula, this tag is absent. The type of &lt;c&gt; is the type of the result.</span>
+         &lt;v&gt;0&lt;/v&gt; <span class="comm">// The inner value without formatting.
+                  // If t=&quot;s&quot;   then the value is in fact the index of the string in the &quot;xl/sharedStrings.xml&quot; file.
+                  // If t=&quot;str&quot; then the value is the string result of the formula.</span>
+       &lt;/c&gt;
        &lt;c r=&quot;C2&quot; s=&quot;1&quot; t=&quot;inlineStr&quot;&gt;
-<span class="comm">         /* The type &quot;inlineStr&quot; is a specila value that allows the string to be stored in the celle isntead of in the file &quot;sharedStrings.xml&quot;.
+<span class="comm">         /* The type &quot;inlineStr&quot; is a special value that allows the string to be stored in the cell instead of in the file &quot;sharedStrings.xml&quot;.
           * It is used by OpenTBS to transert string with TBS fields from &quot;sharedStrings.xml&quot; into the XML of the sheet.
           */
 </span>          &lt;is&gt;&lt;t&gt;This is a string&lt;/t&gt;&lt;/is&gt;
