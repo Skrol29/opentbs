@@ -3740,7 +3740,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			} elseif ($t===943916400) { // Date to zero
 				$Value = '';
 			} else { // It's a date
-				$Value = ($t/86400.00)+25569; // unix: 1 means 01/01/1970, xls: 1 means 01/01/1900
+				$Value = ($t/86400.00)+25569; // unix: 1 means 01/01/1970, xlsx: 1 means 01/01/1900
 			}
 			break;
 		default:
@@ -3968,21 +3968,22 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 						$vtag = ($type === 'inlineStr') ? 't' : 'v';
 						$ve = clsTbsXmlLoc::FindElement($ce, $vtag, 0, true);
 						if ($ve === false) {
-							$x = "(tag $vtag non trouvé)";
+							$x = "(tag $vtag not found)";
 						} else {
 							$v = $ve->GetInnerSrc();
 							switch ($type) {
-							case 'b': // boolean
+							case 'b': // boolean: 0=false
 								$x = (boolean) $v; break;
 							case 's': // shared string
 								$x = $this->OpenXML_SharedStrings_GetVal($v); break;
-							case 'inlineStr': // inlinde string
+							case 'inlineStr': // inline string
 								$x = $v;
-							case 'str': // formula returing a string				
+							case 'str': // formula returning a string				
 								$x = $v;
 							case 'd': // date
-								$x = $v;
-							case 'e': // error
+							    $t = ($v-25569.0) * 86400.0; // unix: 1 means 01/01/1970, xlsx: 1 means 01/01/1900
+								$x = date('Y-m-d h:i:s', $t);
+							case 'e': // error, example of value: #DIV/0!
 								$x = $v;
 							default: // false or 'n' : number
 								$x = $v;
