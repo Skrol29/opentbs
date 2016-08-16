@@ -1,8 +1,13 @@
 = Release 1.9.7 beta =
 
+== New features ==
+
+* New command OPENTBS_GET_FILES
+
 == Bug fixes ==
 
-* Parameter "ope=delcol": if parameter "colnum" is empty then first colmun is deleted. It should be no column.
+* Parameter "ope=delcol": if parameter "colnum" is empty then first colmun is deleted while it should be no column.
+
 * Command OPENTBS_CHART: error message « Name of the series not found. » when the series contains special characters, like accents.
 
 = Release 1.9.6 =

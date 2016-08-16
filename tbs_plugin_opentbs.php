@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.7-beta
- * @date 2016-05-12
+ * @version 1.9.7
+ * @date 2016-08-16
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -31,6 +31,7 @@ define('OPENTBS_DELETEFILE','clsOpenTBS.DeleteFile'); // command to delete a fil
 define('OPENTBS_REPLACEFILE','clsOpenTBS.ReplaceFile'); // command to replace a file in the archive
 define('OPENTBS_EDIT_ENTITY','clsOpenTBS.EditEntity'); // command to force an attribute
 define('OPENTBS_FILEEXISTS','clsOpenTBS.FileExists');
+define('OPENTBS_GET_FILES','clsOpenTBS.GetFiles');
 define('OPENTBS_CHART','clsOpenTBS.Chart');
 define('OPENTBS_CHART_INFO','clsOpenTBS.ChartInfo');
 define('OPENTBS_DEFAULT','');   // Charset
@@ -91,7 +92,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.9.7-beta';
+		$this->Version = '1.9.7';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -300,8 +301,10 @@ class clsOpenTBS extends clsTbsZip {
 			$this->TbsPicPrepare($Txt, $Loc, false);
 			$this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=changepic');
 		} elseif ($ope==='delcol') {
-			$this->TbsDeleteColumns($Txt, $Value, $PrmLst, $PosBeg, $PosEnd);
-			return false; // prevent TBS from merging the field
+			// Delete the TBS field otherwise « return false » will produce a TBS error « doesn't have any subname » with [onload] fields.
+			$Txt = substr_replace($Txt, '', $PosBeg, $PosEnd - $PosBeg + 1);
+			$this->TbsDeleteColumns($Txt, $Value, $PrmLst, $PosBeg);
+			return false; // prevent TBS from actually merging the field
 		} elseif ($ope==='mergecell') {
 			if (isset($this->PrevVals[$Loc->FullName])) {
 				if ($Value==$this->PrevVals[$Loc->FullName]) {
@@ -682,6 +685,15 @@ class clsOpenTBS extends clsTbsZip {
 			$AddElIfMissing = (boolean) $x5;
 			return $this->XML_ForceAtt($x1, $x2, $x3, $x4, $AddElIfMissing);
 			
+		} elseif ($Cmd==OPENTBS_GET_FILES) {
+	
+			$files = array();
+			// All files in the archive
+			foreach ($this->CdFileLst as $f) {
+				$files[] = $f['v_name'];
+			}
+			return $files;
+	
 		}
 
 	}
@@ -1717,7 +1729,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		} else {
 			return false;
 		}
-
+		
 		if (is_array($Value)) $Value = implode(',', $Value);
 
 		// Retreive the list of columns id to delete
@@ -1727,7 +1739,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$col_lst = explode(',', $col_lst);
 		$col_nbr = count($col_lst);
 		for ($c=0; $c<$col_nbr; $c++) $col_lst[$c] = intval($col_lst[$c]); // Conversion into numerical
-        
+		
 		// Add columns by shifting
 		if (isset($PrmLst['colshift'])) {
 			$col_shift = intval($this->TbsMergeVarFields($PrmLst['colshift'], $Value));
