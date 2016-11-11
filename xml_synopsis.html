@@ -370,14 +370,18 @@ and each of its modification is marked with its RsID. </p>
   ...
 &lt;/w:tc&gt;</pre>
 <h4>  <a name="msoffice_docx_headers" id="msoffice13"></a>Headers and footers (DOCX)</h4>
-<p>The headers and footers files are usually <em>&quot;word/header1.xml&quot;</em> and <em>&quot;word/footer1.xml&quot;</em>. They exists only if header/footer is defined.  There also may have an optional couple of XML files for odd numbered pages (usually <em>&quot;word/header2.xml&quot;</em> and <em>&quot;word/footer2.xml&quot;</em>). And an optional couple of files for the first page (usually <em>&quot;word/header3.xml&quot;</em> and <em>&quot;word/footer3.xml&quot;</em>).</p>
-<p>The actual type and locations of Headers and Footers are defined in the main document <em>&quot;word/document.xml&quot;</em>.  Close to the bottom of it may have :</p>
+<p>They are 3 types of headers and footers in Microsoft Word : Normal, Even (for even numbered pages only) and First (for the first page only).</p>
+<p>Each section of the document may have its own  set of header/footer of the 3 types, but by default a new section has his headers/footers linked with the previous sections.</p>
+<p>Each headers and footers are saved in separated XML file. If no header/footer is defined for the document, then they are no header nor footer XML files. Even and First headers are optional, they may not be defined for a section, and so have no corresponding XML files.</p>
+<p>Example of header and footer files: <em>&quot;word/header1.xml&quot;</em> and <em>&quot;word/footer1.xml&quot;</em>.</p>
+<p>The actual type and locations of Headers and Footers are defined in the main document <em>&quot;word/document.xml&quot;</em>with the section's properties.</p>
 <pre>&lt;w:sectPr&gt;
   &lt;w:headerReference w:type=&quot;default&quot; r:id=&quot;rId13&quot;/&gt;
   &lt;w:footerReference w:type=&quot;default&quot; r:id=&quot;rId14&quot;/&gt;
   &lt;w:headerReference w:type=&quot;first&quot; r:id=&quot;rId15&quot;/&gt;
   &lt;w:footerReference w:type=&quot;first&quot; r:id=&quot;rId16&quot;/&gt;
-  ...
+  &lt;w:headerReference w:type=&quot;even&quot; r:id=&quot;rId17&quot;/&gt;
+  &lt;w:footerReference w:type=&quot;even&quot; r:id=&quot;rId18&quot;/&gt;
 &lt;w:sectPr&gt;</pre>
 <h5>Relation files</h5>
 <p>The information related to r:id are stored in the file <em>&quot;word/_rels/document.xml.rels&quot;</em></p>
