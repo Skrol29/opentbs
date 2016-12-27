@@ -1054,6 +1054,15 @@ $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a id="changelog"></a>8. Changelog</h2>
+<h3>version 1.9.8, on 2016-12-27</h3>
+<h4>New features</h4>
+<ul>
+  <li>New command OPENTBS_MAKE_OPTIMIZED_TEMPLATE</li>
+</ul>
+<h4>Bug fixes</h4>
+<ul>
+  <li>Processed templates are not marked as prepared.</li>
+</ul>
 <h3>version 1.9.7, on 2016-08-16</h3>
 <h4>New features</h4>
 <ul>
@@ -1065,7 +1074,6 @@ $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   </li>
   <li> Command OPENTBS_CHART: error message « <span class="warning">Name of the series not found.</span> » when the series contains special characters, like accents.</li>
 </ul>
-<p></p>
 <h3>version 1.9.6, on 2016-03-24</h3>
 <h4>Bug fixes</h4>
 <ul>
