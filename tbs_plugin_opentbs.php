@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.7
- * @date 2016-08-16
+ * @version 1.9.8
+ * @date 2016-12-27
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -60,6 +60,7 @@ define('OPENTBS_SELECT_FILE','clsOpenTBS.SelectFile');
 define('OPENTBS_ADD_CREDIT','clsOpenTBS.AddCredit');
 define('OPENTBS_SYSTEM_CREDIT','clsOpenTBS.SystemCredit');
 define('OPENTBS_RELATIVE_CELLS','clsOpenTBS.RelativeCells');
+define('OPENTBS_MAKE_OPTIMIZED_TEMPLATE','clsOpenTBS.MakeOptimizedTemplate');
 define('OPENTBS_FIRST',1); // 
 define('OPENTBS_GO',2);    // = TBS_GO
 define('OPENTBS_ALL',4);   // = TBS_ALL
@@ -92,7 +93,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.9.7';
+		$this->Version = '1.9.8';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -337,6 +338,44 @@ class clsOpenTBS extends clsTbsZip {
 			if (is_null($x1)) $x1 = true;
 			$this->TbsDebug_Info($x1);
 			return true;
+		}
+
+		if($Cmd==OPENTBS_MAKE_OPTIMIZED_TEMPLATE) {
+				
+			// save options
+			$s_onload = $this->TBS->GetOption('onload');
+			$s_onshow = $this->TBS->GetOption('onshow');
+			
+			// change options
+			$this->TBS->SetOption('onload', false);
+			$this->TBS->SetOption('onshow', false);
+			
+			// load the template
+			$this->TBS->LoadTemplate($x1);
+			
+			if ($this->ExtEquiv == 'xlsx') {
+				// load all sheets
+				$this->MsExcel_SheetInit();
+				foreach($this->MsExcel_Sheets as $o) {
+					$this->TbsLoadSubFileAsTemplate('xl/'.$o->file);
+				}
+			} elseif ($this->ExtEquiv == 'pptx') {
+				// load all slides
+				$this->MsPowerpoint_InitSlideLst();
+				foreach ($this->OpenXmlSlideLst as $s) {
+					$this->TbsLoadSubFileAsTemplate($s['file']);
+				}
+			}
+
+			// save the result
+			$this->TBS->Show(OPENTBS_FILE + OPENTBS_DEBUG_AVOIDAUTOFIELDS, $x2);
+			
+			// restore options
+			$this->TBS->SetOption('onload', $s_onload);
+			$this->TBS->SetOption('onshow', $s_onshow);
+			
+			return true;
+			
 		}
 		
 		// Check that a template is loaded
@@ -951,14 +990,16 @@ class clsOpenTBS extends clsTbsZip {
 	}
 
 	/**
-	 * Tells if optimisation can be applied on the current content.
-	 * @param  boolean $mark true to mark the doc as done because optim will be processed.
-	 * @return boolean True if the current doc is just been marked done. Null if the mark cannot be read.
+	 * Tells if optimisation marker is prensent in the current source, eventually add it if it is not.
+	 * The optimization marker is a simple space (' ') before the closing chars of the "<? ?>" element.
+	 * @param  string  $Txt  The text source to check
+	 * @param  boolean $mark Set to true to mark the source as done if it is not the case.
+	 * @return boolean True if the current source has just been marked done. Null if it is not possible to telle if it is done or note. Fasle if is is done before.
 	 */
 	function TbsApplyOptim(&$Txt, $mark) {
 		if (substr($Txt, 0, 2) === '<?') {
 			$p = strpos($Txt, '?>');
-			if (substr($Txt, $p-1) === ' ') {
+			if (substr($Txt, $p-1, 1) === ' ') {
 				return false;
 			} else {
 				if ($mark) {
@@ -2908,7 +2949,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ($this->OpenXmlCharts===false) $this->OpenXML_ChartInit();
 
 		echo $nl;
-		echo $nl."Charts technically stored in the document:";
+		echo $nl."Charts technically stored in the document: (use command OPENTBS_CHART_INFO to get series's names and data)";
 		echo $nl."------------------------------------------";
 
 		// list of supported charts
@@ -5563,7 +5604,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$ChartLst = $this->OpenDocCharts;
 
 		echo $nl;
-		echo $nl."Charts found in the contents:";
+		echo $nl."Charts found in the contents: (use command OPENTBS_CHART_INFO to get series's names and data)";
 		echo $nl."-----------------------------";
 		foreach ($ChartLst as $i=>$c) {
 			$title = ($c['title']===false) ? '(not found)' : var_export($c['title'], true);

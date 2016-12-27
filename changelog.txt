@@ -1,3 +1,13 @@
+= Release 1.9.8 =
+
+== New features ==
+
+* New command OPENTBS_MAKE_OPTIMIZED_TEMPLATE
+
+== Bug fixes ==
+
+* Processed templates are not marked as prepared.
+
 = Release 1.9.7 =
 
 == New features ==

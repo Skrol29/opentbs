@@ -95,8 +95,8 @@ body, td, th {
 <!-- div main-body is used for insertion in the TBS menu -->
 <div id="main-body">
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.9.7, 2016-08-16 by Skrol29</div>
-<div>help file modified on 2016-08-16</div>
+<div>version 1.9.8, 2016-12-27 by Skrol29</div>
+<div>help file modified on 2016-12-27</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -523,8 +523,8 @@ array (
     </tr>
     <tr>
       <td valign="top"><span class="smallcode">tagpos</span></td>
-      <td><p>Supported values are &quot;<span class="smallcode">after</span>&quot;, &quot;<span class="smallcode">before</span>&quot; and &quot;<span class="smallcode">inside</span>&quot;. This option indicates the position of the TBS tag relativelly to the  target picture.<br />
-        The default value is &quot;<span class="smallcode">after</span>&quot;, it means that the TBS tag (the one with &quot;<span class="smallcode">ope=changepic</span>&quot;) must be placed after the picture.</p>
+      <td><p>Supported values are &quot;<span class="smallcode">after</span>&quot;, &quot;<span class="smallcode">before</span>&quot; and &quot;<span class="smallcode">inside</span>&quot;. This option indicates the position of the TBS tag relativelly to the  target picture.</p>
+        <p> The default value is &quot;<span class="smallcode">after</span>&quot;, it means that the TBS tag (the one with &quot;<span class="smallcode">ope=changepic</span>&quot;) must be placed after the picture.</p>
         <p>          You can use &quot;<span class="smallcode">tagpos=inside</span>&quot; when you put the TBS field in the Description or Title of the image (LibreOffice/OpenOffice or Ms Office). </p>
         <ul>
           <li>This option won't work if you put the TBS tag inside the property Name of an image in LibreOffice/OpenOffice.</li>
@@ -935,9 +935,15 @@ $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
 <h3><a id="misc"></a>4.12. Miscellaneous</h3>
 <h4>Dealing with apostrophes:</h4>
 <div class="shift">
-  <p> Both OpenOffice and Ms Office may automatically convert single quotes (') into typographic apostrophes (&rsquo;), depending to the auto-correction options. This may be annoying   when you need to code a TBS fields that have a single quote. That's why OpenTBS automatically convert by default all (&rsquo;) back to single quotes (') in documents.<br />
-    If you want to stop this conversion, you can set <span class="smallcode">$TBS-&gt;OtbsConvertApostrophes = false;</span> and no apostrophes   will be converted. Note that you can avoid the auto-correction of single quotes (') in Ms Word using keys[ctrl]+[z], and in OpenOffice using the cancel button.<br />
-   </p> <div class="versioning">Property OtbsConvertApostrophes is supported since OpenTBS version 1.6.0.</div>
+  <p> Both OpenOffice and Ms Office may automatically convert single quotes (') into typographic apostrophes (&rsquo;), depending to the auto-correction options. This may be annoying   when you need to code a TBS fields that have a single quote. That's why OpenTBS automatically convert by default all (&rsquo;) back to single quotes (') in documents.</p>
+  <p> If you want to stop this conversion, you can set <span class="smallcode">$TBS-&gt;OtbsConvertApostrophes = false;</span> and no apostrophes   will be converted. Note that you can avoid the auto-correction of single quotes (') in Ms Word using keys[ctrl]+[z], and in OpenOffice using the cancel button.   </p> 
+  <div class="versioning">Property OtbsConvertApostrophes is supported since OpenTBS version 1.6.0.</div>
+</div>
+<h4><a id="force_doctype2"></a>&bull;Make an optimized version of a template:</h4>
+<div class="shift">
+  <p>Some template can be long to load because OpenTBS has to cleanup or prepare somes sub-files. There is a command that save a template as a new template file which is already prepared for OpenTBS, thus loading it will be faster.</p>
+  <div class="code"> $TBS-&gt;Plugin(OPENTBS_MAKE_OPTIMIZED_TEMPLATE, $template, $new_template);</div>
+  <p class="versioning">This command is supported since OpenTBS version 1.9.8.</p>
 </div>
 <h4><a id="force_doctype"></a>&bull; Forcing the document type recognition:</h4>
 <div class="shift">
@@ -951,8 +957,8 @@ $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   <div class="versioning">(supported since OpenTBS version 1.1)</div>
 </div>
 <h2><a id="demo"></a>5. Demo</h2>
-<p>The OpenTBS package includes a full set of runnable templates. Some templates can contain useful complementary information for designing.<br />
-  Run the following demo under PHP: <a href="http://www.tinybutstrong.com/plugins/opentbs/demo">OpenTBS demo</a></p>
+<p>The OpenTBS package includes a full set of runnable templates. Some templates can contain useful complementary information for designing.</p>
+<p> You can test the demo at the web site:  <a href="http://www.tinybutstrong.com/plugins/opentbs/demo">OpenTBS demo</a></p>
 <h2><a id="debug"></a>6. Debugging your template</h2>
 <p><a id="debugmode"></a>Since OpenTBS version 1.6.0, there are several commands for debugging. Please note that those commands do not exit the process.</p>
 <table border="0" cellspacing="1" cellpadding="0">
@@ -976,24 +982,23 @@ $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   the XML contents of sub-files  modified for merging. XML is indented in order to improve reading.</td>
   </tr>
 </table>
-<p>There is  also deprecated debug options:</p>
+<p>There is  also <strong>deprecated</strong> debug options:</p>
 <table border="0" cellspacing="1" cellpadding="0">
   <tr>
     <th align="left">Command</th>
     <th align="left">Desciption</th>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DEBUG_XML)</td>
-    <td>Does the same as <span class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DEBUG_XML_SHOW);</span><br />
-    <span class="versioning">Supported since OpenTBS version 1.3.2.</span></td>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;Show(OPENTBS_DEBUG_XML)</td>
+    <td>Does the same as <span class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DEBUG_XML_SHOW);</span><span class="versioning">Supported since OpenTBS version 1.3.2.</span></td>
   </tr>
   <tr>
-    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DEBUG_XML+OPENTBS_DEBUG_AVOIDAUTOFIELDS)</td>
+    <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;Show(OPENTBS_DEBUG_XML+OPENTBS_DEBUG_AVOIDAUTOFIELDS)</td>
     <td>Avoid merging of [onload], [onshow] and [var].<span class="versioning">Supported since OpenTBS version 1.3.2.</span></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;Render = OPENTBS_DEBUG_AVOIDAUTOFIELDS;</td>
-    <td> Work also in property Render.<span class="versioning">Supported since OpenTBS version 1.3.2.</span><br /></td>
+    <td> Work also in property Render.<span class="versioning">Supported since OpenTBS version 1.3.2.</span></td>
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode">$TBS-&gt;PlugIn(OPENTBS_DEBUG_CHART_LIST)</td>
