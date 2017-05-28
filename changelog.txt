@@ -1,3 +1,9 @@
+= Release 1.9.9 =
+
+== Bug fixes ==
+
+* XLSX sheet containing an empty and unformatted row may produce in some circumstances a corrupted result when merged.
+
 = Release 1.9.8 =
 
 == New features ==
