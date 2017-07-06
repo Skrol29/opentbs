@@ -1057,7 +1057,8 @@ $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
 <h3>version 1.9.10, on 2017-07-05</h3>
 <h4>Bug fixes</h4>
 <ul>
-  <li>XLSX sheet containing an empty and unformatted row may produce in some circumstances a corrupted result when merged.</li>
+  <li>* DOCM, PPTM and XSLM documents (that is documents with macros) are merged correctly but Ms Office display an error message when the file is dowloaded using $TBS-&gt;Show(OPENTBS_DOWNLOAD,...).<br>
+  </li>
 </ul>
 <h3>version 1.9.9, on 2017-05-28</h3>
 <h4>Bug fixes</h4>
