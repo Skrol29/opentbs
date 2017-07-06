@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.9
- * @date 2017-05-28
+ * @version 1.9.10
+ * @date 2017-07-05
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -93,7 +93,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.9.9';
+		$this->Version = '1.9.10';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -1975,11 +1975,13 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$x = null;
 			}
 			$ctype = 'application/vnd.openxmlformats-officedocument.';
-			if ($Ext==='docx') {
+			if ( ($Ext==='docx') || ($Ext==='docm') ) {
 				// Notes: (1) '<w:br/>' works but '</w:t><w:br/><w:t>' enforce compatibility with Libre Office. (2) Line-breaks merged in attributes will corrupt the DOCX anyway.
 				$i = array('br' => '</w:t><w:br/><w:t>', 'ctype' => $ctype . 'wordprocessingml.document', 'pic_path' => 'word/media/', 'rpl_what' => $x, 'rpl_with' => '\'', 'pic_entity'=>'w:drawing');
+				if ($Ext==='docm') $i['ctype'] = 'application/vnd.ms-word.document.macroEnabled.12';
 				$i['main'] = $this->OpenXML_MapGetMain('wordprocessingml.document.main+xml', 'word/document.xml');
 				$i['load'] = $this->OpenXML_MapGetFiles(array('wordprocessingml.header+xml', 'wordprocessingml.footer+xml'));
+				$this->ExtEquiv = 'docx';
 				$block_alias = array(
 					'tbs:p' => 'w:p',
 					'tbs:title' => 'w:p',
@@ -2007,6 +2009,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			} elseif ( ($Ext==='xlsx') || ($Ext==='xlsm')) {
 				$this->MsExcel_DeleteCalcChain();
 				$i = array('br' => false, 'ctype' => $ctype . 'spreadsheetml.sheet', 'pic_path' => 'xl/media/', 'pic_entity'=>'xdr:twoCellAnchor');
+				if ($Ext==='xlsm') $i['ctype'] = 'application/vnd.ms-excel.sheet.macroEnabled.12';
 				$i['main'] = $this->OpenXML_MapGetMain('spreadsheetml.worksheet+xml', 'xl/worksheets/sheet1.xml');
 				$this->ExtEquiv = 'xlsx';
 				$block_alias = array(
@@ -2016,11 +2019,13 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					'tbs:drawgroup' => 'xdr:twoCellAnchor',
 					'tbs:drawitem' => 'xdr:sp',
 				);
-			} elseif ($Ext==='pptx') {
+			} elseif ( ($Ext==='pptx') || ($Ext==='pptm') ){
 				$i = array('br' => false, 'ctype' => $ctype . 'presentationml.presentation', 'pic_path' => 'ppt/media/', 'rpl_what' => $x, 'rpl_with' => '\'', 'pic_entity'=>'p:pic');
+				if ($Ext==='pptm') $i['ctype'] = 'application/vnd.ms-powerpoint.presentation.macroEnabled.12';
 				$this->MsPowerpoint_InitSlideLst();
 				$i['main'] = (isset($this->OpenXmlSlideLst[0])) ? $this->OpenXmlSlideLst[0]['file'] : 'ppt/slides/slide1.xml';
 				$i['load'] = $this->OpenXML_MapGetFiles(array('presentationml.notesSlide+xml')); // auto-load comments
+				$this->ExtEquiv = 'pptx';
 				$block_alias = array(
 					'tbs:p' => 'a:p',
 					'tbs:title' => 'a:p',
@@ -2053,7 +2058,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	// Return the type of document corresponding to the given extension.
 	function Ext_DeductFormat(&$Ext, $Search) {
 		if (strpos(',odt,ods,odg,odf,odp,odm,ott,ots,otg,otp,', ',' . $Ext . ',') !== false) return 'odf';
-		if (strpos(',docx,xlsx,xlsm,pptx,', ',' . $Ext . ',') !== false) return 'openxml';
+		if (strpos(',docx,docm,xlsx,xlsm,pptx,pptm,', ',' . $Ext . ',') !== false) return 'openxml';
 		if (!$Search) return false;
 		if ($this->FileExists('content.xml')) {
 			// OpenOffice documents

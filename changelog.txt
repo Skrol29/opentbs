@@ -1,3 +1,9 @@
+= Release 1.9.10 =
+
+== Bug fixes ==
+
+* DOCM, PPTM and XSLM documents (that is documents with macros) are merged correctly but Ms Office display an error message when the file is downloaded using $TBS->Show(OPENTBS_DOWNLOAD,...).
+
 = Release 1.9.9 =
 
 == Bug fixes ==
