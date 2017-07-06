@@ -1909,12 +1909,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$p = strrpos($Ext, '.');
 				$Ext = ($p===false) ? '' : strtolower(substr($Ext, $p + 1));
 			}
-			$Frm = $this->Ext_DeductFormat($Ext, true);
+			$Frm = $this->Ext_DeductFormat($Ext, true); // may change $Ext
 			// Rename the name of the phantom file if it is a stream
 			if ( $this->ArchIsStream && (strlen($Ext)>2) ) $this->ArchFile = str_replace('.zip', '.'.$Ext, $this->ArchFile);
 		} else {
 			// The extension is forced
-			$Frm = $this->Ext_DeductFormat($Ext, false);
+			$Frm = $this->Ext_DeductFormat($Ext, false); // may change $Ext
 		}
 
 		$TBS = &$this->TBS;
