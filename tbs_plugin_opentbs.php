@@ -34,6 +34,7 @@ define('OPENTBS_FILEEXISTS','clsOpenTBS.FileExists');
 define('OPENTBS_GET_FILES','clsOpenTBS.GetFiles');
 define('OPENTBS_CHART','clsOpenTBS.Chart');
 define('OPENTBS_CHART_INFO','clsOpenTBS.ChartInfo');
+define('OPENTBS_CHART_DELETE_CATEGORY','clsOpenTBS.ChartDeleteCategory');
 define('OPENTBS_DEFAULT','');   // Charset
 define('OPENTBS_ALREADY_XML',false);
 define('OPENTBS_ALREADY_UTF8','already_utf8');
@@ -732,7 +733,16 @@ class clsOpenTBS extends clsTbsZip {
 				$files[] = $f['v_name'];
 			}
 			return $files;
-	
+			
+		} elseif ($Cmd==OPENTBS_CHART_DELETE_CATEGORY) {
+			
+			if ($this->ExtType=='odf') {
+				return $this->OpenDoc_ChartDelCategory($x1, $x2);
+			} else {
+				return false;
+			}
+			
+			
 		}
 
 	}
@@ -5245,7 +5255,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		// simplified variables
 		$col_cat  = $chart['col_cat']; // column Category (always 1)
 		$col_nbr  = $chart['col_nbr']; // number of columns
-		$s_col    = $s_info['cols'][0];  // first column of the series
+		$s_col    = $s_info['cols'][0];  // first data column of the series
 		$s_col_nbr = count($s_info['cols']);
 		$s_colend  = $s_col + $s_col_nbr - 1;  // last column of the series
 		$s_use_cat = (count($s_info['cols'])==1); // true is the series uses the column Category
@@ -5313,6 +5323,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		// Add unused data
+		// TODO : we should update the category range in <chart:categories> but LibreOffice seems to not care about it.
 		$x = '';
 		$x_nan = '<table:table-cell office:value-type="float" office:value="NaN"></table:table-cell>';
 		foreach ($data as $cat=>$val) {
@@ -5464,7 +5475,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$chart['col_cat'] = $col_cat;
 
 
-		// Brows headers columns
+		// Browse headers columns
 		$elHeaders = clsTbsXmlLoc::FindElement($Txt, 'table:table-header-rows', 0);
 		if ($elHeaders===false) return $this->RaiseError("(ChartFindSeries) : unable to found the series names in the chart ".$this->_ChartCaption.".");
 		$p = 0;
@@ -5496,6 +5507,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	function OpenDoc_ChartDelSeries(&$Txt, &$series) {
 
+		// TODO : we should update the category range in <chart:categories> but LibreOffice seems to not care about it.
+		// Note: only the declaration of the series is deleted, not the data.
 		$att = 'chart:label-cell-address="'.$series['ref'].'"';
 		$elSeries = clsTbsXmlLoc::FindElementHavingAtt($Txt, $att, 0);
 
@@ -5503,6 +5516,48 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	function OpenDoc_ChartDelCategory($ChartRef, $del_category) {
+
+		$Txt = false;
+		$chart = $this->OpenDoc_ChartFind($ChartRef, $Txt, 'ChartChangeSeries');
+		if ($chart === false) return;
+
+		$col_cat = $chart['col_cat'];
+		
+		// Scann all rows for changing cells
+		$elData = clsTbsXmlLoc::FindElement($Txt, 'table:table-rows', 0);
+		$p_row = 0;
+		while ( ($elRow=clsTbsXmlLoc::FindElement($elData, 'table:table-row', $p_row)) !== false ) {
+			$p_cell = 0;
+			for ($i=1; $i<=$col_cat; $i++) {
+				if ($elCell = clsTbsXmlLoc::FindElement($elRow, 'table:table-cell', $p_cell)) {
+					if ($i==$col_cat) {
+						// Category
+						if ($elP = clsTbsXmlLoc::FindElement($elCell, 'text:p', 0)) {
+							$category = $elP->GetInnerSrc();
+							if ($category == $del_category) {
+								$elRow->Delete();
+								$elRow->UpdateParent(); // update $elData source
+								$this->TbsStorePut($chart['file_idx'], $Txt);
+								return true;
+							}
+						}
+					}
+					$p_cell = $elCell->PosEnd;
+				} else {
+					$i = $col_cat+1; // ends the loops
+				}
+			}
+			$p_row = $elRow->PosEnd;
+		}		
+
+		// Save the result
+		
+		return $this->RaiseError("(ChartDelCategory) : unable to found the category « $del_category » in the chart « ".$this->_ChartCaption." ».");
+		return false;
+		
+	}
+	
 	function OpenDoc_ChartRenameSeries(&$Txt, &$series, $NewName) {
 
 		$NewName = htmlspecialchars($NewName, ENT_NOQUOTES); // ENT_NOQUOTES because target is an element's content
