@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.10
- * @date 2017-07-05
+ * @version 1.9.11-beta
+ * @date 2017-09-18
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -32,6 +32,8 @@ define('OPENTBS_REPLACEFILE','clsOpenTBS.ReplaceFile'); // command to replace a 
 define('OPENTBS_EDIT_ENTITY','clsOpenTBS.EditEntity'); // command to force an attribute
 define('OPENTBS_FILEEXISTS','clsOpenTBS.FileExists');
 define('OPENTBS_GET_FILES','clsOpenTBS.GetFiles');
+define('OPENTBS_GET_OPENED_FILES','clsOpenTBS.GetOpenedFiles');
+define('OPENTBS_WALK_OPENED_FILES','clsOpenTBS.WalkOpenedFiles');
 define('OPENTBS_CHART','clsOpenTBS.Chart');
 define('OPENTBS_CHART_INFO','clsOpenTBS.ChartInfo');
 define('OPENTBS_CHART_DELETE_CATEGORY','clsOpenTBS.ChartDeleteCategory');
@@ -94,7 +96,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.9.10';
+		$this->Version = '1.9.11-beta';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -748,6 +750,37 @@ class clsOpenTBS extends clsTbsZip {
 				return false;
 			}
 			
+		} elseif ($Cmd==OPENTBS_GET_OPENED_FILES) {
+			
+			$files = array();
+			foreach ($this->TbsStoreLst as $idx => $info) {
+				// Files loaded manually, that are not the current selected file
+				if ($info['onshow'] && ($idx !== $this->TbsCurrIdx)) {
+					$name = $this->CdFileLst[$idx]['v_name'];
+					$files[] = $name;
+				}
+			}
+			// the current selected file
+			if ($this->TbsCurrIdx !== false) {
+				$name = $this->CdFileLst[$this->TbsCurrIdx]['v_name'];
+				$files[] = $name;
+			}
+			return $files;
+			
+		} elseif ($Cmd==OPENTBS_WALK_OPENED_FILES) {
+			
+			foreach ($this->TbsStoreLst as $idx => $info) {
+				// Files loaded manually, that are not the current selected file
+				if ($info['onshow'] && ($idx !== $this->TbsCurrIdx)) {
+					$name = $this->CdFileLst[$idx]['v_name'];
+					call_user_func_array($x1, array(&$this->TbsStoreLst[$idx]['src'], $name));
+				}
+			}
+			// the current selected file
+			if ($this->TbsCurrIdx !== false) {
+				$name = $this->CdFileLst[$this->TbsCurrIdx]['v_name'];
+				call_user_func_array($x1, array(&$this->TBS->Source, $name));
+			}
 			
 		}
 
@@ -5376,7 +5409,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$s_col    = $s_info['cols'][0];  // first data column of the series
 		$s_col_nbr = count($s_info['cols']);
 		$s_colend  = $s_col + $s_col_nbr - 1;  // last column of the series
-		$s_use_cat = (count($s_info['cols'])==1); // true is the series uses the column Category
+		$s_use_cat = (count($s_info['cols'])==1); // true if the series uses the column Category
 
 		// Force syntax of data
 		if (!is_array($NewValues)) {
@@ -5395,7 +5428,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		unset($NewValues);
 
-		// Scann all rows for changing cells
+		// Scann all rows (=categories) for changing cells
 		$elData = clsTbsXmlLoc::FindElement($Txt, 'table:table-rows', 0);
 		$p_row = 0;
 		while (($elRow=clsTbsXmlLoc::FindElement($elData, 'table:table-row', $p_row))!==false) {
@@ -5504,7 +5537,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					if (substr($href,0,2)=='./') $href = substr($href, 2);
 					if ( is_string($img_href) && (substr($img_href,0,2)=='./') ) $img_href = substr($img_href, 2);
 					$this->OpenDocCharts[] = array('href'=>$href, 'title'=>$title, 'img_href'=>$img_href, 'img_src'=>$img_src, 'to_clear'=> ($img_href!==false) );
-
 				}
 			}
 			$p = $drEl->PosEnd;

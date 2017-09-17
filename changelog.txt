@@ -1,3 +1,11 @@
+= Release 1.9.11 =
+
+== New features ==
+
+* New command OPENTBS_CHART_DELETE_CATEGORY
+* New command OPENTBS_GET_OPENED_FILES
+* New command OPENTBS_WALK_OPENED_FILES
+
 = Release 1.9.10 =
 
 == Bug fixes ==
