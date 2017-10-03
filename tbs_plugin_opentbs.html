@@ -95,8 +95,8 @@ body, td, th {
 <!-- div main-body is used for insertion in the TBS menu -->
 <div id="main-body">
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.9.10, 2017-07-05 by Skrol29</div>
-<div>help file modified on 2017-07-05</div>
+<div>version 1.9.11, 2017-10-03 by Skrol29</div>
+<div>help file modified on 2017-10-03</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -448,6 +448,12 @@ $TBS-&gt;LoadTemplate($handle);</pre>
     <li>With Ms Office, the chart must not be linked to external data (such as an Excel worksheet). Otherwise the chart will be automatically actualized back the previous values when it will be opened.</li>
     <li>With Ms Office, the visual Data Editor becomes unavailable on a merged chart. If you set property <span class="smallcode">$TBS-&gt;OtbsDeleteObsoleteChartData = false</span> then the Data Editor of Ms Office can be opened but it displays only  previous values, which may be quite confusing.  <span class="versioning">This property is supported since OpenTBS version 1.9.5, before that the visual Data Editor could be opened but displayed only previous data.</span></li>
   </ul>
+</div>
+<h4> <a id="opentbs_chart_info2"></a>Delete a category in a chart:</h4>
+<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.9.11)</span>
+  <div class="code">Example: $ok = $TBS-&gt;PlugIn(OPENTBS_CHART_DELETE_CATEGORY, $ChartRef, $Category, $NoErr = false)</div>
+  <p>This command delete the given category in the chart. It returns <span class="smallcode">true</span> if succeed.</p>
+  <p>By default an error occurs if  the category is not found in the chart. But if your set argument <span class="smallcode">$NoErr</span> to <span class="smallcode">true</span> then the function returns <span class="smallcode">false</span> and no error occurs.</p>
 </div>
 <h4>&bull; <a id="opentbs_chart_info"></a>Read series in a chart:</h4>
 <div class="shift"> <span class="versioning">(supported since OpenTBS version 1.9.5)</span>
@@ -881,14 +887,36 @@ array (
 <h3><a id="modify_files"></a>4.11. Manage files in the archive</h3>
 <h4 style="display:inline">&bull; Get all files in the archive:</h4>
 <div class="shift">
-  <div class="code">$TBS-&gt;Plugin(OPENTBS_GET_FILES); </div>
+  <div class="code">$TBS-&gt;Plugin(OPENTBS_GET_FILES)</div>
   <p>Return the list of all files in the archive.</p>
   <div class="versioning">(supported since OpenTBS version 1.9.7)</div>
 </div>
+<h4 style="display:inline">&nbsp;</h4>
+<h4 style="display:inline">&nbsp;</h4>
+<h4 style="display:inline">&nbsp;</h4>
+<h4 style="display:inline">&nbsp;</h4>
+<h4 style="display:inline">&nbsp;</h4>
+<h4 style="display:inline">&bull; Get all files in the archive:</h4>
+<div class="shift">
+  <div class="code">$TBS-&gt;Plugin(OPENTBS_GET_OPENED_FILES)</div>
+  <p>Return the list of all files in the archive that has been already loaded for a TBS merge. This includes all files that you manually loaded using command OPENTBS_SELECT_FILE, but also all files loaded automatically by OpenTBS such as the main file, or modified charts, or sometimes headers and footers. Some technical files that are  modified by OpenTBS in back-end but cannot contain TBS fields (such as manifest files or relation files) are not returned by this command.</p>
+  <div class="versioning">(supported since OpenTBS version 1.9.11)</div>
+</div>
+<h4></h4>
+<h4 style="display:inline">&bull; Get all files in the archive:</h4>
+<div class="shift">
+  <div class="code">$TBS-&gt;Plugin(OPENTBS_WALK_OPENED_FILES, $callable)</div>
+  <p>Apply a user supplied function to every file  in the archive that has been already loaded for a TBS merge (see command <span class="code">OPENTBS_GET_OPENED_FILES</span>).</p>
+  <p>Argument <span class="smallcode">$callable</span> must be a <a href="http://php.net/manual/en/language.types.callable.php" target="_blank">callable function</a> with one or two arguments: the editable content of the file being the first, and file's name the second.</p>
+  <pre class="code">
+// Example:
+$user_func = array($my_object, 'translate');
+$TBS-&gt;Plugin(OPENTBS_WALK_OPENED_FILES, $user_func);</pre>
+  <div class="versioning">(supported since OpenTBS version 1.9.11)</div>
+</div>
 <h4>&bull; Check if a file does exists in the archive:</h4>
 <div class="shift">
-  <div class="code">$TBS-&gt;Plugin(OPENTBS_FILEEXISTS, $Name);
-</div>
+  <div class="code">$TBS-&gt;Plugin(OPENTBS_FILEEXISTS, $Name)</div>
   <p>Return <span class="smallcode">true</span> or <span class="smallcode">false</span>. $Name must include the inner path. For example : <span class="smallcode">$Name = 'META-INF/manifest.xml';</span></p>
   <div class="versioning">(supported since OpenTBS version 1.7.4)</div>
 </div>
@@ -1054,11 +1082,17 @@ $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a id="changelog"></a>8. Changelog</h2>
+<h3>version 1.9.11, on 2017-10-03</h3>
+<h4>Bug fixes</h4>
+<ul>
+  <li>New command OPENTBS_CHART_DELETE_CATEGORY</li>
+  <li>New command OPENTBS_GET_OPENED_FILES</li>
+  <li>New command OPENTBS_WALK_OPENED_FILES</li>
+</ul>
 <h3>version 1.9.10, on 2017-07-05</h3>
 <h4>Bug fixes</h4>
 <ul>
-  <li>* DOCM, PPTM and XSLM documents (that is documents with macros) are merged correctly but Ms Office display an error message when the file is dowloaded using $TBS-&gt;Show(OPENTBS_DOWNLOAD,...).<br>
-  </li>
+  <li> DOCM, PPTM and XSLM documents (that is documents with macros) are merged correctly but Ms Office display an error message when the file is dowloaded using $TBS-&gt;Show(OPENTBS_DOWNLOAD,...).  </li>
 </ul>
 <h3>version 1.9.9, on 2017-05-28</h3>
 <h4>Bug fixes</h4>
