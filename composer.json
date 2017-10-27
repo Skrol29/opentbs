@@ -5,7 +5,8 @@
     "homepage": "http://www.tinybutstrong.com/opentbs.php",
     "license": "LGPL-3.0",
     "require": {
-        "php": "^5.0"
+        "php": "^5.0 || ^7.0",
+        "skrol29/tinybutstrong": "^3.10.1"
     },
     "autoload": {
         "classmap": ["tbs_plugin_opentbs.php"]
