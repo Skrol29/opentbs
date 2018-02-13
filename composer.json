@@ -1,0 +1,21 @@
+{
+    "name": "tinybutstrong/opentbs",
+    "description": "With OpenTBS you can merge OpenOffice - LibreOffice and Ms Office documents with PHP using the TinyButStrong template engine. Simple use OpenOffice - LibreOffice or Ms Office to edit your templates : DOCX, XLSX, PPTX, ODT, OSD, ODP and other formats.",
+    "type": "library",
+    "keywords": ["templating","docx","xlsx","pptx","odt","ods","odp"],
+    "homepage": "http://www.tinybutstrong.com/opentbs.php",
+    "license": "LGPL-3.0-only",
+    "authors": [
+        {
+            "name": "Skrol29",
+            "email": "skrol29dev@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.0",
+        "tinybutstrong/tinybutstrong": ">=3.10.1"
+    },
+    "autoload": {
+        "classmap": ["tbs_plugin_opentbs.php"]
+    }
+}
