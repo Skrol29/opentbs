@@ -1,7 +1,5 @@
 <?php
 
-// ok for Visiomap
-
 /**
  * @file
  * OpenTBS
@@ -9,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.12-beta
- * @date 2019-01-16
+ * @version 1.9.12-beta2
+ * @date 2019-01-17
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -3163,7 +3161,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			if ($p2 === false) {
 				$p2 = strpos($x, 'Lit>', $p1);
 			}
-			if ($p2===false) return "Cached data not found for categories or values.";
+			if ($p2===false) return "Neither Literal nor Cached data is found for categories or values.";
 			$p2 = $p2 - 7;
 			$res['point'.$i.'_p'] = $p1;
 			$res['point'.$i.'_l'] = $p2 - $p1;
