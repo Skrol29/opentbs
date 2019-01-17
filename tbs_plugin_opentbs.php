@@ -1,5 +1,7 @@
 <?php
 
+// ok for Visiomap
+
 /**
  * @file
  * OpenTBS
@@ -7,8 +9,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.11
- * @date 2017-10-13
+ * @version 1.9.12-beta
+ * @date 2019-01-16
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -1685,46 +1687,87 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 	
 	/**
-	 * Search a string in a list if several sub-file in the archive.
-	 * @param $files An associated array of sub-files to scann. Structure: $key => IdxOrName
-	 * @param $str   The string to search.
-	 * @param $returnFirstFind  true to return only the first record fund.
-	 * @return a single record or a recordset structured like: array('key'=>, 'idx'=>, 'src'=>, 'pos'=>, 'curr'=>)
+	 * Search 1 or 2 strings in a list if several sub-file in the archive.
+     *
+	 * @param string|array $files An associated array of sub-files to scann or a pattern using 1 wildcard '*'.
+	 * @param string|array $str   The strings that all be prensents in the content of the file.
+     *                            It can be a array of strings, or a single string.
+	 * @param boolean             $returnFirstFind  true to return only the first record fund.
+     *
+	 * @return array Return a single record or a recordset structured like: array('key'=>, 'idx'=>, 'src'=>, 'pos'=>, 'curr'=>)
 	 */
 	function TbsSearchInFiles($files, $str, $returnFirstFound = true) {
 
-		$keys_ok = array();
+        // Prepare variables
+    
+        if (is_string($str)) {
+            $str = array($str);
+        }
+    
+        $keys_todo = array(); // list of keys that remains to be done
+        $idx_keys = array();  // trancoding idx to key
+        if (is_array($files)) {
+            // A list of files given => transform the list of files into a list of available idx
+            foreach($files as $k => $f) {
+                $idx = $this->FileGetIdx($f);
+                if ($idx!==false) {
+                    $keys_todo[$k] = $idx;
+                    $idx_keys[$idx] = $k;
+                }
+            }
+        } else {
+            // A string is given => 
+            $parts = explode('*', $files);
+            $last = count($parts) - 1;
+            if ($last == 0) {
+                $parts[1] = '';
+                $last = 1;
+            }
+            $len_0 = strlen($parts[0]);
+            $len_1 = strlen($parts[1]);
+            foreach ($this->CdFileByName as $f => $idx) {
+                if ( ($len_0 == 0) || (substr($f, 0, $len_0) == $parts[0]) ) {
+                    if ( ($len_1 == 0) || (substr($f, -$len_1) == $parts[1]) ) {
+                        $keys_todo[$f] = $idx;
+                        $idx_keys[$idx] = $f;
+                    }
+                }
+            }
+        }
 
-		// transform the list of files into a list of available idx
-		$keys_todo = array();
-		$idx_keys = array();
-		foreach($files as $k=>$f) {
-			$idx = $this->FileGetIdx($f);
-			if ($idx!==false) {
-				$keys_todo[$k] = $idx;
-				$idx_keys[$idx] = $k;
-			}
-		}
-
+        // Start search
+        
+  		$result = array();
+        
 		// Search in the current sub-file
 		if ( ($this->TbsCurrIdx!==false) && isset($idx_keys[$this->TbsCurrIdx]) ) {
 			$key = $idx_keys[$this->TbsCurrIdx];
-			$p = strpos($this->TBS->Source, $str);
-			if ($p!==false) {
-				$keys_ok[] = array('key' => $key, 'idx' => $this->TbsCurrIdx, 'src' => &$this->TBS->Source, 'pos' => $p, 'curr'=>true);
-				if ($returnFirstFound) return $keys_ok[0];
+            $p = true;
+            foreach ($str as $s) {
+                if ($p !== false) {
+                    $p = strpos($this->TBS->Source, $s);
+                }
+            }
+			if ($p !== false) {
+				$result[] = array('key' => $key, 'idx' => $this->TbsCurrIdx, 'src' => &$this->TBS->Source, 'pos' => $p, 'curr'=>true);
+				if ($returnFirstFound) return $result[0];
 			}
 			unset($keys_todo[$key]);
 		}
 
 		// Search in the store
-		foreach($this->TbsStoreLst as $idx => $s) {
+		foreach($this->TbsStoreLst as $idx => $info) {
 			if ( ($idx!==$this->TbsCurrIdx) && isset($idx_keys[$idx]) ) {
 				$key = $idx_keys[$idx];
-				$p = strpos($s['src'], $str);
-				if ($p!==false) {
-					$keys_ok[] = array('key' => $key, 'idx' => $idx, 'src' => &$s['src'], 'pos' => $p, 'curr'=>false);
-					if ($returnFirstFound) return $keys_ok[0];
+                $p = true;
+                foreach ($str as $s) {
+                    if ($p !== false) {
+                        $p = strpos($s['src'], $info);
+                    }
+                }
+				if ($p !== false) {
+					$result[] = array('key' => $key, 'idx' => $idx, 'src' => &$info['src'], 'pos' => $p, 'curr'=>false);
+					if ($returnFirstFound) return $result[0];
 				}
 				unset($keys_todo[$key]);
 			}
@@ -1733,17 +1776,22 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		// Search in other sub-files (never opened)
 		foreach ($keys_todo as $key => $idx) {
 			$txt = $this->FileRead($idx);
-			$p = strpos($txt, $str);
-			if ($p!==false) {
-				$keys_ok[] = array('key' => $key, 'idx' => $idx, 'src' => $txt, 'pos' => $p, 'curr'=>false);
-				if ($returnFirstFound) return $keys_ok[0];
+            $p = true;
+            foreach ($str as $s) {
+                if ($p !== false) {
+                    $p = strpos($txt, $s);
+                }
+            }
+			if ($p !== false) {
+				$result[] = array('key' => $key, 'idx' => $idx, 'src' => $txt, 'pos' => $p, 'curr'=>false);
+				if ($returnFirstFound) return $result[0];
 			}
 		}
 
 		if ($returnFirstFound) {
 			return  array('key'=>false, 'idx'=>false, 'src'=>false, 'pos'=>false, 'curr'=>false);
 		} else {
-			return $keys_ok;
+			return $result;
 		}
 
 	}
@@ -2990,7 +3038,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					$x = $x[$n]; // name of the xml file
 					if (substr($x,-4)==='.xml') {
 						$x = substr($x,0,strlen($x)-4);
-						$this->OpenXmlCharts[$x] = array('idx'=>$i, 'clean'=>false, 'series'=>false);
+						$this->OpenXmlCharts[$x] = array('idx'=>$i, 'parent_idx'=>false, 'clean'=>false, 'series'=>false);
 					}
 				}
 			}
@@ -3109,14 +3157,19 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		for ($i=1; $i<=2; $i++) {
 			$p1 = strpos($x, '<c:ptCount ', $p);
 			if ($p1===false) return ($i==1) ? "categories or values not found." : "categories not found, check the chart to add categories.";
-			$p2 = strpos($x, 'Cache>', $p1); // the closing tag can be </c:numCache> or </c:strCache>
+			 // Points elements can be childs of <c:numCache> or <c:strCache> (the most common, means the source is a reference to a XLSX range),
+			 // but also <c:numLit> or <c:strLit> if the source is literal (rare, means the source is given has is in the chart, I've seen it possible only in XSLX)
+			$p2 = strpos($x, 'Cache>', $p1);
+			if ($p2 === false) {
+				$p2 = strpos($x, 'Lit>', $p1);
+			}
 			if ($p2===false) return "Cached data not found for categories or values.";
 			$p2 = $p2 - 7;
 			$res['point'.$i.'_p'] = $p1;
 			$res['point'.$i.'_l'] = $p2 - $p1;
 			$p = $p2;
 		}
-
+		
 		return $res;
 
 	}
@@ -3141,6 +3194,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			if ($this->ExtEquiv=='pptx') {
 				// search in slides
 				$find = $this->MsPowerpoint_SearchInSlides(' title="'.$ChartRef.'"');
+				$idx = $find['idx'];
+			} elseif ($this->ExtEquiv=='xlsx') {
+				// search in drawings
+				$find = $this->TbsSearchInFiles('xl/drawings/*.xml', ' title="'.$ChartRef.'"', true);
 				$idx = $find['idx'];
 			} else {
 				$idx =$this->Ext_GetMainIdx();
@@ -3213,7 +3270,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					$x = $v;
 					$y = isset($val_lst[$k]) ? $val_lst[$k] : null;
 				}
-				// a category should not be missing otherwise it caption may not be display if the series is the first one
+				// a category should not be missing otherwise its caption may not be display if the series is the first one
 				$point1 .= '<c:pt idx="'.$i.'"><c:v>'.$x.'</c:v></c:pt>';
 				// a missing value is possible
 				if ( (!is_null($y)) && ($y!==false) && ($y!=='') && ($y!=='NULL') ) {
@@ -3265,8 +3322,16 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$name = false;
 				$title = false;
 				$descr = false;
-				$parent = clsTbsXmlLoc::FindStartTag($Txt, 'w:drawing', $t->PosBeg, false); // DOCX <w:drawing> can embeds <wp:inline> if inline with text, or <wp:anchor> otherwise
-				if ($parent===false) $parent = clsTbsXmlLoc::FindStartTag($Txt, 'p:nvGraphicFramePr', $t->PosBeg, false); // PPTX
+                // DOCX <w:drawing> can embeds <wp:inline> if inline with text, or <wp:anchor> otherwise                
+				$parent = clsTbsXmlLoc::FindStartTag($Txt, 'w:drawing', $t->PosBeg, false);
+				if ($parent===false) {
+                    // PPTX
+                    $parent = clsTbsXmlLoc::FindStartTag($Txt, 'p:nvGraphicFramePr', $t->PosBeg, false);
+                }
+				if ($parent===false) {
+                    // XLSX
+                    $parent = clsTbsXmlLoc::FindStartTag($Txt, 'xdr:nvGraphicFramePr', $t->PosBeg, false);
+                }
 				if ($parent!==false) {
 					$parent->FindEndTag();
 					$src = $parent->GetInnerSrc();
@@ -3459,9 +3524,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$serials = array();
 		
 		$loop_conf = array(
-			'names' => array('parent' => 'c:tx',  'format' => false),
-			'cat'   => array('parent' => 'c:cat', 'format' => 'c:formatCode'),
-			'val'   => array('parent' => 'c:val', 'format' => 'c:formatCode'),
+			'names' => array('parent' => 'c:tx',  'format' => false), // name of the series
+			'cat'   => array('parent' => 'c:cat', 'format' => 'c:formatCode'), // categories of the series
+			'val'   => array('parent' => 'c:val', 'format' => 'c:formatCode'), // values of the series
 		);
 
 		// Loop

@@ -1,3 +1,9 @@
+= Release 1.9.12 =
+
+== New features ==
+
+* Can merge charts in XLSX.
+
 = Release 1.9.11 =
 
 == New features ==
