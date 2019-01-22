@@ -3151,6 +3151,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		// Data X & Y, we assume that (X or Category) are always first and (Y or Value) are always second
+		// Correspond elements are <c:cat> and <c:val> or <c:xVal> and <c:yVal>
 		// Some charts may not have categories, they cannot be merged :-(
 		for ($i=1; $i<=2; $i++) {
 			$p1 = strpos($x, '<c:ptCount ', $p);
