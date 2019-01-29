@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.12-beta2
- * @date 2019-01-17
+ * @version 1.9.12-beta3
+ * @date 2019-01-23
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -1686,66 +1686,66 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	
 	/**
 	 * Search 1 or 2 strings in a list if several sub-file in the archive.
-     *
+	 *
 	 * @param string|array $files An associated array of sub-files to scann or a pattern using 1 wildcard '*'.
 	 * @param string|array $str   The strings that all be prensents in the content of the file.
-     *                            It can be a array of strings, or a single string.
+	 *                            It can be a array of strings, or a single string.
 	 * @param boolean             $returnFirstFind  true to return only the first record fund.
-     *
+	 *
 	 * @return array Return a single record or a recordset structured like: array('key'=>, 'idx'=>, 'src'=>, 'pos'=>, 'curr'=>)
 	 */
 	function TbsSearchInFiles($files, $str, $returnFirstFound = true) {
 
-        // Prepare variables
-    
-        if (is_string($str)) {
-            $str = array($str);
-        }
-    
-        $keys_todo = array(); // list of keys that remains to be done
-        $idx_keys = array();  // trancoding idx to key
-        if (is_array($files)) {
-            // A list of files given => transform the list of files into a list of available idx
-            foreach($files as $k => $f) {
-                $idx = $this->FileGetIdx($f);
-                if ($idx!==false) {
-                    $keys_todo[$k] = $idx;
-                    $idx_keys[$idx] = $k;
-                }
-            }
-        } else {
-            // A string is given => 
-            $parts = explode('*', $files);
-            $last = count($parts) - 1;
-            if ($last == 0) {
-                $parts[1] = '';
-                $last = 1;
-            }
-            $len_0 = strlen($parts[0]);
-            $len_1 = strlen($parts[1]);
-            foreach ($this->CdFileByName as $f => $idx) {
-                if ( ($len_0 == 0) || (substr($f, 0, $len_0) == $parts[0]) ) {
-                    if ( ($len_1 == 0) || (substr($f, -$len_1) == $parts[1]) ) {
-                        $keys_todo[$f] = $idx;
-                        $idx_keys[$idx] = $f;
-                    }
-                }
-            }
-        }
+		// Prepare variables
+	
+		if (is_string($str)) {
+			$str = array($str);
+		}
+	
+		$keys_todo = array(); // list of keys that remains to be done
+		$idx_keys = array();  // trancoding idx to key
+		if (is_array($files)) {
+			// A list of files given => transform the list of files into a list of available idx
+			foreach($files as $k => $f) {
+				$idx = $this->FileGetIdx($f);
+				if ($idx!==false) {
+					$keys_todo[$k] = $idx;
+					$idx_keys[$idx] = $k;
+				}
+			}
+		} else {
+			// A string is given => 
+			$parts = explode('*', $files);
+			$last = count($parts) - 1;
+			if ($last == 0) {
+				$parts[1] = '';
+				$last = 1;
+			}
+			$len_0 = strlen($parts[0]);
+			$len_1 = strlen($parts[1]);
+			foreach ($this->CdFileByName as $f => $idx) {
+				if ( ($len_0 == 0) || (substr($f, 0, $len_0) == $parts[0]) ) {
+					if ( ($len_1 == 0) || (substr($f, -$len_1) == $parts[1]) ) {
+						$keys_todo[$f] = $idx;
+						$idx_keys[$idx] = $f;
+					}
+				}
+			}
+		}
 
-        // Start search
-        
-  		$result = array();
-        
+		// Start search
+		
+		$result = array();
+		
 		// Search in the current sub-file
 		if ( ($this->TbsCurrIdx!==false) && isset($idx_keys[$this->TbsCurrIdx]) ) {
 			$key = $idx_keys[$this->TbsCurrIdx];
-            $p = true;
-            foreach ($str as $s) {
-                if ($p !== false) {
-                    $p = strpos($this->TBS->Source, $s);
-                }
-            }
+			$p = true;
+			foreach ($str as $s) {
+				if ($p !== false) {
+					$p = strpos($this->TBS->Source, $s);
+				}
+			}
 			if ($p !== false) {
 				$result[] = array('key' => $key, 'idx' => $this->TbsCurrIdx, 'src' => &$this->TBS->Source, 'pos' => $p, 'curr'=>true);
 				if ($returnFirstFound) return $result[0];
@@ -1757,12 +1757,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		foreach($this->TbsStoreLst as $idx => $info) {
 			if ( ($idx!==$this->TbsCurrIdx) && isset($idx_keys[$idx]) ) {
 				$key = $idx_keys[$idx];
-                $p = true;
-                foreach ($str as $s) {
-                    if ($p !== false) {
-                        $p = strpos($s['src'], $info);
-                    }
-                }
+				$p = true;
+				foreach ($str as $s) {
+					if ($p !== false) {
+						$p = strpos($s['src'], $info);
+					}
+				}
 				if ($p !== false) {
 					$result[] = array('key' => $key, 'idx' => $idx, 'src' => &$info['src'], 'pos' => $p, 'curr'=>false);
 					if ($returnFirstFound) return $result[0];
@@ -1774,12 +1774,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		// Search in other sub-files (never opened)
 		foreach ($keys_todo as $key => $idx) {
 			$txt = $this->FileRead($idx);
-            $p = true;
-            foreach ($str as $s) {
-                if ($p !== false) {
-                    $p = strpos($txt, $s);
-                }
-            }
+			$p = true;
+			foreach ($str as $s) {
+				if ($p !== false) {
+					$p = strpos($txt, $s);
+				}
+			}
 			if ($p !== false) {
 				$result[] = array('key' => $key, 'idx' => $idx, 'src' => $txt, 'pos' => $p, 'curr'=>false);
 				if ($returnFirstFound) return $result[0];
@@ -1841,7 +1841,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * @return string The merged value of the parameter.
 	 */
 	function TbsMergeVarFields($PrmVal, $FldVal) {
-        if ($PrmVal === true) $PrmVal = ''; // TBS set the value to true if no value set, but it is converted into '1'.
+		if ($PrmVal === true) $PrmVal = ''; // TBS set the value to true if no value set, but it is converted into '1'.
 		$this->TBS->meth_Merge_AutoVar($PrmVal, true);
 		$PrmVal = str_replace($this->TBS->_ChrVal, $FldVal, $PrmVal);
 		return $PrmVal;
@@ -1891,13 +1891,13 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$col_lst = array_unique($col_lst, SORT_NUMERIC); // Delete duplicated columns
 		sort($col_lst, SORT_NUMERIC); // Sort colmun id in order
 		$col_max = $col_lst[(count($col_lst)-1)]; // Last column to delete
-        
-        // Delete impossible col num (like zero)
-        while ( (count($col_lst) > 0) && ($col_lst[0] <= 0) ) {
-            array_shift($col_lst);
-        }
-        if (count($col_lst) == 0) return false;
-        
+		
+		// Delete impossible col num (like zero)
+		while ( (count($col_lst) > 0) && ($col_lst[0] <= 0) ) {
+			array_shift($col_lst);
+		}
+		if (count($col_lst) == 0) return false;
+		
 		// Look for the source of the table
 		$Loc = clsTbsXmlLoc::FindElement($Txt, $el_table, $PosBeg, false);
 		if ($Loc===false) return false;
@@ -3291,7 +3291,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		}
 
-		$this->OpenXML_ChartUnlinklDataSheet($chart, $Txt, $this->TBS->OtbsDeleteObsoleteChartData);
+		$this->OpenXML_ChartUnlinklDataSheet($chart, $Txt);
 		$this->TbsStorePut($chart['idx'], $Txt, true);
 
 		return true;
@@ -3321,16 +3321,16 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$name = false;
 				$title = false;
 				$descr = false;
-                // DOCX <w:drawing> can embeds <wp:inline> if inline with text, or <wp:anchor> otherwise                
+				// DOCX <w:drawing> can embeds <wp:inline> if inline with text, or <wp:anchor> otherwise                
 				$parent = clsTbsXmlLoc::FindStartTag($Txt, 'w:drawing', $t->PosBeg, false);
 				if ($parent===false) {
-                    // PPTX
-                    $parent = clsTbsXmlLoc::FindStartTag($Txt, 'p:nvGraphicFramePr', $t->PosBeg, false);
-                }
+					// PPTX
+					$parent = clsTbsXmlLoc::FindStartTag($Txt, 'p:nvGraphicFramePr', $t->PosBeg, false);
+				}
 				if ($parent===false) {
-                    // XLSX
-                    $parent = clsTbsXmlLoc::FindStartTag($Txt, 'xdr:nvGraphicFramePr', $t->PosBeg, false);
-                }
+					// XLSX
+					$parent = clsTbsXmlLoc::FindStartTag($Txt, 'xdr:nvGraphicFramePr', $t->PosBeg, false);
+				}
 				if ($parent!==false) {
 					$parent->FindEndTag();
 					$src = $parent->GetInnerSrc();
@@ -3362,13 +3362,13 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * If the data sheet is simply unlinked, the user can open the data sheet from Word of Powerpoint. But that will not change the chart.
 	 * If the data sheet is delete, the user cannot open the data sheet and cannot add a new data sheet. Data of the chart stay uneditable.
 	 */
-	function OpenXML_ChartUnlinklDataSheet(&$chart, &$Txt, $Delete) {
+	function OpenXML_ChartUnlinklDataSheet(&$chart, &$Txt) {
 
 		if ($chart['clean']) return;
 	
 		$idx = $chart['idx'];
 			
-		if ($Delete) {
+		if ($this->TBS->OtbsDeleteObsoleteChartData) {
 			if ($loc = clsTbsXmlLoc::FindElement($Txt, 'c:externalData', 0)) {
 				// Delete the relationship
 				$rid = $loc->GetAttLazy('r:id');
@@ -3389,7 +3389,30 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		// Unlink the data sheet by deleting references
 		$this->XML_DeleteElements($Txt, array('c:f'));
-
+		
+		$p = 0;
+		$ok = true;
+		while ( $ok  && (($loc = clsTbsXmlLoc::FindElement($Txt, 'c:tx', $p)) !== false) ) {
+			// The title of the series can be <c:strRef>, <c:v> or <c:rich>
+			// We try to replace <c:strRef> with <c:v>, without touching to <c:rich>.
+			if ($loc_ref = clsTbsXmlLoc::FindElement($loc, 'c:strRef', 0)) {
+				if ($loc_v = clsTbsXmlLoc::FindElement($loc_ref, 'c:v', 0)) {
+					$src = $loc_v->getSrc();
+					$loc->ReplaceInnerSrc($src);
+				} else {
+					$ok = false; // error met
+				}
+			}
+			$p = $loc->PosEnd;
+		}
+		
+		// Replace Reference values with Literal values
+		if ($ok) {
+			$this->XML_DeleteElements($Txt, array('c:numCache', 'c:strCache'), true);
+			$Txt = str_replace('c:strRef>', 'c:strLit>', $Txt); 
+			$Txt = str_replace('c:numRef>', 'c:numLit>', $Txt); 
+		}
+		
 		// Mark the clean has done
 		$chart['nbr'] = substr_count($Txt, '<c:ser>');
 		$chart['clean'] = true;
@@ -3491,7 +3514,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		
 		if ($nb_series > 0) {
-  		    $this->OpenXML_ChartUnlinklDataSheet($chart, $Txt, $this->TBS->OtbsDeleteObsoleteChartData); // Can break the xml if the chart is not changed. Why ?
+			$this->OpenXML_ChartUnlinklDataSheet($chart, $Txt); // Can break the xml if the chart is not changed. Why ?
 			$this->TbsStorePut($chart['idx'], $Txt, true);
 			return true;
 		} elseif ($no_err) {
@@ -4264,7 +4287,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 							case 'str': // formula returning a string				
 								$x = $v;
 							case 'd': // date
-							    $t = ($v-25569.0) * 86400.0; // unix: 1 means 01/01/1970, xlsx: 1 means 01/01/1900
+								$t = ($v-25569.0) * 86400.0; // unix: 1 means 01/01/1970, xlsx: 1 means 01/01/1900
 								$x = date('Y-m-d h:i:s', $t);
 							case 'e': // error, example of value: #DIV/0!
 								$x = $v;
