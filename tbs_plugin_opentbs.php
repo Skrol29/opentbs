@@ -3566,7 +3566,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 							$res[$key . '_format'] = $format;
 						}
 					}
-					// Search items
+					// Search items. Works for both References or Literals values
 					// It is possible that a val item is missing for a cat idx
 					$items = array();
 					$loc_p = 0;
