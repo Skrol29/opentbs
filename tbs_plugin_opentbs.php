@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.12-beta3
- * @date 2019-01-23
+ * @version 1.9.12-beta4
+ * @date 2019-02-18
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -96,7 +96,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.9.11';
+		$this->Version = '1.9.12-beta4';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -1760,7 +1760,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$p = true;
 				foreach ($str as $s) {
 					if ($p !== false) {
-						$p = strpos($s['src'], $info);
+						$p = strpos($info['src'], $s);
 					}
 				}
 				if ($p !== false) {
@@ -3096,10 +3096,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * Search for the series in the chart definition
 	 * @return mixed An Array if success, or a string if error.
 	 */
-	function OpenXML_ChartSeriesFound(&$Txt, $SeriesNameOrNum, $OnlyBounds=false) {
+	function OpenXML_ChartSeriesFound(&$Txt, $SeriesNameOrNum, $OnlyBounds) {
 
-		$IsNum = is_numeric($SeriesNameOrNum);
-		if ($IsNum) {
+		if (is_numeric($SeriesNameOrNum)) {
 			$p = strpos($Txt, '<c:order val="'.($SeriesNameOrNum-1).'"/>'); // position of the series
 			if ($p===false) return "Number of the series not found.";
 		} else {
@@ -3111,63 +3110,60 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$res = array('p'=>$p);
 
+		$loc = clsTbsXmlLoc::FindElement($Txt, 'c:ser', $p, false);
+		if ($loc === false) {
+			return "XML entity not found.";
+		}
+		
+		$res['p'] = $loc->PosBeg;
+		$res['l'] = $loc->PosEnd - $loc->PosBeg + 1;
+
 		if ($OnlyBounds) {
-			if ($loc = clsTbsXmlLoc::FindElement($Txt, 'c:ser', $p, false)) {
-				$res['p'] = $loc->PosBeg;
-				$res['l'] = $loc->PosEnd - $loc->PosBeg + 1;
-				return $res;
-			} else {
-				return "XML entity not found.";
-			}
+			return $res;
 		}
 
-		// faster than clsTbsXmlLoc::FindElement
-		$end_tag = '</c:ser>';
-		$end = strpos($Txt, $end_tag, $p);
-		$len = $end + strlen($end_tag) - $p;
-		$res['l'] = $len;
-
-		$x = substr($Txt, $p, $len);
+		$src = substr($Txt, $res['p'], $res['l']);
+		
+		$this->OpenXML_ChartConvCacheToLiteral($src);
 
 		// Legend, may be absent
 		$p = 0;
-		if ($IsNum) {
-			$p1 = strpos($x, '<c:tx>');
-			if ($p1>0) {
-				$p2 = strpos($x, '</c:tx>', $p1);
-				$tag = '<c:v>';
-				$p1 = strpos($x, $tag, $p1);
-				if ( ($p1!==false) && ($p1<$p2) ) {
-					$p1 = $p1 + strlen($tag);
-					$p2 = strpos($x, '<', $p1);
-					$res['leg_p'] = $p1;
-					$res['leg_l'] = $p2 - $p1;
-					$p = $p2;
-				} 
-			}
-		} else {
-			$res['leg_p'] = 0;
-			$res['leg_l'] = strlen($SeriesNameOrNum);
+		$p1 = strpos($src, '<c:tx>');
+		if ($p1 > 0) {
+			$p2 = strpos($src, '</c:tx>', $p1);
+			$tag = '<c:v>';
+			$p1 = strpos($src, $tag, $p1);
+			if ( ($p1!==false) && ($p1<$p2) ) {
+				$p1 = $p1 + strlen($tag);
+				$p2 = strpos($src, '<', $p1);
+				$res['leg_p'] = $p1;
+				$res['leg_l'] = $p2 - $p1;
+				$p = $p2;
+			} 
 		}
 
 		// Data X & Y, we assume that (X or Category) are always first and (Y or Value) are always second
 		// Correspond elements are <c:cat> and <c:val> or <c:xVal> and <c:yVal>
 		// Some charts may not have categories, they cannot be merged :-(
-		for ($i=1; $i<=2; $i++) {
-			$p1 = strpos($x, '<c:ptCount ', $p);
+		for ($i = 1 ; $i <= 2 ; $i++) {
+			$p1 = strpos($src, '<c:ptCount ', $p);
 			if ($p1===false) return ($i==1) ? "categories or values not found." : "categories not found, check the chart to add categories.";
-			 // Points elements can be childs of <c:numCache> or <c:strCache> (the most common, means the source is a reference to a XLSX range),
-			 // but also <c:numLit> or <c:strLit> if the source is literal (rare, means the source is given has is in the chart, I've seen it possible only in XSLX)
-			$p2 = strpos($x, 'Cache>', $p1);
+			// Points elements can be childs of <c:numCache> or <c:strCache> (the most common, means the source is a reference to a XLSX range),
+			// but also <c:numLit> or <c:strLit> if the source is literal (rare, means the source is given has is in the chart, I've seen it possible only in XSLX)
+			$p2 = strpos($src, 'Lit>', $p1);
+			/* no need if cache values have bee previously converted into literal
 			if ($p2 === false) {
-				$p2 = strpos($x, 'Lit>', $p1);
+				$p2 = strpos($src, 'Cache>', $p1);
 			}
+			*/
 			if ($p2===false) return "Neither Literal nor Cached data is found for categories or values.";
 			$p2 = $p2 - 7;
 			$res['point'.$i.'_p'] = $p1;
 			$res['point'.$i.'_l'] = $p2 - $p1;
 			$p = $p2;
 		}
+		
+		$res['src'] = $src;
 		
 		return $res;
 
@@ -3280,18 +3276,21 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$point1 = '<c:ptCount val="'.$i.'"/>'.$point1;
 			$point2 = '<c:ptCount val="'.$i.'"/>'.$point2; // yes, the count is the same as point1 whenever missing values
 
-			// change info in reverse order of placement in order to avoid exention problems
-			$p = $ser['p'];
-			$Txt = substr_replace($Txt, $point2, $p+$ser['point2_p'], $ser['point2_l']);
-			$Txt = substr_replace($Txt, $point1, $p+$ser['point1_p'], $ser['point1_l']);
-			if ( (is_string($NewLegend)) && isset($ser['leg_p']) && ($ser['leg_p']<$ser['point1_p']) ) {
+			// change info in reverse order of placement in order to avoid extention problems
+			$src = $ser['src'];
+			unset($ser['src']);
+			$src = substr_replace($src, $point2, $ser['point2_p'], $ser['point2_l']);
+			$src = substr_replace($src, $point1, $ser['point1_p'], $ser['point1_l']);
+			if ( is_string($NewLegend) && isset($ser['leg_p']) && ($ser['leg_p'] < $ser['point1_p']) ) {
 				$NewLegend = htmlspecialchars($NewLegend, ENT_NOQUOTES); // ENT_NOQUOTES because target is an element's content
-				$Txt = substr_replace($Txt, $NewLegend, $p+$ser['leg_p'], $ser['leg_l']);
+				$src = substr_replace($src, $NewLegend, $ser['leg_p'], $ser['leg_l']);
 			}
 
+			$Txt = substr_replace($Txt, $src, $ser['p'], $ser['l']);
+			
 		}
 
-		$this->OpenXML_ChartUnlinklDataSheet($chart, $Txt);
+		//$this->OpenXML_ChartUnlinklDataSheet($chart, $Txt);
 		$this->TbsStorePut($chart['idx'], $Txt, true);
 
 		return true;
@@ -3355,6 +3354,39 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
+	 * Convert all cache values into literal values.
+	 */
+	function OpenXML_ChartConvCacheToLiteral(&$Txt) {
+
+		// Unlink the data sheet by deleting references
+		$this->XML_DeleteElements($Txt, array('c:f'));
+		
+		$p = 0;
+		$ok = true;
+		while ( $ok  && (($loc = clsTbsXmlLoc::FindElement($Txt, 'c:tx', $p)) !== false) ) {
+			// The title of the series can be <c:strRef>, <c:v> or <c:rich>
+			// We try to replace <c:strRef> with <c:v>, without touching to <c:rich>.
+			if ($loc_ref = clsTbsXmlLoc::FindElement($loc, 'c:strRef', 0)) {
+				if ($loc_v = clsTbsXmlLoc::FindElement($loc_ref, 'c:v', 0)) {
+					$src = $loc_v->getSrc();
+					$loc->ReplaceInnerSrc($src);
+				} else {
+					$ok = false; // error met
+				}
+			}
+			$p = $loc->PosEnd;
+		}
+		
+		// Replace Reference values with Literal values
+		if ($ok) {
+			$this->XML_DeleteElements($Txt, array('c:numCache', 'c:strCache'), true);
+			$Txt = str_replace('c:strRef>', 'c:strLit>', $Txt); 
+			$Txt = str_replace('c:numRef>', 'c:numLit>', $Txt); 
+		}
+	
+	}
+	
+	/**
 	 * Unlink and eventually delete the data sheet from the chart.
 	 * Each chart can have only 1 linked data sheet. It may be external or internal.
 	 * Each internal data sheet can be linked to only 1 chart. So it is safe to delete the internal data sheet.
@@ -3387,31 +3419,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			}
 		}
 
-		// Unlink the data sheet by deleting references
-		$this->XML_DeleteElements($Txt, array('c:f'));
-		
-		$p = 0;
-		$ok = true;
-		while ( $ok  && (($loc = clsTbsXmlLoc::FindElement($Txt, 'c:tx', $p)) !== false) ) {
-			// The title of the series can be <c:strRef>, <c:v> or <c:rich>
-			// We try to replace <c:strRef> with <c:v>, without touching to <c:rich>.
-			if ($loc_ref = clsTbsXmlLoc::FindElement($loc, 'c:strRef', 0)) {
-				if ($loc_v = clsTbsXmlLoc::FindElement($loc_ref, 'c:v', 0)) {
-					$src = $loc_v->getSrc();
-					$loc->ReplaceInnerSrc($src);
-				} else {
-					$ok = false; // error met
-				}
-			}
-			$p = $loc->PosEnd;
-		}
-		
-		// Replace Reference values with Literal values
-		if ($ok) {
-			$this->XML_DeleteElements($Txt, array('c:numCache', 'c:strCache'), true);
-			$Txt = str_replace('c:strRef>', 'c:strLit>', $Txt); 
-			$Txt = str_replace('c:numRef>', 'c:numLit>', $Txt); 
-		}
+		$this->OpenXML_ChartConvCacheToLiteral($Txt);
 		
 		// Mark the clean has done
 		$chart['nbr'] = substr_count($Txt, '<c:ser>');
@@ -3514,7 +3522,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		
 		if ($nb_series > 0) {
-			$this->OpenXML_ChartUnlinklDataSheet($chart, $Txt); // Can break the xml if the chart is not changed. Why ?
+			//$this->OpenXML_ChartUnlinklDataSheet($chart, $Txt); // Can break the xml if the chart is not changed. Why ?
 			$this->TbsStorePut($chart['idx'], $Txt, true);
 			return true;
 		} elseif ($no_err) {
