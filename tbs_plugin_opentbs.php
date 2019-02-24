@@ -8,7 +8,7 @@
  * and retrieve the content of a zipped file which is not compressed.
  *
  * @version 1.9.12-beta4
- * @date 2019-02-18
+ * @date 2019-02-24
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -90,7 +90,6 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsSpacePreserve))        $TBS->OtbsSpacePreserve = true;
 		if (!isset($TBS->OtbsClearWriter))          $TBS->OtbsClearWriter = true;
 		if (!isset($TBS->OtbsClearMsWord))          $TBS->OtbsClearMsWord = true;
-		if (!isset($TBS->OtbsDeleteObsoleteChartData))    $TBS->OtbsDeleteObsoleteChartData = true;
 		if (!isset($TBS->OtbsMsExcelConsistent))    $TBS->OtbsMsExcelConsistent = true;
 		if (!isset($TBS->OtbsMsExcelExplicitRef))   $TBS->OtbsMsExcelExplicitRef = true;
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
@@ -3036,7 +3035,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					$x = $x[$n]; // name of the xml file
 					if (substr($x,-4)==='.xml') {
 						$x = substr($x,0,strlen($x)-4);
-						$this->OpenXmlCharts[$x] = array('idx'=>$i, 'parent_idx'=>false, 'clean'=>false, 'series'=>false);
+						$this->OpenXmlCharts[$x] = array('idx'=>$i, 'parent_idx'=>false, 'series'=>false);
 					}
 				}
 			}
@@ -3290,7 +3289,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			
 		}
 
-		//$this->OpenXML_ChartUnlinklDataSheet($chart, $Txt);
 		$this->TbsStorePut($chart['idx'], $Txt, true);
 
 		return true;
@@ -3384,47 +3382,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$Txt = str_replace('c:numRef>', 'c:numLit>', $Txt); 
 		}
 	
-	}
-	
-	/**
-	 * Unlink and eventually delete the data sheet from the chart.
-	 * Each chart can have only 1 linked data sheet. It may be external or internal.
-	 * Each internal data sheet can be linked to only 1 chart. So it is safe to delete the internal data sheet.
-	 * If the chart stay linked to the old data sheet afert the merge, then the chart is automatically updated when the user attempt to edit it. This is not good.
-	 * If the data sheet is simply unlinked, the user can open the data sheet from Word of Powerpoint. But that will not change the chart.
-	 * If the data sheet is delete, the user cannot open the data sheet and cannot add a new data sheet. Data of the chart stay uneditable.
-	 */
-	function OpenXML_ChartUnlinklDataSheet(&$chart, &$Txt) {
-
-		if ($chart['clean']) return;
-	
-		$idx = $chart['idx'];
-			
-		if ($this->TBS->OtbsDeleteObsoleteChartData) {
-			if ($loc = clsTbsXmlLoc::FindElement($Txt, 'c:externalData', 0)) {
-				// Delete the relationship
-				$rid = $loc->GetAttLazy('r:id');
-				if ($rid) {
-					$doc = $this->TbsGetFileName($idx);
-					$att = 'Id="' . $rid . '"';
-					$res = $this->OpenXML_Rels_DeleteRel($doc, $att, array('Target', 'TargetMode'));
-					// Delete the target file if embedded
-					if ($res && ($res['TargetMode'] != 'External')) {
-						$file = $this->OpenXML_GetAbsolutePath($res['Target'], $doc);
-						$this->FileReplace($file, false);
-					}
-				}
-				// Delete the element
-				$loc->Delete();
-			}
-		}
-
-		$this->OpenXML_ChartConvCacheToLiteral($Txt);
-		
-		// Mark the clean has done
-		$chart['nbr'] = substr_count($Txt, '<c:ser>');
-		$chart['clean'] = true;
-
 	}
 
 	/**
@@ -3522,7 +3479,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		
 		if ($nb_series > 0) {
-			//$this->OpenXML_ChartUnlinklDataSheet($chart, $Txt); // Can break the xml if the chart is not changed. Why ?
 			$this->TbsStorePut($chart['idx'], $Txt, true);
 			return true;
 		} elseif ($no_err) {
