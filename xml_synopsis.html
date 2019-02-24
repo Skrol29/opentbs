@@ -65,11 +65,13 @@ li {
   <li>2.2 <a href="#msoffice_xlsx">Excel spreadsheet (XLSX</a>)</li>
   <li>2.2.1 <a href="#msoffice_xlsx">General</a></li>
   <li>2.2.2 <a href="#msoffice_xlsx_headers">Headers and footers</a></li>
-  <li>2.2.3 <a href="#msoffice_xlsx_pictures">Pictures</a></li>
+  <li>2.2.3 <a href="#msoffice_docx_charts">Charts</a></li>
+  <li>2.2.4 <a href="#msoffice_xlsx_pictures">Pictures</a></li>
   <li>2.3 <a href="#msoffice_pptx">PowerPoint presentation (PPTX</a>)</li>
   <li>2.3.1 <a href="#msoffice_pptx">General</a></li>
   <li>2.3.2 <a href="#msoffice_pptx_headers">Headers and footers</a></li>
-  <li>2.3.3 <a href="#msoffice_pptx_pictures">Pictures</a></li>
+  <li>2.3.3 <a href="#msoffice_docx_charts">Charts</a></li>
+  <li>2.3.4 <a href="#msoffice_pptx_pictures">Pictures</a></li>
 </ul>
 <h2> <a name="libreoffice"></a>LibreOffice &amp; OpenOffice documents</h2>
 <p> That is extensions ODT, ODS, ODG, ODF, ODP, ODM.</p>
@@ -212,8 +214,13 @@ automatically instead of the real Chart view until the chart is manually changed
   <li> the reference <code>&lt;draw:image&gt;</code> in the <em>&quot;contents.xml&quot;</em> file,</li>
   <li> the reference <code>&lt;draw:image&gt;</code> in the <em>&quot;META-INF/manifest.xml&quot;</em> file.</li>
 </ul>
-<p>Data and properties of the chart are saved into the corresponding subdirectory <em>&quot;Object 1&quot;</em>.
-Data are saved in <em>&quot;Object 1/contents.xml&quot;</em> in a table that groups data of all series of the chart.</p>
+<p>Data and properties of the chart are saved into the corresponding subdirectory <em>&quot;Object 1&quot;</em>.</p>
+<p> Data are saved in <em>&quot;Object 1/contents.xml&quot;</em> in a local table that groups data of all series of the chart.</p>
+<p>If the document is an ODS workbook then the local table is still in the chart, but it is used as a cache for data. And series has a reference to cells in the workbook instead of cells in the local table.</p>
+<blockquote>
+  <p>With ODS, if the cached data are modified then, it is useless since the software will update the cached data with the cells in the workbook.</p>
+  <p>With ODS, if  references of a series are replaced with references of the local table, then the document will be opened with no error but the software will assume that all series are linked to the local table.</p>
+</blockquote>
 <pre>&lt;table:table table:name=&quot;local-table&quot;&gt;
 
   &lt;table:table-header-columns&gt;
@@ -449,10 +456,16 @@ and each of its modification is marked with its RsID. </p>
   &lt;/w:r&gt;
 &lt;/w:p&gt;</pre>
 <h4><a name="msoffice_docx_charts" id="msoffice5"></a>Charts (DOCX)</h4>
-<p>The first chart is saved under <em>&quot;word/charts/chart1.xml&quot;</em>, and so on for the next ones.  The XML file of the chart contains a copy of the data used for the chart.</p>
-<p> If the chart is designed manually, then <em>&quot;chart1.xml&quot;</em> also contains references to cells of an Ms Excel files that is used by Ms Word for managing series.</p>
-<p> The Excel file is emmbeded in the Docx file, for exemple: <em>&quot;word/embeddings/Worksheet_Microsoft_Excel1.xlsx&quot;</em>.  The path of the Excel file is saved into <em>&quot;word/charts/_rels/chart1.xml.rels&quot;</em>. 
-  Nevertheless the references to that Excel file are optional and can be deleted from the XML of the chart.</p>
+<p>The first chart is saved under <em>&quot;word/charts/chart1.xml&quot;</em>, and so on for the next ones.  </p>
+<p>There is two way of storing the chart's data : directly in the chart (data is qualified as <em>literal</em>) or in an internal Excel spreadsheet   (data is qualified as <em>referenced</em>).</p>
+<blockquote>
+  <p>By default, the software   stores data in an internal Excel Spreadsheet  embedded in the DOCX document <br>
+    For example: <em>&quot;word/embeddings/Worksheet_Microsoft_Excel1.xlsx&quot;</em>.). And the path of the Excel file is saved into <em>&quot;word/charts/_rels/chart1.xml.rels&quot;</em>.<br>
+The chart file contains both the references   to cells in the spreadsheet and the cached values.</p>
+  <p>If the cached values are modified, then the software will update   them according to the internal Excel Spreadsheet   when the document is opened.</p>
+  <p>If the internal Excel  Spreadsheet and its link to the chart are deleted, then the software will open the docuement with no error, and will use the caced values as if it was literal values.</p>
+</blockquote>
+<p>It possible to manually change the definition of a series to have it <em>litral</em> inseat of <em>referenced</em>.</p>
 <p>Title of the chart, the axes and the series are saved in <em>&quot;chart1.xml&quot;</em>. Other custom text boxes are saved in a shape file. For example :<em> &quot;word/drawings/drawing1.xml&quot;</em>.</p>
 <p>Example of a series saved in the XML (the tags are different for an XY series):</p>
 <pre>&lt;c:ser&gt;
@@ -604,6 +617,9 @@ and each of its modification is marked with its RsID. </p>
   &lt;evenHeader&gt;<span class="txt">My header for even page in this sheet</span>&lt;/evenHeader&gt;
   &lt;firstHeader&gt;<span class="txt">My header for first page in this sheet</span>&lt;/firstHeader&gt;
 &lt;/headerFooter&gt;</pre>
+<h4><a name="msoffice_xlsx_charts" id="msoffice18"></a>Charts (XLSX)</h4>
+<p>Same as <a href="#msoffice_docx_charts">Charts for DOCX</a>, but there is no embedded spreadsheet, data are referenced to cells in any worksheet of the current workbook.</p>
+<p>As for DOCX, data which   is referenced to cells can be manually modified into literal data in a chart.</p>
 <h4><a name="msoffice_xlsx_pictures" id="msoffice8"></a>Pictures (XLSX)</h4>
 <p>Binary contents is saved as a file in <em>&quot;xl/media/&quot;</em>. </p>
 <p>The presence of pictures in the sheet is mentioned with a single <code>&lt;drawing&gt;</code> entity at the bottom of the <code>&lt;worksheet&gt;</code> entity. The <code>&lt;drawing&gt;</code> entity carries a reference id, which is defined the Rels file of the sheet.  All properties of all the pictures in a sheet are finally saved in a third XML file.</p>
@@ -658,6 +674,8 @@ and each of its modification is marked with its RsID. </p>
 <p>They can be headers and footers for each slide, and aslo an header and footer for the &quot;handout&quot; view, wich is a set of several slides.</p>
 <p> Header and footer of each slide is saved in the sub-file of the slide (&quot;ppt/slides/slide1.xml&quot; for example).</p>
 <p> Header and footer of the handout is saved ins ubs-file <em>&quot;ppt/handoutMasters/handoutMaster1.xml&quot;</em>.</p>
+<h4><a name="msoffice_pptx_charts" id="msoffice17"></a>Charts (PPTX)</h4>
+<p>Same as <a href="#msoffice_docx_charts">Charts for DOCX</a>.</p>
 <h4><a name="msoffice_pptx_pictures" id="msoffice7"></a>Pictures (PPTX)</h4>
 <p>Binary contents is saved as a file in <em>&quot;ppt/media/&quot;</em>.</p>
 <p>(short synopsis)</p>
