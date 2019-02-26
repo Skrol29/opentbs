@@ -2,7 +2,20 @@
 
 == New features ==
 
-* Can merge charts in XLSX.
+* Can merge charts in XLSX and ODS.
+
+== Bug fixes ==
+
+* Ms Office documents (DOCX, XLSX, PPTX) could be corrupted after merging a chart containing filtered series. That is a series which is included in the chart, but not displayed.
+
+* LibreOffice Document : fix the error message when merging a chart: "ObjectReplacements/Object 1" is not found in the Central Directory.
+
+== Enhancements ==
+
+* Regarding to Ms Office documents (DOCX, XLSX, PPTX), changed data on a series are now stored as unlinked.
+  And the original internal data sheet which comes from the template is no longer deleted.
+  When a series is merged, then its data becomes unliked, and other series stay linked the original data sheet.
+  Thus, the chart is robust and you can always read the original data sheet.
 
 = Release 1.9.11 =
 
