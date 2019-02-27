@@ -3,8 +3,8 @@
  *
  * TinyButStrong - Template Engine for Pro and Beginners
  *
- * @version 3.10.1 for PHP 5
- * @date    2015-12-03
+ * @version 3.11.0 for PHP 5 and 7
+ * @date    2019-02-10
  * @link    http://www.tinybutstrong.com Web site
  * @author  http://www.tinybutstrong.com/onlyyou.html
  * @license http://opensource.org/licenses/LGPL-3.0 LGPL-3.0
@@ -246,14 +246,15 @@ public function DataOpen(&$Query,$QryPrms=false) {
 						$Empty = true;
 					}
 				} elseif (is_object($Var)) {
-					$ArgLst = $this->TBS->f_Misc_CheckArgLst($x);
-					if (method_exists($Var,$x)) {
-						$f = array(&$Var,$x); unset($Var);
-						$Var = call_user_func_array($f,$ArgLst);
-					} elseif (property_exists(get_class($Var),$x)) {
-						if (isset($Var->$x)) $Var = &$Var->$x;
-					} elseif (isset($Var->$x)) {
-						$Var = $Var->$x; // useful for overloaded property
+					$form = $this->TBS->f_Misc_ParseFctForm($x);
+					$n = $form['name'];
+					if ( method_exists($Var, $n) || ($form['as_fct'] && method_exists($Var,'__call')) ) {
+						$f = array(&$Var,$n); unset($Var);
+						$Var = call_user_func_array($f,$form['args']);
+					} elseif (property_exists(get_class($Var),$n)) {
+						if (isset($Var->$n)) $Var = &$Var->$n;
+					} elseif (isset($Var->$n)) {
+						$Var = $Var->$n; // useful for overloaded property
 					} else {
 						$Empty = true;
 					}
@@ -588,7 +589,7 @@ public $Assigned = array();
 public $ExtendedMethods = array();
 public $ErrCount = 0;
 // Undocumented (can change at any version)
-public $Version = '3.10.1';
+public $Version = '3.11.0';
 public $Charset = '';
 public $TurboBlock = true;
 public $VarPrefix = '';
@@ -647,10 +648,11 @@ function __construct($Options=null,$VarPrefix='',$FctPrefix='') {
 	if (is_array($Options)) $this->SetOption($Options);
 
 	// Links to global variables (cannot be converted to static yet because of compatibility)
-	global $_TBS_FormatLst, $_TBS_UserFctLst, $_TBS_BlockAlias, $_TBS_AutoInstallPlugIns, $_TBS_ParallelLst;
+	global $_TBS_FormatLst, $_TBS_UserFctLst, $_TBS_BlockAlias, $_TBS_PrmCombo, $_TBS_AutoInstallPlugIns, $_TBS_ParallelLst;
 	if (!isset($_TBS_FormatLst))   $_TBS_FormatLst  = array();
 	if (!isset($_TBS_UserFctLst))  $_TBS_UserFctLst = array();
 	if (!isset($_TBS_BlockAlias))  $_TBS_BlockAlias = array();
+	if (!isset($_TBS_PrmCombo))    $_TBS_PrmCombo = array();
 	if (!isset($_TBS_ParallelLst)) $_TBS_ParallelLst = array();
 	$this->_UserFctLst = &$_TBS_UserFctLst;
 
@@ -701,17 +703,18 @@ function SetOption($o, $v=false, $d=false) {
 		$this->_ChrVal = $this->_ChrOpen.'val'.$this->_ChrClose;
 		$this->_ChrProtect = '&#'.ord($this->_ChrOpen[0]).';'.substr($this->_ChrOpen,1);
 	}
-	if (array_key_exists('tpl_frms',$o)) self::f_Misc_UpdateArray($GLOBALS['_TBS_FormatLst'], 'frm', $o['tpl_frms'], $d);
-	if (array_key_exists('block_alias',$o)) self::f_Misc_UpdateArray($GLOBALS['_TBS_BlockAlias'], false, $o['block_alias'], $d);
+	if (array_key_exists('tpl_frms',$o))      self::f_Misc_UpdateArray($GLOBALS['_TBS_FormatLst'], 'frm', $o['tpl_frms'], $d);
+	if (array_key_exists('block_alias',$o))   self::f_Misc_UpdateArray($GLOBALS['_TBS_BlockAlias'], false, $o['block_alias'], $d);
+	if (array_key_exists('prm_combo',$o))     self::f_Misc_UpdateArray($GLOBALS['_TBS_PrmCombo'], 'prm', $o['prm_combo'], $d);
 	if (array_key_exists('parallel_conf',$o)) self::f_Misc_UpdateArray($GLOBALS['_TBS_ParallelLst'], false, $o['parallel_conf'], $d);
-	if (array_key_exists('include_path',$o)) self::f_Misc_UpdateArray($this->IncludePath, true, $o['include_path'], $d);
+	if (array_key_exists('include_path',$o))  self::f_Misc_UpdateArray($this->IncludePath, true, $o['include_path'], $d);
 	if (isset($o['render'])) $this->Render = $o['render'];
 	if (isset($o['methods_allowed'])) $this->MethodsAllowed = $o['methods_allowed'];
 }
 
 function GetOption($o) {
 	if ($o==='all') {
-		$x = explode(',', 'var_prefix,fct_prefix,noerr,auto_merge,onload,onshow,att_delim,protect,turbo_block,charset,chr_open,chr_close,tpl_frms,block_alias,parallel_conf,include_path,render');
+		$x = explode(',', 'var_prefix,fct_prefix,noerr,auto_merge,onload,onshow,att_delim,protect,turbo_block,charset,chr_open,chr_close,tpl_frms,block_alias,parallel_conf,include_path,render,prm_combo');
 		$r = array();
 		foreach ($x as $o) $r[$o] = $this->GetOption($o);
 		return $r;
@@ -739,6 +742,7 @@ function GetOption($o) {
 	if ($o==='methods_allowed') return $this->MethodsAllowed;
 	if ($o==='parallel_conf') return $GLOBALS['_TBS_ParallelLst'];
 	if ($o==='block_alias') return $GLOBALS['_TBS_BlockAlias'];
+	if ($o==='prm_combo') return $GLOBALS['_TBS_PrmCombo'];
 	return $this->meth_Misc_Alert('with GetOption() method','option \''.$o.'\' is not supported.');;
 }
 
@@ -826,6 +830,49 @@ public function GetBlockSource($BlockName,$AsArray=false,$DefTags=true,$ReplaceW
 	return $RetVal;
 }
 
+/**
+ * Get the value of a XML-HTML attribute targeted thanks to a TBS fields having parameter att.
+ * @param  string  $Name       Name of the TBS fields. It must have parameter att.
+ * @param  boolean $delete     (optional, true by default) Use true to delete the TBS field.
+ * @return string|true|null|false  The value of the attribute,
+ *                                 true if the attribute is found without value,
+ *                                 null if the TBS field, the target element is not found,
+ *                                 or false for other error.
+ */
+public function GetAttValue($Name, $delete = true) {
+	$Pos = 0;
+	$val = null;
+	while ($Loc = $this->meth_Locator_FindTbs($this->Source,$Name,$Pos,'.')) {
+		if (isset($Loc->PrmLst['att'])) {
+			if ($this->f_Xml_AttFind($this->Source,$Loc,false,$this->AttDelim)) {
+				$val = false;
+				if ($Loc->AttBeg !== false) {
+					if ($Loc->AttValBeg !== false) {
+						$val = substr($this->Source, $Loc->AttValBeg, $Loc->AttEnd - $Loc->AttValBeg + 1);
+						$val = substr($val, 1, -1);
+					} else {
+						$val = true;
+					}
+				} else {
+					// not found
+				}
+			} else {
+				// att not found
+			}
+		} else {
+			// no att parameter
+		}
+
+		if ($delete) {
+			$this->Source = substr_replace($this->Source, '', $Loc->PosBeg, $Loc->PosEnd - $Loc->PosBeg + 1); 
+			$Pos = $Loc->PosBeg;
+		} else {
+			$Pos = $Loc->PosEnd;
+		}
+	}
+	return $val;
+}
+
 public function MergeBlock($BlockLst,$SrcId='assigned',$Query='',$QryPrms=false) {
 
 	if ($SrcId==='assigned') {
@@ -906,6 +953,52 @@ public function MergeField($NameLst,$Value='assigned',$IsUserFct=false,$DefaultP
 			}
 		}
 	}
+}
+
+/**
+ * Replace a set of simple TBS fields (that is fields without any parameters) with more complexe TBS fields.
+ * @param array  $fields     An associative array of items to replace.
+ *                           Keys are the name of the simple field to replace.
+ *                           Values are the parameters of the field as an array or as a string.
+ *                           Parameter 'name' will be used as the new name of the field, by default it is the same name as the simple field.
+ * @param string $blockName (optional) The name of the block for prefixing fields.
+ */
+public function ReplaceFields($fields, $blockName = false) {
+	
+	$prefix = ($blockName) ? $blockName . '.' : '';
+	
+	// calling the replace using array is faster than a loop
+	$what = array();
+	$with = array();
+	foreach ($fields as $name => $prms) {
+		$what[] = $this->_ChrOpen . $name . $this->_ChrClose; 
+		if (is_array($prms)) {
+			// field replace
+			$lst = '';
+			foreach ($prms as $p => $v) {
+				if ($p === 'name') {
+					$name = $v;
+				} else {
+					if ($v === true) {
+						$lst .= ';' . $p;
+					} elseif (is_array($v)) {
+						foreach($v as $x) {
+							$lst .= ';' . $p . '=' . $x;
+						} 
+					} else {
+						$lst .= ';' . $p . '=' . $v;
+					}
+				}
+			}
+			$with[] = $this->_ChrOpen . $prefix . $name . $lst . $this->_ChrClose; 
+		} else {
+			// simple string replace
+			$with[] = $prms; 
+		}
+	}
+	
+	$this->Source = str_replace($what, $with, $this->Source);
+	
 }
 
 public function Show($Render=false) {
@@ -1027,6 +1120,8 @@ function meth_Locator_FindTbs(&$Txt,$Name,$Pos,$ChrSub) {
 				if ($PosEnd===false) {
 					$this->meth_Misc_Alert('','can\'t found the end of the tag \''.substr($Txt,$Pos,$PosX-$Pos+10).'...\'.');
 					$Pos++;
+				} else {
+					self::meth_Misc_ApplyPrmCombo($Loc->PrmLst, $Loc);
 				}
 			}
 
@@ -1210,20 +1305,21 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 					unset($Value); $Value = ''; break;
 				}
 			} elseif (is_object($Value)) {
-				$ArgLst = $this->f_Misc_CheckArgLst($x);
-				if (method_exists($Value,$x)) {
+				$form = $this->f_Misc_ParseFctForm($x);
+				$n = $form['name'];
+				if ( method_exists($Value,$n) || ($form['as_fct'] && method_exists($Value,'__call')) ) {
 					if ($this->MethodsAllowed || !in_array(strtok($Loc->FullName,'.'),array('onload','onshow','var')) ) {
-						$x = call_user_func_array(array(&$Value,$x),$ArgLst);
+						$x = call_user_func_array(array(&$Value,$n),$form['args']);
 					} else {
-						if (!isset($Loc->PrmLst['noerr'])) $this->meth_Misc_Alert($Loc,'\''.$x.'\' is a method and the current TBS settings do not allow to call methods on automatic fields.',true);
+						if (!isset($Loc->PrmLst['noerr'])) $this->meth_Misc_Alert($Loc,'\''.$n.'\' is a method and the current TBS settings do not allow to call methods on automatic fields.',true);
 						$x = '';	
 					}
-				} elseif (property_exists($Value,$x)) {
-					$x = &$Value->$x;
-				} elseif (isset($Value->$x)) {
-					$x = $Value->$x; // useful for overloaded property
+				} elseif (property_exists($Value,$n)) {
+					$x = &$Value->$n;
+				} elseif (isset($Value->$n)) {
+					$x = $Value->$n; // useful for overloaded property
 				} else {
-					if (!isset($Loc->PrmLst['noerr'])) $this->meth_Misc_Alert($Loc,'item '.$x.'\' is neither a method nor a property in the class \''.get_class($Value).'\'.',true);
+					if (!isset($Loc->PrmLst['noerr'])) $this->meth_Misc_Alert($Loc,'item '.$n.'\' is neither a method nor a property in the class \''.get_class($Value).'\'. Overloaded properties must also be available for the __isset() magic method.',true);
 					unset($Value); $Value = ''; break;
 				}
 				$Value = &$x; unset($x); $x = '';
@@ -1235,7 +1331,7 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 	}
 
 	$CurrVal = $Value; // Unlink
-
+	
 	if (isset($Loc->PrmLst['onformat'])) {
 		if ($Loc->FirstMerge) {
 			$Loc->OnFrmInfo = $Loc->PrmLst['onformat'];
@@ -3057,7 +3153,7 @@ function meth_Misc_Assign($Name,&$ArgLst,$CallingMeth) {
 		if (in_array(strtolower($meth),array('mergeblock','mergefield'))) {
 			call_user_func_array(array(&$this,$meth), $ArgLst);
 		} else {
-			return $this->meth_Misc_Alert('The assigned field \''.$Name.'\'. cannot be merged because its type \''.$a[0].'\' is not supported.');
+			return $this->meth_Misc_Alert('', 'The assigned field \''.$Name.'\'. cannot be merged because its type \''.$a[0].'\' is not supported.');
 		}
 	}
 	if (!isset($a['merged'])) $a['merged'] = 0;
@@ -3123,19 +3219,24 @@ function meth_Misc_UserFctCheck(&$FctInfo,$FctCat,&$FctObj,&$ErrMsg,$FctCheck=fa
 		for ($i=0;$i<=$iMax;$i++) {
 			$x = &$Lst[$i];
 			if (is_object($ObjRef)) {
-				$ArgLst = $this->f_Misc_CheckArgLst($x);
-				if (method_exists($ObjRef,$x)) {
-					if ($i<$iMax) {
-						$f = array(&$ObjRef,$x); unset($ObjRef);
-						$ObjRef = call_user_func_array($f,$ArgLst);
+				$form = $this->f_Misc_ParseFctForm($x);
+				$n = $form['name'];
+				if ($i === $iMax0) {
+					// last item is supposed to be a function's name, without parenthesis
+					if ( method_exists($ObjRef,$n)  || (method_exists($ObjRef, '__call'))) {
+						// Ok, continue. If $form['as_fct'] is true, then it will produce an error when try to call function $x
+					} else {
+						$ErrMsg = 'Expression \''.$FctStr.'\' is invalid because \''.$n.'\' is not a method in the class \''.get_class($ObjRef).'\'.';
+						return false;
 					}
-				} elseif ($i===$iMax0) {
-					$ErrMsg = 'Expression \''.$FctStr.'\' is invalid because \''.$x.'\' is not a method in the class \''.get_class($ObjRef).'\'.';
-					return false;
-				} elseif (isset($ObjRef->$x)) {
-					$ObjRef = &$ObjRef->$x;
+				} elseif ( method_exists($ObjRef,$n) || ($form['as_fct'] && method_exists($ObjRef, 'x__call')) ) {
+					$f = array(&$ObjRef,$n);
+					unset($ObjRef);
+					$ObjRef = call_user_func_array($f,$form['args']);
+				} elseif (isset($ObjRef->$n)) {
+					$ObjRef = &$ObjRef->$n;
 				} else {
-					$ErrMsg = 'Expression \''.$FctStr.'\' is invalid because sub-item \''.$x.'\' is neither a method nor a property in the class \''.get_class($ObjRef).'\'.';
+					$ErrMsg = 'Expression \''.$FctStr.'\' is invalid because sub-item \''.$n.'\' is neither a method nor a property in the class \''.get_class($ObjRef).'\'.';
 					return false;
 				}
 			} elseif (($i<$iMax0) && is_array($ObjRef)) {
@@ -3486,8 +3587,62 @@ function meth_Misc_Format(&$Value,&$PrmLst) {
 
 }
 
-// Simply update an array
-static function f_Misc_UpdateArray(&$array, $numerical, $v, $d) {
+/**
+ * Apply combo parameters.
+ * @param array        $PrmLst The existing list of combo
+ * @param object|false $Loc    The current locator, of false if called from an combo definition
+ */
+static function meth_Misc_ApplyPrmCombo(&$PrmLst, $Loc) {
+	
+	if (isset($PrmLst['combo'])) {
+		
+		$name_lst = explode(',', $PrmLst['combo']);
+		$DefLst = &$GLOBALS['_TBS_PrmCombo'];
+		
+		foreach ($name_lst as $name) {
+			if (isset($DefLst[$name])) {
+				$ap = $DefLst[$name];
+				if (isset($PrmLst['ope']) && isset($ap['ope'])) {
+					$PrmLst['ope'] .= ',' . $ap['ope']; // ope will be processed fifo
+					unset($ap['ope']);
+				}
+				if ($Loc !== false) {
+					if ( isset($ap['if']) && is_array($ap['if']) ) {
+						foreach($ap['if'] as $v) {
+							self::f_Loc_PrmIfThen($Loc, true, $v, false);
+						}
+						unset($ap['if']);
+					}
+					if ( isset($ap['then']) && is_array($ap['then'])) {
+						foreach($ap['then'] as $v) {
+							self::f_Loc_PrmIfThen($Loc, false, $v, false);
+						}
+						unset($ap['then']);
+					}
+				}
+				$PrmLst = array_merge($ap, $PrmLst);
+			} else {
+				$this->meth_Misc_Alert("with parameter 'combo'", "Combo '". $a. "' is not yet set.");
+			}
+		}
+		
+		$PrmLst['_combo'] = $PrmLst['combo']; // for debug
+		unset($PrmLst['combo']); // for security
+		
+	}
+}
+
+/**
+ * Simply update an array with another array.
+ * It works for both indexed or associativ arrays.
+ * NULL value will be deleted from the target array. 
+ * 
+ * @param array $array     The target array to be updated.
+ * @param mixed $numerical True if the keys ar numerical. Use special keyword 'frm' for TBS formats, and 'prm' for a set of parameters.
+ * @param mixed $v         An associative array of items to modify. Use value NULL for reset $array to an empty array. Other single value will be used with $d.
+ * @param mixed $d         To be used when $v is a single not null value. Will apply the key $v with value $d.
+ */
+ static function f_Misc_UpdateArray(&$array, $numerical, $v, $d) {
 	if (!is_array($v)) {
 		if (is_null($v)) {
 			$array = array();
@@ -3517,6 +3672,16 @@ static function f_Misc_UpdateArray(&$array, $numerical, $v, $d) {
 			} elseif ($numerical==='frm') {
 				self::f_Misc_FormatSave($a, $p);
 			} else {
+				if ($numerical==='prm') {
+					// apply existing combo on the new combo, so that all combo are translated into basic parameters
+					if ( isset($a['if']) && (!is_array($a['if'])) ) {
+						$a['if'] = array($a['if']);
+					}
+					if ( isset($a['then']) && (!is_array($a['then'])) ) {
+						$a['then'] = array($a['then']);
+					}
+					self::meth_Misc_ApplyPrmCombo($a, false);
+				}
 				$array[$p] = $a;
 			}
 		}
@@ -3695,16 +3860,25 @@ static function f_Misc_ConvSpe(&$Loc) {
 	}
 }
 
-static function f_Misc_CheckArgLst(&$Str) {
-	$ArgLst = array();
+/**
+ * Return the information if parsing a form which can be either a property of a function.
+ * @param  string $Str The form.
+ * @return array  Information about the form.
+ *                name:   the name of the function of the property
+ *                as_fct: true if the form is as a function
+ *                args:   arguments of the function, or empty array if it's a property
+ */
+static function f_Misc_ParseFctForm($Str) {
+	$info = array('name' => $Str, 'as_fct' => false, 'args' => array());
 	if (substr($Str,-1,1)===')') {
 		$pos = strpos($Str,'(');
 		if ($pos!==false) {
-			$ArgLst = explode(',',substr($Str,$pos+1,strlen($Str)-$pos-2));
-			$Str = substr($Str,0,$pos);
+			$info['args'] = explode(',',substr($Str,$pos+1,strlen($Str)-$pos-2));
+			$info['name'] = substr($Str,0,$pos);
+			$info['as_fct'] = true;
 		}
 	}
-	return $ArgLst;
+	return $info;
 }
 
 static function f_Misc_CheckCondition($Str) {
@@ -3840,6 +4014,12 @@ static function f_Misc_GetFile(&$Res, &$File, $LastFile='', $IncludePath=false, 
 
 }
 
+/**
+ * Try to open the file for reading.
+ * @param string        $File The file name.
+ * @param string|bolean $Dir  A The directory where to search, of false to omit directory.
+ * @return ressource Return the file pointer, of false on error. Note that urgument $File will be updated to the file with directory.
+ */
 static function f_Misc_TryFile(&$File, $Dir) {
 	if ($Dir==='') return false;
 	$FileSearch = ($Dir===false) ? $File : $Dir.'/'.$File;
@@ -3849,6 +4029,9 @@ static function f_Misc_TryFile(&$File, $Dir) {
 	return $f;
 }
 
+/**
+ * Read TBS or XML tags, starting to the begining of the tag.
+ */
 static function f_Loc_PrmRead(&$Txt,$Pos,$XmlTag,$DelimChrs,$BegStr,$EndStr,&$Loc,&$PosEnd,$WithPos=false) {
 
 	$BegLen = strlen($BegStr);
@@ -4028,9 +4211,9 @@ static function f_Loc_PrmCompute(&$Txt,&$Loc,&$SubName,$Status,$XmlTag,$DelimChr
 				$v = true;
 			}
 			if ($x==='if') {
-				self::f_Loc_PrmIfThen($Loc,true,$v);
+				self::f_Loc_PrmIfThen($Loc, true, $v, true);
 			} elseif ($x==='then') {
-				self::f_Loc_PrmIfThen($Loc,false,$v);
+				self::f_Loc_PrmIfThen($Loc, false, $v, true);
 			} else {
 				$Loc->PrmLst[$x] = $v;
 				if ($WithPos) $Loc->PrmPos[$x] = array($PosName,$PosNend,$PosVal,$Pos,$DelimChr,$DelimCnt);
@@ -4040,10 +4223,19 @@ static function f_Loc_PrmCompute(&$Txt,&$Loc,&$SubName,$Status,$XmlTag,$DelimChr
 
 }
 
-static function f_Loc_PrmIfThen(&$Loc,$IsIf,$Val) {
-	$nbr = &$Loc->PrmIfNbr;
-	if ($nbr===false) {
-		$nbr = 0;
+/**
+ * Add a new parameter 'if or 'then' to the locator.
+ * 
+ * @param object  $Loc     The locator.
+ * @param boolean $IsIf    Concerned parameter. True means 'if', false means 'then'.
+ * @param string  $Val     The value of the parameter.
+ * @param boolean $Ordered True means the parameter comes from the template and order must be checked. False means it comes from PHP and order is free.
+ *
+ */
+static function f_Loc_PrmIfThen(&$Loc, $IsIf, $Val, $Ordered) {
+	$nb_if = &$Loc->PrmIfNbr;
+	if ($nb_if===false) {
+		$nb_if = 0;
 		$Loc->PrmIf = array();
 		$Loc->PrmIfVar = array();
 		$Loc->PrmThen = array();
@@ -4051,23 +4243,27 @@ static function f_Loc_PrmIfThen(&$Loc,$IsIf,$Val) {
 		$Loc->PrmElseVar = true;
 	}
 	if ($IsIf) {
-		$nbr++;
-		$Loc->PrmIf[$nbr] = $Val;
-		$Loc->PrmIfVar[$nbr] = true;
+		$nb_if++;
+		$Loc->PrmIf[$nb_if] = $Val;
+		$Loc->PrmIfVar[$nb_if] = true;
 	} else {
-		$nbr2 = $nbr;
-		if ($nbr2===false) $nbr2 = 1; // Only the first 'then' can be placed before its 'if'. This is for compatibility.
-		$Loc->PrmThen[$nbr2] = $Val;
-		$Loc->PrmThenVar[$nbr2] = true;
+		if ($Ordered) {
+			$nb_then = $nb_if;
+			if ($nb_then===false) $nb_then = 1; // Only the first 'then' can be placed before its 'if'. This is for compatibility.
+		} else {
+			$nb_then = count($Loc->PrmThen) + 1;
+		}
+		$Loc->PrmThen[$nb_then] = $Val;
+		$Loc->PrmThenVar[$nb_then] = true;
 	}
 }
 
-static function f_Loc_EnlargeToStr(&$Txt,&$Loc,$StrBeg,$StrEnd) {
 /*
 This function enables to enlarge the pos limits of the Locator.
 If the search result is not correct, $PosBeg must not change its value, and $PosEnd must be False.
 This is because of the calling function.
 */
+static function f_Loc_EnlargeToStr(&$Txt,&$Loc,$StrBeg,$StrEnd) {
 
 	// Search for the begining string
 	$Pos = $Loc->PosBeg;
@@ -4144,7 +4340,7 @@ static function f_Loc_EnlargeToTag(&$Txt,&$Loc,$TagStr,$RetInnerSrc) {
 			$t = substr($t, 1);
 			$b = '!';
 		}
-		// Alias
+		// Block alias
 		$a = false;
 		if (isset($AliasLst[$t])) {
 			$a = $AliasLst[$t]; // a string or a function
@@ -4246,9 +4442,11 @@ static function f_Loc_Enlarge_Find($Txt, $Tag, $Fct, $Pos, $Forward, $LevelStop)
 	}
 }
 
+/**
+ * Return the expected value for a boolean attribute
+ */
 static function f_Loc_AttBoolean($CurrVal, $AttTrue, $AttName) {
-
-// Return the good value for a boolean attribute
+	
 	if ($AttTrue===true) {
 		if (self::meth_Misc_ToStr($CurrVal)==='') {
 			return '';
@@ -4260,6 +4458,7 @@ static function f_Loc_AttBoolean($CurrVal, $AttTrue, $AttName) {
 	} else {
 		return '';
 	}
+	
 }
 
 /**
@@ -4605,10 +4804,10 @@ static function f_Xml_GetPart(&$Txt, $TagLst, $AllIfNothing=false) {
 }
 
 /**
- * Find the start of an XML tag. Used by OpenTBS.
+ * Find the start position of an XML tag. Used by OpenTBS.
  * $Case=false can be useful for HTML.
- * $Tag='' should work and found the start of the first tag.
- * $Tag='/' should work and found the start of the first closing tag.
+ * $Tag=''  should work and found the start of the first opening tag of any name.
+ * $Tag='/' should work and found the start of the first closing tag of any name.
  * Encapsulation levels are not featured yet.
  */
 static function f_Xml_FindTagStart(&$Txt,$Tag,$Opening,$PosBeg,$Forward,$Case=true) {
