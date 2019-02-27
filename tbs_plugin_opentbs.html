@@ -95,8 +95,8 @@ body, td, th {
 <!-- div main-body is used for insertion in the TBS menu -->
 <div id="main-body">
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.9.11, 2017-10-03 by Skrol29</div>
-<div>help file modified on 2017-10-03</div>
+<div>version 1.9.12, 2019-02-26 by Skrol29</div>
+<div>help file modified on 2019-02-26</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -444,16 +444,18 @@ $TBS-&gt;LoadTemplate($handle);</pre>
   <ul>
     <li>The type of the chart cannot be changed.</li>
     <li>Some charts may not be recognized by this feature when the Word document is created with Word &lt;= 2007 or is saved with a Compatibility Mode. You have to convert charts to have it work (right on the chart and choose &quot;Convert&quot;). You can use the command <a href="#debugmode">OPENTBS_DEBUG_INFO</a> in order to view all unsupported   charts in the document.</li>
-    <li>Charts in worksheets (Ms Office and LibreOffice) are not supported. This is because such charts are linked to cells.</li>
-    <li>With Ms Office, the chart must not be linked to external data (such as an Excel worksheet). Otherwise the chart will be automatically actualized back the previous values when it will be opened.</li>
-    <li>With Ms Office, the visual Data Editor becomes unavailable on a merged chart. If you set property <span class="smallcode">$TBS-&gt;OtbsDeleteObsoleteChartData = false</span> then the Data Editor of Ms Office can be opened but it displays only  previous values, which may be quite confusing.  <span class="versioning">This property is supported since OpenTBS version 1.9.5, before that the visual Data Editor could be opened but displayed only previous data.</span></li>
+    <li>With Ms Office, the chart must not be linked to external data (such as an Excel worksheet). Otherwise the chart will be automatically actualized back the previous values when it will be opened.  </li>
   </ul>
+  <p class="versioning">Charts in worksheets (DOCX and ODS files) are supported since OpenTBS version 1.9.12.</p>
+<p class="versioning">Before version OpenTBS 1.9.12, the visual Data Editor in Ms Office softwares (Excel, Word, Powerpoint) becomes unavailable on a merged chart.</p>
 </div>
 <h4> <a id="opentbs_chart_info2"></a>Delete a category in a chart:</h4>
 <div class="shift"> <span class="versioning">(supported since OpenTBS version 1.9.11)</span>
-  <div class="code">Example: $ok = $TBS-&gt;PlugIn(OPENTBS_CHART_DELETE_CATEGORY, $ChartRef, $Category, $NoErr = false)</div>
-  <p>This command delete the given category in the chart. It returns <span class="smallcode">true</span> if succeed.</p>
-  <p>By default an error occurs if  the category is not found in the chart. But if your set argument <span class="smallcode">$NoErr</span> to <span class="smallcode">true</span> then the function returns <span class="smallcode">false</span> and no error occurs.</p>
+  <div class="code">Example: $ok = $TBS-&gt;PlugIn(OPENTBS_CHART_DELETE_CATEGORY, $ChartRef, $Categories, $NoErr = false)</div>
+  <p>This command delete one or several categories in the chart. It returns <span class="smallcode">true</span> if succeed.</p>
+  <p>Argument <span class="smallcode">$Categories</span> can be either the name of a single category, an array of names, or the keyword <span class="smallcode">'*'</span> wich mean all categories.</p>
+  <p>By default an error occurs if  one of the searched categories is not found in the chart. But if your set argument <span class="smallcode">$NoErr</span> to <span class="smallcode">true</span> then the function returns <span class="smallcode">false</span> and no error occurs.</p>
+  <p><span class="versioning">Array of names and the keyword '*' are supported since OpenTBS version 1.9.12.</span></p>
 </div>
 <h4>&bull; <a id="opentbs_chart_info"></a>Read series in a chart:</h4>
 <div class="shift"> <span class="versioning">(supported since OpenTBS version 1.9.5)</span>
@@ -832,7 +834,7 @@ array (
   </tr>
   <tr>
     <td valign="top" nowrap="nowrap" class="smallcode"><a id="opentbs_merge_special_items"></a>$TBS-&gt;PlugIn(OPENTBS_MERGE_SPECIAL_ITEMS)</td>
-    <td valign="top"><p>Merge special items relatively   to the current sub-file. For now, it only works with Ms Excel workbooks. This command makes automatic fields ([onload] and [onshow]) merged in pictures embedded   in the current selected sheet. This can be useful for changing pictures in Ms Excel.</p>
+    <td valign="top"><p>Merge special items relatively   to the current sub-file. For now, it has effect only with Ms Excel workbooks. This command makes automatic fields ([onload] and [onshow]) merged in pictures embedded   in the current selected sheet. This can be useful for changing pictures in Ms Excel.</p>
       <p> <span class="versioning">Command OPENTBS_MERGE_SPECIAL_ITEMS is supported since OpenTBS version 1.8.0.</span></p></td>
   </tr>
   <tr>
@@ -1082,6 +1084,21 @@ $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a id="changelog"></a>8. Changelog</h2>
+<h3>version 1.9.12, on 2019-02-27</h3>
+<p>New features</p>
+<ul>
+  <li> Can merge charts in XLSX and ODS.</li>
+  <li> Command OPENTBS_CHART_DELETE_CATEGORY can now delete several categories or all categories.</li>
+</ul>
+<p>Bug fixes</p>
+<ul>
+  <li> Ms Office documents (DOCX, XLSX, PPTX) could be corrupted after merging a chart containing filtered series. That is a series which is included in the chart, but not displayed.</li>
+  <li> LibreOffice Document : fix the error message when merging a chart: &quot;ObjectReplacements/Object 1&quot; is not found in the Central Directory.</li>
+</ul>
+<p>Enhancements</p>
+<ul>
+  <li>More robust technical when merging chart data is Ms Office documents (DOCX, XLSX, PPTX).</li>
+</ul>
 <h3>version 1.9.11, on 2017-10-03</h3>
 <h4>New features</h4>
 <ul>

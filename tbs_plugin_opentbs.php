@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.12-beta5
- * @date 2019-02-26
+ * @version 1.9.12-beta6
+ * @date 2019-02-27
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -95,7 +95,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.9.12-beta5';
+		$this->Version = '1.9.12-beta6';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -742,9 +742,9 @@ class clsOpenTBS extends clsTbsZip {
 			}
 			
 			if ($this->ExtType=='odf') {
-				return $this->OpenDoc_ChartDelCategory($x1, $x2, $x3);
+				return $this->OpenDoc_ChartDelCategories($x1, $x2, $x3);
 			} elseif ($this->ExtType=='openxml') {
-				return $this->OpenXML_ChartDelCategory($x1, $x2, $x3);
+				return $this->OpenXML_ChartDelCategories($x1, $x2, $x3);
 			} else {
 				return false;
 			}
@@ -3385,10 +3385,13 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-	 * Delete a category in the chart.
-	 * @return {integer} The number of updated series in the chart.
+	 * Delete one, sveral or all categories in the chart.
+	 * @param string       $ChartRef       The chart reference.
+	 * @param string|array $del_categories An array of categories to delete, on the name of a category, all the keywork '*' that means all categories.
+	 * @param boolean      $no_err         Indicate if an error is return when a searched category is not found.
+	 * @return boolean Return true if all the searched categories are deleted.
 	 */
-	function OpenXML_ChartDelCategory($ChartRef, $del_category, $no_err) {
+	function OpenXML_ChartDelCategories($ChartRef, $del_categories, $no_err) {
 
 		$nb_series = 0;
 	
@@ -3401,6 +3404,22 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$Txt = $this->TbsStoreGet($chart['idx'], 'ChartChangeSeries');
 		if ($Txt===false) return false;
 
+		// Prepare info for the search
+		$del_all = false;
+		if (is_string($del_categories)) {
+			if ($del_categories == '*') {
+				$del_all = true;
+				$del_categories = array();
+			} else {
+				$del_categories = array($del_categories);
+			}
+		}
+		$del_categories = array_flip($del_categories);
+		
+		// global info
+		$glob_remain_cat = $del_categories;
+		$glob_nb_del = 0;
+		
 		$ps = 0;
 		while ($ser = clsTbsXmlLoc::FindElement($Txt, 'c:ser', $ps, true)) {
 			
@@ -3408,66 +3427,73 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			
 			// Scan all categories
 			$pc = 0;
-			$del_idx = false;
+			$new_idx = array(); // associative list of array(old_idx => new_idx)
+			$del_nb = 0;
 			while ($cpt = clsTbsXmlLoc::FindElement($cat, 'c:pt', $pc, true)) {
 				// Note: a <c:pt> element can be missing if the is no data. So the true position is given by attribute idx.
-				if ($del_idx === false) {
-					// The category to delete is not found yet
-					$cv = clsTbsXmlLoc::FindElement($cpt, 'c:v', 0, true);
-					$category = $cv->GetInnerSrc();
-					if ($category == $del_category) {
-						$del_idx = $cpt->GetAttLazy('idx');
-						$nb_series++;
-						$cpt->Delete();
-						$cpt->UpdateParent(true);
-						// do not change $pc
-					} else {
-						$pc = $cpt->PosEnd;
-					}
-				} else {
-					// The category to delete is found. Next categories must have they idx updated.
-					$idx = intval($cpt->GetAttLazy('idx'));
-					$cpt->ReplaceAtt('idx', $idx - 1);
+				$idx = intval($cpt->GetAttLazy('idx'));
+				$del = false;
+				$cv = clsTbsXmlLoc::FindElement($cpt, 'c:v', 0, true);
+				$category = $cv->GetInnerSrc();
+				if ( $del_all || isset($del_categories[$category]) ) {
+					$cpt->Delete();
 					$cpt->UpdateParent(true);
+					$del = true;
+					unset($glob_remain_cat[$category]);
+				}
+				if ($del) {
+					$del_nb++;
+					$glob_nb_del++;
+					$new_idx[$idx] = false;
+					// do not change $pc
+				} else {
+					$new_idx[$idx] = $idx - $del_nb;
+					if ($del_nb > 0) {
+						// The category to delete is found. Next categories must have they idx updated.
+						$idx = intval($cpt->GetAttLazy('idx'));
+						$cpt->ReplaceAtt('idx', $new_idx[$idx]);
+						$cpt->UpdateParent(true);
+					}
 					$pc = $cpt->PosEnd;
 				}
 			}
 
-			if ($del_idx !== false) {
+			if ($del_nb > 0) {
 				
 				// Update the count of categories. If not done then the chart displays an extra blank category.
 				if ($cnt = clsTbsXmlLoc::FindStartTag($cat, 'c:ptCount', 0, true)) {
 					$nb = intval($cnt->GetAttLazy('val'));
-					$cnt->ReplaceAtt('val', $nb - 1);
+					$cnt->ReplaceAtt('val', $nb - $del_nb);
 					$cnt->UpdateParent(true);
 				}
 				
-				// Scan for al values of the series
-				$del_ok = false;
+				// Delete the points that corresponf with the deleted categories
+				$del_val_nb = false;
 				$val = clsTbsXmlLoc::FindElement($ser, 'c:val', 0, true); // usually after <c:cat>
 				$pc = 0;
 				while ($cpt = clsTbsXmlLoc::FindElement($val, 'c:pt', $pc, true)) {
 					$idx = intval($cpt->GetAttLazy('idx'));
-					if ($idx < $del_idx) {
-						$pc = $cpt->PosEnd;
-					} elseif ($idx == $del_idx) {
-						$del_ok = true;
+					if ($new_idx[$idx] === false) {
+						$del_val_nb = true;
 						$cpt->Delete();
 						$cpt->UpdateParent(true);
 						// do not change $pc
+					} elseif ($new_idx[$idx] === $idx) {
+						// no change
+						$pc = $cpt->PosEnd;
 					} else {
-						$idx = intval($cpt->GetAttLazy('idx'));
-						$cpt->ReplaceAtt('idx', $idx - 1);
+						// change the index
+						$cpt->ReplaceAtt('idx',$new_idx[$idx]);
 						$cpt->UpdateParent(true);
 						$pc = $cpt->PosEnd;
 					}
 				}
 				
-				if ($del_ok) {
+				if ($del_val_nb > 0) {
 					// Update the count of values. If not done then the chart displays an extra blank category.
 					if ($cnt = clsTbsXmlLoc::FindStartTag($val, 'c:ptCount', 0, true)) {
 						$nb = intval($cnt->GetAttLazy('val'));
-						$cnt->ReplaceAtt('val', $nb - 1);
+						$cnt->ReplaceAtt('val', $nb - $del_val_nb);
 						$cnt->UpdateParent(true);
 					}
 				}
@@ -3478,16 +3504,22 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			
 		}
 		
-		if ($nb_series > 0) {
+		// Save the file if modified
+		if ($glob_nb_del > 0) {
 			$this->TbsStorePut($chart['idx'], $Txt, true);
-			return true;
-		} elseif ($no_err) {
-			return false;
-		} else {
-			$this->RaiseError("(ChartDelCategory) '$ChartRef' : unable to find category '".$del_category."' in the chart '".$ref."'.");
 		}
 		
-		return $nb_series;
+		// Result of the function
+		if ( $del_all || (count($glob_remain_cat) == 0) ) {
+			// All searched categories are deleted
+			return true;
+		} else {
+			if ($no_err) {
+				return false;
+			} else {	
+				return $this->RaiseError("(ChartDelCategory) '$ChartRef' : unable to find categories '" . implode(', ', array_keys($glob_remain_cat)) . "' in the chart ".$ref.".");
+			}
+		}
 		
 	}
 
@@ -5824,17 +5856,38 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	function OpenDoc_ChartDelCategory($ChartRef, $del_category, $no_err) {
+	/**
+	 * Delete one, sveral or all categories in the chart.
+	 * @param string       $ChartRef       The chart reference.
+	 * @param string|array $del_categories An array of categories to delete, on the name of a category, all the keywork '*' that means all categories.
+	 * @param boolean      $no_err         Indicate if an error is return when a searched category is not found.
+	 * @return boolean Return true if all the searched categories are deleted.
+	 */
+	function OpenDoc_ChartDelCategories($ChartRef, $del_categories, $no_err) {
 
 		$Txt = false;
 		$chart = $this->OpenDoc_ChartFind($ChartRef, $Txt, 'ChartChangeSeries');
 		if ($chart === false) return;
 
+		// Colmun that hold the category name
 		$col_idx = $chart['series_cat_col'];
+		
+		// Prepare info for the search
+		$del_all = false;
+		if (is_string($del_categories)) {
+			if ($del_categories == '*') {
+				$del_all = true;
+				$del_categories = array();
+			} else {
+				$del_categories = array($del_categories);
+			}
+		}
+		$remain_cat = array_flip($del_categories);
 		
 		// Scann all rows for changing cells
 		$elData = clsTbsXmlLoc::FindElement($Txt, 'table:table-rows', 0);
 		$p_row = 0;
+		$del_nb = 0;
 		while ( ($elRow=clsTbsXmlLoc::FindElement($elData, 'table:table-row', $p_row)) !== false ) {
 			$p_cell = 0;
 			for ($i = 0; $i <= $col_idx; $i++) {
@@ -5843,11 +5896,15 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 						// Category
 						if ($elP = clsTbsXmlLoc::FindElement($elCell, 'text:p', 0)) {
 							$category = $elP->GetInnerSrc();
-							if ($category == $del_category) {
+							if ($del_all || isset($remain_cat[$category])) {
 								$elRow->Delete();
-								$elRow->UpdateParent(); // update $elData source
-								$this->TbsStorePut($chart['file_idx'], $Txt);
-								return true;
+								$elRow->UpdateParent(true);
+								$del_nb++;
+								unset($remain_cat[$category]);
+								// optimisation
+								if ( (!$del_all) && (count($remain_cat) == 0) ) {
+									return true;
+								}
 							}
 						}
 					}
@@ -5859,12 +5916,23 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$p_row = $elRow->PosEnd;
 		}		
 
-		// Save the result
-		if ($no_err) {
-			return false;
-		} else {	
-			return $this->RaiseError("(ChartDelCategory) : unable to found the category '$del_category' in the chart ".$this->_ChartCaption.".");
+		// Save the file if modified
+		if ($del_nb > 0) {
+			$this->TbsStorePut($chart['file_idx'], $Txt);
 		}
+		
+		// Result of the function
+		if ( $del_all || (count($remain_cat) == 0) ) {
+			// All searched categories are deleted
+			return true;
+		} else {
+			if ($no_err) {
+				return false;
+			} else {	
+				return $this->RaiseError("(ChartDelCategory) : unable to find categories '" . implode(', ', array_keys($remain_cat)) . "' in the chart ".$this->_ChartCaption.".");
+			}
+		}
+		
 	}
 	
 	function OpenDoc_ChartRenameSeries(&$Txt, &$series, $NewName) {
