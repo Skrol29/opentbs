@@ -26,9 +26,9 @@ if ($yourname=='') $yourname = "(no name)";
 
 // A recordset for merging tables
 $data = array();
-$data[] = array('rank'=> 'A', 'firstname'=>'Sandra' , 'name'=>'Hill'      , 'number'=>'1523d', 'score'=>200, 'email_1'=>'sh@tbs.com',  'email_2'=>'sandra@tbs.com',  'email_3'=>'s.hill@tbs.com');
-$data[] = array('rank'=> 'A', 'firstname'=>'Roger'  , 'name'=>'Smith'     , 'number'=>'1234f', 'score'=>800, 'email_1'=>'rs@tbs.com',  'email_2'=>'robert@tbs.com',  'email_3'=>'r.smith@tbs.com' );
-$data[] = array('rank'=> 'B', 'firstname'=>'William', 'name'=>'Mac Dowell', 'number'=>'5491y', 'score'=>130, 'email_1'=>'wmc@tbs.com', 'email_2'=>'william@tbs.com', 'email_3'=>'w.m.dowell@tbs.com' );
+$data[] = array('rank'=> 'A', 'firstname'=>'Sandra' , 'name'=>'Hill'      , 'number'=>'1523d', 'score'=>200, 'visits'=>15, 'email_1'=>'sh@tbs.com',  'email_2'=>'sandra@tbs.com',  'email_3'=>'s.hill@tbs.com');
+$data[] = array('rank'=> 'A', 'firstname'=>'Roger'  , 'name'=>'Smith'     , 'number'=>'1234f', 'score'=>800, 'visits'=>33, 'email_1'=>'rs@tbs.com',  'email_2'=>'robert@tbs.com',  'email_3'=>'r.smith@tbs.com' );
+$data[] = array('rank'=> 'B', 'firstname'=>'William', 'name'=>'Mac Dowell', 'number'=>'5491y', 'score'=>130, 'visits'=>16, 'email_1'=>'wmc@tbs.com', 'email_2'=>'william@tbs.com', 'email_3'=>'w.m.dowell@tbs.com' );
 
 // Other single data items
 $x_num = 3152.456;
@@ -56,19 +56,55 @@ if (isset($_POST['debug']) && ($_POST['debug']=='show'))    $TBS->Plugin(OPENTBS
 // Merging and other operations on the template
 // --------------------------------------------
 
-// Merge data in the Workbook (all sheets)
+$TBS->PlugIn(OPENTBS_SELECT_SHEET, "Cells and rows");
+
+// Merge data in the first sheet
 $TBS->MergeBlock('a,b', $data);
 
+// Merge cells (extending columns)
+$TBS->MergeBlock('c1,c2', $data);
+
+$TBS->PlugIn(OPENTBS_SELECT_SHEET, "Dynamic columns");
+
 // Merge data in Sheet 2
-// No need to change the current sheet, they are all stored in the same XML subfile.
-$TBS->MergeBlock('cell1,cell2', 'num', 3);
+$TBS->MergeBlock('dc1,dc2', 'num', 3);
 $TBS->MergeBlock('b2', $data);
 
+$TBS->PlugIn(OPENTBS_SELECT_SHEET, "Charts");
+
+// Merge data linked to chart #1
+$data = array(
+	array('team' => "M.T.R.",     'victories' => 23),
+	array('team' => "Young-B",    'victories' => 18),
+	array('team' => "Red&Green",  'victories' => 9),
+	array('team' => "Kings",      'victories' => 12),
+);
+$TBS->MergeBlock('ch', $data);
+
+// Merge data embedded in chart #2
+$NewValues = array(
+	"Beginner" => 13,
+	"Foal"     => 10,
+	"Valorous" => 17,
+	"Fighter"  => 23,
+	"Wise"     => 5,
+);
+$TBS->PlugIn(OPENTBS_CHART_DELETE_CATEGORY, 'chart_members_by_category', '*'); // delete all categories used in the template
+$TBS->PlugIn(OPENTBS_CHART, 'chart_members_by_category', 1, $NewValues);
+
+
+$TBS->PlugIn(OPENTBS_SELECT_SHEET, "Pictures");
+
+// Merge pictures of the current sheet
+$x_picture = 'pic_1523d.gif';
+//$TBS->PlugIn(OPENTBS_MERGE_SPECIAL_ITEMS);
+
 // Delete a sheet
-$TBS->PlugIn(OPENTBS_DELETE_SHEETS, 'Delete me');
+$TBS->PlugIn(OPENTBS_DELETE_SHEETS, 'Sheet to delete');
+
 
 // Display a sheet (make it visible)
-$TBS->PlugIn(OPENTBS_DISPLAY_SHEETS, 'Display me');
+$TBS->PlugIn(OPENTBS_DISPLAY_SHEETS, 'Sheet to show');
 
 // -----------------
 // Output the result

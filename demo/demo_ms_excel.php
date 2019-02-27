@@ -62,24 +62,24 @@ $TBS->PlugIn(OPENTBS_SELECT_SHEET, "Cells and rows");
 $TBS->MergeBlock('a,b', $data);
 
 // Merge cells (extending columns)
-$TBS->MergeBlock('cell1,cell2', $data);
+$TBS->MergeBlock('c1,c2', $data);
 
 $TBS->PlugIn(OPENTBS_SELECT_SHEET, "Dynamic columns");
 
 // Merge data in Sheet 2
-$TBS->MergeBlock('cell1,cell2', 'num', 3);
+$TBS->MergeBlock('dc1,dc2', 'num', 3);
 $TBS->MergeBlock('b2', $data);
 
 $TBS->PlugIn(OPENTBS_SELECT_SHEET, "Charts");
 
 // Merge data linked to chart #1
 $data = array(
-	array('team' => "M.T.R.", 'victories' => 23),
+	array('team' => "M.T.R.",     'victories' => 23),
 	array('team' => "Young-B",    'victories' => 18),
-	array('team' => "Red&Green",     'victories' => 9),
-	array('team' => "Kings",   'victories' => 12),
+	array('team' => "Red&Green",  'victories' => 9),
+	array('team' => "Kings",      'victories' => 12),
 );
-$TBS->MergeBlock('b', $data);
+$TBS->MergeBlock('ch', $data);
 
 // Merge data embedded in chart #2
 $NewValues = array(
@@ -89,6 +89,7 @@ $NewValues = array(
 	"Fighter"  => 23,
 	"Wise"     => 5,
 );
+// $TBS->PlugIn(OPENTBS_CHART_DELETE_CATEGORY, 'chart_members_by_category', '*'); // delete all categories used in the template => no need with Ms Office since categories with no data are hidden.
 $TBS->PlugIn(OPENTBS_CHART, 'chart_members_by_category', 1, $NewValues);
 
 
