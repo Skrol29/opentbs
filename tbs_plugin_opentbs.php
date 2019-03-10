@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.9.12-beta6
- * @date 2019-02-27
+ * @version 1.9.12
+ * @date 2019-03-10
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -95,7 +95,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.9.12-beta6';
+		$this->Version = '1.9.12';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -3176,7 +3176,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		
 		if ($this->OpenXmlCharts===false) $this->OpenXML_ChartInit();
 		
- 		$ref = ''.$ChartRef;
+		$ref = ''.$ChartRef;
 		// try with $ChartRef as number
 		if (!isset($this->OpenXmlCharts[$ref])) {
 			$ref = 'chart'.$ref;
@@ -7140,8 +7140,8 @@ class clsTbsZip {
 		}
 		$this->OutputFromString($b2);
 		$ArchPos += $old_cd_len;
- 		$DeltaCdLen =  $DeltaCdLen + strlen($b2) - $old_cd_len;
- 
+		$DeltaCdLen =  $DeltaCdLen + strlen($b2) - $old_cd_len;
+
 		// Output until "end of central directory record"
 		if ($this->ArchHnd!==false) $this->OutputFromArch($ArchPos, $this->CdEndPos); // ArchHnd is false if CreateNew() has been called
 
