@@ -1,0 +1,204 @@
+# Change Log
+
+All notable changes to this project will be documented in this file.
+
+## [1.9.12] - 2019-03-10
+
+### New features
+
+- Can merge charts in XLSX and ODS.
+- Command OPENTBS_CHART_DELETE_CATEGORY can now delete several categories or all categories.
+
+### Bug fixes
+
+- Ms Office documents (DOCX, XLSX, PPTX) could be corrupted after merging a chart containing filtered series. That is a series which is included in the chart, but not displayed.
+- LibreOffice Document : fix the error message when merging a chart: "ObjectReplacements/Object 1" is not found in the Central Directory.
+
+### Enhancements
+
+- More robust technical when merging chart data is Ms Office documents (DOCX, XLSX, PPTX).
+
+## [1.9.11] - 2017-10-03
+
+### New features
+
+- New command OPENTBS_CHART_DELETE_CATEGORY
+- New command OPENTBS_GET_OPENED_FILES
+- New command OPENTBS_WALK_OPENED_FILES
+
+## [1.9.10] - 2017-07-05
+
+### Bug fixes
+
+- DOCM, PPTM and XSLM documents (that is documents with macros) are merged correctly but Ms Office display an error message when the file is downloaded using $TBS->Show(OPENTBS_DOWNLOAD,...).
+
+## [1.9.9] - 2017-05-28
+
+### Bug fixes
+
+- XLSX sheet containing an empty and unformatted row may produce in some circumstances a corrupted result when merged.
+
+## [1.9.8] - 2016-12-27
+
+### New features
+
+- New command OPENTBS_MAKE_OPTIMIZED_TEMPLATE
+
+### Bug fixes
+
+- Processed templates are not marked as prepared.
+
+## [1.9.7] - 2016-08-16
+
+### New features
+
+- New command OPENTBS_GET_FILES
+
+### Bug fixes
+
+- Parameter "ope=delcol": if parameter "colnum" is empty then first colmun is deleted while it should be no column.
+- Command OPENTBS_CHART: error message « Name of the series not found. » when the series contains special characters, like accents.
+
+## [1.9.6] - 2016-03-24
+
+### Bug fixes
+
+- Some commands used to find a worksheet by its internal id instead of its number in the worksheet list.
+  Now they all search by number in the worksheet list.
+  Please not that you may have to change your code if you are using those command with the number if the sheet rather of the name of the sheet.
+  Concerned commands are:
+  - OPENTBS_SELECT_SHEET
+  - OPENTBS_DELETE_SHEET
+  - OPENTBS_DISPLAY_SHEETS
+- Merging text with line-breaks in a DOCX was not displayed correctly in LibreOffice.
+
+### Enhancements
+
+- DOCX: Some special merging of enhanced graphical objects (like merging fill color in a shape) may corrupt the document
+  because they are stored in several ways by Ms Word.
+- The XML synopsis in now available in HTML.
+  
+## [1.9.5] - 2016-02-09
+
+### New features
+
+- New command OPENTBS_EDIT_ENTITY
+- New command OPENTBS_CHART_INFO
+- LoadTemplate(false) does close the current template so the template file is no longer locked.
+- New OpenTBS add-in for Microsoft Word: it helps to clean TBS tags.
+
+### Enhancements
+
+- new property $TBS->OtbsDeleteObsoleteChartData ## false; (Ms Office only)
+- OpenTBS do not redo optimisation on the loaded template if it has already been done by OpenTBS previously.
+- Chart in Ms Office : Ensure the caption of a category is displayed even if is has missing data.
+- Some code cleanup.
+
+### Bug fixes
+
+- PHP error with ODT templates when changing the name of a Chart series that hadn't any name before.
+- PHP error when using command OPENTBS_SEARCH_IN_SLIDES.
+- OpenTBS error « unable to found the chart corresponding to 'xxx' » in DOCX when the chart is not formated as "inline with text".
+
+## [1.9.4] - 2015-02-11
+
+### Bug fixes
+
+- Document corruption with OpenTBS 1.9.3 when merging pictures in a block and using parameter "adjust".
+
+## [1.9.3] - 2015-01-16
+
+### Bug fixes
+
+- XLSX corruption when merging a float value to a cell when the decimal separator is not a dot because of the locale setting.
+- Possible DOCX corruption when using text box or tables in header and footer.
+- Produce a corrupted Ms Office document when delete the last series of a chart using command OPENTBS_CHART. May happens with other series.
+
+### Enhancements
+
+- OpenTBS clear error message when using Show() without template loaded. Instead of an ugly PHP error.
+
+## [1.9.2] - 2014-09-25
+
+### Enhancements
+
+- 6 times faster when saving XLSX merged sheets with numerous rows.
+
+### New features
+
+- New command OPENTBS_RELATIVE_CELLS  : optimizes XLSX merged sheets with numerous rows.
+
+## [1.9.1] - 2014-09-20
+
+### Bug fixes
+
+- Adjusting size of image in docx.
+- When turn a sheet to hidden in an XLSX, then the file may be corrupted.
+- Command OPENTBS_COUNT_SLIDES did not work for ODP.
+- A PPTX can be corrupted when opening a template which is a previous result of a merge. This is because an <a:r> must contain at least one <a:t>.
+- Merging several XLSX with the same OpenTBS instance can produce erroneous merged cells.
+
+### New features
+
+- New parameter "unique" for picture
+- ODS files are now recognized. It is equivalent to ODS. 
+- New command OPENTBS_COUNT_SHEETS
+- New command OPENTBS_ADD_CREDIT
+- New command OPENTBS_SYSTEM_CREDIT
+
+### Enhancements
+
+- OPENTBS_CHANGE_PICTURE now use an array of parameters.
+
+## [1.9.0] - 2014-04-10
+
+### Bug fixes
+
+- Corrupted MS Office files when inserting images named with space or accent.
+- XLSX warning for corrupted subfile "/xl/calcChain.xml-Part".
+- Some ODS templates compatible with Ms Excel can become erroneous for Ms 
+  Excel after the merge with OpenTBS. Message "The workbook cannot be opened 
+  or repaired by Microsoft Excel because it is corrupt".
+- Some XLSX templates built with LibreOffice can be very long to be opened 
+  with OpenTBS. That is because LibreOffice add some extra useless rows 
+  definition at the bottom limit of the sheets.
+- A big number merged in a XLSX with parameter "ope=tbs:num" can display 
+  another value. Example : 7580563123 displays -1009371469 in 32bits.
+- Inappropriate error message "ExtType is not defined" when execute a 
+  command but no template is loaded.
+- OPTBS_SELECT_SHEET with an ODS template do nothing. Now it selects the 
+   main file (contains all sheets).
+- OPTBS_SELECT_SLIDE with an ODP template do nothing. Now it selects the 
+  main file (contains all slides).
+
+### New features
+
+- new command OPENTBS_SELECT_FILE
+- new command OPENTBS_SELECT_HEADER
+- new command OPENTBS_SELECT_FOOTER
+- new command OPENTBS_GET_HEADERS_FOOTERS
+- new command OPENTBS_SEARCH_IN_SLIDES
+- new parameter $Master for command OPENTBS_SELECT_SLIDE
+  and OPENTBS_COUNT_SLIDES
+
+### Enhancements
+
+- Debug mode available even if no template is loaded.
+- Debug mode display the Zlib availability.
+- Based on TbsZip 2.16
+
+## [1.8.3] - 2014-02-02
+
+## [1.8.2] - 2014-01-26
+
+- Based on TbsZip 2.15
+
+- Supports new parameter "parallel" given with TBS 3.9.0
+
+- Manage RSID problem with ODT (with LibreOffice>=4).
+
+- Bug when merging numerical cells in ODS files built with LibreOffice>=4
+  it's about new attribute "calcext:value-type" in ODS cells in LibreOffice 4 
+  http://www.tinybutstrong.com/forum.php?thr=3246
+
+- Nouvelle option interne : $TBS->OtbsClearWriter
