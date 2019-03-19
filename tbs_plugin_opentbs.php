@@ -64,6 +64,8 @@ define('OPENTBS_ADD_CREDIT','clsOpenTBS.AddCredit');
 define('OPENTBS_SYSTEM_CREDIT','clsOpenTBS.SystemCredit');
 define('OPENTBS_RELATIVE_CELLS','clsOpenTBS.RelativeCells');
 define('OPENTBS_MAKE_OPTIMIZED_TEMPLATE','clsOpenTBS.MakeOptimizedTemplate');
+define('OPENTBS_GET_CELLS','clsOpenTBS.GetCells');
+define('OPENTBS_SET_CELLS','clsOpenTBS.SetCells');
 define('OPENTBS_FIRST',1); // 
 define('OPENTBS_GO',2);    // = TBS_GO
 define('OPENTBS_ALL',4);   // = TBS_ALL
@@ -781,6 +783,34 @@ class clsOpenTBS extends clsTbsZip {
 				call_user_func_array($x1, array(&$this->TBS->Source, $name));
 			}
 			
+		} elseif ($Cmd == OPENTBS_GET_CELLS) {
+			
+			// $x1 = sheet
+			// $x2 = range   'A1', 'A1:B2', array(c1,r1,c2,r2), array('A1', 'A2', ...)
+			if ($this->ExtEquiv == 'ods') {
+				return $this->OpenDoc_VisitCells($x1);
+			} elseif ($this->ExtEquiv == 'xlsx') {
+				return $this->MsExcel_VisitCells($x1);
+			} else {
+				return false;
+			}
+
+			
+		} elseif ($Cmd == OPENTBS_SET_CELLS) {
+			
+			// $x1 = sheet
+			// $x2 = range   'A1', 'A1:B2', array(c1,r1,c2,r2),
+			// $x3 = values  recordset : $val or array( array(), array(), )
+			// or
+			// $x2 = range   array('A1' => ..., 'A2' => ...)
+			if ($this->ExtEquiv == 'ods') {
+				return $this->OpenDoc_VisitCells($x1);
+			} elseif ($this->ExtType == 'xlsx') {
+				return $this->MsExcel_VisitCells($x1);
+			} else {
+				return false;
+			}
+			
 		}
 
 	}
@@ -820,6 +850,7 @@ class clsOpenTBS extends clsTbsZip {
 		$this->OpenXmlSlideLst = false;
 		$this->OpenXmlSlideMasterLst = false;
 		$this->MsExcel_Sheets = false;
+		$this->MsExcel_RangeNames = false;
 		$this->MsExcel_NoTBS = array(); // shared string containing no TBS field
 		$this->MsExcel_KeepRelative = array();
 		$this->MsWord_HeaderFooter = false;
@@ -2384,38 +2415,142 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-	 * Return the column number from a cell reference.
+	 * Return the next cell of the range or false if there is no more cells in the range.
 	 *
-	 * @param string $CellRef The reference of a celle. Like "B3"
+     * @param string|object  $Txt      The source of the sheet containf the cells. It can be a string (XLSX) or a clsTbsXmlLoc object (ODS).
+	 * @param array          $Range    Bound of the range formated like array('cs'=>...,'rs'=>...,'ce'=>...,'re'=>...) or a list formated like array(array(c1,r1),array(c2,r2),...)
+	 * @param object         $PrevCell The previous object returned by the function.
+	 * @param boolean        $AsList   
+	 * @param string         $RowEl    Name of the XML entity for rows.
+	 * @param string         $CellEl   Name of the XML entity for cells.
 	 *
-	 * @return integer|false
+	 * @return object The clsTbsXmlLoc object of the cell element, with extra properties info : cellCol, cellRow, missCol, missRow
+	 *                Note that is can be a not existing item if the asked range goes out of the sheet.
 	 */
-	function Misc_ColNum($CellRef) {
+	function XML_GetNextCell($SheetSrc, $Range, $PrevCell, $AsList, $RowEl, $CellEl) {
+		
+		// Prepare variables
+		$missRow = 0;
+		$missCol = 0;
 
-		$num = 0;
+		if ( $PrevCell === false ) {
+			$cellCol = $Range['cs'];
+			$move_r = $Range['rs'];
+			$move_c = $Range['cs'];
+			$re = false;
+			$p = 0;
+		} else {
+			$cellCol = $PrevCell->cellCol + 1;
+			if ($cellCol <=  $Range['ce']) {
+				// next cell in the same row
+				$move_r = 0;
+				$move_c = 1;
+				$re = $PrevCell->Parent;
+				if ($PrevCell->missCol > 0) {
+					$missCol = 1;
+				}
+			} else {
+				// first cell of the range in the next row
+				$cellCol = $Range['cs'];
+				$move_r = 1;
+				$move_c = $Range['cs'];
+				$re = false;
+				if ( ($PrevCell->missCol > 0) && ($PrevCell->missRow > 0) ) {
+					$missCol = 1;
+					$missRow = 1;
+				}
+			}
+			$p = $PrevCell->PosEnd;
+		}
+		
+		// Change rows
+		if ($missCol == 0) {
+			for ($m = 1 ; $m <= $move_r ; $m++) {
+				$re = clsTbsXmlLoc::FindElement($SheetSrc, $RowEl, $p, true);
+				if ($re) {
+					$p = $re->PosEnd;
+				} else {
+					$missRow = $move_r - $m + 1;
+					$missCol = $move_c;
+					$m = $move_r + 1; // for leaving the loop
+				}
+			}
+		}
+		
+		// Change cells
+		if ($missCol == 0) {
+			$p = $re->PosBeg;
+			for ($m = 1 ; $m <= $move_c ; $m++) {
+				$ce = clsTbsXmlLoc::FindElement($re, $CellEl, $p, true);
+				if ($ce) {
+					$p = $ce->PosEnd;
+				} else {
+					$missCol = $move_c - $m + 1;
+					$m = $move_c + 1; // for leaving the loop
+				}
+			}
+		}
+		
+		if ($missCol > 0) {
+			$ce = new clsTbsXmlLoc($SheetSrc, $CellEl, $p + 1, null, false, false);
+		}
+		
+		$ce->cellCol = $cellCol;
+		$ce->missRow = $missRow;
+		$ce->missCol = $missCol;
+		
+		return $ce;
+		
+	}
+	
+	/**
+	 * Return the column number from a cell reference. First colmun is number 1.
+	 * Can also return the row number if asked.
+	 * Return 0 is the column is not specified.
+	 * Return '' for the row num if it is not specified.
+	 *
+	 * @param string  $CellRef  The reference of a cell. Like "B3" or "AZ48".
+	 * @param boolean $WithRow  (optional) Use true in order to return both col and row num.
+	 * @param string  $Prefix   (optional) A character prefix allowed before col and row values.
+	 *
+	 * @return integer|array
+	 */
+	function Misc_ColNum($CellRef, $WithRow = false, $Prefix = '') {
+
+		$col = 0;
+		$row = '';
 		$rank = 0;
+		
+		// We read the string backward because that the only way to know the rank.
 		for ($i = strlen($CellRef) -1 ; $i >= 0 ; $i--) {
 			$l = $CellRef[$i];
-			if (!is_numeric($l)) {
+			if ($l === $Prefix) {
+			} elseif (is_numeric($l)) {
+				$row = $l . $row; // backwards
+			} else {
 				$l = ord(strtoupper($l)) -64;
 				if ($l>0 && $l<27) {
-					$num = $num + $l*pow(26,$rank);
+					$col = $col + $l*pow(26,$rank);
 				} else {
 					return $this->RaiseError('(Sheet) Reference of cell \'' . $CellRef . '\' cannot be recognized.');
 				}
 				$rank++;
-			}
+			} 
 		}
 
-		return $num;
+		if ($WithRow) {
+			return array($col, $row);
+		} else {
+			return $col;
+		}
 
 	}
-
+	
 	/**
 	 * Return the reference of the cell, such as 'A10'.
 	 * @param integer $Col  The column number (first is 1)
 	 * @param integer $Row  The row    number (first is 1)
-	 * @param string  $Char (optional) The prefix charter.
+	 * @param string  $Char (optional) The prefix for col and row num.
 	 * @return string
 	 */
 	function Misc_CellRef($Col, $Row, $Char = '') {
@@ -4239,6 +4374,131 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return $lst;
 	}
 
+	/**
+	 * 'the_sheet_name'!$A1
+	 * 'the_sheet_name'!$A$1:$B$2
+	 * 'the_sheet_name'!$A$1:$B$2,'the_sheet_name2'!$A$1:$B$2
+	 *
+	 * forbidden in sheet name : ':', "'", '[', ']'
+	 * simple quotes are doubled
+	 * the name can be delimited with "'"
+	 * cell separator is '!', range separator is ","
+	 */
+	function MsExcel_GetRangeInfo($ref) {
+
+		
+		$ref = str_replace("'!", "]!", $ref);
+		$ref = str_replace(",'", ",[", $ref);
+		
+		if ($ref[0] == "'") {
+			$ref = substr_replace($ref, '[', 0, 1);
+		}
+		
+		$result = array();
+		
+		while ($ref != '') {
+			
+			if ($ref[0] == "[") {
+				$p = strpos($ref, ']!');
+				$ln = 1;
+			} else {
+				$p = strpos($ref, '!');
+				$ln = 0;
+			}
+
+			if ($p === false) {
+				$ref = ''; // leave the loop
+			} else {
+				
+				$sheet = substr($ref, 0, $p + $ln);
+				$sheet = str_replace(array('[', ']', "''"), array('', '', "'"), $sheet);
+				
+				// Next range
+				$p = $p + $ln + 1; // position of the char just after '!'
+				$p2 = strpos($ref, ',', $p);
+				if ($p2 === false) {
+					$cells = substr($ref, $p);
+					$ref = '';
+				} else {
+					$cells = substr($ref, $p, $p2 - $p);
+					$ref = substr($ref, $p2 + 1);
+				}
+				
+				$info = array(
+					'sheet' => $sheet,
+					'cells' => $cells,
+					'err'   => false,
+					'cs'   => false,
+					'rs'   => false,
+					'ce'   => false,
+					're'   => false,
+				);
+
+				
+				$x = explode(':', $cells);
+				foreach ($x as $idx => $cell) {
+					$z = ($idx === 0) ? 's' : 'e';
+					$err = true; // we have to check that both col and row values have a $, otherwise the Excel syntaxe is not the same
+					             // it is very curious : B8 => XFD1, C8 => A1, C$8 => A$8, $C8 => $C1 !!??
+					if ($cell[0] === '$' ) {
+						$w = $this->Misc_ColNum($cell, true, '$');
+						$info['c'.$z] = $w[0];
+						// Check for the $ before the row num
+						if ( ($w[0] == 0) || ($w[1] === '') || (substr_count($cell, '$') == 2) ) {
+							$info['r'.$z] = str_replace('$', '', $w[1]);
+							$err = false;
+						}
+					}
+					if ($err) {
+						$info['err'] = "OpenTBS supports only abolute references for ranges.";
+					}
+				}
+				
+				$result[] = $info;
+				
+			}
+		}
+		
+		return $result;
+		
+	}
+
+	function MsExcel_RangeNamesInit() {
+		
+		if ($this->MsExcel_RangeNames !== false) return;
+		
+		$this->MsExcel_RangeNames = array();
+
+		// Get the workbook.xml contents
+		$idx = $this->FileGetIdx('xl/workbook.xml');
+		if ($idx===false) return;
+		$Txt = $this->TbsStoreGet($idx, 'SheetInfo'); // use the store, so the file will be available for editing if needed
+		if ($Txt===false) return false;
+		$this->TbsStorePut($idx, $Txt);
+
+		$p = 0;
+		while ( $el = clsTbsXmlLoc::FindElement($Txt, 'definedName', $p, true) ) {
+			
+			$name = $el->GetAttLazy('name'); // forbidden in range name : ", ', ' ', 
+			$ref = $el->GetInnerSrc();
+			
+			
+			$p = $el->PosEnd;
+		}
+		
+	}
+
+	function MsExcel_VisitCells($Range, $Set) {
+		
+		$cell = false;
+		
+		$ok = true;
+		while ($ok && ($cell = $this->XML_GetNextCell($this->Source, $Range, $cell, false, 'row', 'c')) ) {
+			
+		}
+		
+	}
+	
 	/**
 	 * Return the array of the cells
 	 * Problem to solve: the results of formulas are deleted because of OtbsMsExcelConsistent
@@ -6185,14 +6445,15 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 class clsTbsXmlLoc {
 
 	var $PosBeg;
-	var $PosEnd;
-	var $SelfClosing;
+	var $PosEnd; // can the end of the open tag, or end of the close tag.
+	var $SelfClosing; // null|false|true, null means unknown.
 	var $Txt;
 	var $Name = ''; 
+	var $Exists; 
 
-	var $pST_PosEnd = false; // start tag: position of the end
-	var $pST_Src = false;    // start tag: source
-	var $pET_PosBeg = false; // end tag: position of the beginning
+	var $pST_PosEnd = false; // position of the end of the start tag
+	var $pST_Src = false;    // cached source of the start tag, false if not cached
+	var $pET_PosBeg = false; // position of the begining of the end tag
 
 	var $Parent = false; // parent object
 
@@ -6202,7 +6463,7 @@ class clsTbsXmlLoc {
 	var $rel_Len = false;
 	
 	// Create an instance with the given parameters
-	function __construct(&$Txt, $Name, $PosBeg, $SelfClosing = null, $Parent=false) {
+	function __construct(&$Txt, $Name, $PosBeg, $SelfClosing = null, $Parent = false, $Exists = true) {
 	
 		$this->PosEnd = strpos($Txt, '>', $PosBeg);
 		if ($this->PosEnd===false) $this->PosEnd = strlen($Txt)-1; // should no happen but avoid errors
@@ -6210,7 +6471,12 @@ class clsTbsXmlLoc {
 		$this->Txt = &$Txt;
 		$this->Name = $Name;
 		$this->PosBeg = $PosBeg;
-		$this->pST_PosEnd = $this->PosEnd;
+		$this->Exists = $Exists;
+		if ($Exists) {
+			$this->pST_PosEnd = $this->PosEnd;
+		} else {
+			$this->pST_PosEnd = $PosBeg - 1;
+		}
 		$this->SelfClosing = $SelfClosing;
 		$this->Parent = $Parent;
 	}
@@ -6245,6 +6511,25 @@ class clsTbsXmlLoc {
 		$this->pST_PosEnd += $Diff;
 		if ($this->pET_PosBeg!==false) $this->pET_PosBeg += $Diff;
 	}
+	
+	
+	/**
+	 * Return the position in the root text.
+	 */
+	/* 
+	function _getParentPos($Pos, $Cascading) {
+		if ($this->Parent) {
+			$res = $Pos + $this->Parent->PosBeg;
+			if ($Cascading) {
+				return $this->Parent->_getParentPos($res, $Cascading);
+			} else {
+				return $res;
+			}
+		} else {
+			return $Pos;
+		}
+	}
+	*/
 
 	// Return true is the ending position is a self-closing.
 	function _SelfClosing($PosEnd) {
@@ -6274,9 +6559,11 @@ class clsTbsXmlLoc {
 			$this->pST_PosBeg = false;
 			$this->pST_PosEnd = false;
 			$this->pET_PosBeg = false;
+			$this->Exists = false;
 		} else {
 			$this->pST_PosEnd += $diff; // CAUTION: may be wrong if attributes has changed
 			if ($this->pET_PosBeg!==false) $this->pET_PosBeg += $diff; // CAUTION: right only if the tag name is the same
+			$this->Exists = true;
 		}
 	}
 
@@ -6327,6 +6614,19 @@ class clsTbsXmlLoc {
 			if ($Cascading) $this->Parent->UpdateParent($Cascading);
 		}
 	}
+	
+	/*
+	// Unlink the object so that it becomes 
+	function UnlinkParent($Cascading=false) {
+		if ($this->Parent) {
+			$diff = $this->_getParentPos(0);
+			$this->_ApplyDiffToAll($diff);
+			// Destroy link to parent object
+			unset($this->Parent);
+			$this->Parent = false;
+		} 
+	}
+	*/
 
 	// Get an attribute's value. Or false if the attribute is not found.
 	// It's a lazy way because the attribute is searched with the patern {attribute="value" }
@@ -6424,7 +6724,7 @@ class clsTbsXmlLoc {
 		return true;
 	}
 
-	// Swith the locator to a realtive one that has no XML contents before and no XML contents after.
+	// Swith the locator to a relative one that has no XML contents before and no XML contents after.
 	// Useful to save time in search and replace.
 	function switchToRelative() {
 		$this->FindEndTag();
@@ -6439,7 +6739,7 @@ class clsTbsXmlLoc {
 		$this->_ApplyDiffToAll(-$this->PosBeg);
 	}
 
-	// To use after switchToRelative(): save modificatin to the normal contents and update positions.
+	// To use after switchToRelative(): save modification to the normal contents and update positions.
 	function switchToNormal() {
 		// Save info
 		$src = $this->GetSrc();
