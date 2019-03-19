@@ -2565,6 +2565,147 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		} while ($x>0);
 		return ($Char . $r . $Char . $Row);
 	}
+
+	/**
+	 * Return the info of a range definition.
+	 * Support both XLSX and ODS, range with or without sheet name, single cell range, full column range, full row range, absolute or relative cells, and multi-range.
+	 *
+	 * @param string $ref  The range reference.
+	 * 
+	 * XLSX :
+	 * 'the_sheet_name'!$A1
+	 * 'the_sheet_name'!$A$1:$B$2
+	 * 'the_sheet_name'!$A$1:$B$2,'the_sheet_name2'!$A$1:$B$2
+	 * ODS :
+	 * Sheet5.C9
+	 * $'the_sheet_name'.$A$1
+	 *
+	 * forbidden chars in sheet name : XLSX = ": ' [  ]"  ; ODS = "[ ] * ? : / \ " or "'" as first char
+	 * simple quotes are doubled
+	 * the name can be delimited with "'" if there is any special char
+	 * cell separator : XLSX = '!' ; ODS = "." (can be the first char if sheet name is ommited)
+	 * range separator : XLSX = "," ; ODS = impossible
+	 *
+	 * @return array A recordset of info.
+	 */
+	function Misc_GetRangeInfo($ref) {
+
+		$delim = "'"; // Sheet name delimitor
+		$rsep = ",";  // Range separator
+		
+		$result = array();
+
+		$i_end =  strlen($ref) -1;
+		$new = true;
+		// I's easier to read backward since the rang def always ends with a cell reference
+		for ($i = $i_end ; $i >= 0 ; $i--) {
+
+			// Initialize a new range info
+			if ($new) {
+				$sheet = '';
+				$cells = '';
+				$in_delim = false; // if we are inside the delimited string
+				$is_cell = true; // if the sheet name has been found
+				$is_xslx = false;
+				$new = false;
+			}
+			
+			// Read and interpret the char
+			$x = $ref[$i];
+			
+			if ($is_cell) {
+				// We are reading the cell part
+				if ( ($x === '!') || ($x === '.') ) {
+					// We meet a cell separator
+					$is_cell = false;
+					$is_xslx = ($x === '!');
+				} elseif ($x === $rsep) {
+					// We meet a range separator
+					$new = true;
+				} elseif ($x === $delim) {
+					// should never happen, but we can workaround this
+					$is_cell = false;
+					$sheet = $x;
+				} else {
+					$cells = $x . $cells;
+				}
+			} else {
+				// We are reading the sheet part
+				if ($in_delim) {
+					if ($x === $delim) {
+						if ( ($i > 0) && ($ref[$i -1] === $delim) ) {
+							// It's a double delim
+							$sheet = $x . $sheet;
+							$i--;
+						} else {
+							// It's a single delim. Note that the bound delim are not kept.
+							$in_delim = false;
+						}	
+					} else {
+						$sheet = $x . $sheet;
+					}
+				} else {
+					if ($x === $delim) {
+						$in_delim = true;
+					} elseif ($x === $rsep) {
+						$new = true;
+					} else {
+						$sheet = $x . $sheet;
+					}
+				}
+			}
+
+			// Check for a new range info
+			if ( $new || ($i == 0) ) {
+				
+				// Clean up the sheet name
+				$sheet = trim($sheet, '$'); // ODS can ref can start with $ before the sheet name.
+				if (!$is_xslx) {
+					$sheet = htmlspecialchars_decode($sheet); // ODS only
+				}
+				
+				$info = array(
+					'sheet' => $sheet,
+					'cells' => $cells,
+					'err'   => false,
+					'cs'   => false,
+					'rs'   => false,
+					'ce'   => false,
+					're'   => false,
+				);
+				
+				// Analyze the cells ref
+				$parts = explode(':', $cells);
+				foreach ($parts as $idx => $cell) {
+					$z = ($idx === 0) ? 's' : 'e';
+					$w = $this->Misc_ColNum($cell, true, '$');
+					$ok = true;
+					if ($is_xslx) {
+						// we have to check that both col and row values have a $, otherwise the Excel syntaxe is not the same
+						// it is very curious : B8 => XFD1, C8 => A1, C$8 => A$8, $C8 => $C1 !!??
+						if ($cell[0] !== '$') {
+							$ok = false;
+						} elseif (($w[0] != 0) && ($w[1] !== '') && (substr_count($cell, '$') != 2)) {
+							$ok = false;
+						}
+					}
+					if ($ok) {
+						$info['c'.$z] = $w[0];
+						$info['r'.$z] = str_replace('$', '', $w[1]);
+					} else {
+						$info['err'] = "OpenTBS supports only abolute references in XLSX ranges.";
+					}
+				}
+				
+				$result[] = $info;
+				
+			}
+			
+		}
+		
+		return $result;
+		
+	}
 	
 	/**
 	 * Return the extension of the file, lower case and without the dot. Example: 'png'.
@@ -4375,95 +4516,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return $lst;
 	}
 
-	/**
-	 * 'the_sheet_name'!$A1
-	 * 'the_sheet_name'!$A$1:$B$2
-	 * 'the_sheet_name'!$A$1:$B$2,'the_sheet_name2'!$A$1:$B$2
-	 *
-	 * forbidden in sheet name : ':', "'", '[', ']'
-	 * simple quotes are doubled
-	 * the name can be delimited with "'"
-	 * cell separator is '!', range separator is ","
-	 */
-	function MsExcel_GetRangeInfo($ref) {
-
-		
-		$ref = str_replace("'!", "]!", $ref);
-		$ref = str_replace(",'", ",[", $ref);
-		
-		if ($ref[0] == "'") {
-			$ref = substr_replace($ref, '[', 0, 1);
-		}
-		
-		$result = array();
-		
-		while ($ref != '') {
-			
-			if ($ref[0] == "[") {
-				$p = strpos($ref, ']!');
-				$ln = 1;
-			} else {
-				$p = strpos($ref, '!');
-				$ln = 0;
-			}
-
-			if ($p === false) {
-				$ref = ''; // leave the loop
-			} else {
-				
-				$sheet = substr($ref, 0, $p + $ln);
-				$sheet = str_replace(array('[', ']', "''"), array('', '', "'"), $sheet);
-				
-				// Next range
-				$p = $p + $ln + 1; // position of the char just after '!'
-				$p2 = strpos($ref, ',', $p);
-				if ($p2 === false) {
-					$cells = substr($ref, $p);
-					$ref = '';
-				} else {
-					$cells = substr($ref, $p, $p2 - $p);
-					$ref = substr($ref, $p2 + 1);
-				}
-				
-				$info = array(
-					'sheet' => $sheet,
-					'cells' => $cells,
-					'err'   => false,
-					'cs'   => false,
-					'rs'   => false,
-					'ce'   => false,
-					're'   => false,
-				);
-
-				
-				$x = explode(':', $cells);
-				foreach ($x as $idx => $cell) {
-					$z = ($idx === 0) ? 's' : 'e';
-					$err = true; // we have to check that both col and row values have a $, otherwise the Excel syntaxe is not the same
-					             // it is very curious : B8 => XFD1, C8 => A1, C$8 => A$8, $C8 => $C1 !!??
-					if ($cell[0] === '$' ) {
-						$w = $this->Misc_ColNum($cell, true, '$');
-						$info['c'.$z] = $w[0];
-						// Check for the $ before the row num
-						if ( ($w[0] == 0) || ($w[1] === '') || (substr_count($cell, '$') == 2) ) {
-							$info['r'.$z] = str_replace('$', '', $w[1]);
-							$err = false;
-						}
-					}
-					if ($err) {
-						$info['err'] = "OpenTBS supports only abolute references for ranges.";
-					}
-				}
-				
-				$result[] = $info;
-				
-			}
-		}
-		
-		return $result;
-		
-	}
-
 	function MsExcel_RangeNamesInit() {
 		
 		if ($this->MsExcel_RangeNames !== false) return;
@@ -4482,7 +4534,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			
 			$name = $el->GetAttLazy('name'); // forbidden in range name : ", ', ' ', 
 			$ref = $el->GetInnerSrc();
-			
+			$this->MsExcel_RangeNames[$name] = $this->Misc_GetRangeInfo($ref);
 			
 			$p = $el->PosEnd;
 		}
