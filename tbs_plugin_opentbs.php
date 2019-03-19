@@ -2513,7 +2513,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * @param boolean $WithRow  (optional) Use true in order to return both col and row num.
 	 * @param string  $Prefix   (optional) A character prefix allowed before col and row values.
 	 *
-	 * @return integer|array
+	 * @return integer|array  The column number, or an arrat with both the colum number and the row number.
+	 *                        The column number is always an integer, the row number is always a string (so it can be enormous).
 	 */
 	function Misc_ColNum($CellRef, $WithRow = false, $Prefix = '') {
 
