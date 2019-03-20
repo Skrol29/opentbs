@@ -498,7 +498,8 @@ class clsOpenTBS extends clsTbsZip {
 
 			// Only XLSX files have sheets in separated subfiles.
 			if ($this->ExtEquiv==='xlsx') {
-				$o = $this->MsExcel_SheetGet($x1, $x2);
+				$SearchBy = ($x2) ? array('name', 'sheetId') : array('name', 'num');
+				$o = $this->MsExcel_SheetGetConf($x1, $SearchBy, true);
 				if ($o===false) return;
 				if ($o->file===false) return $this->RaiseError("($Cmd) Error with sheet '$x1'. The corresponding XML subfile is not referenced.");
 				return $this->TbsLoadSubFileAsTemplate('xl/'.$o->file);
@@ -4384,20 +4385,37 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	/**
 	 * Return the sheet info corresponding to the name, number or internal id.
 	 * @param string|integer $IdOrName
-	 * @param boolean        $bySheetId (optional, false by default) Set true in order to search by internal id insead of sheet number when $IdOrName is numerical.
+	 * @param array          $SearchBy    A list of search condition, in order. Supported items : 'name' , 'sheetId', 'num' 
+	 * @param boolean        $RaiseError  Set true if an error is raised if the sheet is not found.
 	 * @param object A special object. See MsExcel_SheetInit(). 
 	 */
-	function MsExcel_SheetGet($IdOrName, $bySheetId = false) {
+	function MsExcel_SheetGetConf($IdOrName, $SearchBy, $RaiseError) {
+		
 		$this->MsExcel_SheetInit();
+		
+		$by_name    = in_array($SearchBy, 'name', true);
+		$by_sheetId = in_array($SearchBy, 'sheetId', true);
+		$by_num     = in_array($SearchBy, 'num', true);
+		
 		foreach($this->MsExcel_Sheets as $o) {
-			if ($o->name==$IdOrName) return $o;
-			if ($bySheetId) {
-				if ($o->sheetId==$IdOrName) return $o;
-			} else {
-				if ($o->num==$IdOrName) return $o;
+			// Check by order of search.
+			foreach ($SearchBy as $s) {
+				$ok = false;
+				$ok = $ok || ( ($s === 'name') && ($o->name == $IdOrName) );
+				$ok = $ok || ( ($s === 'sheetId') && ($o->sheetId == $IdOrName) );
+				$ok = $ok || ( ($s === 'num') && ($o->num == $IdOrName) );
+				if ($ok) {
+					return $o;
+				}
 			}
 		}
-		return $this->RaiseError("(MsExcel_SheetInit) The sheet '$IdOrName' is not found inside the Workbook. Try command OPENTBS_DEBUG_INFO to check all sheets inside the current Workbook.");
+		
+		if ($RaiseError) {
+			return $this->RaiseError("(MsExcel_SheetInit) The sheet '$IdOrName' is not found inside the Workbook. Try command OPENTBS_DEBUG_INFO to check all sheets inside the current Workbook.");
+		} else {
+			return false;
+		}
+		
 	}
 
 	/**
@@ -4557,12 +4575,41 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * @param mixed $Range
 	 * @param mixed $Set
 	 */
-	function MsExcel_VisitCells($Range, $Set) {
+	function MsExcel_VisitCells($RangeRef, $Set) {
 		
 		$this->MsExcel_RangeNamesInit();
 		
+		if (isset($this->OtbsSheetRangeNames[$RangeRef])) {
+			// Named range
+			$x = $this->OtbsSheetRangeNames[$RangeRef];
+		} else {
+			// Custom range definition
+			$x = $this->Misc_GetRangeInfo($Range);
+		}
+		
+		// Checks
+		if (isset($x[0])) {
+			$Range = $x[0];
+		} else {
+			return $this->RaiseError("Unable to read the definition for the range named '{$RangeRef}'.");
+		}
+		if ($Range['err']) {
+			return $this->RaiseError("Error for the range '{$RangeRef}' : " . $Range['err']);
+		}
+		
+		// Get the sheet content
+		if ($Range['sheet']) {
+			$SearchBy = ($x2) ? array('name', 'sheetId') : array('name', 'num');
+			$o = $this->MsExcel_SheetGetConf($Range['sheet'], array('name'), true);
+			if ($o === false) return false;
+			$idx = $this->FileGetIdx('xl/'.$o->file);
+			$Txt = $this->TbsStoreGet($idx, 'VisitCells');
+		} else {
+			$Txt = $this->TBS->Source;
+		}
+		
 		$ok = true;
-		while ($ok && ($cell = $this->XML_GetNextCell($this->Source, $Range, $cell, 'row', 'c')) ) {
+		while ($ok && ($cell = $this->XML_GetNextCell($Txt, $Range, $cell, 'row', 'c')) ) {
 			
 		}
 		
