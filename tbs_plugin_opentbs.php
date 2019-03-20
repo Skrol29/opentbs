@@ -835,14 +835,18 @@ class clsOpenTBS extends clsTbsZip {
 		$this->ExtEquiv = false;
 		$this->ExtType = false;
 		
+		// Common
 		$this->OtbsSheetSlidesDelete = array();
 		$this->OtbsSheetSlidesVisible = array();
+		$this->OtbsSheetRangeNames = false;
 
+		// LibreOffice
 		$this->OpenDocCharts = false;
 		$this->OpenDocManif = false;
 		$this->OpenDoc_SheetSlides = false;
 		$this->OpenDoc_Styles = false;
 
+		// MsOffice
 		$this->OpenXmlRid = false;
 		$this->OpenXmlCTypes = false;
 		$this->OpenXmlCharts = false;
@@ -850,7 +854,6 @@ class clsOpenTBS extends clsTbsZip {
 		$this->OpenXmlSlideLst = false;
 		$this->OpenXmlSlideMasterLst = false;
 		$this->MsExcel_Sheets = false;
-		$this->MsExcel_RangeNames = false;
 		$this->MsExcel_NoTBS = array(); // shared string containing no TBS field
 		$this->MsExcel_KeepRelative = array();
 		$this->MsWord_HeaderFooter = false;
@@ -2694,6 +2697,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 						$info['r'.$z] = str_replace('$', '', $w[1]);
 					} else {
 						$info['err'] = "OpenTBS supports only abolute references in XLSX ranges.";
+						$info['_ref'] = $ref; // for debuging
 					}
 				}
 				
@@ -3902,7 +3906,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$Txt = $this->TbsStoreGet($idx, 'Excel SharedStrings');
 		if ($Txt===false) return false;
-		$this->TbsStorePut($idx, $Txt); // save for any further usage
+		$this->TbsStorePut($idx, $Txt); // save for any further usage (is this usefull ??)
 
 		$this->OpenXmlSharedStr = array();
 		$this->OpenXmlSharedSrc =& $this->TbsStoreLst[$idx]['src'];
@@ -4518,24 +4522,22 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	function MsExcel_RangeNamesInit() {
 		
-		if ($this->MsExcel_RangeNames !== false) return;
+		if ($this->OtbsSheetRangeNames !== false) return;
 		
-		$this->MsExcel_RangeNames = array();
+		$this->OtbsSheetRangeNames = array();
 
 		// Get the workbook.xml contents
 		$idx = $this->FileGetIdx('xl/workbook.xml');
 		if ($idx===false) return;
-		$Txt = $this->TbsStoreGet($idx, 'SheetInfo'); // use the store, so the file will be available for editing if needed
+		$Txt = $this->TbsStoreGet($idx, 'RangeNamesInit'); // use the store, so the file will be available for editing if needed
 		if ($Txt===false) return false;
-		$this->TbsStorePut($idx, $Txt);
+		//$this->TbsStorePut($idx, $Txt);
 
 		$p = 0;
 		while ( $el = clsTbsXmlLoc::FindElement($Txt, 'definedName', $p, true) ) {
-			
 			$name = $el->GetAttLazy('name'); // forbidden in range name : ", ', ' ', 
 			$ref = $el->GetInnerSrc();
-			$this->MsExcel_RangeNames[$name] = $this->Misc_GetRangeInfo($ref);
-			
+			$this->OtbsSheetRangeNames[$name] = $this->Misc_GetRangeInfo($ref);
 			$p = $el->PosEnd;
 		}
 		
@@ -5604,6 +5606,32 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	function OpenDoc_RangeNamesInit() {
+		
+		if ($this->OtbsSheetRangeNames !== false) return;
+		
+		$this->OtbsSheetRangeNames = array();
+
+		// Get the content.xml contents
+		$idx = $this->FileGetIdx('content.xml');
+		if ($idx===false) return;
+		$Txt = $this->TbsStoreGet($idx, 'RangeNamesInit'); // use the store, so the file will be available for editing if needed
+		if ($Txt===false) return false;
+		//$this->TbsStorePut($idx, $Txt);
+
+		$p = 0;
+		while ( $el = clsTbsXmlLoc::FindElement($Txt, 'table:named-range', $p, true) ) {
+			$name = $el->GetAttLazy('table:name');
+			$ref  = $el->GetAttLazy('table:base-cell-address'); // can be 'table:base-cell-address' or 'table:cell-range-address'
+			if ($ref === false) {
+				$ref  = $el->GetAttLazy('table:cell-range-address');
+			}
+			$this->OtbsSheetRangeNames[$name] = $this->Misc_GetRangeInfo($ref);
+			$p = $el->PosEnd;
+		}
+		
+	}
+	
 	function OpenDoc_StylesInit() {
 
 		if ($this->OpenDoc_Styles!==false) return;
