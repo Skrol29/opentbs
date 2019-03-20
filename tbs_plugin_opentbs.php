@@ -2421,25 +2421,25 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * Return the next cell of the range or false if there is no more cells in the range.
 	 *
      * @param string|object  $Txt      The source of the sheet containf the cells. It can be a string (XLSX) or a clsTbsXmlLoc object (ODS).
-	 * @param array          $Range    Bound of the range formated like array('cs'=>...,'rs'=>...,'ce'=>...,'re'=>...) or a list formated like array(array(c1,r1),array(c2,r2),...)
+	 * @param array          $Range    A range info formated as array('cs'=>...,'rs'=>...,'ce'=>...,'re'=>...)
 	 * @param object         $PrevCell The previous object returned by the function.
-	 * @param boolean        $AsList   
 	 * @param string         $RowEl    Name of the XML entity for rows.
 	 * @param string         $CellEl   Name of the XML entity for cells.
 	 *
 	 * @return object The clsTbsXmlLoc object of the cell element, with extra properties info : cellCol, cellRow, missCol, missRow
 	 *                Note that is can be a not existing item if the asked range goes out of the sheet.
 	 */
-	function XML_GetNextCell($SheetSrc, $Range, $PrevCell, $AsList, $RowEl, $CellEl) {
+	function XML_GetNextCell($SheetSrc, $Range, $PrevCell, $RowEl, $CellEl) {
 		
 		// Prepare variables
 		$missRow = 0;
 		$missCol = 0;
 
 		if ( $PrevCell === false ) {
+			$cellRow = $Range['rs'];
 			$cellCol = $Range['cs'];
-			$move_r = $Range['rs'];
-			$move_c = $Range['cs'];
+			$move_r = $cellRow;
+			$move_c = $cellCol;
 			$re = false;
 			$p = 0;
 		} else {
@@ -2463,6 +2463,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					$missRow = 1;
 				}
 			}
+			$cellRow = $PrevCell->cellRow + $move_r;
 			$p = $PrevCell->PosEnd;
 		}
 		
@@ -2495,12 +2496,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		
 		if ($missCol > 0) {
+			// Create a object with « $ce->Exists = false »
 			$ce = new clsTbsXmlLoc($SheetSrc, $CellEl, $p + 1, null, false, false);
 		}
 		
-		$ce->cellCol = $cellCol;
-		$ce->missRow = $missRow;
-		$ce->missCol = $missCol;
+		$ce->cellRow = $cellRow; // row num in the sheet
+		$ce->cellCol = $cellCol; // col num in the sheet
+		$ce->missRow = $missRow; // number of missing rows
+		$ce->missCol = $missCol; // number of missing rows
 		
 		return $ce;
 		
@@ -3520,7 +3523,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		} else {
 
-
 			$point1 = ''; // category
 			$point2 = ''; // value
 			$i = 0;
@@ -4379,6 +4381,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	/**
+	 * Return the sheet info corresponding to the name, number or internal id.
+	 * @param string|integer $IdOrName
+	 * @param boolean        $bySheetId (optional, false by default) Set true in order to search by internal id insead of sheet number when $IdOrName is numerical.
+	 * @param object A special object. See MsExcel_SheetInit(). 
+	 */
 	function MsExcel_SheetGet($IdOrName, $bySheetId = false) {
 		$this->MsExcel_SheetInit();
 		foreach($this->MsExcel_Sheets as $o) {
@@ -4543,12 +4551,18 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		
 	}
 
+	/**
+	 * Visit all the cells of a range for get or set.
+	 *
+	 * @param mixed $Range
+	 * @param mixed $Set
+	 */
 	function MsExcel_VisitCells($Range, $Set) {
 		
-		$cell = false;
+		$this->MsExcel_RangeNamesInit();
 		
 		$ok = true;
-		while ($ok && ($cell = $this->XML_GetNextCell($this->Source, $Range, $cell, false, 'row', 'c')) ) {
+		while ($ok && ($cell = $this->XML_GetNextCell($this->Source, $Range, $cell, 'row', 'c')) ) {
 			
 		}
 		
