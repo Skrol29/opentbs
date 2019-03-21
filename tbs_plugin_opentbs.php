@@ -2517,17 +2517,16 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * Return '' for the row num if it is not specified.
 	 *
 	 * @param string  $CellRef  The reference of a cell. Like "B3" or "AZ48".
-	 * @param boolean $WithRow  (optional) Use true in order to return both col and row num.
-	 * @param string  $Prefix   (optional) A character prefix allowed before col and row values.
+	 * @param boolean $WithRow  (optional) Use true in order to return both col and row numbers.
 	 *
-	 * @return integer|array  The column number, or an arrat with both the colum number and the row number.
-	 *                        The column number is always an integer, the row number is always a string (so it can be enormous).
+	 * @return integer|array  The column number, or an arrar with both the colum number and the row number.
 	 */
-	function Misc_ColNum($CellRef, $WithRow = false, $Prefix = '') {
+	function Misc_ColNum($CellRef, $WithRow = false) {
 
 		$col = 0;
 		$row = '';
 		$rank = 0;
+		$Prefix = '$'; // character prefix allowed before col and row values.
 		
 		// We read the string backward because that the only way to know the rank.
 		for ($i = strlen($CellRef) -1 ; $i >= 0 ; $i--) {
@@ -2547,7 +2546,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		if ($WithRow) {
-			return array($col, $row);
+			return array($col, intval($row));
 		} else {
 			return $col;
 		}
@@ -2679,30 +2678,38 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					'rs'   => false,
 					'ce'   => false,
 					're'   => false,
+					'single' => false,
 				);
 				
 				// Analyze the cells ref
 				$parts = explode(':', $cells);
 				foreach ($parts as $idx => $cell) {
 					$z = ($idx === 0) ? 's' : 'e';
-					$w = $this->Misc_ColNum($cell, true, '$');
+					$w = $this->Misc_ColNum($cell, true);
 					$ok = true;
 					if ($is_xslx) {
 						// we have to check that both col and row values have a $, otherwise the Excel syntaxe is not the same
 						// it is very curious : B8 => XFD1, C8 => A1, C$8 => A$8, $C8 => $C1 !!??
 						if ($cell[0] !== '$') {
 							$ok = false;
-						} elseif (($w[0] != 0) && ($w[1] !== '') && (substr_count($cell, '$') != 2)) {
+						} elseif (($w[0] !== 0) && ($w[1] !== 0) && (substr_count($cell, '$') != 2)) {
 							$ok = false;
 						}
 					}
 					if ($ok) {
 						$info['c'.$z] = $w[0];
-						$info['r'.$z] = str_replace('$', '', $w[1]);
+						$info['r'.$z] = $w[1];
 					} else {
 						$info['err'] = "OpenTBS supports only abolute references in XLSX ranges.";
 						$info['_ref'] = $ref; // for debuging
 					}
+				}
+
+				// For facilities, endings should be available
+				if ( ($info['ce'] === false) && ($info['re'] === false) ) {
+					$info['ce'] = $info['cs'];
+					$info['re'] = $info['rs'];
+					$info['single'] = true;
 				}
 				
 				$result[] = $info;
