@@ -2419,94 +2419,141 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-	 * Return the next cell of the range or false if there is no more cells in the range.
+	 * Return the next cell of the range (actual or virtual). Return false if there is no more cells for this range in the sheet.
+	 * The process assumes that :
+	 * - trailing rows can be misssing in the sheet but there is no missing row  bewteen rows.
+	 * - trailing cols can be misssing in a row     but there is no missing cell bewteen cells.
 	 *
-     * @param string|object  $Txt      The source of the sheet containf the cells. It can be a string (XLSX) or a clsTbsXmlLoc object (ODS).
+     * @param string|object  $SheetLoc The locator of the sheet entity that directly contains row.
 	 * @param array          $Range    A range info formated as array('cs'=>...,'rs'=>...,'ce'=>...,'re'=>...)
-	 * @param object         $PrevCell The previous object returned by the function.
+	 * @param object         $PrevLoc  The previous locator returned by the function.
 	 * @param string         $RowEl    Name of the XML entity for rows.
 	 * @param string         $CellEl   Name of the XML entity for cells.
+	 * @param boolean        $AddMissRow True means that an empty row in inserted in order to finish the range visit.
 	 *
-	 * @return object The clsTbsXmlLoc object of the cell element, with extra properties info : cellCol, cellRow, missCol, missRow
+	 * @return object The clsTbsXmlLoc object of the cell element, with extra properties info : cellCol, cellRow
 	 *                Note that is can be a not existing item if the asked range goes out of the sheet.
 	 */
-	function XML_GetNextCell($SheetSrc, $Range, $PrevCell, $RowEl, $CellEl) {
+	function XML_GetNextCellLoc(&$SheetLoc, $Range, $PrevLoc, $RowEl, $CellEl, $AddMissing) {
 		
-		// Prepare variables
-		$missRow = 0;
-		$missCol = 0;
-
-		if ( $PrevCell === false ) {
-			$cellRow = $Range['rs'];
-			$cellCol = $Range['cs'];
-			$move_r = $cellRow;
-			$move_c = $cellCol;
-			$re = false;
-			$p = 0;
+		// Retreive previous and current cell coordinates
+		if ( $PrevLoc === false ) {
+			$prevRow = 0;
+			$prevCol = 0;
+			$currRow = $Range['rs'];
+			$currCol = $Range['cs'];
+			$prevRowOk = true;
+			$prevColOk = true;
+			$rowLoc    = false;
+			$r_pos = 0;
+			$c_pos = 0;
 		} else {
-			$cellCol = $PrevCell->cellCol + 1;
-			if ($cellCol <=  $Range['ce']) {
+			$prevRow = $PrevLoc->cellRow;
+			$prevCol = $PrevLoc->cellCol;
+			$currCol = $prevCol + 1;
+			if ($currCol <=  $Range['ce']) {
 				// next cell in the same row
-				$move_r = 0;
-				$move_c = 1;
-				$re = $PrevCell->Parent;
-				if ($PrevCell->missCol > 0) {
-					$missCol = 1;
-				}
+				$currRow = $PrevLoc->cellRow;
+				$c_pos = $PrevLoc->PosEnd + 1;
 			} else {
 				// first cell of the range in the next row
-				$cellCol = $Range['cs'];
-				$move_r = 1;
-				$move_c = $Range['cs'];
-				$re = false;
-				if ( ($PrevCell->missCol > 0) && ($PrevCell->missRow > 0) ) {
-					$missCol = 1;
-					$missRow = 1;
+				$prevCol = 0;
+				$currCol = $Range['cs'];
+				$currRow = $prevRow + 1;
+				if ($currRow > $Range['re']) {
+					return false;
 				}
+				$c_pos = 0;
 			}
-			$cellRow = $PrevCell->cellRow + $move_r;
-			$p = $PrevCell->PosEnd;
+			$prevRowOk = $PrevLoc->RowOk;
+			$prevColOk = $PrevLoc->Exists;
+			$rowLoc    = $PrevLoc->Parent;
+			$r_pos = $PrevLoc->Parent->PosEnd + 1;
 		}
+
+		// Moves to the next cell
+
+//echo "\n* XML_GetNextCellLoc : prevRow = $prevRow, prevCol = $prevCol | currRow = $currRow, currCol = $currCol";
 		
-		// Change rows
-		if ($missCol == 0) {
-			for ($m = 1 ; $m <= $move_r ; $m++) {
-				$re = clsTbsXmlLoc::FindElement($SheetSrc, $RowEl, $p, true);
-				if ($re) {
-					$p = $re->PosEnd;
-				} else {
-					$missRow = $move_r - $m + 1;
-					$missCol = $move_c;
-					$m = $move_r + 1; // for leaving the loop
-				}
-			}
-		}
-		
-		// Change cells
-		if ($missCol == 0) {
-			$p = $re->PosBeg;
-			for ($m = 1 ; $m <= $move_c ; $m++) {
-				$ce = clsTbsXmlLoc::FindElement($re, $CellEl, $p, true);
-				if ($ce) {
-					$p = $ce->PosEnd;
-				} else {
-					$missCol = $move_c - $m + 1;
-					$m = $move_c + 1; // for leaving the loop
-				}
+		// Reach the asked row 
+//echo "\n* Recherche Row : début";
+		while ( $prevRowOk && ($prevRow < $currRow) ) {
+			//echo "\n* Recherche Row (r_pos=$r_pos) : ";
+			$rowLoc = clsTbsXmlLoc::FindElement($SheetLoc, $RowEl, $r_pos, true);
+			if ($rowLoc === false) {
+				//echo "échec";
+				$prevRowOk = false;
+			} else {
+				//echo "ok";
+				$r_pos = $rowLoc->PosEnd + 1;
+				$prevRow++;
 			}
 		}
 		
-		if ($missCol > 0) {
-			// Create a object with « $ce->Exists = false »
-			$ce = new clsTbsXmlLoc($SheetSrc, $CellEl, $p + 1, null, false, false);
+		// Insert missing rows
+//echo "\n* Insert Row : début";
+		if (!$prevRowOk) {
+			$prevColOk = false;
+			if ($AddMissing) {
+				// Insert the empty rows
+				$x = '<' . $RowEl . '></' . $RowEl . '>';
+				$x_len = strlen($x);
+				$nb = ($currRow - $prevRow);
+				$SheetLoc->Txt = substr_replace($SheetLoc->Txt, str_repeat($x, $nb), $r_pos, 0);
+				// The row locator must be targeted on the last inserted row
+				$r_pos = $r_pos + ($nb - 1) * $x_len;
+				$rowLoc = new clsTbsXmlLoc($SheetLoc->Txt, $RowEl, $r_pos, null, $SheetLoc, false);
+				$rowLoc->FindEndTag();
+			} else {
+				// No more data
+				return false;
+			}
 		}
 		
-		$ce->cellRow = $cellRow; // row num in the sheet
-		$ce->cellCol = $cellCol; // col num in the sheet
-		$ce->missRow = $missRow; // number of missing rows
-		$ce->missCol = $missCol; // number of missing rows
+		// Reach the asked cell 
+//echo "\n* Recherche Col : début";
+		while ($prevColOk && ($prevCol < $currCol)) {
+			if ($rowLoc === false) return $this->RaiseError("No parent row.");
+			//echo "\n* Recherche Col (c_pos=$c_pos) : ";
+			$cellLoc = clsTbsXmlLoc::FindElement($rowLoc, $CellEl, $c_pos, true);
+			if ($cellLoc === false) {
+				//echo "échec, rowLoc = " . $rowLoc->GetSrc();
+				$prevColOk = false;
+			} else {
+				//echo "ok";
+				$c_pos = $cellLoc->PosEnd + 1;
+				$prevCol++;
+			}
+		}
+
+		// Insert missing cells
+//echo "\n* Insert Col : début";
+		if (!$prevColOk) {
+			if ($AddMissing) {
+				// Insert the empty cells
+				$x = '<' . $CellEl . '></' . $CellEl . '>';
+				$x_len = strlen($x);
+				$nb = ($currCol - $prevCol);
+				$rowLoc->AppendInnerSrc(str_repeat($x, $nb));
+				// The col locator must be targeted on the last inserted col
+				$cellLoc = new clsTbsXmlLoc($rowLoc->Txt, $CellEl, ($rowLoc->GetInnerAppendPos() - $x_len), null, $rowLoc, false);
+				$cellLoc->FindEndTag();
+			} else {
+				// No more data => locator on a non-existing entity ($cellLoc->Exists = false)
+				$cellLoc = clsTbsXmlLoc::CreatePhatomElement($rowLoc, $rowLoc->GetInnerAppendPos());
+				//$cellLoc->FindEndTag();
+			}
+		}
 		
-		return $ce;
+		$cellLoc->RowOk   = $prevRowOk;
+		$cellLoc->cellRow = $currRow; // row num in the sheet
+		$cellLoc->cellCol = $currCol; // col num in the sheet
+		
+		//echo "\n rowLoc->GetSrc   = " . $rowLoc->GetSrc();
+		//echo "\n cellLoc->GetSrc  = " . $cellLoc->GetSrc();
+		//echo "\n cellLoc = " . var_export($cellLoc, true);
+		
+		return $cellLoc;
 		
 	}
 	
@@ -4400,9 +4447,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		
 		$this->MsExcel_SheetInit();
 		
-		$by_name    = in_array($SearchBy, 'name', true);
-		$by_sheetId = in_array($SearchBy, 'sheetId', true);
-		$by_num     = in_array($SearchBy, 'num', true);
+		$by_name    = in_array('name',    $SearchBy, true);
+		$by_sheetId = in_array('sheetId', $SearchBy, true);
+		$by_num     = in_array('num',     $SearchBy, true);
 		
 		foreach($this->MsExcel_Sheets as $o) {
 			// Check by order of search.
@@ -4582,7 +4629,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * @param mixed $Range
 	 * @param mixed $Set
 	 */
-	function MsExcel_VisitCells($RangeRef, $Set) {
+	function MsExcel_VisitCells($RangeRef, $Set = false) {
 		
 		$this->MsExcel_RangeNamesInit();
 		
@@ -4606,7 +4653,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		
 		// Get the sheet content
 		if ($Range['sheet']) {
-			$SearchBy = ($x2) ? array('name', 'sheetId') : array('name', 'num');
 			$o = $this->MsExcel_SheetGetConf($Range['sheet'], array('name'), true);
 			if ($o === false) return false;
 			$idx = $this->FileGetIdx('xl/'.$o->file);
@@ -4614,11 +4660,26 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		} else {
 			$Txt = $this->TBS->Source;
 		}
+
 		
+		$SheetLoc = clsTbsXmlLoc::FindElement($Txt, 'sheetData', 0, true);
+		if (!$SheetLoc) return false;
+		
+		// Visit all cells of the range
 		$ok = true;
-		while ($ok && ($cell = $this->XML_GetNextCell($Txt, $Range, $cell, 'row', 'c')) ) {
-			
+		$cell = false;
+		$result = array();
+		while ($ok && ($cell = $this->XML_GetNextCellLoc($SheetLoc, $Range, $cell, 'row', 'c', false)) ) {
+			if ($cell) {
+				if ($cell->Exists) {
+					$result[] = $cell->GetSrc();
+				}
+			} else {
+				$ok = false;
+			}
 		}
+		
+		return $result;
 		
 	}
 	
@@ -6614,18 +6675,17 @@ class clsTbsXmlLoc {
 	// Create an instance with the given parameters
 	function __construct(&$Txt, $Name, $PosBeg, $SelfClosing = null, $Parent = false, $Exists = true) {
 	
-		$this->PosEnd = strpos($Txt, '>', $PosBeg);
-		if ($this->PosEnd===false) $this->PosEnd = strlen($Txt)-1; // should no happen but avoid errors
-	
 		$this->Txt = &$Txt;
 		$this->Name = $Name;
 		$this->PosBeg = $PosBeg;
 		$this->Exists = $Exists;
 		if ($Exists) {
-			$this->pST_PosEnd = $this->PosEnd;
+			$this->PosEnd = strpos($Txt, '>', $PosBeg);
+			if ($this->PosEnd===false) $this->PosEnd = strlen($Txt)-1; // should no happen but avoid errors
 		} else {
-			$this->pST_PosEnd = $PosBeg - 1;
+			$this->PosEnd = $PosBeg - 1;
 		}
+		$this->pST_PosEnd = $this->PosEnd;
 		$this->SelfClosing = $SelfClosing;
 		$this->Parent = $Parent;
 	}
@@ -6661,25 +6721,19 @@ class clsTbsXmlLoc {
 		if ($this->pET_PosBeg!==false) $this->pET_PosBeg += $Diff;
 	}
 	
-	
 	/**
-	 * Return the position in the root text.
+	 * Convert a self-closing entity to a start+end entity if needed.
+	 * @param string $inner The inner content to insert. 
 	 */
-	/* 
-	function _getParentPos($Pos, $Cascading) {
-		if ($this->Parent) {
-			$res = $Pos + $this->Parent->PosBeg;
-			if ($Cascading) {
-				return $this->Parent->_getParentPos($res, $Cascading);
-			} else {
-				return $res;
-			}
-		} else {
-			return $Pos;
-		}
+	function _ConvertToCouple($inner) {
+		$end = '>' . $inner . '</' . $this->FindName() . '>';
+		$this->Txt = substr_replace($this->Txt, $end, $this->PosEnd - 1, 2);
+		$this->SelfClosing = false;
+		$this->pST_PosEnd = $this->PosEnd - 1;
+		$this->pET_PosBeg = $this->pST_PosEnd + strlen($inner) + 1;
+		$this->PosEnd = $this->pST_PosEnd + strlen($end) - 1;		
 	}
-	*/
-
+	
 	// Return true is the ending position is a self-closing.
 	function _SelfClosing($PosEnd) {
 		return (substr($this->Txt, $PosEnd-1, 1)=='/');
@@ -6716,7 +6770,15 @@ class clsTbsXmlLoc {
 		}
 	}
 
-	// Return the start of the inner content, or false if it's a self-closing tag 
+	/**
+	 * Return the position for appending at the end of the inner contents.
+	 * Return false if SelfClosing.
+	 */
+	function GetInnerAppendPos() {
+		return $this->pET_PosBeg;
+	}
+
+	// Return the start of the inner content.
 	// Return false if SelfClosing.
 	function GetInnerStart() {
 		return ($this->pST_PosEnd===false) ? false : $this->pST_PosEnd + 1;
@@ -6741,12 +6803,7 @@ class clsTbsXmlLoc {
 	// Convert a self-closing entity to a start+end entity if needed.
 	function ReplaceInnerSrc($new) {
 		if ($this->SelfClosing) {
-			$end = '>' . $new . '</' . $this->FindName() . '>';
-			$this->Txt = substr_replace($this->Txt, $end, $this->PosEnd - 1, 2);
-			$this->SelfClosing = false;
-			$this->pST_PosEnd = $this->PosEnd - 1;
-			$this->pET_PosBeg = $this->pST_PosEnd + strlen($new) + 1;
-			$this->PosEnd = $this->pST_PosEnd + strlen($end) - 1;
+			$this->_ConvertToCouple($new);
 		} else {
 			$len = $this->GetInnerLen();
 			if ($len===false) return false;
@@ -6756,6 +6813,19 @@ class clsTbsXmlLoc {
 		}
 	}
 
+	/**
+	 * Append a contents at the end of the inner source.
+	 */
+	function AppendInnerSrc($add) {
+		if ($this->SelfClosing) {
+			$this->_ConvertToCouple($add);
+		} else {
+			$this->Txt = substr_replace($this->Txt, $add, $this->pET_PosBeg, 0);
+			$this->PosEnd += strlen($add);
+			$this->pET_PosBeg += strlen($add);
+		}
+	}
+	
 	// Update the parent object, if any.
 	function UpdateParent($Cascading=false) {
 		if ($this->Parent) {
@@ -6764,19 +6834,6 @@ class clsTbsXmlLoc {
 		}
 	}
 	
-	/*
-	// Unlink the object so that it becomes 
-	function UnlinkParent($Cascading=false) {
-		if ($this->Parent) {
-			$diff = $this->_getParentPos(0);
-			$this->_ApplyDiffToAll($diff);
-			// Destroy link to parent object
-			unset($this->Parent);
-			$this->Parent = false;
-		} 
-	}
-	*/
-
 	// Get an attribute's value. Or false if the attribute is not found.
 	// It's a lazy way because the attribute is searched with the patern {attribute="value" }
 	function GetAttLazy($Att) {
@@ -7003,6 +7060,28 @@ class clsTbsXmlLoc {
 
 		return $XmlLoc;
 
+	}
+	
+	static function CreatePhatomElement(&$TxtOrObj, $PosBeg) {
+		
+		if (is_object($TxtOrObj)) {
+			$TxtOrObj->FindEndTag();
+			$Txt = $TxtOrObj->GetSrc();
+			if ($Txt===false) return false;
+			$Parent = &$TxtOrObj;
+		} else {
+			$Txt = &$TxtOrObj;
+			$Parent = false;
+		}
+		
+		$Name = '';
+		$SelfClosing = null;
+		$Exists = false;
+
+		$XmlLoc = new clsTbsXmlLoc($Txt, $Name, $PosBeg, $SelfClosing, $Parent, $Exists);
+			
+		return $XmlLoc;
+		
 	}
 
 }
