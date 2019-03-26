@@ -2447,6 +2447,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$rowLoc    = false;
 			$r_pos = 0;
 			$c_pos = 0;
+			$NewRow = true;
 		} else {
 			$prevRow = $PrevLoc->cellRow;
 			$prevCol = $PrevLoc->cellCol;
@@ -2455,6 +2456,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				// next cell in the same row
 				$currRow = $PrevLoc->cellRow;
 				$c_pos = $PrevLoc->PosEnd + 1;
+				$NewRow = false;
 			} else {
 				// first cell of the range in the next row
 				$prevCol = 0;
@@ -2464,6 +2466,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					return false;
 				}
 				$c_pos = 0;
+				$NewRow = true;
 			}
 			$prevRowOk = $PrevLoc->RowOk;
 			$prevColOk = $PrevLoc->Exists;
@@ -2546,6 +2549,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		
 		$cellLoc->RowOk   = $prevRowOk;
+		$cellLoc->NewRow  = $NewRow;
 		$cellLoc->cellRow = $currRow; // row num in the sheet
 		$cellLoc->cellCol = $currCol; // col num in the sheet
 		
@@ -4629,7 +4633,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * @param mixed $Range
 	 * @param mixed $Set
 	 */
-	function MsExcel_VisitCells($RangeRef, $Set = false) {
+	function MsExcel_VisitCells($RangeRef, $Header = false, $Set = false) {
 		
 		$this->MsExcel_RangeNamesInit();
 		
@@ -4669,17 +4673,78 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$ok = true;
 		$cell = false;
 		$result = array();
+		$row_idx = -1;
+		$col_idx = -1;
+		$col_ok = false;
+		$col_lst = array();
+		$col_save = $Header;
 		while ($ok && ($cell = $this->XML_GetNextCellLoc($SheetLoc, $Range, $cell, 'row', 'c', false)) ) {
 			if ($cell) {
-				if ($cell->Exists) {
-					$result[] = $cell->GetSrc();
+				if ($cell->NewRow) {
+					$col_idx = 0;
+					$row_idx++;
+					unset($row);
+					if ($col_save) {
+						$col_save = false;
+						$col_lst = array();
+						$row =& $col_lst;
+					} else {
+						$col_ok = $Header;
+						$result[$row_idx] = array();
+						$row =& $result[$row_idx];
+					}
+				} else {
+					$col_idx++;
 				}
+				$col_ref = ($col_ok) ? $col_lst[$col_idx] : $col_idx;
+				$row[$col_ref] = $this->MsExcel_GetCellValue($cell);
 			} else {
 				$ok = false;
 			}
 		}
 		
+		unset($row);
+		
 		return $result;
+		
+	}
+	
+	function MsExcel_GetCellValue($Loc) {
+		
+		$x = null;
+		
+		if ($Loc->GetInnerStart() !== false) {
+			$type = $Loc->GetAttLazy('t');
+			$vtag = ($type === 'inlineStr') ? 't' : 'v';
+			$ve = clsTbsXmlLoc::FindElement($Loc, $vtag, 0, true);
+			if ($ve === false) {
+				$x = "(tag $vtag not found)";
+			} else {
+				$v = $ve->GetInnerSrc();
+				switch ($type) {
+				case 'b': // boolean: 0=false
+					$x = (boolean) $v; break;
+				case 's': // shared string
+					$x = $this->OpenXML_SharedStrings_GetVal($v);
+					$this->XML_DeleteElements($x, array('t'), true);
+					break;
+				case 'inlineStr': // inline string
+					$x = $v; break;
+				case 'str': // formula returning a string				
+					$x = $v; break;
+				case 'd': // date
+					$t = ($v-25569.0) * 86400.0; // unix: 1 means 01/01/1970, xlsx: 1 means 01/01/1900
+					$x = date('Y-m-d h:i:s', $t);
+					break;
+				case 'e': // error, example of value: #DIV/0!
+					$x = $v; break;
+				default: // false or 'n' : number
+					$x = $v;
+				}
+			}
+		}
+		
+		return $x;
 		
 	}
 	
@@ -4708,35 +4773,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$cp = 0;
 				while ($ce=clsTbsXmlLoc::FindElement($re, 'c', $cp, true) ) {
 					$cn++;
-					$x = null;
-					if ($ce->GetInnerStart() !== false) {
-						$type = $ce->GetAttLazy('t');
-						$vtag = ($type === 'inlineStr') ? 't' : 'v';
-						$ve = clsTbsXmlLoc::FindElement($ce, $vtag, 0, true);
-						if ($ve === false) {
-							$x = "(tag $vtag not found)";
-						} else {
-							$v = $ve->GetInnerSrc();
-							switch ($type) {
-							case 'b': // boolean: 0=false
-								$x = (boolean) $v; break;
-							case 's': // shared string
-								$x = $this->OpenXML_SharedStrings_GetVal($v); break;
-							case 'inlineStr': // inline string
-								$x = $v;
-							case 'str': // formula returning a string				
-								$x = $v;
-							case 'd': // date
-								$t = ($v-25569.0) * 86400.0; // unix: 1 means 01/01/1970, xlsx: 1 means 01/01/1900
-								$x = date('Y-m-d h:i:s', $t);
-							case 'e': // error, example of value: #DIV/0!
-								$x = $v;
-							default: // false or 'n' : number
-								$x = $v;
-							}
-						}
-					}
-					$row[] = $x;
+					$row[] = $this->MsExcel_GetCellValue($ce);
 					$cp = $ce->PosEnd;
 				}
 			}
