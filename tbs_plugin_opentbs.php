@@ -2421,8 +2421,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	/**
 	 * Return the next cell of the range (actual or virtual). Return false if there is no more cells for this range in the sheet.
 	 * The process assumes that :
-	 * - trailing rows can be misssing in the sheet but there is no missing row  bewteen rows.
-	 * - trailing cols can be misssing in a row     but there is no missing cell bewteen cells.
+	 * - trailing rows of the range can be misssing in the sheet but there is no missing row  between rows.
+	 * - trailing cols of the range can be misssing in a row     but there is no missing cell between cells.
+	 * If « $AddMissing = false » :
+	 *   Cells of missing columns are return by the function as a valid object with the property « Exists = false ».
+	 *   Cells of missing rows    are return by the function as false.
+	 *   But missing cells are skiped in case of a range with with full columns.
 	 *
      * @param string|object  $SheetLoc The locator of the sheet entity that directly contains row.
 	 * @param array          $Range    A range info formated as array('cs'=>...,'rs'=>...,'ce'=>...,'re'=>...)
@@ -2438,70 +2442,75 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		
 		// Retreive previous and current cell coordinates
 		if ( $PrevLoc === false ) {
-			$prevRow = 0;
-			$prevCol = 0;
-			$currRow = $Range['rs'];
-			$currCol = $Range['cs'];
-			$prevRowOk = true;
-			$prevColOk = true;
+			$currRow = 0;
+			$currCol = 0;
+			$targetRow = $Range['rs'];
+			$targetCol = $Range['cs'];
+			$currRowOk = true;
+			$currColOk = true;
 			$rowLoc    = false;
 			$r_pos = 0;
 			$c_pos = 0;
 			$NewRow = true;
 		} else {
-			$prevRow = $PrevLoc->cellRow;
-			$prevCol = $PrevLoc->cellCol;
-			$currCol = $prevCol + 1;
-			if ($currCol <=  $Range['ce']) {
-				// next cell in the same row
-				$currRow = $PrevLoc->cellRow;
+			$currRow = $PrevLoc->cellRow;
+			$currCol = $PrevLoc->cellCol;
+			$targetCol = $currCol + 1;
+			$same_row = ($targetCol <=  $Range['ce']);
+			if ($Range['cfull'] && (!$PrevLoc->Exists)) {
+				$same_row = false;
+			}
+			if ($same_row) {
+				// we will search next cell in the same row
+				$targetRow = $PrevLoc->cellRow;
 				$c_pos = $PrevLoc->PosEnd + 1;
 				$NewRow = false;
+				$currColOk = $PrevLoc->Exists;
 			} else {
-				// first cell of the range in the next row
-				$prevCol = 0;
-				$currCol = $Range['cs'];
-				$currRow = $prevRow + 1;
-				if ($currRow > $Range['re']) {
+				// we will search the first cell of the range in the next row
+				$currCol = 0;
+				$targetCol = $Range['cs'];
+				$targetRow = $currRow + 1;
+				if ($targetRow > $Range['re']) {
 					return false;
 				}
 				$c_pos = 0;
 				$NewRow = true;
+				$currColOk = true;
 			}
-			$prevRowOk = $PrevLoc->RowOk;
-			$prevColOk = $PrevLoc->Exists;
+			$currRowOk = $PrevLoc->RowOk;
 			$rowLoc    = $PrevLoc->Parent;
 			$r_pos = $PrevLoc->Parent->PosEnd + 1;
 		}
 
 		// Moves to the next cell
 
-//echo "\n* XML_GetNextCellLoc : prevRow = $prevRow, prevCol = $prevCol | currRow = $currRow, currCol = $currCol";
+//echo "\n* XML_GetNextCellLoc : currRow = $currRow, currCol = $currCol | targetRow = $targetRow, targetCol = $targetCol | currRowOk = ".var_export($currRowOk,true).", currColOk = ".var_export($currColOk,true);
 		
 		// Reach the asked row 
-//echo "\n* Recherche Row : début";
-		while ( $prevRowOk && ($prevRow < $currRow) ) {
-			//echo "\n* Recherche Row (r_pos=$r_pos) : ";
+//echo "\n  * Recherche Row : début";
+		while ( $currRowOk && ($currRow < $targetRow) ) {
+			//echo "\n  * Recherche Row (r_pos=$r_pos) : ";
 			$rowLoc = clsTbsXmlLoc::FindElement($SheetLoc, $RowEl, $r_pos, true);
 			if ($rowLoc === false) {
 				//echo "échec";
-				$prevRowOk = false;
+				$currRowOk = false;
 			} else {
 				//echo "ok";
 				$r_pos = $rowLoc->PosEnd + 1;
-				$prevRow++;
+				$currRow++;
 			}
 		}
 		
 		// Insert missing rows
-//echo "\n* Insert Row : début";
-		if (!$prevRowOk) {
-			$prevColOk = false;
+//echo "\n  * Insert Row : début";
+		if (!$currRowOk) {
+			$currColOk = false;
 			if ($AddMissing) {
 				// Insert the empty rows
 				$x = '<' . $RowEl . '></' . $RowEl . '>';
 				$x_len = strlen($x);
-				$nb = ($currRow - $prevRow);
+				$nb = ($targetRow - $currRow);
 				$SheetLoc->Txt = substr_replace($SheetLoc->Txt, str_repeat($x, $nb), $r_pos, 0);
 				// The row locator must be targeted on the last inserted row
 				$r_pos = $r_pos + ($nb - 1) * $x_len;
@@ -2514,29 +2523,29 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		
 		// Reach the asked cell 
-//echo "\n* Recherche Col : début";
-		while ($prevColOk && ($prevCol < $currCol)) {
+//echo "\n  * Recherche Col : début : currColOk=" . var_export($currColOk, true) . ", currCol=$currCol, targetCol=$targetCol";
+		while ($currColOk && ($currCol < $targetCol)) {
 			if ($rowLoc === false) return $this->RaiseError("No parent row.");
-			//echo "\n* Recherche Col (c_pos=$c_pos) : ";
+			//echo "\n  * Recherche Col (c_pos=$c_pos) : ";
 			$cellLoc = clsTbsXmlLoc::FindElement($rowLoc, $CellEl, $c_pos, true);
 			if ($cellLoc === false) {
 				//echo "échec, rowLoc = " . $rowLoc->GetSrc();
-				$prevColOk = false;
+				$currColOk = false;
 			} else {
 				//echo "ok";
 				$c_pos = $cellLoc->PosEnd + 1;
-				$prevCol++;
+				$currCol++;
 			}
 		}
 
 		// Insert missing cells
 //echo "\n* Insert Col : début";
-		if (!$prevColOk) {
+		if (!$currColOk) {
 			if ($AddMissing) {
 				// Insert the empty cells
 				$x = '<' . $CellEl . '></' . $CellEl . '>';
 				$x_len = strlen($x);
-				$nb = ($currCol - $prevCol);
+				$nb = ($targetCol - $currCol);
 				$rowLoc->AppendInnerSrc(str_repeat($x, $nb));
 				// The col locator must be targeted on the last inserted col
 				$cellLoc = new clsTbsXmlLoc($rowLoc->Txt, $CellEl, ($rowLoc->GetInnerAppendPos() - $x_len), null, $rowLoc, false);
@@ -2544,18 +2553,26 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			} else {
 				// No more data => locator on a non-existing entity ($cellLoc->Exists = false)
 				$cellLoc = clsTbsXmlLoc::CreatePhatomElement($rowLoc, $rowLoc->GetInnerAppendPos());
-				//$cellLoc->FindEndTag();
 			}
 		}
 		
-		$cellLoc->RowOk   = $prevRowOk;
-		$cellLoc->NewRow  = $NewRow;
-		$cellLoc->cellRow = $currRow; // row num in the sheet
-		$cellLoc->cellCol = $currCol; // col num in the sheet
+		$cellLoc->RowOk   = $currRowOk;
+		$cellLoc->NewRow  = $NewRow;  // is this the first cell of the range for this row
+		$cellLoc->cellRow = $targetRow; // row num in the sheet
+		$cellLoc->cellCol = $targetCol; // col num in the sheet
 		
-		//echo "\n rowLoc->GetSrc   = " . $rowLoc->GetSrc();
-		//echo "\n cellLoc->GetSrc  = " . $cellLoc->GetSrc();
-		//echo "\n cellLoc = " . var_export($cellLoc, true);
+		//echo "\n   rowLoc->GetSrc   = " . $rowLoc->GetSrc();
+		//echo "\n   cellLoc->GetSrc  = " . $cellLoc->GetSrc();
+		//echo "\n   cellLoc = " . var_export($cellLoc, true);
+
+		//echo "\n  * Résultat cellLoc = ($targetRow, $targetCol)  RowOk=".var_export($currRowOk,true).", NewRow=".var_export($NewRow,true).", Exists=".var_export($cellLoc->Exists,true);
+
+		// In case of a full colmun range, we don't return the extra missing columns.
+		// This means a valid row can have no cells.
+		if ( $Range['cfull'] && (!$cellLoc->Exists) ) {
+			//echo " ... suivante ";
+			return $this->XML_GetNextCellLoc($SheetLoc, $Range, $cellLoc, $RowEl, $CellEl, $AddMissing);
+		}
 		
 		return $cellLoc;
 		
@@ -2721,6 +2738,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					$sheet = htmlspecialchars_decode($sheet); // ODS only
 				}
 				
+				// pattern with all props
 				$info = array(
 					'sheet' => $sheet,
 					'cells' => $cells,
@@ -2730,6 +2748,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					'ce'   => false,
 					're'   => false,
 					'single' => false,
+					'cfull' => false,
+					'rfull' => false,
 				);
 				
 				// Analyze the cells ref
@@ -2761,6 +2781,18 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					$info['ce'] = $info['cs'];
 					$info['re'] = $info['rs'];
 					$info['single'] = true;
+				}
+				
+				// Set the full row or column info
+				if ($info['cs'] === 0) {
+					$info['cs'] = 1;
+					$info['ce'] = PHP_INT_MAX;
+					$info['cfull'] = true;
+				}
+				if ($info['re'] === 0) {
+					$info['rs'] = 1;
+					$info['re'] = PHP_INT_MAX;
+					$info['rfull'] = true;
 				}
 				
 				$result[] = $info;
@@ -4642,7 +4674,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$x = $this->OtbsSheetRangeNames[$RangeRef];
 		} else {
 			// Custom range definition
-			$x = $this->Misc_GetRangeInfo($Range);
+			$x = $this->Misc_GetRangeInfo($RangeRef);
 		}
 		
 		// Checks
@@ -4713,7 +4745,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		
 		$x = null;
 		
-		if ($Loc->GetInnerStart() !== false) {
+		if ( $Loc->Exists && ($Loc->GetInnerStart() !== false) ) {
 			$type = $Loc->GetAttLazy('t');
 			$vtag = ($type === 'inlineStr') ? 't' : 'v';
 			$ve = clsTbsXmlLoc::FindElement($Loc, $vtag, 0, true);
@@ -6929,7 +6961,7 @@ class clsTbsXmlLoc {
 
 	// Find the name of the element
 	function FindName() {
-		if ($this->Name==='') {
+		if ( ($this->Name==='') && $this->Exists ) {
 			$p = $this->PosBeg;
 			do {
 				$p++;
