@@ -786,31 +786,11 @@ class clsOpenTBS extends clsTbsZip {
 			
 		} elseif ($Cmd == OPENTBS_GET_CELLS) {
 			
-			// $x1 = sheet
-			// $x2 = range   'A1', 'A1:B2', array(c1,r1,c2,r2), array('A1', 'A2', ...)
-			if ($this->ExtEquiv == 'ods') {
-				return $this->OpenDoc_VisitCells($x1);
-			} elseif ($this->ExtEquiv == 'xlsx') {
-				return $this->MsExcel_VisitCells($x1);
-			} else {
-				return false;
-			}
-
+			return $this->Sheet_VisitCells($x1, $x2, false);
 			
 		} elseif ($Cmd == OPENTBS_SET_CELLS) {
 			
-			// $x1 = sheet
-			// $x2 = range   'A1', 'A1:B2', array(c1,r1,c2,r2),
-			// $x3 = values  recordset : $val or array( array(), array(), )
-			// or
-			// $x2 = range   array('A1' => ..., 'A2' => ...)
-			if ($this->ExtEquiv == 'ods') {
-				return $this->OpenDoc_VisitCells($x1);
-			} elseif ($this->ExtType == 'xlsx') {
-				return $this->MsExcel_VisitCells($x1);
-			} else {
-				return false;
-			}
+			return $this->Sheet_VisitCells($x1, $x2, $x3);
 			
 		}
 
@@ -2589,7 +2569,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 *
 	 * @return integer|array  The column number, or an arrar with both the colum number and the row number.
 	 */
-	function Misc_ColNum($CellRef, $WithRow = false) {
+	function Sheet_ColNum($CellRef, $WithRow = false) {
 
 		$col = 0;
 		$row = '';
@@ -2628,7 +2608,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * @param string  $Char (optional) The prefix for col and row num.
 	 * @return string
 	 */
-	function Misc_CellRef($Col, $Row, $Char = '') {
+	function Sheet_CellRef($Col, $Row, $Char = '') {
 		$r = '';
 		$x = $Col;
 		do {
@@ -2662,7 +2642,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 *
 	 * @return array A recordset of info.
 	 */
-	function Misc_GetRangeInfo($ref) {
+	function Sheet_GetRangeInfo($ref) {
 
 		$delim = "'"; // Sheet name delimitor
 		$rsep = ",";  // Range separator
@@ -2756,7 +2736,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$parts = explode(':', $cells);
 				foreach ($parts as $idx => $cell) {
 					$z = ($idx === 0) ? 's' : 'e';
-					$w = $this->Misc_ColNum($cell, true);
+					$w = $this->Sheet_ColNum($cell, true);
 					$ok = true;
 					if ($is_xslx) {
 						// we have to check that both col and row values have a $, otherwise the Excel syntaxe is not the same
@@ -2800,6 +2780,80 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			}
 			
 		}
+		
+		return $result;
+		
+	}
+
+	/**
+	 * Visit all the cells of a range for get or set.
+	 *
+	 */
+	function Sheet_VisitCells($RangeRef, $Header, $Set) {
+		
+		if ($this->ExtEquiv == 'ods') {
+			$isXlsx = false;
+		} elseif ($this->ExtEquiv == 'xlsx') {
+			$isXlsx = true;
+		} else {
+			// Not supported
+			return false;
+		}
+		
+		// Get sheet and range information
+		$SheetLoc = null;
+		$Range    = null;
+		if ($isXlsx) {
+			$ok = $this->MsExcel_SearchRange($RangeRef, $SheetLoc, $Range);
+		} else {
+			$ok = $this->OpenDoc_SearchRange($RangeRef, $SheetLoc, $Range);
+		}
+		if (!$ok) {
+			return false;
+		}
+
+		$RowEl  = ($isXlsx) ? 'row' : 'table:table-row';
+		$CellEl = ($isXlsx) ? 'c'   : 'table:table-cell';
+		
+		// Visit all cells of the range
+		$ok = true;
+		$cell = false;
+		$result = array();
+		$row_idx = -1;
+		$col_idx = -1;
+		$col_ok = false;
+		$col_lst = array();
+		$col_save = $Header;
+		while ($ok && ($cell = $this->XML_GetNextCellLoc($SheetLoc, $Range, $cell, $RowEl, $CellEl, false)) ) {
+			if ($cell) {
+				if ($cell->NewRow) {
+					$col_idx = 0;
+					$row_idx++;
+					unset($row);
+					if ($col_save) {
+						$col_save = false;
+						$col_lst = array();
+						$row =& $col_lst;
+					} else {
+						$col_ok = $Header;
+						$result[$row_idx] = array();
+						$row =& $result[$row_idx];
+					}
+				} else {
+					$col_idx++;
+				}
+				$col_ref = ($col_ok) ? $col_lst[$col_idx] : $col_idx;
+				if ($isXlsx) {
+					$row[$col_ref] = $this->MsExcel_GetCellValue($cell);
+				} else {
+					$row[$col_ref] = $this->OpenDoc_GetCellValue($cell);
+				}
+			} else {
+				$ok = false;
+			}
+		}
+		
+		unset($row);
 		
 		return $result;
 		
@@ -4111,7 +4165,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				if ($IsRow) {
 					$r = intval($r);
 				} else {
-					$r = $this->Misc_ColNum($r);
+					$r = $this->Sheet_ColNum($r);
 				}
 				$missing_nbr = $r - $item_num -1;
 				if ($missing_nbr<0) {
@@ -4224,7 +4278,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			} else {
 
 				// The item is not empty => replace attribute and delete the previous empty item in the same time
-				$ref = ($ParentRowNum===false) ? $item_num : $this->Misc_CellRef($item_num, $ParentRowNum);
+				$ref = ($ParentRowNum===false) ? $item_num : $this->Sheet_CellRef($item_num, $ParentRowNum);
 				$Txt_Curr = $rpl . $ref . '"' . substr($Txt_Curr, 0 + $tag_pc);
 				$rpl_nbr++;
 
@@ -4653,19 +4707,21 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		while ( $el = clsTbsXmlLoc::FindElement($Txt, 'definedName', $p, true) ) {
 			$name = $el->GetAttLazy('name'); // forbidden in range name : ", ', ' ', 
 			$ref = $el->GetInnerSrc();
-			$this->OtbsSheetRangeNames[$name] = $this->Misc_GetRangeInfo($ref);
+			$this->OtbsSheetRangeNames[$name] = $this->Sheet_GetRangeInfo($ref);
 			$p = $el->PosEnd;
 		}
 		
 	}
 
 	/**
-	 * Visit all the cells of a range for get or set.
+	 * Search internal information from a range reference .
 	 *
-	 * @param mixed $Range
-	 * @param mixed $Set
+	 * @param string $RangeRef
+	 * @param mixed  $SheetLoc  Set to null, and the function will set it as the clsTbsXmlLoc object.
+	 * @param mixed  $Range     Set to null, and the function will set it as range information.
+	 * @return boolean Return true if succeed, otherwise return false;
 	 */
-	function MsExcel_VisitCells($RangeRef, $Header = false, $Set = false) {
+	function MsExcel_SearchRange($RangeRef, &$SheetLoc, &$Range) {
 		
 		$this->MsExcel_RangeNamesInit();
 		
@@ -4674,7 +4730,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$x = $this->OtbsSheetRangeNames[$RangeRef];
 		} else {
 			// Custom range definition
-			$x = $this->Misc_GetRangeInfo($RangeRef);
+			$x = $this->Sheet_GetRangeInfo($RangeRef);
 		}
 		
 		// Checks
@@ -4699,45 +4755,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		
 		$SheetLoc = clsTbsXmlLoc::FindElement($Txt, 'sheetData', 0, true);
-		if (!$SheetLoc) return false;
-		
-		// Visit all cells of the range
-		$ok = true;
-		$cell = false;
-		$result = array();
-		$row_idx = -1;
-		$col_idx = -1;
-		$col_ok = false;
-		$col_lst = array();
-		$col_save = $Header;
-		while ($ok && ($cell = $this->XML_GetNextCellLoc($SheetLoc, $Range, $cell, 'row', 'c', false)) ) {
-			if ($cell) {
-				if ($cell->NewRow) {
-					$col_idx = 0;
-					$row_idx++;
-					unset($row);
-					if ($col_save) {
-						$col_save = false;
-						$col_lst = array();
-						$row =& $col_lst;
-					} else {
-						$col_ok = $Header;
-						$result[$row_idx] = array();
-						$row =& $result[$row_idx];
-					}
-				} else {
-					$col_idx++;
-				}
-				$col_ref = ($col_ok) ? $col_lst[$col_idx] : $col_idx;
-				$row[$col_ref] = $this->MsExcel_GetCellValue($cell);
-			} else {
-				$ok = false;
-			}
+		if ($SheetLoc) {
+			return true;
+		} else {
+			return false;
 		}
-		
-		unset($row);
-		
-		return $result;
 		
 	}
 	
@@ -4777,43 +4799,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		
 		return $x;
-		
-	}
-	
-	/**
-	 * Return the array of the cells
-	 * Problem to solve: the results of formulas are deleted because of OtbsMsExcelConsistent
-	 */
-	function MsExcel_AsArray($Txt, $options = array()) {
-	
-		$rBeg = $this->getItem($options, 'row_beg', 1);
-		$rEnd = $this->getItem($options, 'row_end', 0);
-		$cBeg = $this->getItem($options, 'col_beg', 1);
-		$cEnd = $this->getItem($options, 'col_end', 0);
-		$formulas = $this->getItem($options, 'formulas', false);
-		$fill = $this->getItem($options, 'fill', true);
-		
-		$result = array();
-	
-		$rp = 0;
-		$rn = -1;
-		while ($re=clsTbsXmlLoc::FindElement($Txt, 'row', $rp, true) ) {
-			$rn++;
-			$row = array();
-			if ($re->GetInnerStart() !== false) {
-				$cn = -1;
-				$cp = 0;
-				while ($ce=clsTbsXmlLoc::FindElement($re, 'c', $cp, true) ) {
-					$cn++;
-					$row[] = $this->MsExcel_GetCellValue($ce);
-					$cp = $ce->PosEnd;
-				}
-			}
-			$result[]= $row;
-			$rp = $re->PosEnd;
-		}
-
-		return $result;
 		
 	}
 	
@@ -5824,7 +5809,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			if ($ref === false) {
 				$ref  = $el->GetAttLazy('table:cell-range-address');
 			}
-			$this->OtbsSheetRangeNames[$name] = $this->Misc_GetRangeInfo($ref);
+			$this->OtbsSheetRangeNames[$name] = $this->Sheet_GetRangeInfo($ref);
 			$p = $el->PosEnd;
 		}
 		
@@ -5864,6 +5849,33 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	/**
+	 * Visit all the cells of a range for get or set.
+	 *
+	 * @param mixed   $Range
+	 * @param boolean $Header
+	 * @param mixed   $Set
+	 */
+	function OpenDoc_SearchRange($RangeRef, &$SheetLoc, &$Range) {
+		
+		return $this->RaiseError("to be coded");
+		
+		return false;
+		
+	}
+
+	function OpenDoc_GetCellValue($Loc) {
+		
+		$x = null;
+		
+		if ( $Loc->Exists && ($Loc->GetInnerStart() !== false) ) {
+			return $this->RaiseError("to be coded");
+		}
+		
+		return $x;
+		
+	}
+	
 	// Feed $Styles with styles found in $Txt
 	function OpenDoc_StylesFeed(&$Styles, $Txt) {
 		$p = 0;
@@ -6378,7 +6390,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$RangeRef = str_replace( array('.','$'), '', $RangeRef);
 		$RangeRef = explode(':', $RangeRef);
 
-		$col_num = $this->Misc_ColNum($RangeRef[0]);
+		$col_num = $this->Sheet_ColNum($RangeRef[0]);
 		
 		return $col_num - 1;
 
@@ -6504,9 +6516,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * Returne the local reference for a colmun.
 	 */
 	function OpenDoc_ChartLocalColRef($chart, $col, $row1, $row2 = false) {
-		$ref = $chart['tbl_name'] . '.' . $this->Misc_CellRef($col, $row1, '$');
+		$ref = $chart['tbl_name'] . '.' . $this->Sheet_CellRef($col, $row1, '$');
 		if ($row2 !== false) {
-			$ref .= ':' . $this->Misc_CellRef($col, $row2, '$');
+			$ref .= ':' . $this->Sheet_CellRef($col, $row2, '$');
 		}
 		return $ref;
 	}
