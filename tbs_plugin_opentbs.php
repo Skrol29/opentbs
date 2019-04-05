@@ -4714,9 +4714,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-	 * Search internal information from a range reference .
-	 *
-	 * @param string $RangeRef
+	 * Search internal information from a range reference.
+	 * @param string $RangeRef  The range reference in the workbook or current sheet.
 	 * @param mixed  $SheetLoc  Set to null, and the function will set it as the clsTbsXmlLoc object.
 	 * @param mixed  $Range     Set to null, and the function will set it as range information.
 	 * @return boolean Return true if succeed, otherwise return false;
@@ -5850,11 +5849,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-	 * Visit all the cells of a range for get or set.
-	 *
-	 * @param mixed   $Range
-	 * @param boolean $Header
-	 * @param mixed   $Set
+	 * Search internal information from a range reference.
+	 * @param string $RangeRef  The range reference in the workbook.
+	 * @param mixed  $SheetLoc  Set to null, and the function will set it as the clsTbsXmlLoc object.
+	 * @param mixed  $Range     Set to null, and the function will set it as range information.
+	 * @return boolean Return true if succeed, otherwise return false;
 	 */
 	function OpenDoc_SearchRange($RangeRef, &$SheetLoc, &$Range) {
 		
