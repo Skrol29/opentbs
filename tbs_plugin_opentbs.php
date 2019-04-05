@@ -2791,6 +2791,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 */
 	function Sheet_VisitCells($RangeRef, $Header, $Set) {
 		
+		// Get the type of contents
 		if ($this->ExtEquiv == 'ods') {
 			$isXlsx = false;
 		} elseif ($this->ExtEquiv == 'xlsx') {
@@ -2799,16 +2800,37 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			// Not supported
 			return false;
 		}
+
+		if ($isXlsx) {
+			$this->MsExcel_RangeNamesInit();
+		} else {
+			$this->OpenDoc_RangeNamesInit();
+		}
+		
+		// Get range information
+		if (isset($this->OtbsSheetRangeNames[$RangeRef])) {
+			// Named range
+			$x = $this->OtbsSheetRangeNames[$RangeRef];
+		} else {
+			// Custom range definition
+			$x = $this->Sheet_GetRangeInfo($RangeRef);
+		}
+		if (isset($x[0])) {
+			$Range = $x[0];
+		} else {
+			return $this->RaiseError("Unable to read the definition for the range named '{$RangeRef}'.");
+		}
+		if ($Range['err']) {
+			return $this->RaiseError("Error for the range '{$RangeRef}' : " . $Range['err']);
+		}
 		
 		// Get sheet and range information
-		$SheetLoc = null;
-		$Range    = null;
 		if ($isXlsx) {
-			$ok = $this->MsExcel_SearchRange($RangeRef, $SheetLoc, $Range);
+			$SheetLoc = $this->MsExcel_GetSheetLoc($Range);
 		} else {
-			$ok = $this->OpenDoc_SearchRange($RangeRef, $SheetLoc, $Range);
+			$SheetLoc = $this->OpenDoc_GetSheetLoc($Range);
 		}
-		if (!$ok) {
+		if (!$SheetLoc) {
 			return false;
 		}
 
@@ -4714,51 +4736,25 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-	 * Search internal information from a range reference.
-	 * @param string $RangeRef  The range reference in the workbook or current sheet.
-	 * @param mixed  $SheetLoc  Set to null, and the function will set it as the clsTbsXmlLoc object.
-	 * @param mixed  $Range     Set to null, and the function will set it as range information.
-	 * @return boolean Return true if succeed, otherwise return false;
+	 * Get the locator of the sheet element.
+	 * @param  array  $Range  The range information.
+	 * @return object A clsTbsXmlLoc locator of false if error.
 	 */
-	function MsExcel_SearchRange($RangeRef, &$SheetLoc, &$Range) {
-		
-		$this->MsExcel_RangeNamesInit();
-		
-		if (isset($this->OtbsSheetRangeNames[$RangeRef])) {
-			// Named range
-			$x = $this->OtbsSheetRangeNames[$RangeRef];
-		} else {
-			// Custom range definition
-			$x = $this->Sheet_GetRangeInfo($RangeRef);
-		}
-		
-		// Checks
-		if (isset($x[0])) {
-			$Range = $x[0];
-		} else {
-			return $this->RaiseError("Unable to read the definition for the range named '{$RangeRef}'.");
-		}
-		if ($Range['err']) {
-			return $this->RaiseError("Error for the range '{$RangeRef}' : " . $Range['err']);
-		}
+	function MsExcel_GetSheetLoc($Range) {
 		
 		// Get the sheet content
 		if ($Range['sheet']) {
 			$o = $this->MsExcel_SheetGetConf($Range['sheet'], array('name'), true);
 			if ($o === false) return false;
 			$idx = $this->FileGetIdx('xl/'.$o->file);
-			$Txt = $this->TbsStoreGet($idx, 'VisitCells');
+			$Txt = $this->TbsStoreGet($idx, 'GetSheetLoc');
 		} else {
 			$Txt = $this->TBS->Source;
 		}
 
 		
 		$SheetLoc = clsTbsXmlLoc::FindElement($Txt, 'sheetData', 0, true);
-		if ($SheetLoc) {
-			return true;
-		} else {
-			return false;
-		}
+		return $SheetLoc;
 		
 	}
 	
@@ -5849,16 +5845,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-	 * Search internal information from a range reference.
-	 * @param string $RangeRef  The range reference in the workbook.
-	 * @param mixed  $SheetLoc  Set to null, and the function will set it as the clsTbsXmlLoc object.
-	 * @param mixed  $Range     Set to null, and the function will set it as range information.
-	 * @return boolean Return true if succeed, otherwise return false;
+	 * Get the locator of the sheet element.
+	 * @param  array  $Range  The range information.
+	 * @return object A clsTbsXmlLoc locator of false if error.
 	 */
-	function OpenDoc_SearchRange($RangeRef, &$SheetLoc, &$Range) {
+	function OpenDoc_GetSheetLoc($Range) {
 		
 		return $this->RaiseError("to be coded");
-		
+
 		return false;
 		
 	}
