@@ -888,7 +888,7 @@ class clsOpenTBS extends clsTbsZip {
 									$this->OpenDoc_CleanRsID($TBS->Source);
 								}
 								if (($e==='ods') && $TBS->OtbsMsExcelCompatibility) {
-									$this->OpenDoc_MsExcelCompatibility($TBS->Source);
+									$this->OpenDoc_DeleteUselessRepeatedElements($TBS->Source);
 								}
 								if ($e==='docx') {
 									if ($TBS->OtbsSpacePreserve) $this->MsWord_CleanSpacePreserve($TBS->Source);
@@ -2633,6 +2633,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * ODS :
 	 * Sheet5.C9
 	 * $'the_sheet_name'.$A$1
+	 * $'the_sheet_name'.$A$1:.$B$2
+	 * $'the_sheet_name'.$A$1:'the_sheet_name'.$B$2
 	 *
 	 * forbidden chars in sheet name : XLSX = ": ' [  ]"  ; ODS = "[ ] * ? : / \ " or "'" as first char
 	 * simple quotes are doubled
@@ -2651,17 +2653,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$i_end =  strlen($ref) -1;
 		$new = true;
-		// I's easier to read backward since the rang def always ends with a cell reference
+		// I's easier to read backward since the range definition always ends with a cell reference
 		for ($i = $i_end ; $i >= 0 ; $i--) {
 
 			// Initialize a new range info
 			if ($new) {
 				$sheet = '';
 				$cells = '';
-				$in_delim = false; // if we are inside the delimited string
-				$is_cell = true; // if the sheet name has been found
-				$is_xslx = false;
-				$new = false;
+				$in_delim = false; // true if we are inside the delimited string
+				$is_cell = true;   // true if wee reading the cell part
+				$is_xslx = false;  // true if is seems to be an XLSX syntax 
+				$new = false;      // true if it is a new range defintion (XLSX ranges can be multi-range)
 			}
 			
 			// Read and interpret the char
@@ -2701,6 +2703,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				} else {
 					if ($x === $delim) {
 						$in_delim = true;
+					} elseif ($x === ':') {
+						// case of ODS with two cells
+						$cells = $x . $cells;
+						$is_cell = true;
+						$sheet = ''; // the sheet name can be repeated in the second cell with Database Range
 					} elseif ($x === $rsep) {
 						$new = true;
 					} else {
@@ -2833,6 +2840,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if (!$SheetLoc) {
 			return false;
 		}
+
+		//var_export($SheetLoc->GetSrc()); exit;
 
 		$RowEl  = ($isXlsx) ? 'row' : 'table:table-row';
 		$CellEl = ($isXlsx) ? 'c'   : 'table:table-cell';
@@ -4747,11 +4756,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$o = $this->MsExcel_SheetGetConf($Range['sheet'], array('name'), true);
 			if ($o === false) return false;
 			$idx = $this->FileGetIdx('xl/'.$o->file);
-			$Txt = $this->TbsStoreGet($idx, 'GetSheetLoc');
+			$Txt = $this->TbsStoreGet($idx, 'MsExcel_GetSheetLoc');
 		} else {
 			$Txt = $this->TBS->Source;
 		}
-
 		
 		$SheetLoc = clsTbsXmlLoc::FindElement($Txt, 'sheetData', 0, true);
 		return $SheetLoc;
@@ -5784,32 +5792,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	function OpenDoc_RangeNamesInit() {
-		
-		if ($this->OtbsSheetRangeNames !== false) return;
-		
-		$this->OtbsSheetRangeNames = array();
-
-		// Get the content.xml contents
-		$idx = $this->FileGetIdx('content.xml');
-		if ($idx===false) return;
-		$Txt = $this->TbsStoreGet($idx, 'RangeNamesInit'); // use the store, so the file will be available for editing if needed
-		if ($Txt===false) return false;
-		//$this->TbsStorePut($idx, $Txt);
-
-		$p = 0;
-		while ( $el = clsTbsXmlLoc::FindElement($Txt, 'table:named-range', $p, true) ) {
-			$name = $el->GetAttLazy('table:name');
-			$ref  = $el->GetAttLazy('table:base-cell-address'); // can be 'table:base-cell-address' or 'table:cell-range-address'
-			if ($ref === false) {
-				$ref  = $el->GetAttLazy('table:cell-range-address');
-			}
-			$this->OtbsSheetRangeNames[$name] = $this->Sheet_GetRangeInfo($ref);
-			$p = $el->PosEnd;
-		}
-		
-	}
-	
 	function OpenDoc_StylesInit() {
 
 		if ($this->OpenDoc_Styles!==false) return;
@@ -5844,6 +5826,45 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	function OpenDoc_RangeNamesInit() {
+		
+		if ($this->OtbsSheetRangeNames !== false) return;
+		
+		$this->OtbsSheetRangeNames = array();
+
+		// Get the content.xml contents
+		$idx = $this->FileGetIdx('content.xml');
+		if ($idx===false) return;
+		$Txt = $this->TbsStoreGet($idx, 'RangeNamesInit'); // use the store, so the file will be available for editing if needed
+		if ($Txt===false) return false;
+		//$this->TbsStorePut($idx, $Txt);
+
+		// Sheet ranges
+		$p = 0;
+		while ( $el = clsTbsXmlLoc::FindElement($Txt, 'table:named-range', $p, true) ) {
+			$name = $el->GetAttLazy('table:name');
+			$ref  = $el->GetAttLazy('table:cell-range-address');
+			if ($ref === false) {
+				$ref  = $el->GetAttLazy('table:base-cell-address'); // can be a single cell reference
+			}
+			$this->OtbsSheetRangeNames[$name] = $this->Sheet_GetRangeInfo($ref);
+			$p = $el->PosEnd;
+		}
+
+		// Database ranges
+		$p = 0;
+		while ( $el = clsTbsXmlLoc::FindElement($Txt, 'table:database-range', $p, true) ) {
+			$name = $el->GetAttLazy('table:name');
+			// A Database Range can have the same name as a Sheet Range. Priority to the Sheet Range.
+			if (!isset($this->OtbsSheetRangeNames[$name])) {
+				$ref  = $el->GetAttLazy('table:target-range-address');
+				$this->OtbsSheetRangeNames[$name] = $this->Sheet_GetRangeInfo($ref);
+			}
+			$p = $el->PosEnd;
+		}
+		
+	}
+
 	/**
 	 * Get the locator of the sheet element.
 	 * @param  array  $Range  The range information.
@@ -5851,9 +5872,34 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 */
 	function OpenDoc_GetSheetLoc($Range) {
 		
-		return $this->RaiseError("to be coded");
+		$idx = $this->FileGetIdx('content.xml');
+		$Txt = $this->TbsStoreGet($idx, 'OpenDoc_GetSheetLoc');
 
-		return false;
+		// Find the sheet
+		if ($Range['sheet']) {
+			// Find the named sheet
+			$pos = 0;
+			$cont = true;
+			while ($cont) {
+				if ($SheetLoc = clsTbsXmlLoc::FindStartTag($Txt, 'table:table', $pos, true)) {
+					if ($SheetLoc->GetAttLazy('table:name') === $Range['sheet']) {
+						$SheetLoc->FindEndTag();
+						
+						$cont = false;
+					} else {
+						$pos = $SheetLoc->PosEnd;
+					}
+				} else {
+					$cont = false;
+				}
+			}
+		} else {
+			// Get the first sheet
+			$SheetLoc = clsTbsXmlLoc::FindElement($Txt, 'table:table', 0, true);
+		}
+
+
+		return $SheetLoc;
 		
 	}
 
@@ -5862,7 +5908,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$x = null;
 		
 		if ( $Loc->Exists && ($Loc->GetInnerStart() !== false) ) {
-			return $this->RaiseError("to be coded");
+			//return $this->RaiseError("to be coded");
+			return $Loc->GetInnerSrc();
 		}
 		
 		return $x;
@@ -6651,11 +6698,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-	 * Fixes the problem of ODS files built with LibreOffice >= 4 and merged with OpenTBS and opened with Ms Excel.
-	 * The virtual number of row can exeed the maximum supported, then Excem raises an error when opening the file.
+	 * Delete useless reapeated rows, cell and columns.
+	 * This operation fixes the problem of ODS files built with LibreOffice >= 4 and merged with OpenTBS and opened with Ms Excel.
+	 * The virtual number of row can exceed the maximum supported, then Excel raises an error when opening the file.
 	 * LibreOffice does not.
 	 */
-	function OpenDoc_MsExcelCompatibility(&$Txt) {
+	function OpenDoc_DeleteUselessRepeatedElements(&$Txt) {
 		
 		$el_tbl  = 'table:table';
 		$el_col  = 'table:table-column'; // Column definition
@@ -6691,23 +6739,26 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				
 				if ( ($xml->Name == $el_col) && ($xml->SelfClosing) ) {
 					if ( ($next_name == $el_row) || ($next_name == '/' . $el_tbl) ) {
+						// It's the last column definition of the sheet, and it is self-closing and repeated
 						$delete = true;
 					}
 				} elseif ( ($xml->Name == $el_cell) && ($xml->SelfClosing) ) {
 					if ( $next_name == '/' . $el_row ) {
+						// It's the last cell of a row, and it is self-closing and repeated
 						$delete = true;
 					}
 				} elseif ($xml->Name == $el_row) {
 					if ( $next_name == '/' . $el_tbl ) {
 						$inner_src = '' . $xml->GetInnerSrc();
 						if (strpos($inner_src, '<') === false) {
+							// It's the last row of a sheet, and it is empty and repeated
 							$delete = true;
 						}
 					}
 				}
 				
 				if ($delete) {
-					//echo " * SUPPRIME " . $xml->Name . " : " . $xml->GetSrc() . "\n";
+					//echo " * DELETE " . $xml->Name . " : " . $xml->GetSrc() . "\n";
 					$p = $xml->PosBeg;
 					$xml->Delete();
 				}
