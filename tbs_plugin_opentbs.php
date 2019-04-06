@@ -2418,21 +2418,24 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * @return object The clsTbsXmlLoc object of the cell element, with extra properties info : cellCol, cellRow
 	 *                Note that is can be a not existing item if the asked range goes out of the sheet.
 	 */
-	function XML_GetNextCellLoc(&$SheetLoc, $Range, $PrevLoc, $RowEl, $CellEl, $AddMissing) {
+	function XML_GetNextCellLoc(&$SheetLoc, $Range, $PrevLoc, $RowEl, $CellEl, $AttRowR, $AttCellR, $AddMissing) {
+		
+		$debug = false;
 		
 		// Retreive previous and current cell coordinates
 		if ( $PrevLoc === false ) {
+			$rowLoc = false;
 			$currRow = 0;
 			$currCol = 0;
 			$targetRow = $Range['rs'];
 			$targetCol = $Range['cs'];
 			$currRowOk = true;
 			$currColOk = true;
-			$rowLoc    = false;
 			$r_pos = 0;
 			$c_pos = 0;
-			$NewRow = true;
 		} else {
+			$repeat = false;
+			$rowLoc = $PrevLoc->Parent;
 			$currRow = $PrevLoc->cellRow;
 			$currCol = $PrevLoc->cellCol;
 			$targetCol = $currCol + 1;
@@ -2442,10 +2445,18 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			}
 			if ($same_row) {
 				// we will search next cell in the same row
-				$targetRow = $PrevLoc->cellRow;
-				$c_pos = $PrevLoc->PosEnd + 1;
-				$NewRow = false;
-				$currColOk = $PrevLoc->Exists;
+				// we look if the cell is repeated
+				if ($PrevLoc->RepeatIdx < $PrevLoc->RepeatMax) {
+					$PrevLoc->RepeatIdx++;
+					$repeat = $PrevLoc;
+				// we look if the row is repeated
+				} elseif (isset($rowLoc->CellLst[$targetCol])) {
+					$repeat = $rowLoc->CellLst[$targetCol];
+				} else {
+					$targetRow = $PrevLoc->cellRow;
+					$c_pos = $PrevLoc->PosEnd + 1;
+					$currColOk = $PrevLoc->Exists;
+				}
 			} else {
 				// we will search the first cell of the range in the next row
 				$currCol = 0;
@@ -2454,36 +2465,65 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				if ($targetRow > $Range['re']) {
 					return false;
 				}
-				$c_pos = 0;
-				$NewRow = true;
-				$currColOk = true;
+				// we look if the row is repeated
+				if ($rowLoc->RepeatIdx < $rowLoc->RepeatMax) {
+					$rowLoc->RepeatIdx++;
+					$repeat = $rowLoc->CellLst[$targetCol];
+				} else {
+					$c_pos = 0;
+					$currColOk = true;
+				}
+			}
+			// Return the repeated cell if any
+			if ($repeat !== false) {
+				if ($debug) echo "\n* XML_GetNextCellLoc CELLULE REPETEE : targetRow = $targetRow, targetCol = $targetCol";
+				$repeat->cellCol = $targetCol;
+				$repeat->cellRow = $targetRow;
+				return $repeat;
 			}
 			$currRowOk = $PrevLoc->RowOk;
-			$rowLoc    = $PrevLoc->Parent;
 			$r_pos = $PrevLoc->Parent->PosEnd + 1;
 		}
 
+
 		// Moves to the next cell
 
-//echo "\n* XML_GetNextCellLoc : currRow = $currRow, currCol = $currCol | targetRow = $targetRow, targetCol = $targetCol | currRowOk = ".var_export($currRowOk,true).", currColOk = ".var_export($currColOk,true);
+		if ($debug) echo "\n* XML_GetNextCellLoc : currRow = $currRow, currCol = $currCol | targetRow = $targetRow, targetCol = $targetCol | currRowOk = ".var_export($currRowOk,true).", currColOk = ".var_export($currColOk,true);
 		
 		// Reach the asked row 
-//echo "\n  * Recherche Row : début";
+		if ($debug) echo "\n  * Search Row : loop";
 		while ( $currRowOk && ($currRow < $targetRow) ) {
-			//echo "\n  * Recherche Row (r_pos=$r_pos) : ";
-			$rowLoc = clsTbsXmlLoc::FindElement($SheetLoc, $RowEl, $r_pos, true);
-			if ($rowLoc === false) {
-				//echo "échec";
-				$currRowOk = false;
-			} else {
-				//echo "ok";
-				$r_pos = $rowLoc->PosEnd + 1;
+			if ($debug) echo "\n  * Search Row #{$currRow}, r_pos=$r_pos : ";
+			if ( ($rowLoc !== false) && ($rowLoc->RepeatIdx < $rowLoc->RepeatMax) ) {
+				if ($debug) echo "ok REPEATED";
+				// It is a repated row
+				$rowLoc->RepeatIdx++;
 				$currRow++;
+			} else {
+				$rowLoc = clsTbsXmlLoc::FindElement($SheetLoc, $RowEl, $r_pos, true);
+				if ($rowLoc === false) {
+					if ($debug) echo "FAIL row not found";
+					$currRowOk = false;
+				} else {
+					if ($debug) echo "ok found";
+					$r_pos = $rowLoc->PosEnd + 1;
+					$currRow++;
+					// Repeat info
+					$rowLoc->RepeatIdx = 1;
+					$rowLoc->RepeatMax = 1;
+					$rowLoc->CellLst = array();
+					if ($AttRowR) {
+						$max = $rowLoc->GetAttLazy($AttRowR);
+						if ($max !== false) {
+							$rowLoc->RepeatMax = intval($max);
+						}
+					}
+				}
 			}
 		}
 		
 		// Insert missing rows
-//echo "\n  * Insert Row : début";
+		if ($debug) echo "\n  * Insert Row : check";
 		if (!$currRowOk) {
 			$currColOk = false;
 			if ($AddMissing) {
@@ -2503,23 +2543,41 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		
 		// Reach the asked cell 
-//echo "\n  * Recherche Col : début : currColOk=" . var_export($currColOk, true) . ", currCol=$currCol, targetCol=$targetCol";
+		if ($debug) echo "\n  * Search Col : loop : currColOk=" . var_export($currColOk, true) . ", currCol=$currCol, targetCol=$targetCol";
+		$cellLoc = false;
 		while ($currColOk && ($currCol < $targetCol)) {
 			if ($rowLoc === false) return $this->RaiseError("No parent row.");
-			//echo "\n  * Recherche Col (c_pos=$c_pos) : ";
-			$cellLoc = clsTbsXmlLoc::FindElement($rowLoc, $CellEl, $c_pos, true);
-			if ($cellLoc === false) {
-				//echo "échec, rowLoc = " . $rowLoc->GetSrc();
-				$currColOk = false;
-			} else {
-				//echo "ok";
-				$c_pos = $cellLoc->PosEnd + 1;
+			if (isset($rowLoc->CellLst[$currCol])) return $this->RaiseError("This repeated row should have been previsouly catched.");
+			if ($debug) echo "\n  * Search Col (c_pos=$c_pos) : ";
+			if ( ($cellLoc !== false) && ($cellLoc->RepeatIdx < $cellLoc->RepeatMax) ) {
+				if ($debug) echo "ok REPEATED";
+				// It is a repated row
+				$cellLoc->RepeatIdx++;
 				$currCol++;
+			} else {
+				$cellLoc = clsTbsXmlLoc::FindElement($rowLoc, $CellEl, $c_pos, true);
+				if ($cellLoc === false) {
+					if ($debug) echo "FAIL, rowLoc = " . $rowLoc->GetSrc();
+					$currColOk = false;
+				} else {
+					if ($debug) echo "ok found";
+					$c_pos = $cellLoc->PosEnd + 1;
+					$currCol++;
+					// Repeat info
+					$cellLoc->RepeatIdx = 1;
+					$cellLoc->RepeatMax = 1;
+					if ($AttCellR) {
+						$max = $cellLoc->GetAttLazy($AttCellR);
+						if ($max !== false) {
+							$cellLoc->RepeatMax = intval($max);
+						}
+					}
+				}
 			}
 		}
 
 		// Insert missing cells
-//echo "\n* Insert Col : début";
+		if ($debug) echo "\n  * Insert Cell : check";
 		if (!$currColOk) {
 			if ($AddMissing) {
 				// Insert the empty cells
@@ -2527,31 +2585,38 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$x_len = strlen($x);
 				$nb = ($targetCol - $currCol);
 				$rowLoc->AppendInnerSrc(str_repeat($x, $nb));
-				// The col locator must be targeted on the last inserted col
+				// The cell locator must be targeted on the last inserted cell
 				$cellLoc = new clsTbsXmlLoc($rowLoc->Txt, $CellEl, ($rowLoc->GetInnerAppendPos() - $x_len), null, $rowLoc, false);
 				$cellLoc->FindEndTag();
 			} else {
 				// No more data => locator on a non-existing entity ($cellLoc->Exists = false)
-				$cellLoc = clsTbsXmlLoc::CreatePhatomElement($rowLoc, $rowLoc->GetInnerAppendPos());
+				if ($debug) echo "\n* Insert Cell : create phantom cell";
+				$cellLoc = clsTbsXmlLoc::CreatePhantomElement($rowLoc, $rowLoc->GetInnerAppendPos());
 			}
+			$cellLoc->RepeatIdx = 1;
+			$cellLoc->RepeatMax = 1;
 		}
-		
-		$cellLoc->RowOk   = $currRowOk;
-		$cellLoc->NewRow  = $NewRow;  // is this the first cell of the range for this row
+			
+		$cellLoc->RowOk   = $currRowOk; // true if the row did exists, false if the row has been added by the function 
 		$cellLoc->cellRow = $targetRow; // row num in the sheet
 		$cellLoc->cellCol = $targetCol; // col num in the sheet
+
+		// If the row is repeated, then we save its childs
+		if ( ($rowLoc->RepeatMax > 1) && ($rowLoc->RepeatIdx === 1) ) {
+			$rowLoc->CellLst[$targetCol] = $cellLoc;
+		}
 		
 		//echo "\n   rowLoc->GetSrc   = " . $rowLoc->GetSrc();
-		//echo "\n   cellLoc->GetSrc  = " . $cellLoc->GetSrc();
 		//echo "\n   cellLoc = " . var_export($cellLoc, true);
 
-		//echo "\n  * Résultat cellLoc = ($targetRow, $targetCol)  RowOk=".var_export($currRowOk,true).", NewRow=".var_export($NewRow,true).", Exists=".var_export($cellLoc->Exists,true);
+		if ($debug) echo "\n  * Result cellLoc = ($targetRow, $targetCol)  RowOk=".var_export($currRowOk,true).", Exists=".var_export($cellLoc->Exists,true);
+		if ($debug) echo "\n  * cellLoc->GetSrc  = " . $cellLoc->GetSrc();
 
 		// In case of a full colmun range, we don't return the extra missing columns.
 		// This means a valid row can have no cells.
 		if ( $Range['cfull'] && (!$cellLoc->Exists) ) {
-			//echo " ... suivante ";
-			return $this->XML_GetNextCellLoc($SheetLoc, $Range, $cellLoc, $RowEl, $CellEl, $AddMissing);
+			if ($debug) echo " ... swicht to next cell";
+			return $this->XML_GetNextCellLoc($SheetLoc, $Range, $cellLoc, $RowEl, $CellEl, $AttRowR, $AttCellR, $AddMissing);
 		}
 		
 		return $cellLoc;
@@ -2843,8 +2908,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		//var_export($SheetLoc->GetSrc()); exit;
 
-		$RowEl  = ($isXlsx) ? 'row' : 'table:table-row';
-		$CellEl = ($isXlsx) ? 'c'   : 'table:table-cell';
+		$RowEl    = ($isXlsx) ? 'row' : 'table:table-row';
+		$CellEl   = ($isXlsx) ? 'c'   : 'table:table-cell';
+		$AttRowR  = ($isXlsx) ? false : 'table:number-rows-repeated';
+		$AttCellR = ($isXlsx) ? false : 'table:number-columns-repeated';
 		
 		// Visit all cells of the range
 		$ok = true;
@@ -2855,9 +2922,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$col_ok = false;
 		$col_lst = array();
 		$col_save = $Header;
-		while ($ok && ($cell = $this->XML_GetNextCellLoc($SheetLoc, $Range, $cell, $RowEl, $CellEl, false)) ) {
+		while ($ok && ($cell = $this->XML_GetNextCellLoc($SheetLoc, $Range, $cell, $RowEl, $CellEl, $AttRowR, $AttCellR, false)) ) {
 			if ($cell) {
-				if ($cell->NewRow) {
+				$NewRow = ($cell->cellCol == $Range['cs']);
+				if ($NewRow) {
 					$col_idx = 0;
 					$row_idx++;
 					unset($row);
@@ -7187,7 +7255,7 @@ class clsTbsXmlLoc {
 
 	}
 	
-	static function CreatePhatomElement(&$TxtOrObj, $PosBeg) {
+	static function CreatePhantomElement(&$TxtOrObj, $PosBeg) {
 		
 		if (is_object($TxtOrObj)) {
 			$TxtOrObj->FindEndTag();
