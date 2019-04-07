@@ -5976,8 +5976,31 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$x = null;
 		
 		if ( $Loc->Exists && ($Loc->GetInnerStart() !== false) ) {
-			//return $this->RaiseError("to be coded");
-			return $Loc->GetInnerSrc();
+			$type = $Loc->GetAttLazy('office:value-type');
+			if ($type === 'string') {
+				// errors are in this case, but with attribute « calcext:value-type="error" »
+				if ($z = clsTbsXmlLoc::FindElement($Loc, 'text:p', 0, true)) {
+					$x = $z->GetInnerSrc();
+				}
+			} else {
+				$x = $Loc->GetAttLazy('office:value');
+				if ($x !== false) {
+					if ($type === 'time') {
+						// PT12H23M00S
+					} elseif ($type === 'date') {
+						// 2019-04-06   2018-12-11T11:45:00
+					} elseif ($type === 'boolean') {
+						if ($x === 'true') {
+							$x = true;
+						} elseif ($x === 'false') {
+							$x = false;
+						}
+					} else {
+						// currency, percentage, float
+						$x = floatval($x);
+					}
+				}
+			}
 		}
 		
 		return $x;
