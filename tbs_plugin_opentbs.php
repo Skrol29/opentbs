@@ -5982,23 +5982,31 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				if ($z = clsTbsXmlLoc::FindElement($Loc, 'text:p', 0, true)) {
 					$x = $z->GetInnerSrc();
 				}
+			} elseif ($type === 'time') {
+				$z = $Loc->GetAttLazy('office:time-value');
+				if ($z !== false) {
+					// 'PT12H23M00S', 'P' means period
+					$x = $z;
+				}
+			} elseif ($type === 'date') {
+				$z = $Loc->GetAttLazy('office:date-value');
+				if ($z !== false) {
+					// Date or DateTime quite ISO 8601
+					// '2019-04-06', '2018-12-11T11:45:00'
+					$x = $z;
+				}
+			} elseif ($type === 'boolean') {
+				$z = $Loc->GetAttLazy('office:boolean-value');
+				if ($z === 'true') {
+					$x = true;
+				} elseif ($x === 'false') {
+					$z = false;
+				}
 			} else {
-				$x = $Loc->GetAttLazy('office:value');
-				if ($x !== false) {
-					if ($type === 'time') {
-						// PT12H23M00S
-					} elseif ($type === 'date') {
-						// 2019-04-06   2018-12-11T11:45:00
-					} elseif ($type === 'boolean') {
-						if ($x === 'true') {
-							$x = true;
-						} elseif ($x === 'false') {
-							$x = false;
-						}
-					} else {
-						// currency, percentage, float
-						$x = floatval($x);
-					}
+				// float, percentage, currency
+				$z = $Loc->GetAttLazy('office:value');
+				if ($z !== false) {
+					$x = floatval($z);
 				}
 			}
 		}
