@@ -8,7 +8,7 @@
  * and retrieve the content of a zipped file which is not compressed.
  *
  * @version 1.10.0-beta
- * @date 2019-03-20
+ * @date 2019-05-09
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -4843,7 +4843,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$vtag = ($type === 'inlineStr') ? 't' : 'v';
 			$ve = clsTbsXmlLoc::FindElement($Loc, $vtag, 0, true);
 			if ($ve === false) {
-				$x = "(tag $vtag not found)";
+				if (clsTbsXmlLoc::FindStartTag($Loc, 'f', 0, true) !== false) {
+					$x = "#OpenTBS: formula without cached result";
+				} else {
+					$x = null; // an empty cell can be a self closing tag, thus without a element <v>
+				}
 			} else {
 				$v = $ve->GetInnerSrc();
 				switch ($type) {
@@ -4863,8 +4867,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					break;
 				case 'e': // error, example of value: #DIV/0!
 					$x = $v; break;
-				default: // false or 'n' : number
-					$x = $v;
+				default: // false or 'n' => it's a number
+					if (strpos($v, '.') === false) {
+						$x = intval($v);
+					} else {
+						$x = floatval($v);
+					}
 				}
 			}
 		}
