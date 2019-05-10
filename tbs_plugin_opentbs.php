@@ -837,6 +837,7 @@ class clsOpenTBS extends clsTbsZip {
 		$this->MsExcel_Sheets = false;
 		$this->MsExcel_NoTBS = array(); // shared string containing no TBS field
 		$this->MsExcel_KeepRelative = array();
+		$this->MsExcel_Formulas = array();
 		$this->MsWord_HeaderFooter = false;
 		$this->MsWord_DocPrId = 0;
 
@@ -898,7 +899,7 @@ class clsOpenTBS extends clsTbsZip {
 									$this->MsPowerpoint_Clean($TBS->Source);
 								}
 								if (($e==='xlsx') && $TBS->OtbsMsExcelConsistent) {
-									$this->MsExcel_DeleteFormulaResults($TBS->Source);
+									$this->MsExcel_DeleteFormulaResults($idx, $TBS->Source);
 									$this->MsExcel_ConvertToRelative($TBS->Source);
 								}
 							}
@@ -2943,7 +2944,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				}
 				$col_ref = ($col_ok) ? $col_lst[$col_idx] : $col_idx;
 				if ($isXlsx) {
-					$row[$col_ref] = $this->MsExcel_GetCellValue($cell);
+					$row[$col_ref] = $this->MsExcel_GetCellValue($cell, $SheetLoc->xlsxFileIdx);
 				} else {
 					$row[$col_ref] = $this->OpenDoc_GetCellValue($cell);
 				}
@@ -4398,19 +4399,38 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 	
-	function MsExcel_DeleteFormulaResults(&$Txt) {
-	// In order to refresh the formula results when the merged XLSX is opened, then we delete all <v> elements having a formula.
-		$c_close = '</c>';
-		$p = 0;
-		while (($p=clsTinyButStrong::f_Xml_FindTagStart($Txt, 'f', true, $p, true, true))!==false) {
-			$c_p = strpos($Txt, $c_close, $p);
-			if ($c_p===false) return false; // error in the XML
-			$x_len0 = $c_p - $p;
-			$x = substr($Txt, $p, $x_len0);
-			$this->XML_DeleteElements($x, array('v'));
-			$Txt = substr_replace($Txt, $x, $p, $x_len0);
-			$p = $p + strlen($x);
+	/**
+	 * Cells with formulas also have a cached result (stored in the <v> element).
+	 * When Excel open a sheet, the cached result is displayed, not the actualized result.
+	 * We can add attribute ca="true" to the <f> element in order to have them actualized.
+	 * But this des not work well when the XLSX is opened with LibreOffice.
+	 * So the solid solution is to simply delete the cached result.
+	 *
+	 * Cached values are stored in an array so it can be retrived for Sheet_VisitCells()
+	 */
+	function MsExcel_DeleteFormulaResults($idx, &$Txt) {
+	
+		if (!isset($this->MsExcel_Formulas[$idx])) {
+			$this->MsExcel_Formulas[$idx] = array();
 		}
+		$formulas =& $this->MsExcel_Formulas[$idx];
+	
+		$p = 0;
+		while ( ($locF = clsTbsXmlLoc::FindElement($Txt, 'f', $p, true)) !== false ) {
+			$f = $locF->GetInnerSrc();
+			$p = $locF->PosEnd;
+			$v = null;
+			if ($locC = clsTbsXmlLoc::FindElement($Txt, 'c', $locF->PosBeg, false)) {
+				if ($locV = clsTbsXmlLoc::FindElement($locC, 'v', 0, true)) {
+					$v = $locV->GetInnerSrc();
+					$locV->Delete();
+					$locV->UpdateParent(true);
+				}
+				$p = $locC->PosEnd;
+			}
+			$formulas[$f] = $v;
+		}
+
 	}
 
 	/**
@@ -4827,29 +4847,41 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$Txt = $this->TbsStoreGet($idx, 'MsExcel_GetSheetLoc');
 		} else {
 			$Txt = $this->TBS->Source;
+			$idx = $this->TbsCurrIdx;
 		}
 		
 		$SheetLoc = clsTbsXmlLoc::FindElement($Txt, 'sheetData', 0, true);
+		$SheetLoc->xlsxFileIdx = $idx;
 		return $SheetLoc;
 		
 	}
 	
-	function MsExcel_GetCellValue($Loc) {
+	function MsExcel_GetCellValue($Loc, $fileIdx = -1) {
 		
 		$x = null;
 		
 		if ( $Loc->Exists && ($Loc->GetInnerStart() !== false) ) {
 			$type = $Loc->GetAttLazy('t');
 			$vtag = ($type === 'inlineStr') ? 't' : 'v';
-			$ve = clsTbsXmlLoc::FindElement($Loc, $vtag, 0, true);
-			if ($ve === false) {
-				if (clsTbsXmlLoc::FindStartTag($Loc, 'f', 0, true) !== false) {
-					$x = "#OpenTBS: formula without cached result";
-				} else {
-					$x = null; // an empty cell can be a self closing tag, thus without a element <v>
-				}
+			if ($locV = clsTbsXmlLoc::FindElement($Loc, $vtag, 0, true)) {
+				$v = $locV->GetInnerSrc();
 			} else {
-				$v = $ve->GetInnerSrc();
+				$v = false;
+				if ($locF = clsTbsXmlLoc::FindElement($Loc, 'f', 0, true)) {
+					if (isset($this->MsExcel_Formulas[$fileIdx])) {
+						$f = $locF->GetInnerSrc();
+						if (isset($this->MsExcel_Formulas[$fileIdx][$f])) {
+							$v = $this->MsExcel_Formulas[$fileIdx][$f];
+						}
+					}
+					if ($v === false) {
+						$x = "#OpenTBS: formula without cached result";
+					}
+				} else {
+					// it's valid to have no value
+				}
+			}
+			if ($v !== false) {
 				switch ($type) {
 				case 'b': // boolean: 0=false
 					$x = (boolean) $v; break;
