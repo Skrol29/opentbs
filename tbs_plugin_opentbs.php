@@ -2929,6 +2929,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$SheetLoc = $this->MsExcel_GetSheetLoc($Range);
 		} else {
 			$SheetLoc = $this->OpenDoc_GetSheetLoc($Range);
+			$this->OpenDoc_CoveredCells_Replace($SheetLoc, true);
 		}
 		if (!$SheetLoc) {
 			return false;
@@ -6938,6 +6939,36 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		
 	}
+	
+	/**
+	 * Apply a, OpenTBS trick in order to manage covered cells as if there are normal cells.
+	 *
+	 * @param string|object $src A string or an clsTbsXmlLoc object
+	 * @param boolean       $do  True to apply, false to unapply.
+	 */
+	function OpenDoc_CoveredCells_Replace(&$src, $do) {
+	
+		$is_loc = is_object($src);
+		if ($is_loc) {
+			$txt = $src->GetSrc();
+		} else {
+			$txt =& $src;
+		}
+		
+		$opendoc   = '<table:covered-table-cell';
+		$tbs_trick = '<table:table-cell covered="1"';
+		if ($do) {
+			$txt = str_replace($opendoc, $tbs_trick, $txt);
+		} else {
+			$txt = str_replace($tbs_trick, $opendoc, $txt);
+		}
+		
+		if ($is_loc) {
+			$src->ReplaceSrc($txt);
+		}
+	
+	}
+	
 	
 }
 
