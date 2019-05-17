@@ -1261,6 +1261,13 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	/**
+	 * Raise an error message and return false.
+	 * @param {string}  $Msg      
+	 * @param {boolean} $NoErrMsg Add the TBS message about noerr option.
+	 *
+	 * @return {boolean} Always return false.
+	 */
 	function RaiseError($Msg, $NoErrMsg=false) {
 		// Overwrite the parent RaiseError() method.
 		$exit = (!$this->TBS->NoErr);
@@ -2633,7 +2640,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * @param string  $CellRef  The reference of a cell. Like "B3" or "AZ48".
 	 * @param boolean $WithRow  (optional) Use true in order to return both col and row numbers.
 	 *
-	 * @return integer|array  The column number, or an arrar with both the colum number and the row number.
+	 * @return integer|array|false  The column number, or an array with both the colum number and the row number.
 	 */
 	function Sheet_ColNum($CellRef, $WithRow = false) {
 
@@ -2653,7 +2660,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				if ($l>0 && $l<27) {
 					$col = $col + $l*pow(26,$rank);
 				} else {
-					return $this->RaiseError('(Sheet) Reference of cell \'' . $CellRef . '\' cannot be recognized.');
+					return false;
 				}
 				$rank++;
 			} 
@@ -2808,24 +2815,29 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				// Analyze the cells ref
 				$parts = explode(':', $cells);
 				foreach ($parts as $idx => $cell) {
-					$z = ($idx === 0) ? 's' : 'e';
 					$w = $this->Sheet_ColNum($cell, true);
-					$ok = true;
-					if ($is_xslx) {
-						// we have to check that both col and row values have a $, otherwise the Excel syntaxe is not the same
-						// it is very curious : B8 => XFD1, C8 => A1, C$8 => A$8, $C8 => $C1 !!??
-						if ($cell[0] !== '$') {
-							$ok = false;
-						} elseif (($w[0] !== 0) && ($w[1] !== 0) && (substr_count($cell, '$') != 2)) {
-							$ok = false;
-						}
-					}
-					if ($ok) {
-						$info['c'.$z] = $w[0];
-						$info['r'.$z] = $w[1];
-					} else {
-						$info['err'] = "OpenTBS supports only abolute references in XLSX ranges.";
+					if ($w === false) {
+						$info['err'] = "The range reference '{$cell}' is not recognized.";
 						$info['_ref'] = $ref; // for debuging
+					} else {
+						$ok = true;
+						if ($is_xslx) {
+							// we have to check that both col and row values have a $, otherwise the Excel syntaxe is not the same
+							// it is very curious : B8 => XFD1, C8 => A1, C$8 => A$8, $C8 => $C1 !!??
+							if ($cell[0] !== '$') {
+								$ok = false;
+							} elseif (($w[0] !== 0) && ($w[1] !== 0) && (substr_count($cell, '$') != 2)) {
+								$ok = false;
+							}
+						}
+						if ($ok) {
+							$z = ($idx === 0) ? 's' : 'e';
+							$info['c'.$z] = $w[0];
+							$info['r'.$z] = $w[1];
+						} else {
+							$info['err'] = "OpenTBS supports only absolute references in XLSX ranges.";
+							$info['_ref'] = $ref; // for debuging
+						}
 					}
 				}
 
@@ -2862,7 +2874,15 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * Visit all the cells of a range for get or set.
 	 *
 	 */
-	function Sheet_VisitCells($RangeRef, $Header, $Set) {
+	function Sheet_VisitCells($RangeRef, $Options, $Set) {
+		
+		// Retrieve options
+		if (!is_array($Options)) {
+			$Options = array();
+		}
+		$opt_header = $this->getItem($Options, 'header', false);
+		$opt_noerr = $this->getItem($Options, 'noerr', false);
+		
 		
 		// Get the type of contents
 		if ($this->ExtEquiv == 'ods') {
@@ -2888,13 +2908,20 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			// Custom range definition
 			$x = $this->Sheet_GetRangeInfo($RangeRef);
 		}
+
 		if (isset($x[0])) {
 			$Range = $x[0];
+			if ($Range['err'] !== false) {
+				if ($opt_noerr) return false;
+				return $this->RaiseError("(VisitCells) The range reference '{$RangeRef}' cannot be found.");
+			}
 		} else {
-			return $this->RaiseError("Unable to read the definition for the range named '{$RangeRef}'.");
+			if ($opt_noerr) return false;
+			return $this->RaiseError("(VisitCells) Unable to read the definition for the range named '{$RangeRef}'.");
 		}
 		if ($Range['err']) {
-			return $this->RaiseError("Error for the range '{$RangeRef}' : " . $Range['err']);
+			if ($opt_noerr) return false;
+			return $this->RaiseError("(VisitCells) Error for the range '{$RangeRef}' : " . $Range['err']);
 		}
 		
 		// Get sheet and range information
@@ -2922,7 +2949,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$col_idx = -1;
 		$col_ok = false;
 		$col_lst = array();
-		$col_save = $Header;
+		$col_save = $opt_header;
 		while ($ok && ($cell = $this->XML_GetNextCellLoc($SheetLoc, $Range, $cell, $RowEl, $CellEl, $AttRowR, $AttCellR, false)) ) {
 			if ($cell) {
 				$NewRow = ($cell->cellCol == $Range['cs']);
@@ -2935,7 +2962,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 						$col_lst = array();
 						$row =& $col_lst;
 					} else {
-						$col_ok = $Header;
+						$col_ok = $opt_header;
 						$result[$row_idx] = array();
 						$row =& $result[$row_idx];
 					}
@@ -4261,11 +4288,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$Delete = false;
 			if (isset($Loc->PrmPos[$Att])) {
 				// attribute found
-				$r = $Loc->PrmLst[$Att];
+				$a = $Loc->PrmLst[$Att];
 				if ($IsRow) {
-					$r = intval($r);
+					$r = intval($a);
 				} else {
-					$r = $this->Sheet_ColNum($r);
+					$r = $this->Sheet_ColNum($a);
+					if ($r === false) {
+						return $this->RaiseError('(ConvertToRelative) Reference of cell \'' . $a . '\' cannot be recognized.');
+					}
 				}
 				$missing_nbr = $r - $item_num -1;
 				if ($missing_nbr<0) {
@@ -6570,6 +6600,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$RangeRef = explode(':', $RangeRef);
 
 		$col_num = $this->Sheet_ColNum($RangeRef[0]);
+		if ($col_num === false) return $this->RaiseError('(FirstColIdx) Reference of cell \'' . $RangeRef[0] . '\' cannot be recognized.');
 		
 		return $col_num - 1;
 
