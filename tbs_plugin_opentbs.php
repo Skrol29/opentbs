@@ -2429,7 +2429,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	function XML_GetNextCellLoc(&$SheetLoc, $Range, $PrevLoc, $RowEl, $CellEl, $AttRowR, $AttCellR, $AddMissing) {
 		
 		$debug = false;
-		
 		// Retreive previous and current cell coordinates
 		if ( $PrevLoc === false ) {
 			$rowLoc = false;
@@ -2444,7 +2443,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		} else {
 			$repeat = false;
 			$rowLoc = $PrevLoc->Parent;
-			$currRow = $PrevLoc->cellRow;
+			$currRow = $PrevLoc->cellRow + ($rowLoc->RepeatMax - $rowLoc->RepeatIdx);
 			$currCol = $PrevLoc->cellCol;
 			$targetCol = $currCol + 1;
 			$same_row = ($targetCol <=  $Range['ce']);
@@ -2453,15 +2452,16 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			}
 			if ($same_row) {
 				// we will search next cell in the same row
-				// we look if the cell is repeated
+				$targetRow = $currRow;
 				if ($PrevLoc->RepeatIdx < $PrevLoc->RepeatMax) {
+					// the cell is repeated
 					$PrevLoc->RepeatIdx++;
 					$repeat = $PrevLoc;
-				// we look if the row is repeated
 				} elseif (isset($rowLoc->CellLst[$targetCol])) {
+					// the row is repeated
 					$repeat = $rowLoc->CellLst[$targetCol];
 				} else {
-					$targetRow = $PrevLoc->cellRow;
+					// no repeated
 					$c_pos = $PrevLoc->PosEnd + 1;
 					$currColOk = $PrevLoc->Exists;
 				}
@@ -2484,6 +2484,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			}
 			// Return the repeated cell if any
 			if ($repeat !== false) {
+				if (!isset($targetRow)) exit("\n oups");
 				if ($debug) echo "\n* XML_GetNextCellLoc CELLULE REPETEE : targetRow = $targetRow, targetCol = $targetCol";
 				$repeat->cellCol = $targetCol;
 				$repeat->cellRow = $targetRow;
@@ -2881,7 +2882,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$Options = array();
 		}
 		$opt_header = $this->getItem($Options, 'header', false);
-		$opt_noerr = $this->getItem($Options, 'noerr', false);
+		$opt_noerr  = $this->getItem($Options, 'noerr', false);
+		$opt_rangeinfo = $this->getItem($Options, 'rangeinfo', false);
 		
 		
 		// Get the type of contents
@@ -2922,6 +2924,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ($Range['err']) {
 			if ($opt_noerr) return false;
 			return $this->RaiseError("(VisitCells) Error for the range '{$RangeRef}' : " . $Range['err']);
+		}
+		
+		if ($opt_rangeinfo) {
+			return $Range;
 		}
 		
 		// Get sheet and range information
