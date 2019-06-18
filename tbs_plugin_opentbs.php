@@ -8,7 +8,7 @@
  * and retrieve the content of a zipped file which is not compressed.
  *
  * @version 1.10.0-beta
- * @date 2019-05-09
+ * @date 2019-06-18
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -790,8 +790,7 @@ class clsOpenTBS extends clsTbsZip {
 			
 		} elseif ($Cmd == OPENTBS_SET_CELLS) {
 			
-			return $this->Sheet_VisitCells($x1, $x2, $x3);
-			
+			return $this->RaiseError("Command OPENTBS_SET_CELLS will be available in a next version.");
 		}
 
 	}
@@ -2881,10 +2880,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if (!is_array($Options)) {
 			$Options = array();
 		}
-		$opt_header = $this->getItem($Options, 'header', false);
-		$opt_noerr  = $this->getItem($Options, 'noerr', false);
+		$opt_header    = $this->getItem($Options, 'header', false);
+		$opt_noerr     = $this->getItem($Options, 'noerr', false);
 		$opt_rangeinfo = $this->getItem($Options, 'rangeinfo', false);
-		
+		$opt_columns   = $this->getItem($Options, 'columns', false);
+		$opt_dbr       = $this->getItem($Options, 'del_blank_rows', false);
+		$opt_row_max   = $this->getItem($Options, 'row_max', false);
 		
 		// Get the type of contents
 		if ($this->ExtEquiv == 'ods') {
@@ -2954,40 +2955,106 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$result = array();
 		$row_idx = -1;
 		$col_idx = -1;
-		$col_ok = false;
-		$col_lst = array();
-		$col_save = $opt_header;
+		// Manage header
+		$hdr_ok = false; // true if $hdr_lst is set
+		$hdr_lst = array();
+		// Manage blank rows
+		$del_row = false; // Number of not empty values in the row
 		while ($ok && ($cell = $this->XML_GetNextCellLoc($SheetLoc, $Range, $cell, $RowEl, $CellEl, $AttRowR, $AttCellR, false)) ) {
 			if ($cell) {
+				
+				// Retrieve row and col indexes
 				$NewRow = ($cell->cellCol == $Range['cs']);
 				if ($NewRow) {
+					
+					// Manage header and colmun renaming
+					if ($row_idx === 0) {
+						if ($opt_header) {
+							$hdr_lst = $row;
+							$hdr_ok = true;
+							// Delete the row from the result
+							unset($result[0]);
+							$row_idx = -1;
+							$opt_header = false; // avoid a second pass
+						}
+						if (is_array($opt_columns)) {
+							if ($hdr_ok) {
+								$hdr_lst2 = array();
+								foreach ($hdr_lst as $i => $n) {
+									if (isset($opt_columns[$i])) {
+										$hdr_lst2[$i] = $opt_columns[$i];
+									} elseif (isset($opt_columns[$n])) {
+										$hdr_lst2[$i] = $opt_columns[$n];
+									}
+								}
+								$hdr_lst = $hdr_lst2;
+								unset($hdr_lst2);
+							} else {
+								$hdr_ok = true;
+								$hdr_lst = $opt_columns;
+							}
+							$opt_columns = false; // avoid a second pass
+						}
+					}
+					
+					// The cell is the first of a row
 					$col_idx = 0;
-					$row_idx++;
 					unset($row);
-					if ($col_save) {
-						$col_save = false;
-						$col_lst = array();
-						$row =& $col_lst;
-					} else {
-						$col_ok = $opt_header;
+					if (!$del_row) $row_idx++;
+					$del_row = $opt_dbr;
+					
+					if ($opt_row_max !== false) {
+						if ($row_idx >= $opt_row_max) {
+							$ok = false;
+						}
+					}
+
+					// Add a new empty row
+					if ($ok) {
 						$result[$row_idx] = array();
 						$row =& $result[$row_idx];
 					}
+
 				} else {
 					$col_idx++;
 				}
-				$col_ref = ($col_ok) ? $col_lst[$col_idx] : $col_idx;
-				if ($isXlsx) {
-					$row[$col_ref] = $this->MsExcel_GetCellValue($cell, $SheetLoc->xlsxFileIdx);
+				
+				// Get column key and check if we read the value
+				if ($hdr_ok) {
+					if (isset($hdr_lst[$col_idx])) {
+						$col_key = $hdr_lst[$col_idx];
+					} else {
+						$col_key = false;
+					}
 				} else {
-					$row[$col_ref] = $this->OpenDoc_GetCellValue($cell);
+					$col_key = $col_idx;
 				}
+				
+				// Read the value
+				if ($ok && ($col_key !== false)) {
+					if ($isXlsx) {
+						$val = $this->MsExcel_GetCellValue($cell, $SheetLoc->xlsxFileIdx);
+					} else {
+						$val = $this->OpenDoc_GetCellValue($cell);
+					}
+					// Save the value
+					$row[$col_key] = $val;
+					// Manage blank rows
+					if ($del_row && (!is_null($val)) ) $del_row = false;
+					
+				}
+			
 			} else {
 				$ok = false;
 			}
 		}
 		
 		unset($row);
+		
+		// Delete the last inserted if needed
+		if ($del_row) {
+			unset($result[$row_idx]);
+		}
 		
 		return $result;
 		
@@ -4882,6 +4949,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			if ($o === false) return false;
 			$idx = $this->FileGetIdx('xl/'.$o->file);
 			$Txt = $this->TbsStoreGet($idx, 'MsExcel_GetSheetLoc');
+			if ($this->LastReadNotStored) {
+				$this->MsExcel_ConvertToRelative($Txt);
+			}
 		} else {
 			$Txt = $this->TBS->Source;
 			$idx = $this->TbsCurrIdx;
