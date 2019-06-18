@@ -95,8 +95,8 @@ body, td, th {
 <!-- div main-body is used for insertion in the TBS menu -->
 <div id="main-body">
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.9.12, 2019-03-10 by Skrol29</div>
-<div>help file modified on 2019-03-10</div>
+<div>version 1.10.0, 2019-06-17 by Skrol29</div>
+<div>help file modified on 2019-06-17</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -107,14 +107,15 @@ body, td, th {
       <li>4.2. <a href="#loadtemplate">Method LoadTemplate()</a></li>
       <li>4.3. <a href="#show">Method Show()</a></li>
       <li>4.4. <a href="#blockalias">Block Alias</a></li>
-      <li>4.5. <a href="#chart">Change or read data of series in a chart</a></li>
-      <li>4.6. <a href="#pic">Change pictures in the document</a></li>
-      <li>4.7. <a href="#cells">Merging data in spreadsheet cells</a></li>
-      <li>4.8. <a href="#col">Delete or merge columns in tables</a></li>
-      <li>4.9. <a href="#mergecell">Merge cells vertically</a></li>
-      <li>4.10. <a href="#modify_contents">Commands to control the merging</a></li>
-      <li>4.11. <a href="#modify_files">Manage files in the archive</a></li>
-      <li>4.12. <a href="#misc">Miscellaneous</a></li>
+      <li>4.5. <a href="#chart">Charts - Change or read data of series in a chart</a></li>
+      <li>4.6. <a href="#pic">Pictures - Change pictures in the document</a></li>
+      <li>4.7. <a href="#col">Tables - Delete or merge columns in tables</a></li>
+      <li>4.8. <a href="#mergecell">Tables - Merge cells vertically</a></li>
+      <li>4.9. <a href="#cells">Workbook - Merging data in spreadsheet cells</a></li>
+      <li>4.10. <a href="#ranges">Workbook - Read and writre ranges in a workbook</a></li>
+      <li>4.11. <a href="#modify_contents">Commands to control the merging</a></li>
+      <li>4.12. <a href="#modify_files">Manage files in the archive</a></li>
+      <li>4.13. <a href="#misc">Miscellaneous</a></li>
     </ul>
   </li>
   <li><a href="#demo">Demo</a></li>
@@ -595,7 +596,49 @@ array (
     </tr>
   </table>
 </div>
-<h3><a id="cells"></a>4.7. Merging data in spreadsheet cells</h3>
+<h3><a id="col"></a>4.7. Delete or merge columns in a table</h3>
+<h5><a id="delcol"></a>Delete columns in a table</h5>
+<p>Parameter &quot;<span class="smallcode">ope=delcol</span>&quot; enables you to delete the columns you want in any table of an Ms Word Document or  any LibreOffice document.</p>
+<p> Limitations: Parameter &quot;<span class="smallcode">ope=delcol</span>&quot; will produce a wrong result if there is any  cell with a merged style before of within the columns to delete using OpenTBS.</p>
+<p> You have to put a TBS field anywhere inside the table with the following parameters:</p>
+<ul>
+  <li> <span class="template">ope=delcol</span></li>
+  <li> <span class="template">colnum</span> = the column numbers to delete, separated with commas (first column is number 1). An empty value makes no column to be deleted. A column number of zero or negative is ignored.</li>
+  <li> <span class="template">colshift</span> = (optional) if parameter &quot;<span class="template">colnum</span>&quot; has only one value then &quot;<span class="template">colshift</span>&quot; extends the number of columns to delete to the left or to the right.</li>
+</ul>
+<p> Both parameters &quot;<span class="template">colnum</span>&quot; and &quot;<span class="template">colshift</span>&quot; can contain  [val] and [var] fields. Unfortunaltely parameter <span class="template">&quot;ope&quot;</span> is processed before parametre <span class="template">&quot;if&quot;</span>, so the merged value must be directly the colums to delete.</p>
+<p>When the TBS field with parameter <span class="template">&quot;ope=delcol&quot;</span> is merged, the specified columns will be deleted and the TBS field is erased.</p>
+<div class="shift"> Examples:
+  <ul>
+  <li><span class="template">[onload;ope=delcol;colnum=2,4,6]</span> =&gt; will delete columns {2,4,6}</li>
+  <li> <span class="template">[onload;ope=delcol;colnum=2;colshift=2]</span> =&gt; will delete columns {2,3,4}</li>
+  <li> <span class="template">[onload;ope=delcol;colnum=2;colshift=-1]</span> =&gt; will delete columns {1,2}</li>
+  <li><span class="template">[onload.col_to_delete;ope=delcol;colnum=[val];colshift=2]</span> =&gt; will delete 3 columns staring from column number <span class="smallcode">$col_to_delete</span></li></ul></div>
+<p class="versioning">Parameter &quot;ope=delcol&quot;  is  supported since OpenTBS version 1.8.0.</p>
+<h5><a id="parallell"></a>Merge dynamic colmuns in a table</h5>
+<p>Parameter &quot;<span class="smallcode">parallel=tbs:table</span>&quot; enables you to create dynamic columns in a table of an Ms Word Document or any LibreOffice document.</p>
+<p> Limitations: </p>
+<ul>
+  <li>Parameter &quot;<span class="smallcode">parallel=tbs:table</span>&quot; doesn't work with Ms Excel and Ms Powerpoint documents.</li>
+  <li> Parameter &quot;<span class="smallcode">parallel=tbs:table</span>&quot; with OpenTBS will produce a wrong result if there is any  cell with a merged style before of within the columns to merge with data using OpenTBS.</li>
+</ul>
+<p> See the <a href="http://www.tinybutstrong.com/manual.php#html_block_parallel">TBS manual</a> and the OpenTBS demo for more details about how to use parameter &quot;<span class="smallcode">parallel</span>&quot;.</p>
+<p><span class="versioning">Parameter &quot;parallel=tbs:table&quot;  is  supported since OpenTBS version 1.8.2.</span></p>
+<h3><a id="mergecell"></a>4.8. Merge cells vertically</h3>
+ Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; enables you to merge cells vertically in a table of an Ms Word Document.
+ <p> Limitations:</p>
+<ul>
+  <li>Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; doesn't work with LibreOffice.</li>
+  <li> Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; will produce a wrong merge if there is any  cell with a merged style before of within the columns to merge with data using OpenTBS.</li>
+</ul>
+<p>Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; can work only for a block merged on the rows of the table. Note that the TBS field with &quot;<span class="smallcode">ope=mergecell</span>&quot; does not display any value, it only produces the merge.</p>
+<div class="shift"> Example:
+  <ul>
+    <li><span class="template">[b.rank;block=tbs:row][b.rank;ope=mergecell]</span> =&gt; This will display the colmun rank and also merge the cells vertically depending on the rank.</li>
+  </ul>
+</div>
+<p class="versioning">Parameter &quot;ope=mergecell&quot;  is  supported since OpenTBS version 1.8.0.</p>
+<h3><a id="cells"></a>4.9. Merging data in spreadsheet cells</h3>
 <p>In speaksheets (Ms Excel or LibreOffice Calc), cells values may be formated but also typed. For example, a cell value may be typed as String, Numerical, Boolean or Date.</p>
 <p>Unfortunately, as soon as you enter a TBS tag in a cell, the cell it is typed as String by the software. This may not be corresponding to the final value you wanted after the merging.</p>
 <p>For those situations, TBS offers a parameter like &quot;<span class="smallcode">ope=cellType</span>&quot;. The cell type will be changed during the merging and the merged value will be implicitly   converted by TBS to fit to the expected type.</p>
@@ -643,49 +686,45 @@ array (
 </table>
 <p class="versioning">The keywoks in the table above are supported since OpenTBS version 1.8.1.</p>
 <p class="versioning"> In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime, odsCurr, odsPercent, xlsxNum, xlsxBool and xlsxDate.</p>
-<h3><a id="col"></a>4.8. Delete or merge columns in a table</h3>
-<h5><a id="delcol"></a>Delete columns in a table</h5>
-<p>Parameter &quot;<span class="smallcode">ope=delcol</span>&quot; enables you to delete the columns you want in any table of an Ms Word Document or  any LibreOffice document.</p>
-<p> Limitations: Parameter &quot;<span class="smallcode">ope=delcol</span>&quot; will produce a wrong result if there is any  cell with a merged style before of within the columns to delete using OpenTBS.</p>
-<p> You have to put a TBS field anywhere inside the table with the following parameters:</p>
-<ul>
-  <li> <span class="template">ope=delcol</span></li>
-  <li> <span class="template">colnum</span> = the column numbers to delete, separated with commas (first column is number 1). An empty value makes no column to be deleted. A column number of zero or negative is ignored.</li>
-  <li> <span class="template">colshift</span> = (optional) if parameter &quot;<span class="template">colnum</span>&quot; has only one value then &quot;<span class="template">colshift</span>&quot; extends the number of columns to delete to the left or to the right.</li>
-</ul>
-<p> Both parameters &quot;<span class="template">colnum</span>&quot; and &quot;<span class="template">colshift</span>&quot; can contain  [val] and [var] fields. Unfortunaltely parameter <span class="template">&quot;ope&quot;</span> is processed before parametre <span class="template">&quot;if&quot;</span>, so the merged value must be directly the colums to delete.</p>
-<p>When the TBS field with parameter <span class="template">&quot;ope=delcol&quot;</span> is merged, the specified columns will be deleted and the TBS field is erased.</p>
-<div class="shift"> Examples:
-  <ul>
-  <li><span class="template">[onload;ope=delcol;colnum=2,4,6]</span> =&gt; will delete columns {2,4,6}</li>
-  <li> <span class="template">[onload;ope=delcol;colnum=2;colshift=2]</span> =&gt; will delete columns {2,3,4}</li>
-  <li> <span class="template">[onload;ope=delcol;colnum=2;colshift=-1]</span> =&gt; will delete columns {1,2}</li>
-  <li><span class="template">[onload.col_to_delete;ope=delcol;colnum=[val];colshift=2]</span> =&gt; will delete 3 columns staring from column number <span class="smallcode">$col_to_delete</span></li></ul></div>
-<p class="versioning">Parameter &quot;ope=delcol&quot;  is  supported since OpenTBS version 1.8.0.</p>
-<h5><a id="parallell"></a>Merge dynamic colmuns in a table</h5>
-<p>Parameter &quot;<span class="smallcode">parallel=tbs:table</span>&quot; enables you to create dynamic columns in a table of an Ms Word Document or any LibreOffice document.</p>
-<p> Limitations: </p>
-<ul>
-  <li>Parameter &quot;<span class="smallcode">parallel=tbs:table</span>&quot; doesn't work with Ms Excel and Ms Powerpoint documents.</li>
-  <li> Parameter &quot;<span class="smallcode">parallel=tbs:table</span>&quot; with OpenTBS will produce a wrong result if there is any  cell with a merged style before of within the columns to merge with data using OpenTBS.</li>
-</ul>
-<p> See the <a href="http://www.tinybutstrong.com/manual.php#html_block_parallel">TBS manual</a> and the OpenTBS demo for more details about how to use parameter &quot;<span class="smallcode">parallel</span>&quot;.</p>
-<p><span class="versioning">Parameter &quot;parallel=tbs:table&quot;  is  supported since OpenTBS version 1.8.2.</span></p>
-<h3><a id="mergecell"></a>4.9. Merge cells vertically</h3>
- Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; enables you to merge cells vertically in a table of an Ms Word Document.
- <p> Limitations:</p>
-<ul>
-  <li>Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; doesn't work with LibreOffice.</li>
-  <li> Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; will produce a wrong merge if there is any  cell with a merged style before of within the columns to merge with data using OpenTBS.</li>
-</ul>
-<p>Parameter &quot;<span class="smallcode">ope=mergecell</span>&quot; can work only for a block merged on the rows of the table. Note that the TBS field with &quot;<span class="smallcode">ope=mergecell</span>&quot; does not display any value, it only produces the merge.</p>
-<div class="shift"> Example:
-  <ul>
-    <li><span class="template">[b.rank;block=tbs:row][b.rank;ope=mergecell]</span> =&gt; This will display the colmun rank and also merge the cells vertically depending on the rank.</li>
-  </ul>
+<h3><a name="ranges" id="ranges"></a>4.10. Read and write ranges in a worksheet</h3>
+<p>&bull; Read a range in a worksheet</p>
+<div class="shift"> <span class="versioning">(supported since OpenTBS version 1.10.0)</span>
+  <div class="code">Example: $result = $TBS-&gt;PlugIn(OPENTBS_GET_CELLS, $RangeRef, $Options = array())</div>
+  <p>This command returns an array containg all of the cell's values in a range of the workbook.</p>
+  <p>Empty cells will have a NULL value.</p>
+  <p>Cells with a  formula will have the last value cached by software (LibreOffice or Excel). </p>
+<p>This command support merged cells and also full columns and  full rows. The result of full columns and full rows will be limited to the explicit data actually stored in the worksheet.  </p>
+<table width="100%"  border="0" cellspacing="1" cellpadding="4">
+  <tr>
+      <th align="left" valign="top">Argument</th>
+      <th align="left">Description</th>
+    </tr>
+    <tr>
+      <td valign="top" class="smallcode"><p>$<span class="code">RangeRef</span></p></td>
+      <td valign="top"><p>It must be either :</p>
+        <ul>
+          <li>An existing named range in the workbook. It can  be a global name, or name local to a worksheet.</li>
+          <li>An absolute range definition. That is a range that include the worksheet name. Example : &quot;$'my_sheet'.$A$2:$D$23&quot;. The range definition must be compatible with the formats (ODS or XLSX).</li>
+          <li>A local range definition. That is a range . Example : &quot;A1:D18&quot;. In this case the range taken in the worksheet currently selected by OpenTBS.<br>
+          </li>
+        </ul></td>
+    </tr>
+    <tr>
+      <td valign="top" class="smallcode"><p>$<span class="code">Options</span></p></td>
+      <td valign="top"><ul>
+        <li><span class="smallcode">'header'</span> (<span class="smallcode">false</span> by default) : indicate that the first row of the range contains the header information and will be used as the colmuns names for each returned rows.</li>
+        <li><span class="smallcode">'columns'</span> (<span class="smallcode">false</span> by default) : an assocaitif array of columns to be renamed. A missing index or a null value means the colum will not be returned in the result.</li>
+        <li><span class="smallcode">'noerr'</span> (<span class="smallcode">false</span> by default) : if this option is <span class="smallcode">true</span> and the range cannot be found or read, then the function return <span class="smallcode">false</span> without raising an error.</li>
+        <li><span class="smallcode">'del_blank_rows'</span> (<span class="smallcode">false</span> by default) : set this option to <span class="smallcode">'true</span>' to not return blank rows.</li>
+        <li><span class="smallcode">'row_max'</span> (<span class="smallcode">false</span> by default) : the maximum number of row to return. <span class="smallcode">False</span> means no limit.</li>
+        <li><span class="smallcode">'rangeinfo'</span> (<span class="smallcode">false</span> by default) : set this option to <span class="smallcode">true</span> in order to return the debug information about the range definition instead of its data. For debuging purpose.</li>
+      </ul></td>
+    </tr>
+</table>
 </div>
-<p class="versioning">Parameter &quot;ope=mergecell&quot;  is  supported since OpenTBS version 1.8.0.</p>
-<h3><a id="modify_contents"></a>4.10. Commands to control the merging</h3>
+<p>&bull; Write a range in a worksheet</p>
+<p><span class="versioning">Will be available in a next version</span>.</p>
+<h3><a id="modify_contents"></a>4.11. Commands to control the merging</h3>
 <p><span class="versioning">The following commands are supported since OpenTBS version 1.7.0 </span>:</p>
 <table  border="0" cellspacing="1" cellpadding="4">
   <tr>
@@ -886,7 +925,7 @@ array (
     <p><span class="versioning">Command OPENTBS_SEARCH_IN_SLIDES is supported since OpenTBS version 1.9.0.</span></p></td>
   </tr>
 </table>
-<h3><a id="modify_files"></a>4.11. Manage files in the archive</h3>
+<h3><a id="modify_files"></a>4.12. Manage files in the archive</h3>
 <h4 style="display:inline">&bull; Get all files in the archive:</h4>
 <div class="shift">
   <div class="code">$TBS-&gt;Plugin(OPENTBS_GET_FILES)</div>
@@ -962,7 +1001,7 @@ $TBS-&gt;Plugin(OPENTBS_RESET);
 $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   <p>The automatic extension recognition is also applied as it was applied for the first load of the archive.</p>
 </div>
-<h3><a id="misc"></a>4.12. Miscellaneous</h3>
+<h3><a id="misc"></a>4.13. Miscellaneous</h3>
 <h4>Dealing with apostrophes:</h4>
 <div class="shift">
   <p> Both OpenOffice and Ms Office may automatically convert single quotes (') into typographic apostrophes (&rsquo;), depending to the auto-correction options. This may be annoying   when you need to code a TBS fields that have a single quote. That's why OpenTBS automatically convert by default all (&rsquo;) back to single quotes (') in documents.</p>
@@ -1084,6 +1123,11 @@ $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   If you re-open the ODT file with 7-Zip, you can notice that the size and the uncompressed size are the same.<br />
   If the file should be placed in a sub-folder of the archive, then open the archive and rename the file in order to move it in a folder. For example rename &quot;manifest.xml&quot; to &quot;META-INF\manifest.xml&quot; will move it into META-INF. But moving the file will no delete the one which has the same name in the target folder. You have to go and delete the old one. </p>
 <h2><a id="changelog"></a>8. Changelog</h2>
+<h3>version 1.10.0, on 2019-06-18</h3>
+<p>New features</p>
+<ul>
+  <li> New command OPENTBS_GET_CELLS for reading range in a workbook.</li>
+</ul>
 <h3>version 1.9.12, on 2019-03-10</h3>
 <p>New features</p>
 <ul>
