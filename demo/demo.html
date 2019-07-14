@@ -1,9 +1,9 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>OpenTBS Demo</title>
-<script language="javascript">
+<script>
   // redirection if open without the menu at the TBS site
   if ( (document.location.href.indexOf('www.tinybutstrong.com') > 0)
         && (document.location.href.indexOf('demo.html') > 0)
@@ -11,7 +11,7 @@
   	document.location.href = "/opentbs.php?demo";
   }
 </script>
-<script type="text/javascript">
+<script>
 	function download_template() {
 		var file = document.forms['form1'].elements['tpl'].value;
 		var rep = document.forms['form1'].action;
@@ -22,26 +22,28 @@
 		window.location.href = file;
 	}
 </script>
-<style type="text/css">
+<style>
 <!--
 body,td,th {
 	font-family: Verdana, Geneva, sans-serif;
 	font-size: 11px;
 }
-.title1 {
-	font-size: 16px;
-	font-weight: bold;
-}
 -->
-</style></head>
+</style>
+</head>
 
 <body>
 <!-- main-body is used for insertion in the TBS menu -->
 <div id="main-body">
-<p align="center"><span class="title1">OpenTBS</span> <span class="title1">demo</span><br />
-  OpenTBS is a PHP tool that produces any OpenOffice and Ms Office documents with the technic of template<br />
-  <br />
+
+<div style="text-align: center;">
+
+<h1>OpenTBS demo</h1>
+<p>
+  OpenTBS is a PHP tool that produces any OpenOffice and Ms Office documents with the technic of template
 </p>
+</div>
+
 <h2>Presentation</h2>
 <p>OpenTBS can merge any OpenDocument and Open XML  files. It autommatically reconize extensions: <strong>odt</strong>, <strong>ods</strong>, <strong>odg</strong>, <strong>odf</strong>, <strong>odm</strong>, <strong>odp</strong>, <strong>ott</strong>, <strong>ots</strong>, <strong>otg</strong>, <strong>otp</strong>, <strong>docx</strong>, <strong>xlsx, xlsm</strong>, <strong>pptx</strong>.</p>
 <p> In fact it can merge any XML or Text file saved in a zip container (which is the case for both OpenDocuments and OpenXML documents).</p>
@@ -55,10 +57,10 @@ body,td,th {
 </ul>
 <h2>Demo</h2>
 <form id="form1" method="post" action="./demo_merge.php">
-  <table border="0" cellspacing="4" cellpadding="0">
+  <table style="border: 0px;">
     <tr>
-      <td scope="col">Enter a name :</td>
-      <td scope="col"><input name="yourname" type="text" size="10" /> <i>(will be displayed in the merged result)</i></td>
+      <td>Enter a name :</td>
+      <td><input name="yourname" type="text" size="10" /> <i>(will be displayed in the merged result)</i></td>
     </tr>
     <tr>
       <td>Choose a template :</td>
@@ -85,6 +87,7 @@ body,td,th {
     <tr id="save_as_file" style="display:none;">
       <td>Save locally with suffix :</td>
       <td><input name="save_as" type="text" size="10" /> <i>(leave empty for direct download)</i></td>
+
     </tr>
     <tr>
       <td>&nbsp;</td>
@@ -103,10 +106,10 @@ body,td,th {
   <li>  Discover the <a href="http://www.tinybutstrong.com">TinyButStrong</a> template engine for PHP</li>
   <li> Go to <a href="http://www.tinybutstrong.com/plugins.php">OpenTBS download</a> page </li>
 </ul>
-</body>
-<script type="text/javascript">
+</div>
+<script>
 	// enable the option for savegin as a file, the PHP script will test if it is running on localhost anyway.
 	if (window.location.hostname=='localhost') document.getElementById('save_as_file').style.display='table-row';
 </script>
-</div>
+</body>
 </html>
