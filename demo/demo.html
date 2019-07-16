@@ -45,54 +45,101 @@ body,td,th {
 </div>
 
 <h2>Presentation</h2>
+
 <p>OpenTBS can merge any OpenDocument and Open XML  files. It autommatically reconize extensions: <strong>odt</strong>, <strong>ods</strong>, <strong>odg</strong>, <strong>odf</strong>, <strong>odm</strong>, <strong>odp</strong>, <strong>ott</strong>, <strong>ots</strong>, <strong>otg</strong>, <strong>otp</strong>, <strong>docx</strong>, <strong>xlsx, xlsm</strong>, <strong>pptx</strong>.</p>
 <p> In fact it can merge any XML or Text file saved in a zip container (which is the case for both OpenDocuments and OpenXML documents).</p>
-<p><span id="result_box" lang="en" xml:lang="en">In addition to the usual merging operations, m</span>any other oprerations can be done on documents, such as: feed a table, delete or display paragraphs, change pictures, delete sheets, change data in graphs, ... and much more.</p>
+<p>In addition to the usual merging operations, many other oprerations can be done on documents, such as: feed a table, delete or display paragraphs, change pictures, delete sheets, change data in graphs, ... and much more.</p>
+<p>Since version 1.10.0, OpenTBS can also read data in workbooks (<strong>xlsx</strong> and <strong>ods</strong> files).</p>
+
 <h2>Characteristics</h2>
+
 <ul>
   <li> No temporary files needed.</li>
   <li> Creates a new document directly as a download, a physical file, or a binary PHP string.</li>
   <li> Works with both PHP 5 and PHP 7.</li>
   <li> No PHP extension required (but easier to use if <a href="http://www.php.net/manual/en/book.zlib.php">ZLib</a> is enabled)</li>
 </ul>
-<h2>Demo</h2>
+
+<h2>Merging Demo</h2>
+
 <form id="form1" method="post" action="./demo_merge.php">
   <table style="border: 0px;">
     <tr>
       <td>Enter a name :</td>
-      <td><input name="yourname" type="text" size="10" /> <i>(will be displayed in the merged result)</i></td>
+      <td>
+		<input name="yourname" type="text" size="10" />
+		<i>(will be displayed in the merged result)</i>
+	  </td>
     </tr>
     <tr>
       <td>Choose a template :</td>
-      <td><select name="tpl">
-        <option value="demo_oo_text.odt">OpenOffice Writer Document (.odt)</option>
-        <option value="demo_oo_spreadsheet.ods">OpenOffice Calc Spreadsheet (.ods)</option>
-        <option value="demo_oo_presentation.odp">OpenOffice Impress Presentation (.odp)</option>
-        <option value="demo_oo_graph.odg">OpenOffice Draw Graphic (.odg)</option>
-        <option value="demo_oo_formula.odf">OpenOffice Math Formula (.odf)</option>
-        <option value="demo_ms_word.docx">Ms Word Document (.docx)</option>
-        <option value="demo_ms_excel.xlsx">Ms Excel SpreadSheet (.xlsx)</option>
-        <option value="demo_ms_powerpoint.pptx">Ms PowerPoint Presentation (.pptx)</option>
-      </select></td>
+      <td>
+	    <select name="tpl">
+			<option value="demo_oo_text.odt">OpenOffice Writer Document (.odt)</option>
+			<option value="demo_oo_spreadsheet.ods">OpenOffice Calc Spreadsheet (.ods)</option>
+			<option value="demo_oo_presentation.odp">OpenOffice Impress Presentation (.odp)</option>
+			<option value="demo_oo_graph.odg">OpenOffice Draw Graphic (.odg)</option>
+			<option value="demo_oo_formula.odf">OpenOffice Math Formula (.odf)</option>
+			<option value="demo_ms_word.docx">Ms Word Document (.docx)</option>
+			<option value="demo_ms_excel.xlsx">Ms Excel SpreadSheet (.xlsx)</option>
+			<option value="demo_ms_powerpoint.pptx">Ms PowerPoint Presentation (.pptx)</option>
+        </select>
+	  </td>
     </tr>
     <tr>
       <td>Debug :</td>
-      <td><select name="debug">
-        <option value="" selected="selected">No</option>
-        <option value="info">General Information</option>
-        <option value="current">During merge</option>
-        <option value="show">After merge</option>
-      </select></td>
+      <td>
+	    <select name="debug">
+			<option value="" selected="selected">No</option>
+			<option value="info">General Information</option>
+			<option value="current">During merge</option>
+			<option value="show">After merge</option>
+        </select>
+	  </td>
     </tr>
     <tr id="save_as_file" style="display:none;">
       <td>Save locally with suffix :</td>
       <td><input name="save_as" type="text" size="10" /> <i>(leave empty for direct download)</i></td>
-
     </tr>
     <tr>
       <td>&nbsp;</td>
       <td>
-	    <input type="submit" name="btn_result" value="Merge" />
+	    <input type="submit" name="btn_result"   value="Merge" />
+	    <input type="submit" name="btn_template" value="See template" />
+	    <input type="submit" name="btn_script"   value="See PHP script" />
+	  </td>
+    </tr>
+  </table>
+</form>
+
+<h2>Reading Demo</h2>
+
+<form id="form2" method="post" action="./demo_read.php">
+  <table style="border: 0px;">
+    <tr>
+      <td>Choose a file :</td>
+      <td>
+	    <select name="file">
+			<option value="demo_read_oo_spreadsheet.ods">OpenOffice Calc Spreadsheet (.ods)</option>
+			<option value="demo_read_ms_excel.xlsx">Ms Excel SpreadSheet (.xlsx)</option>
+        </select>
+	   </td>
+    </tr>
+    <tr>
+      <td>Debug :</td>
+      <td>
+	    <select name="debug">
+			<option value="" selected="selected">No</option>
+			<option value="info">General Information</option>
+			<option value="current">During merge</option>
+			<option value="show">After merge</option>
+        </select>
+	  </td>
+    </tr>
+    <tr>
+      <td>&nbsp;</td>
+      <td>
+	    <input type="submit" name="btn_result" value="Read" />
 	    <input type="submit" name="btn_template" value="See template" />
 	    <input type="submit" name="btn_script" value="See PHP script" />
 	  </td>
