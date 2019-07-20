@@ -1889,16 +1889,50 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		
 		if (is_array($Value)) $Value = implode(',', $Value);
 
-		// Retreive the list of columns id to delete
-		$col_lst = $this->TbsMergeVarFields($PrmLst['colnum'], $Value); // prm equal to true if value is not given
+		// Column set
+		$shift_ok = false;
+		if (isset($PrmLst['colset'])) {
+			$col_set = str_replace(' ', '', $PrmLst['colset']);
+			$col_set = explode('|', $col_set);
+			$col_lst = array();
+			$val_lst = explode(',', $Value);
+			foreach ($val_lst as $s) {
+				$idx = intval($s) - 1;
+				if (isset($col_set[$idx])) {
+					$col_lst[] = $col_set[$idx];
+				}
+			}
+			$col_lst = implode(',', $col_lst);
+		} elseif (isset($PrmLst['colnum'])) {
+			// Retreive the list of columns id to delete
+			$col_lst = $this->TbsMergeVarFields($PrmLst['colnum'], $Value); // prm equal to true if value is not given
+			$shift_ok = true;
+		} else {
+			$col_lst = $Value;
+			$shift_ok = true;
+		}
+		
+		// Convert the colmun list into an array
 		$col_lst = str_replace(' ', '', $col_lst);
 		if ( ($col_lst=='') || ($col_lst=='0') ) return false; // there is nothing to do
 		$col_lst = explode(',', $col_lst);
 		$col_nbr = count($col_lst);
-		for ($c=0; $c<$col_nbr; $c++) $col_lst[$c] = intval($col_lst[$c]); // Conversion into numerical
+		for ($c = 0; $c < $col_nbr; $c++) {
+			// In cas of range separator
+			$x = explode('-', $col_lst[$c]);
+			$x0 = intval($x[0]);
+			$col_lst[$c] = $x0;
+			// Range separator
+			if (isset($x[1])) {
+				$x1 = intval($x[1]);
+				for ($i = $x0 + 1 ; $i <= $x1 ; $i++) {
+					$col_lst[] = $i; // added after the existing values
+				}
+			}
+		}
 		
 		// Add columns by shifting
-		if (isset($PrmLst['colshift'])) {
+		if ($shift_ok && isset($PrmLst['colshift'])) {
 			$col_shift = intval($this->TbsMergeVarFields($PrmLst['colshift'], $Value));
 			if ($col_shift<>0) {
 				$step = ($col_shift>0) ? -1 : +1;
