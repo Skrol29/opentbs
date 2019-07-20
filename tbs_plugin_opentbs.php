@@ -7056,23 +7056,23 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
  */
 class clsTbsXmlLoc {
 
-	var $PosBeg;
-	var $PosEnd; // can the end of the open tag, or end of the close tag.
-	var $SelfClosing; // null|false|true, null means unknown.
-	var $Txt;
-	var $Name = ''; 
-	var $Exists; 
+	public $PosBeg;
+	public $PosEnd; // can the end of the open tag, or end of the close tag.
+	public $SelfClosing; // null|false|true, null means unknown.
+	public $Txt;
+	public $Name = ''; 
+	public $Exists; 
 
-	var $pST_PosEnd = false; // position of the end of the start tag
-	var $pST_Src = false;    // cached source of the start tag, false if not cached
-	var $pET_PosBeg = false; // position of the begining of the end tag
+	public $pST_PosEnd = false; // position of the end of the start tag
+	public $pST_Src = false;    // cached source of the start tag, false if not cached
+	public $pET_PosBeg = false; // position of the begining of the end tag
 
-	var $Parent = false; // parent object
+	public $Parent = false; // parent object
 
 	// For relative mode
-	var $rel_Txt = false;
-	var $rel_PosBeg = false;
-	var $rel_Len = false;
+	public $rel_Txt = false;
+	public $rel_PosBeg = false;
+	public $rel_Len = false;
 	
 	// Create an instance with the given parameters
 	function __construct(&$Txt, $Name, $PosBeg, $SelfClosing = null, $Parent = false, $Exists = true) {
