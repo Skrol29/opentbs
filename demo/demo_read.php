@@ -46,6 +46,10 @@ $options = array(
 	//'rangeinfo' => true,
 );
 
+$range = 'B19:C22';
+$data = $TBS->Plugin(OPENTBS_GET_CELLS, $range, $options);
+f_display_result($range, $data, false, "Example: unamed range");
+
 $range = 'myrange_all_types';
 $data = $TBS->Plugin(OPENTBS_GET_CELLS, $range, $options);
 f_display_result($range, $data, false, "Example: all cell types");
@@ -62,10 +66,6 @@ $range = 'merged_vertical_1';
 $data = $TBS->Plugin(OPENTBS_GET_CELLS, $range, $options);
 f_display_result($range, $data, false, "Example: range with cells merged vertically");
 
-$range = 'B19:C22';
-$data = $TBS->Plugin(OPENTBS_GET_CELLS, $range, $options);
-f_display_result($range, $data, false, "Example: unamed range");
-
 $range = 'infinit_vertical_1';
 $data = $TBS->Plugin(OPENTBS_GET_CELLS, $range, $options);
 f_display_result($range, $data, false, "Example: range having full columns");
@@ -73,7 +73,6 @@ f_display_result($range, $data, false, "Example: range having full columns");
 $range = 'infinit_horizontal_1';
 $data = $TBS->Plugin(OPENTBS_GET_CELLS, $range, $options);
 f_display_result($range, $data, false, "Example: range having full rows");
-
 
 
 // ------------------------
