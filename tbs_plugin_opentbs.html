@@ -128,6 +128,7 @@ body, td, th {
 <p>OpenTBS is a plug-in for the <a href="http://www.tinybutstrong.com">TinyButStrong</a> Template Engine. </p>
 <p>  TinyButStrong is a  PHP Template Engine which has  special template syntax and allows you to design templates in their natural editing tools. But it normally works only for  Text files, including XML and HTML.</p>
 <p>  With TinyButStrong and its plug-in OpenTBS, you can use the template engine to  merge <strong>OpenOffice</strong> documents and <strong>Ms Office </strong> documents with lot of facilities.   All <strong>OpenDocument Format</strong> (ODF) and <strong> Office Open XML</strong> (OOXML) can be merged with OpenTBS, and also XPS files (XPS is a PDF competitor provided by Microsoft). In fact, all zip archives containing Xml/Html/Text files can be merged with OpenTBS.</p>
+<p>Since version 1.10.0, OpenTBS can also read data in workbooks (<strong>xlsx</strong> and <strong>ods</strong> files).</p>
 <h5>What is special to OpenTBS:</h5>
 <ul>
   <li>Design your templates directly with OpenOffice or MS Office.</li>
@@ -603,8 +604,8 @@ array (
 <p> You have to put a TBS field anywhere inside the table with the following parameters:</p>
 <ul>
   <li> <span class="template">ope=delcol</span></li>
-  <li> <span class="template">colnum</span> = the column numbers to delete, separated with commas (first column is number 1). An empty value makes no column to be deleted. A column number of zero or negative is ignored.</li>
-  <li> <span class="template">colshift</span> = (optional) if parameter &quot;<span class="template">colnum</span>&quot; has only one value then &quot;<span class="template">colshift</span>&quot; extends the number of columns to delete to the left or to the right.</li>
+  <li> <span class="template">colnum</span> = the column numbers to delete, separated with commas (first column is number 1). If a column number is empty (''), or zero (0), or negative, then the value is ignored whitout raising error.</li>
+  <li> <span class="template">colshift</span> = (optional) if parameter &quot;<span class="template">colnum</span>&quot; has only one value then &quot;<span class="template">colshift</span>&quot; extends the number of columns to delete to the left (if positive) or to the right (if negative).</li>
 </ul>
 <p> Both parameters &quot;<span class="template">colnum</span>&quot; and &quot;<span class="template">colshift</span>&quot; can contain  [val] and [var] fields. Unfortunaltely parameter <span class="template">&quot;ope&quot;</span> is processed before parametre <span class="template">&quot;if&quot;</span>, so the merged value must be directly the colums to delete.</p>
 <p>When the TBS field with parameter <span class="template">&quot;ope=delcol&quot;</span> is merged, the specified columns will be deleted and the TBS field is erased.</p>
