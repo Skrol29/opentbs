@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.10] - 2019-07-20
+
+### New features
+
+- New command OPENTBS_GET_CELLS for reading range in a workbook.
+
+### Enhancements
+
+- Get off PHP 4 compatibilty.
+
 ## [1.9.12] - 2019-03-10
 
 ### New features
@@ -189,16 +199,303 @@ All notable changes to this project will be documented in this file.
 
 ## [1.8.3] - 2014-02-02
 
+### Bug fixes
+
+- (since version 1.8.0) the changed picture is another picture in the document or an empty picture.
+  This could happen if you used parameter "changepic" with both [onload] and [onshow] or both MergeBlock() and [onshow].
+
 ## [1.8.2] - 2014-01-26
 
-- Based on TbsZip 2.15
+### Bug fixes
 
-- Supports new parameter "parallel" given with TBS 3.9.0
+- some TBS fields seems to be ignored in ODT files edited with LibreOffice 4 or higher. This was due to a new RSID feature in LibreOffice that inserts invisible XML elements.
 
-- Manage RSID problem with ODT (with LibreOffice>=4).
+- no data displayed when merging numerical cells in ODS files built with LibreOffice 4 or higher. This was due to a new attribute in subjacent XML elements.
 
-- Bug when merging numerical cells in ODS files built with LibreOffice>=4
-  it's about new attribute "calcext:value-type" in ODS cells in LibreOffice 4 
-  http://www.tinybutstrong.com/forum.php?thr=3246
+### New features
 
-- Nouvelle option interne : $TBS->OtbsClearWriter
+- internal option : $TBS->OtbsClearWriter
+
+### Enhancements
+
+- Supports new parameter "parallel" of TinyButStrong 3.9.0.
+
+- based on TbsZip 2.15
+
+## [1.8.1] - 2013-08-30
+
+### New features
+
+- the loaded template can be a PHP file handle.
+
+### Bug fixes
+
+- A DOCX file could be corrupted when using "block=tbs:page" and the last paragraph of the document has no text.
+
+### Enhancements
+
+- Ms Excel Sheets are now saved with explicit references for rows and cells, so merged templates are viewable with Libre Office and other third viewers.
+
+- keywords for changing cell types is the same for LibreOffice and Ms Office.
+
+- based on TbsZip 2.14
+
+## [1.8.0] - 2013-05-04
+
+### New features
+
+- automatically cleans up spelling in PPTX templates (such information may deconstruct the TBS tags). This feature can be disabled.
+
+- Block Alias helps to define TBS blocks easily on pages, sections,....
+
+- merging a chart from its title.
+
+- new parameter "tagpos" to define the position of the TBS tag realtively to the image (when using "ope=changepic").
+
+- new parameter "delcol" to delete columns in tables.
+
+- new parameter "mergecell" to merge cells in tables.
+
+- new command OPENTBS_SELECT_SLIDE
+
+- new command OPENTBS_DELETE_SLIDES
+
+- new command OPENTBS_DISPLAY_SLIDES
+
+- new command OPENTBS_COUNT_SLIDES
+
+- new command OPENTBS_MERGE_SPECIAL_ITEMS
+
+- new command OPENTBS_CHANGE_PICTURE
+
+### Bug fixes
+
+- parameter "ope=changepic" did not work in PPTX documents.
+
+- parameter "ope=changepic" did not work with [onload] fields in Ms Office.
+
+- parameter "default=current" did not work when using MergeField() instead of MergeBlock().
+
+- some tab may be deleted in the template (during the automatic cleanup process).
+
+### Enhancements
+
+- merging charts is also available for LibreOffice documents
+
+- when using "ope=changepic", default value of parameter "default" is now "current".
+
+- delete unused pictures.
+
+- based on TbsZip 2.13
+
+- requires TBS 3.8.0
+
+## [1.7.6] - 2012-06-06
+
+### Bug fixes
+
+- Restore lost spaces around merged TBS fields in Ms Word documents. The patch doesn't work for headers and footers, unfortunately.
+
+## [1.7.5] - 2012-02-14
+
+### Bug fixes
+
+- Avoid erroneous Ms Word merged documents when duplicating objects such as drawings and shapes.
+
+### Enhancements
+
+- Based on TbZip version 2.11
+
+- New coding shorctut $TBS->TbsZip.
+
+- More examples of formulas for Xlsx and Ods speadsheets. 
+
+## [1.7.4] - 2011-10-20
+
+### New features
+
+- parameter "defaut=current" does not work and may build invalid documents when the target image is missing.
+
+- new command OPENTBS_REPLACEFILE
+
+- new command OPENTBS_FILEEXISTS
+
+## [1.7.3] - 2011-10-13
+
+### Bug fixes
+
+- in Ms Word documents, automatic fields (onload, onshow) placed in headers and footers with parameter "ope=changepic" are producing an erroneous merge. In Word 2010 the picture may by missing, in Word 2007 the docx file may be considered as corrupted.
+
+## [1.7.2] - 2011-10-12 
+
+### Bug fixes
+
+- error when using command OPENTBS_SELECT_SHEET with a sheet name: Notice: Undefined index: xxx in xxx on line 1986. 
+
+## [1.7.1] - 2011-10-07
+
+### Bug fixes
+
+- first non-empty cell of an Excel Spreadsheet is never merged if it contains a TBS field.
+
+### Enhancements
+
+- minor internal improvements.
+
+## [1.7.0] - 2011-08-21
+
+### New features
+
+- new parameter 'adjust' for changing picture size
+
+- new command OPENTBS_DEBUG_INFO 
+
+- new command OPENTBS_SELECT_MAIN 
+
+- new command OPENTBS_SELECT_SHEET
+
+- new command OPENTBS_DISPLAY_SHEETS
+
+- new command OPENTBS_DELETE_SHEETS
+
+- new command OPENTBS_DELETE_COMMENTS
+
+- new command OPENTBS_DELETE_ELEMENTS
+
+- parameter 'changepic' is optimized
+
+## [1.6.2] - 2011-07-12
+
+### Bug fixes
+
+- Ms Excel cells could consider as error some formatted values such as '0.00000000000000'.
+
+## [1.6.1] - 2011-06-08
+
+### Bug fixes
+
+- some documents may be corrupted when created using OPENTBS_DOWNLOAD because of a PHP error "supplied argument is not a valid stream resource" or "Undefined property: clsOpenTBS::$OutputHandle".
+
+- using keyword "xlsxNum", "xlsxDate" or "xlsxBool" inside a cell that is not merged can make a corrupted XLSX spreadsheet.
+
+### Enhancements
+
+- updated templates in the demo.
+
+- based on a TbsZip v2.8
+
+## [1.6.0] - 2011-06-07
+
+### New features
+
+- merge charts in Ms Word documents.
+
+- merge rows and columns Ms Excel workbooks.
+
+- new "ope" parameters for forcing cells type in Ms Excel (Numeric, Date and Boolean).
+
+- debug mode enhanced.
+
+- force the type of document using command OPENTBS_FORCE_DOCTYPE.
+
+- deal with apostrophes using property OtbsConvertApostrophes.
+
+### Enhancements
+
+- if the document extension is not recognized, then try to recognize document type by sub-file presence.
+
+- can use the Direct Command feature of TBS 3.7.0.
+
+- based on a TbsZip v2.6
+
+## [1.5.0] - 2011-03-20
+
+### New features
+
+- headers and footers are automatically loaded for OpenOffice & MsOffice.
+
+- automatically cleans up spelling and change trackings information in MsWord templates (such information may deconstruct the TBS tags). This feature can be disabled.
+
+- new constant OPENTBS_DEBUG_AVOIDAUTOFIELDS
+
+### Bug fixes
+
+- in debug mode: "warning function.str-repeat: Second argument has to be greater than or equal to 0"
+
+- when using OPENTBS_RESET: "Warning: Missing argument 2 for clsOpenTBS::OnCommand() in ... on line 225"
+
+- DML images were not found when using parameter "ope=changepic" in a DOCX document
+
+- the script ends and display the XML contents when a when using parameter "ope=changepic" with a new image type in a DOCX document
+
+### Enhancements
+
+- Debug doesn't stopped if an OpenTBS alert occurs.
+
+- OpenTBS alerts say if the process will be stopped.
+
+## [1.4.1] - 2010-10-28
+
+### Bug fixes
+
+- major bug fixed: due to TbsZip, some added or modified files can be saved the document with a wrong CRC control code. This could make softwares to consider the document as corrupted, but were often easily fixed by OpenOffice and Ms Office. Only few CRC codes are wrongly saved, thus the bug is rare and can seem to appear randomly on few documents.
+
+## [1.4.0] - 2010-10-05
+
+### New features
+
+- new parameters "changepic" and "default"
+
+## [1.3.3] - 2010-08-05
+
+### Bug fixes
+
+- property version of OpenTBS version 1.3.2 was saying 1.3.1
+
+## [1.3.2] - 2010-07-23
+
+### New features
+
+- possibility to change de default data conversion using the new constants OPENTBS_DEFAULT, OPENTBS_ALREADY_XML or OPENTBS_ALREADY_UTF8
+
+### Enhancements
+
+- enhanced debug mode: listing of added, deleted and modified files ; and show XML formated contents of files merged with OpenTBS.
+
+## [1.3.1] - 2010-07-01
+
+### Bug fixes
+
+-  based on TbsZip version 2.1: fixes a bug that saved a bad time of modification file was added, and saved time modification when a file content is replaced.
+
+-  the addpic operator now automatically updates the "fanifest.xml" file on OpenOffice document. Without this fix, an ODP merged document could be open with an error message with OpenOffice >= 3.2
+
+## [1.3] - 2010-06-01
+
+### New features
+
+- a new plugin command that add a new file in the archive
+
+- a new plugin command that delete a new file in the archive
+
+- a parameter 'ope=addpic' that add a new picture in the archive directly from the template
+
+### Enhancements
+
+- based on a TbsZip v2 (modify/delete/add files in a zip archive, )
+
+## [1.1] - 2009-11-19
+
+### New features
+
+-  render option : OPENTBS_STRING
+
+-  can reset changes in the current archive using $TBS->Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);
+
+### Enhancements
+
+-  extension of the archive is ignored by LoadTemplate() if the name is ended with '#'
+
+### Bug fixes
+
+-  in case of several files to take from the archive in one shot, then only the last one had [onload] fields merged.
