@@ -5446,7 +5446,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	/**
 	 * Prevent from the problem of missing spaces when calling ->MsWord_CleanRsID() or under certain merging circumstances.
 	 * Replace attribute xml:space="preserve" used in <w:t>, with the same attribute in <w:document>.
-	 * This trick works for MsWord 2007, 2010 but is undocumented. It may be desabled by default in a next version.
+	 * This trick works for MsWord 2007, 2010, 2013, 2016, 2019 but is undocumented. It may be disabled by default in a next version.
 	 * LibreOffice does ignore this attribute in both <w:t> and <w:document>.
 	 */
 	function MsWord_CleanSpacePreserve(&$Txt) {
