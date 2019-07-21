@@ -8,7 +8,7 @@
  * and retrieve the content of a zipped file which is not compressed.
  *
  * @version 1.10.0-beta
- * @date 2019-06-18
+ * @date 2019-07-21
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -5390,56 +5390,67 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$wtc_len = strlen($wtc);
 
 		$preserve = 'xml:space="preserve"';
+		$preserve_len = strlen($preserve);
 
-		$nbr = 0;
+		$nb_tot = 0;
 		$wro_p = 0;
-		while ( ($wro_p=$this->XML_FoundTagStart($Txt,$wro,$wro_p))!==false ) { // next <w:r> tag
-			$wto_p = $this->XML_FoundTagStart($Txt,$wto,$wro_p); // next <w:t> tag
-			if ($wto_p===false) return false; // error in the structure of the <w:r> element
+		while ( ($wro_p = $this->XML_FoundTagStart($Txt, $wro, $wro_p)) !== false ) { // next <w:r> tag
+			$wto_p = $this->XML_FoundTagStart($Txt, $wto, $wro_p); // next <w:t> tag
+			if ($wto_p === false) return false; // error in the structure of the <w:r> element
 			$first = true;
-			$last_att = '';
-			$first_att = '';
+			$nb = 0; // number of duplicated layouts for the current text snippet
 			do {
 				$ok = false;
-				$wtc_p = $this->XML_FoundTagStart($Txt,$wtc,$wto_p); // next </w:t> tag
-				if ($wtc_p===false) return false;
-				$wrc_p = $this->XML_FoundTagStart($Txt,$wrc,$wro_p); // next </w:r> tag (only to check inclusion)
-				if ($wrc_p===false) return false;
-				if ( ($wto_p<$wrc_p) && ($wtc_p<$wrc_p) ) { // if the <w:t> is actually included in the <w:r> element
+				$wtc_p = $this->XML_FoundTagStart($Txt, $wtc, $wto_p); // next </w:t> tag
+				if ($wtc_p === false) return false;
+				$wrc_p = $this->XML_FoundTagStart($Txt, $wrc, $wro_p); // next </w:r> tag (only to check inclusion)
+				if ($wrc_p === false) return false;
+				if ( ($wto_p < $wrc_p) && ($wtc_p < $wrc_p) ) { // if the <w:t> is actually included in the <w:r> element
 					if ($first) {
-						// text that is concatenated and can be simplified
-						$superfluous = '</w:t></w:r>'.substr($Txt, $wro_p, ($wto_p+$wto_len)-$wro_p); // without the last symbol, like: '</w:t></w:r><w:r>....<w:t'
-						$superfluous = str_replace('<w:tab/>', '', $superfluous); // tabs must not be deleted between parts => they nt be in the superfluous string
-						$superfluous_len = strlen($superfluous);
+						// we build the xml that would be the duplicated layout if any
+						$p = strpos($Txt, '<', $wrc_p + $wrc_len);
+						$x = substr($Txt, $wtc_p, $p - $wtc_p); // '</w:t></w:r>   ' may include some linebreaks or spaces after the closing tags
+						$src_to_del = $x . substr($Txt, $wro_p, ($wto_p + $wto_len) - $wro_p); // without the last symbol, like: '</w:t></w:r><w:r>....<w:t'
+						$src_to_del = str_replace('<w:tab/>', '', $src_to_del); // tabs must not be deleted between parts => they nt be in the superfluous string
+						$src_to_del_len = strlen($src_to_del);
 						$first = false;
-						$p_first_att = $wto_p+$wto_len;
-						$p =  strpos($Txt, '>', $wto_p);
-						if ($p!==false) $first_att = substr($Txt, $p_first_att, $p-$p_first_att);
 					}
-					// if the <w:r> layout is the same than the next <w:r>, then we join them
-					$p_att = $wtc_p + $superfluous_len;
-					$x = substr($Txt, $p_att, 1); // must be ' ' or '>' if the string is the superfluous AND the <w:t> tag has or not attributes
-					if ( (($x===' ') || ($x==='>')) && (substr($Txt, $wtc_p, $superfluous_len)===$superfluous) ) {
-						$p_end = strpos($Txt, '>', $wtc_p+$superfluous_len); //
-						if ($p_end===false) return false; // error in the structure of the <w:t> tag
-						$last_att = substr($Txt,$p_att,$p_end-$p_att);
-						$Txt = substr_replace($Txt, '', $wtc_p, $p_end-$wtc_p+1); // delete superfluous part + <w:t> attributes
-						$nbr++;
+					// if the following source is a duplicated layout then we delete it by joining the <w:r> elements.
+					$p_att = $wtc_p + $src_to_del_len;
+					$x = substr($Txt, $p_att, 1); // help to optimize the check because if it's a duplicated layout, the char after is the end of the '<w:t' element.
+					if ( (($x === ' ') || ($x === '>')) && (substr($Txt, $wtc_p, $src_to_del_len)===$src_to_del) ) {
+						$p_end = strpos($Txt, '>', $p_att); //
+						if ($p_end === false) return false; // error in the structure of the <w:t> tag
+						$Txt = substr_replace($Txt, '', $wtc_p, $p_end - $wtc_p + 1); // delete superfluous part + <w:t> attributes
+						$nb_tot++;
+						$nb++;
 						$ok = true;
 					}
 				}
 			} while ($ok);
 
-			// Recover the 'preserve' attribute if the last join element was having it. We check also the first one because the attribute must not be twice.
-			if ( ($last_att!=='') && (strpos($first_att, $preserve)===false)  && (strpos($last_att, $preserve)!==false) ) {
-				$Txt = substr_replace($Txt, ' '.$preserve, $p_first_att, 0);
+			// Add or delete the attribute « xml:space="preserve" » that must be set if there is a space before of after the text
+			if ($nb > 0) {
+				$with_space = false;
+				if ( substr($Txt, $wtc_p - 1, 1) === ' ') $with_space = true;
+				$p_end = strpos($Txt, '>', $wto_p); // first char of the text
+				if ( substr($Txt, $p_end + 1, 1) === ' ') $with_space = true;
+				$src = substr($Txt, $wto_p, $p_end - $wto_p + 1);
+				$p = strpos($src, $preserve);
+				if ( $with_space && ($p === false) ) {
+					// add the attribute
+					$Txt = substr_replace($Txt, ' ' . $preserve, $p_end, 0);
+				} elseif ( (!$with_space) && ($p !== false) ) {
+					// delete the attribute
+					$Txt = substr_replace($Txt, '', $wto_p + $p -1, $preserve_len + 1); // delete the attribut with the space before it
+				}
 			}
 
 			$wro_p = $wro_p + $wro_len;
 
 		}
 
-		return $nbr; // number of replacements
+		return $nb_tot; // number of total replacements
 
 	}
 
