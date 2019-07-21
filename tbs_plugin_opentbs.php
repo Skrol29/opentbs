@@ -5325,10 +5325,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	/**
+	 * Delete XML attributes relative to log of user modifications. Returns the number of deleted attributes.
+	 * In order to insert such information, MsWord does split TBS tags with XML elements.
+	 * After such attributes are deleted, we can concatenate duplicated XML elements.
+	 */
 	function MsWord_CleanRsID(&$Txt) {
-	/* Delete XML attributes relative to log of user modifications. Returns the number of deleted attributes.
-	In order to insert such information, MsWord does split TBS tags with XML elements.
-	After such attributes are deleted, we can concatenate duplicated XML elements. */
 
 		$rs_lst = array('w:rsidR', 'w:rsidRPr');
 
@@ -5457,15 +5459,22 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	/**
 	 * Prevent from the problem of missing spaces when calling ->MsWord_CleanRsID() or under certain merging circumstances.
 	 * Replace attribute xml:space="preserve" used in <w:t>, with the same attribute in <w:document>.
-	 * This trick works for MsWord 2007, 2010, 2013, 2016, 2019 but is undocumented. It may be disabled by default in a next version.
-	 * LibreOffice does ignore this attribute in both <w:t> and <w:document>.
+	 * This trick use an attribute of <w:document> element that works for all MsWord versions (last tested is 2019) but is undocumented.
+	 * So it may may be disabled by default in a next version.
+	 * LibreOffice does ignore this attribute in <w:document>.
 	 */
 	function MsWord_CleanSpacePreserve(&$Txt) {
+		
 		$XmlLoc = clsTbsXmlLoc::FindStartTag($Txt, 'w:document', 0);
+
+		// Checks
 		if ($XmlLoc===false) return;
 		if ($XmlLoc->GetAttLazy('xml:space') === 'preserve') return;
 		
-		$Txt = str_replace(' xml:space="preserve"', '', $Txt); // not mendatory but cleanner and save space
+		// We delete the attribute on <w:t> elements. This is not not mendatory but cleanner and save space.
+		// Canceled because needed for LibreOffice
+		// $Txt = str_replace(' xml:space="preserve"', '', $Txt);
+		
 		$XmlLoc->ReplaceAtt('xml:space', 'preserve', true);
 
 	}

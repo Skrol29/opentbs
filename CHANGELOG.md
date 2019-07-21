@@ -13,6 +13,10 @@ All notable changes to this project will be documented in this file.
   - parameter "colnum" becomes optional
   - support ranges of columns in the list of columns to delete
 
+### Bug fixes
+
+- DOCX only: some spaces between words could be not displayed in LibreOffice.
+
 ### Enhancements
 
 - Get off PHP 4 compatibilty.
