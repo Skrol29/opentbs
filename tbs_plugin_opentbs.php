@@ -2198,8 +2198,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					'tbs:row' => 'w:tr',
 					'tbs:cell' => 'w:tc',
 					'tbs:page' => array(&$this, 'MsWord_GetPage'),
-					'tbs:draw' => 'mc:AlternateContent',
-					'tbs:drawgroup' => 'mc:AlternateContent',
+					'tbs:draw' => array(&$this, 'MsWord_GetDraw'),
+					'tbs:drawgroup' => array(&$this, 'MsWord_GetDraw'),
 					'tbs:drawitem' => 'wps:wsp',
 					'tbs:listitem' => 'w:p',
 				);  
@@ -2299,9 +2299,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 	}
 
-	function XML_FoundTagStart($Txt, $Tag, $PosBeg) {
-	// Found the next tag of the asked type. (Not specific to MsWord, works for any XML)
-	// Tag must be prefixed with '<' or '</'.
+	/**
+     * Search the next tag of the asked type searching forward. (Not specific to MsWord, works for any XML)
+	 * @param string  $Txt
+	 * @param string  $Tag     must be prefixed with '<' or '</'.
+	 * @param integer $PosBeg 
+	 * @return integer|false
+	 */
+	function XML_SearchTagForward($Txt, $Tag, $PosBeg) {
 		$len = strlen($Tag);
 		$p = $PosBeg;
 		while ($p!==false) {
@@ -5454,16 +5459,16 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$nb_tot = 0;
 		$wro_p = 0;
-		while ( ($wro_p = $this->XML_FoundTagStart($Txt, $wro, $wro_p)) !== false ) { // next <w:r> tag
-			$wto_p = $this->XML_FoundTagStart($Txt, $wto, $wro_p); // next <w:t> tag
+		while ( ($wro_p = $this->XML_SearchTagForward($Txt, $wro, $wro_p)) !== false ) { // next <w:r> tag
+			$wto_p = $this->XML_SearchTagForward($Txt, $wto, $wro_p); // next <w:t> tag
 			if ($wto_p === false) return false; // error in the structure of the <w:r> element
 			$first = true;
 			$nb = 0; // number of duplicated layouts for the current text snippet
 			do {
 				$ok = false;
-				$wtc_p = $this->XML_FoundTagStart($Txt, $wtc, $wto_p); // next </w:t> tag
+				$wtc_p = $this->XML_SearchTagForward($Txt, $wtc, $wto_p); // next </w:t> tag
 				if ($wtc_p === false) return false;
-				$wrc_p = $this->XML_FoundTagStart($Txt, $wrc, $wro_p); // next </w:r> tag (only to check inclusion)
+				$wrc_p = $this->XML_SearchTagForward($Txt, $wrc, $wro_p); // next </w:r> tag (only to check inclusion)
 				if ($wrc_p === false) return false;
 				if ( ($wto_p < $wrc_p) && ($wtc_p < $wrc_p) ) { // if the <w:t> is actually included in the <w:r> element
 					if ($first) {
@@ -5630,6 +5635,30 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$p = $loc->PosBeg;
 		if ($Forward) $p--; // if it's forward, we stop the block before the paragraph with page-break
+		return $p;
+		
+	}
+
+	// Alias of block: 'tbs:draw'
+	function MsWord_GetDraw($Tag, $Txt, $Pos, $Forward, $LevelStop) {
+		
+		$tags = array('mc:AlternateContent', 'w:r');
+		
+		$p = $Pos;
+		
+		if ($Forward) {
+			foreach ($tags as $tag) {
+				$p = strpos($Txt, '</' . $tag . '>', $p);
+				if ($p === false) return false;
+			}
+		} else {
+			foreach ($tags as $tag) {
+				$loc = clsTbsXmlLoc::FindStartTag($Txt, $tag, $p, false);
+				if ($loc === false) return false;
+				$p = $loc->PosBeg;
+			}
+		}
+		
 		return $p;
 		
 	}

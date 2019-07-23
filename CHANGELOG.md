@@ -19,6 +19,8 @@ All notable changes to this project will be documented in this file.
 
 - DOCX only: some spaces between words could be not displayed in LibreOffice.
 
+- Alias of block « tbs:draw » did not work correctly with MsWord.
+
 ### Enhancements
 
 - Get off PHP 4 compatibilty.
