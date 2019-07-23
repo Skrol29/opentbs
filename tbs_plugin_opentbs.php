@@ -276,6 +276,8 @@ class clsOpenTBS extends clsTbsZip {
 				$this->TbsPicPrepare($Txt, $Loc, true); // add parameter "att" which will be processed just after this event, when the field is cached
 			} elseif (in_array('mergecell', $ope_lst)) {
 				$this->TbsPrepareMergeCell($Txt, $Loc);
+			} elseif (in_array('docfield', $ope_lst)) {
+				$this->TbsDocFieldPrepare($Txt, $Loc);
 			}
 
 			// Change cell type
@@ -319,6 +321,8 @@ class clsOpenTBS extends clsTbsZip {
 					$Value = '<w:vMerge w:val="restart"/>';
 				}
 			}
+		} elseif ($ope==='docfield') {
+			$this->TbsDocFieldPrepare($Txt, $Loc);
 		} else {
 			$x = substr($ope,0,4);
 			if( ($x==='tbs:') || ($x==='xlsx') || (substr($ope,0,3)==='ods') ) {
@@ -1636,6 +1640,60 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		return true;
 
+	}
+
+	function TbsDocFieldPrepare(&$Txt, &$Loc) {
+		
+		if ($this->ExtEquiv === 'docx') {
+			
+			// Find the first <w:r> element of the Complexe Field
+			$loc_beg = clsTbsXmlLoc::FindStartTagHavingAtt($Txt, 'w:fldCharType="begin"', $Loc->PosBeg, false); // find a <w:fldChar>
+			if ($loc_beg === false) return;
+			$loc_beg = clsTbsXmlLoc::FindStartTag($Txt, 'w:r', $loc_beg->PosBeg, false); // the <w:r> that contains the <w:fldChar>
+			
+			// Find the last <w:r> element of the Complexe Field
+			$loc_end = clsTbsXmlLoc::FindStartTagHavingAtt($Txt, 'w:fldCharType="end"', $Loc->PosEnd, true); // find a <w:fldChar>
+			if ($loc_end === false) return;
+			$loc_end = clsTbsXmlLoc::FindElement($Txt, 'w:r', $loc_end->PosBeg, false); // the <w:r> that contains the <w:fldChar>
+
+			// The penultimate <w:r> element is the latest calculated field. We use it for getting the formating text.
+			$loc_wr = clsTbsXmlLoc::FindElement($Txt, 'w:r', $loc_end->PosBeg - 1, false);
+			if ($loc_wr === false) {
+				$x = '<w:r><w:t>DOCFIELD</w:t></w:r>';
+			} else {
+				// Delete the Complete Field element if any (should not)
+				$x = $loc_wr->GetSrc();
+				$this->XML_DeleteElements($x, array('w:instrText', 'w:fldChar'));
+				// Replace text
+				$lz = clsTbsXmlLoc::FindElement($x, 'w:t', 0);
+				if ($lz === false) {
+					// Not found => we create a new text before the closing tag
+					$x = substr_replace($x, '<w:t>DOCFIELD</w:t>', -6, 0);
+				} else {
+					$lz->ReplaceInnerSrc('DOCFIELD');
+				}
+			}
+			
+			// Replace template
+			$len = $loc_end->PosEnd - $loc_beg->PosBeg + 1;
+			$Txt = substr_replace($Txt, $x, $loc_beg->PosBeg, $len);
+			
+			// Move the locator
+			$p = strpos($x, '>DOCFIELD<') + 1;
+			$Loc->PosBeg = $loc_beg->PosBeg + $p;
+			$Loc->PosEnd = $Loc->PosBeg + strlen('DOCFIELD') - 1;
+			
+		} elseif ($this->ExtEquiv === 'odt') {
+			
+			$loc_el = clsTbsXmlLoc::FindStartTagByPrefix($Txt, '', $Loc->PosBeg, false);
+			if ( ($loc_el !== false) && ($loc_el->Name === 'text:conditional-text') ) {
+				$loc_el->FindEndTag();
+				$Loc->PosBeg = $loc_el->PosBeg;
+				$Loc->PosEnd = $loc_el->PosEnd; 
+			}
+			
+		}
+		
 	}
 
 	// Adjust the dimensions if the picture
@@ -7127,6 +7185,153 @@ class clsTbsXmlLoc {
 	public $rel_Txt = false;
 	public $rel_PosBeg = false;
 	public $rel_Len = false;
+
+	/**
+	 * Search a start tag of an element in the TXT contents, and return an object if it is found.
+	 * Instead of a TXT content, it can be an object of the class. Thus, the object is linked to a copy
+	 *  of the source of the parent element. The parent element can receive the changes of the object using method UpdateParent().
+	 */
+	static function FindStartTag(&$TxtOrObj, $Tag, $PosBeg, $Forward=true) {
+
+		if (is_object($TxtOrObj)) {
+			$TxtOrObj->FindEndTag();
+			$Txt = $TxtOrObj->GetSrc();
+			if ($Txt===false) return false;
+			$Parent = &$TxtOrObj;
+		} else {
+			$Txt = &$TxtOrObj;
+			$Parent = false;
+		}
+
+		$PosBeg = clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true , $PosBeg, $Forward, true);
+		if ($PosBeg===false) return false;
+
+		return new clsTbsXmlLoc($Txt, $Tag, $PosBeg, null, $Parent);
+
+	}
+
+	/**
+	 * Search a start tag by the prefix of the element.
+	 * @param  string       $TagPrefix The prefix of the tag. Empty string accepeted.
+	 * @return false|object The found object will have its real tag name.
+	 */
+	static function FindStartTagByPrefix(&$Txt, $TagPrefix, $PosBeg, $Forward=true) {
+
+		$x = '<'.$TagPrefix;
+		$xl = strlen($x);
+
+		if ($Forward) {
+			$PosBeg = strpos($Txt, $x, $PosBeg);
+		} else {
+			$PosBeg = strrpos(substr($Txt, 0, $PosBeg+2), $x);
+		}
+		if ($PosBeg===false) return false;
+
+		// Read the actual tag name
+		$Tag = $TagPrefix;
+		$p = $PosBeg + $xl;
+		do {
+			$z = substr($Txt,$p,1);
+			if ( ($z!==' ') && ($z!=="\r") && ($z!=="\n") && ($z!=='>') && ($z!=='/') ) {
+				$Tag .= $z;
+				$p++;
+			} else {
+				$p = false;
+			}
+		} while ($p!==false);
+
+		return new clsTbsXmlLoc($Txt, $Tag, $PosBeg);
+
+	}
+
+	// Search an element in the TXT contents, and return an object if it's found.
+	static function FindElement(&$TxtOrObj, $Tag, $PosBeg, $Forward=true) {
+
+		$XmlLoc = clsTbsXmlLoc::FindStartTag($TxtOrObj, $Tag, $PosBeg, $Forward);
+		if ($XmlLoc===false) return false;
+
+		$XmlLoc->FindEndTag();
+		return $XmlLoc;
+
+	}
+
+	/**
+	 * Search a start tag in the TXT contents which has the asked attribute.
+	 * Note that the element found has an unknown name until FindEndTag() is called.
+	 * The function does check if the attribute is inside an XML element.
+	 * @param  string  &$Txt    The source to search into.
+	 * @param  string  $Att     The attribute name of full definition to search. Example: 'visible' or 'visible="1"'
+	 * @param  integer $PosBeg  The offset position of the search.
+	 * @param  boolean $Forward (optional) Indicate the direction of the search.
+	 * @return false|object
+	 */
+	static function FindStartTagHavingAtt(&$Txt, $Att, $PosBeg, $Forward=true) {
+
+		$p = $PosBeg - (($Forward) ? 1 : -1);
+		$x = (strpos($Att, '=')===false) ? (' '.$Att.'="') : (' '.$Att); // get the item more precise if not yet done
+		$search = true;
+
+		do {
+			if ($Forward) {
+				$p = strpos($Txt, $x, $p+1);
+			} else {
+				$p = strrpos(substr($Txt, 0, $p+1), $x);
+			}
+			if ($p===false) return false;
+			// Seearch for the bound of an element.
+			do {
+			  $p = $p - 1;
+			  if ($p<0) return false;
+			  $z = $Txt[$p];
+			} while ( ($z!=='<') && ($z!=='>') );
+			// If the bound is an opening tag, then the attribute is inside, otherwise we search the next item.
+			if ($z==='<') $search = false;
+		} while ($search);
+
+		return new clsTbsXmlLoc($Txt, '', $p);
+
+	}
+
+	/**
+	 * Search an element in the TXT contents which has the asked attribute, and return an object if it is found.
+	 * @param  string  &$Txt    The source to search into.
+	 * @param  string  $Att     The attribute name of full definition to search. Example: 'visible' or 'visible="1"'
+	 * @param  integer $PosBeg  The offset position of the search.
+	 * @param  boolean $Forward (optional) Indicate the direction of the search.
+	 * @return false|object
+	 */
+	static function FindElementHavingAtt(&$Txt, $Att, $PosBeg, $Forward=true) {
+
+		$XmlLoc = clsTbsXmlLoc::FindStartTagHavingAtt($Txt, $Att, $PosBeg, $Forward);
+		if ($XmlLoc===false) return false;
+
+		$XmlLoc->FindEndTag();
+
+		return $XmlLoc;
+
+	}
+	
+	static function CreatePhantomElement(&$TxtOrObj, $PosBeg) {
+		
+		if (is_object($TxtOrObj)) {
+			$TxtOrObj->FindEndTag();
+			$Txt = $TxtOrObj->GetSrc();
+			if ($Txt===false) return false;
+			$Parent = &$TxtOrObj;
+		} else {
+			$Txt = &$TxtOrObj;
+			$Parent = false;
+		}
+		
+		$Name = '';
+		$SelfClosing = null;
+		$Exists = false;
+
+		$XmlLoc = new clsTbsXmlLoc($Txt, $Name, $PosBeg, $SelfClosing, $Parent, $Exists);
+			
+		return $XmlLoc;
+		
+	}
 	
 	// Create an instance with the given parameters
 	function __construct(&$Txt, $Name, $PosBeg, $SelfClosing = null, $Parent = false, $Exists = true) {
@@ -7412,132 +7617,6 @@ class clsTbsXmlLoc {
 		$this->_ApplyDiffToAll(+$this->rel_PosBeg);
 		$this->rel_PosBeg = false;
 		$this->rel_Len = false;
-	}
-	
-	/**
-	 * Search a start tag of an element in the TXT contents, and return an object if it is found.
-	 * Instead of a TXT content, it can be an object of the class. Thus, the object is linked to a copy
-	 *  of the source of the parent element. The parent element can receive the changes of the object using method UpdateParent().
-	 */
-	static function FindStartTag(&$TxtOrObj, $Tag, $PosBeg, $Forward=true) {
-
-		if (is_object($TxtOrObj)) {
-			$TxtOrObj->FindEndTag();
-			$Txt = $TxtOrObj->GetSrc();
-			if ($Txt===false) return false;
-			$Parent = &$TxtOrObj;
-		} else {
-			$Txt = &$TxtOrObj;
-			$Parent = false;
-		}
-
-		$PosBeg = clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true , $PosBeg, $Forward, true);
-		if ($PosBeg===false) return false;
-
-		return new clsTbsXmlLoc($Txt, $Tag, $PosBeg, null, $Parent);
-
-	}
-
-	// Search a start tag by the prefix of the element
-	static function FindStartTagByPrefix(&$Txt, $TagPrefix, $PosBeg, $Forward=true) {
-
-		$x = '<'.$TagPrefix;
-		$xl = strlen($x);
-
-		if ($Forward) {
-			$PosBeg = strpos($Txt, $x, $PosBeg);
-		} else {
-			$PosBeg = strrpos(substr($Txt, 0, $PosBeg+2), $x);
-		}
-		if ($PosBeg===false) return false;
-
-		// Read the actual tag name
-		$Tag = $TagPrefix;
-		$p = $PosBeg + $xl;
-		do {
-			$z = substr($Txt,$p,1);
-			if ( ($z!==' ') && ($z!=="\r") && ($z!=="\n") && ($z!=='>') && ($z!=='/') ) {
-				$Tag .= $z;
-				$p++;
-			} else {
-				$p = false;
-			}
-		} while ($p!==false);
-
-		return new clsTbsXmlLoc($Txt, $Tag, $PosBeg);
-
-	}
-
-	// Search an element in the TXT contents, and return an object if it's found.
-	static function FindElement(&$TxtOrObj, $Tag, $PosBeg, $Forward=true) {
-
-		$XmlLoc = clsTbsXmlLoc::FindStartTag($TxtOrObj, $Tag, $PosBeg, $Forward);
-		if ($XmlLoc===false) return false;
-
-		$XmlLoc->FindEndTag();
-		return $XmlLoc;
-
-	}
-
-	// Search an element in the TXT contents which has the asked attribute, and return an object if it is found.
-	// Note that the element found has an unknown name until FindEndTag() is called.
-	// The given attribute can be with or without a specific value. Example: 'visible' or 'visible="1"'
-	static function FindStartTagHavingAtt(&$Txt, $Att, $PosBeg, $Forward=true) {
-
-		$p = $PosBeg - (($Forward) ? 1 : -1);
-		$x = (strpos($Att, '=')===false) ? (' '.$Att.'="') : (' '.$Att); // get the item more precise if not yet done
-		$search = true;
-
-		do {
-			if ($Forward) {
-				$p = strpos($Txt, $x, $p+1);
-			} else {
-				$p = strrpos(substr($Txt, 0, $p+1), $x);
-			}
-			if ($p===false) return false;
-			do {
-			  $p = $p - 1;
-			  if ($p<0) return false;
-			  $z = $Txt[$p];
-			} while ( ($z!=='<') && ($z!=='>') );
-			if ($z==='<') $search = false;
-		} while ($search);
-
-		return new clsTbsXmlLoc($Txt, '', $p);
-
-	}
-
-	static function FindElementHavingAtt(&$Txt, $Att, $PosBeg, $Forward=true) {
-
-		$XmlLoc = clsTbsXmlLoc::FindStartTagHavingAtt($Txt, $Att, $PosBeg, $Forward);
-		if ($XmlLoc===false) return false;
-
-		$XmlLoc->FindEndTag();
-
-		return $XmlLoc;
-
-	}
-	
-	static function CreatePhantomElement(&$TxtOrObj, $PosBeg) {
-		
-		if (is_object($TxtOrObj)) {
-			$TxtOrObj->FindEndTag();
-			$Txt = $TxtOrObj->GetSrc();
-			if ($Txt===false) return false;
-			$Parent = &$TxtOrObj;
-		} else {
-			$Txt = &$TxtOrObj;
-			$Parent = false;
-		}
-		
-		$Name = '';
-		$SelfClosing = null;
-		$Exists = false;
-
-		$XmlLoc = new clsTbsXmlLoc($Txt, $Name, $PosBeg, $SelfClosing, $Parent, $Exists);
-			
-		return $XmlLoc;
-		
 	}
 
 }

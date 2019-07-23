@@ -8,10 +8,12 @@ All notable changes to this project will be documented in this file.
 
 - New command OPENTBS_GET_CELLS for reading range in a workbook.
 
-- Parameter "ope=delcol"
+- Parameter « ope=delcol »
   - a new secondary parameter "colset" enables you to define in the template several set of colmuns to delete
   - parameter "colnum" becomes optional
   - support ranges of columns in the list of columns to delete
+  
+- New parameter « ope=docfield » enables you to replace the document calculated fields with a TBS field.
 
 ### Bug fixes
 
