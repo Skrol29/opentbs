@@ -8,18 +8,18 @@ All notable changes to this project will be documented in this file.
 
 - New command OPENTBS_GET_CELLS for reading range in a workbook.
 
-- Parameter « ope=delcol »
+- Parameter Â« ope=delcol Â»
   - a new secondary parameter "colset" enables you to define several set of columns to delete in the template 
   - parameter "colnum" becomes optional
   - support ranges of columns in the list of columns to delete
   
-- New parameter « ope=docfield » enables you to replace document calculated fields with TBS fields.
+- New parameter Â« ope=docfield Â» enables you to replace document calculated fields with TBS fields.
 
 ### Bug fixes
 
 - DOCX only: some spaces between words could be not displayed in LibreOffice.
 
-- Alias of block « tbs:draw » did not work correctly with MsWord.
+- Alias of block Â« tbs:draw Â» did not work correctly with MsWord.
 
 ### Enhancements
 
@@ -80,7 +80,7 @@ All notable changes to this project will be documented in this file.
 ### Bug fixes
 
 - Parameter "ope=delcol": if parameter "colnum" is empty then first colmun is deleted while it should be no column.
-- Command OPENTBS_CHART: error message « Name of the series not found. » when the series contains special characters, like accents.
+- Command OPENTBS_CHART: error message Â« Name of the series not found. Â» when the series contains special characters, like accents.
 
 ## [1.9.6] - 2016-03-24
 
@@ -121,7 +121,7 @@ All notable changes to this project will be documented in this file.
 
 - PHP error with ODT templates when changing the name of a Chart series that hadn't any name before.
 - PHP error when using command OPENTBS_SEARCH_IN_SLIDES.
-- OpenTBS error « unable to found the chart corresponding to 'xxx' » in DOCX when the chart is not formated as "inline with text".
+- OpenTBS error Â« unable to found the chart corresponding to 'xxx' Â» in DOCX when the chart is not formated as "inline with text".
 
 ## [1.9.4] - 2015-02-11
 
