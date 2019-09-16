@@ -28,6 +28,9 @@ body,td,th {
 	font-family: Verdana, Geneva, sans-serif;
 	font-size: 11px;
 }
+.line {
+	margin-top: 4px;
+}
 -->
 </style>
 </head>
@@ -62,19 +65,21 @@ body,td,th {
 
 <h2>Merging Demo</h2>
 
+<!-- classes are compliant with Bootstrap -->
+
 <form id="form1" method="post" action="./demo_merge.php">
   <table style="border: 0px;">
     <tr>
-      <td>Enter a name :</td>
+      <td>Enter a name : </td>
       <td>
-		<input name="yourname" type="text" size="10" />
+		<input class="form-control line" name="yourname" type="text" size="10" />
 		<i>(will be displayed in the merged result)</i>
 	  </td>
     </tr>
     <tr>
-      <td>Choose a template :</td>
+      <td>Choose a template : </td>
       <td>
-	    <select name="tpl">
+	    <select name="tpl" class="form-control line">
 			<option value="demo_oo_text.odt">OpenOffice Writer Document (.odt)</option>
 			<option value="demo_oo_spreadsheet.ods">OpenOffice Calc Spreadsheet (.ods)</option>
 			<option value="demo_oo_presentation.odp">OpenOffice Impress Presentation (.odp)</option>
@@ -87,9 +92,9 @@ body,td,th {
 	  </td>
     </tr>
     <tr>
-      <td>Debug :</td>
+      <td>Debug : </td>
       <td>
-	    <select name="debug">
+	    <select name="debug" class="form-control line">
 			<option value="" selected="selected">No</option>
 			<option value="info">General Information</option>
 			<option value="current">During merge</option>
@@ -97,16 +102,16 @@ body,td,th {
         </select>
 	  </td>
     </tr>
-    <tr id="save_as_file" style="display:none;">
-      <td>Save locally with suffix :</td>
-      <td><input name="save_as" type="text" size="10" /> <i>(leave empty for direct download)</i></td>
+    <tr id="save_as_file" style="display:none;" class="line">
+      <td>Save locally with suffix : </td>
+      <td><input name="save_as" type="text" class="form-control line" size="10" /> <i>(leave empty for direct download)</i></td>
     </tr>
     <tr>
       <td>&nbsp;</td>
       <td>
-	    <input type="submit" name="btn_result"   value="Merge" />
-	    <input type="submit" name="btn_template" value="See template" />
-	    <input type="submit" name="btn_script"   value="See PHP script" />
+	    <input type="submit" name="btn_result"   class="btn btn-primary" value="Merge" />
+	    <input type="submit" name="btn_template" class="btn btn-info" value="See template" />
+	    <input type="submit" name="btn_script"   class="btn btn-secondary" value="See PHP script" />
 	  </td>
     </tr>
   </table>
@@ -117,18 +122,18 @@ body,td,th {
 <form id="form2" method="post" action="./demo_read.php">
   <table style="border: 0px;">
     <tr>
-      <td>Choose a file :</td>
+      <td>Choose a file : </td>
       <td>
-	    <select name="file">
+	    <select name="file" class="form-control line">
 			<option value="demo_read_oo_spreadsheet.ods">OpenOffice Calc Spreadsheet (.ods)</option>
 			<option value="demo_read_ms_excel.xlsx">Ms Excel SpreadSheet (.xlsx)</option>
         </select>
 	   </td>
     </tr>
     <tr>
-      <td>Debug :</td>
+      <td>Debug : </td>
       <td>
-	    <select name="debug">
+	    <select name="debug" class="form-control line">
 			<option value="" selected="selected">No</option>
 			<option value="info">General Information</option>
 			<option value="current">During merge</option>
@@ -139,9 +144,9 @@ body,td,th {
     <tr>
       <td>&nbsp;</td>
       <td>
-	    <input type="submit" name="btn_result" value="Read" />
-	    <input type="submit" name="btn_template" value="See template" />
-	    <input type="submit" name="btn_script" value="See PHP script" />
+	    <input type="submit" name="btn_result"   class="btn btn-primary" value="Read" />
+	    <input type="submit" name="btn_template" class="btn btn-info" value="See template" />
+	    <input type="submit" name="btn_script"   class="btn btn-secondary" value="See PHP script" />
 	  </td>
     </tr>
   </table>
