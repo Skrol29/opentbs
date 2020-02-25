@@ -117,7 +117,7 @@ td th {
 <div id="main-body">
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
 <div>version 1.10.0, 2019-06-17 by Skrol29</div>
-<div>help file modified on 2019-06-17</div>
+<div>help file modified on 2020-02-26</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -134,9 +134,10 @@ td th {
       <li>4.8. <a href="#mergecell">Tables - Merge cells vertically</a></li>
       <li>4.9. <a href="#cells">Workbook - Merging data in spreadsheet cells</a></li>
       <li>4.10. <a href="#ranges">Workbook - Read and writre ranges in a workbook</a></li>
-      <li>4.11. <a href="#modify_contents">Commands to control the merging</a></li>
-      <li>4.12. <a href="#modify_files">Manage files in the archive</a></li>
-      <li>4.13. <a href="#misc">Miscellaneous</a></li>
+      <li>4.11. <a href="#docfield">Merge document fields</a></li>
+      <li>4.12. <a href="#other_commands">Other merging commands</a></li>
+      <li>4.13. <a href="#modify_files">Manage files in the archive</a></li>
+      <li>4.14. <a href="#special_options">Special options</a></li>
     </ul>
   </li>
   <li><a href="#demo">Demo</a></li>
@@ -542,7 +543,7 @@ array (
   <p>In the example above, $x is a PHP global variable containing the name of an external picture file (relative or absolute path). Of course you can use this feature on TBS fields merged with <a href="http://www.tinybutstrong.com/manual.php#php_mergeblock">MergeBlock()</a>.</p>
   <p> When a TBS field having <span class="smallcode">&quot;ope=changepic&quot;</span> is merged in the template, then OpenTBS will search the first picture located before the field (see parameter <span class="smallcode">tagpos</span> below for another position), and then it will change the picture assuming that the value of the field is the path for a picture file on the server. You don't have to care about loading the picture file in the document, OpenTBS will manage this for you.</p>
   <p>Note that parameter <span class="smallcode">&quot;ope=changepic&quot;</span> is  a feature provided by the OpenTBS plug-in, which extends the &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_ope">ope</a>&quot; parameter natively present with TBS.</p>
-  <p>Instead of change a picture with a TBS tag, you can also do it manually at the PHP side using the command <a href="#modify_contents">OPENTBS_CHANGE_PICTURE</a>.</p>
+  <p>Instead of change a picture with a TBS tag, you can also do it manually at the PHP side using the command <a href="#other_commands">OPENTBS_CHANGE_PICTURE</a>.</p>
   <p>Note that since OpenTBS version 1.8.0, you can change picture in Ms Excel worksheet. You must put the TBS field inside the picture description and use parameter &quot;tagpos=inside&quot;. Before this version it was not possible to change pictures in an Ms Excel worksheet.</p>
   <p>    In order to 
     simplify your coding, they are other complementary optional parameters: </p>
@@ -787,9 +788,25 @@ array (
     </tr>
 </table>
 </div>
-<p>&bull; Write a range in a worksheet</p>
-<p><span class="versioning">Will be available in a next version</span>.</p>
-<h3><a id="modify_contents"></a>4.11. Commands to control the merging</h3>
+<p>&bull; Write a range in a worksheet (<span class="versioning">Will be available in a next version</span>)</p>
+<h3><a name="docfield" id="ranges2"></a>4.11. Merge document fields</h3>
+<p class="versioning">(Supported since OpenTBS version 1.10.0)</p>
+<p>Both DOCX and ODT files supports document fields that can be inserted   anywhere in the document that is for example Mail Merge Fields.</p>
+<p>You can replace <em>IF</em> fields in a DOCX and <em>Fonction / Conditional text</em> in an ODT. Other type of document fields are not supported for now.</p>
+<p>In the conditional field of your document:</p>
+<ul>
+  <li>enter « 0 = 1 »(or « false » in an ODT) in the placeholder for the condition,</li>
+  <li>use a TBS field with the parameter <span class="smallcode">ope=docfield</span> in the placeholder for THEN,</li>
+  <li>enter any text in the placeholder for ELSE. This text will be displayed until the TBS fields is merged.</li>
+  </ul>
+<p>When the TBS fields will be merged, the full document field will be deleted and replaced with the merged value. </p>
+<p>See the demo DOC and ODT for more details.</p>
+<p>Example with DOCX:</p>
+<p class="shift code">IF 1 = 0  &quot;[onshow.x_num;ope=docfield;frm=0,000.00]&quot; &quot;XX.XX&quot;</p>
+<p>Example with ODT:</p>
+<p class="shift code">Conditional text false [onshow.x_num;ope=docfield;frm=0,000.00] XX.XX</p>
+<p>&nbsp;</p>
+<h3><a name="other_commands" id="other_commands"></a>4.12. Other merging commands</h3>
 <p><span class="versioning">The following commands are supported since OpenTBS version 1.7.0 </span>:</p>
 <table  border="0" cellspacing="1" cellpadding="4">
   <tr>
@@ -868,7 +885,7 @@ array (
       <p><span class="versioning">Command OPENTBS_EDIT_ENTITY is supported since OpenTBS version 1.9.5.</span></p></td>
   </tr>
   <tr>
-    <td class="top nowrap" class="category centered"><span class="smallcode"><a id="commands_for_documents"></a></span>For documents (ODT and DOCX)</td>
+    <td class="top nowrap category centered"><span class="smallcode"><a id="commands_for_documents"></a></span>For documents (ODT and DOCX)</td>
     <td valign="top">&nbsp;</td>
   </tr>
   <tr>
@@ -990,7 +1007,7 @@ array (
     <p><span class="versioning">Command OPENTBS_SEARCH_IN_SLIDES is supported since OpenTBS version 1.9.0.</span></p></td>
   </tr>
 </table>
-<h3><a id="modify_files"></a>4.12. Manage files in the archive</h3>
+<h3><a id="modify_files"></a>4.13. Manage files in the archive</h3>
 <h4 style="display:inline">&bull; Get all files in the archive:</h4>
 <div class="shift">
   <div class="code">$TBS-&gt;Plugin(OPENTBS_GET_FILES)</div>
@@ -1066,7 +1083,7 @@ $TBS-&gt;Plugin(OPENTBS_RESET);
 $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   <p>The automatic extension recognition is also applied as it was applied for the first load of the archive.</p>
 </div>
-<h3><a id="misc"></a>4.13. Miscellaneous</h3>
+<h3><a name="special_options" id="special_options"></a>4.14. Special options</h3>
 <h4>Dealing with apostrophes:</h4>
 <div class="shift">
   <p> Both OpenOffice and Ms Office may automatically convert single quotes (') into typographic apostrophes (&rsquo;), depending to the auto-correction options. This may be annoying   when you need to code a TBS fields that have a single quote. That's why OpenTBS automatically convert by default all (&rsquo;) back to single quotes (') in documents.</p>
