@@ -117,7 +117,7 @@ td th {
 <div id="main-body">
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
 <div>version 1.10.0, 2019-06-17 by Skrol29</div>
-<div>help file modified on 2020-02-26</div>
+<div>help file modified on 2020-05-10</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -671,7 +671,19 @@ array (
         if <span class="smallcode">$col_to_delete = 0</span>, then it will delete no columns. </p></td>
     </tr>
     <tr>
-      <td class="top"><p><span class="template">[onshow.set_to_delete;ope=delcol;setcol=1,7-10|4,5,6]</span></p></td>
+      <td class="top"><p><span class="template">[onshow.set_to_delete;ope=delcol;colset=3]</span></p></td>
+      <td><p>if <span class="smallcode">$set_to_delete = 1</span>, then it will delete columns 3 (that is set #1).</p></td>
+    </tr>
+    <tr>
+      <td class="top"><p><span class="template">[onshow.set_to_delete;ope=delcol;colset=3-5]</span></p></td>
+      <td><p>if <span class="smallcode">$set_to_delete = 1</span>, then it will delete columns 3 to 5 (that is set #1).</p></td>
+    </tr>
+    <tr>
+      <td class="top"><p><span class="template">[onshow.set_to_delete;ope=delcol;colset=3,5]</span></p></td>
+      <td><p>if <span class="smallcode">$set_to_delete = 1</span>, then it will delete columns 3 and 5 (that is set #1).</p></td>
+    </tr>
+    <tr>
+      <td class="top"><p><span class="template">[onshow.set_to_delete;ope=delcol;colset=1,7-10|4,5,6]</span></p></td>
       <td><p>if <span class="smallcode">$set_to_delete = 1</span>, then it will delete columns 1,7,8,9,10 (that is set #1).<br>
         if <span class="smallcode">$set_to_delete = 2</span>, then it will delete columns 4,5,6 (that is set #2).<br>
         if <span class="smallcode">$set_to_delete = 0</span>, then it will delete no columns.<br>
