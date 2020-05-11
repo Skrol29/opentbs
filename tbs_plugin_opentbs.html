@@ -629,7 +629,11 @@ array (
 <h3><a id="col"></a>4.7. Delete or merge columns in a table</h3>
 <h5><a id="delcol"></a>4.7.1 Delete columns in a table</h5>
 <p>Parameter &quot;<span class="smallcode">ope=delcol</span>&quot; enables you to delete specified columns in a table in an Ms Word document (docx) or  any LibreOffice document.</p>
-<p> Limitations: Parameter &quot;<span class="smallcode">ope=delcol</span>&quot; will produce a wrong result if there is any  cell with a merged style before of within the columns to delete using OpenTBS.</p>
+<p> Limitations of parameter &quot;<span class="smallcode">ope=delcol</span>&quot; :</p>
+<ul>
+  <li>It will produce a wrong result if there is any  cell with a merged style before of within the columns to delete using OpenTBS.</li>
+  <li>If used with other <span class="smallcode">&quot;ope&quot;</span> options, then it must be the last one. This is because it avoid the usual merging process. Example : <span class="smallcode">ope=docfield,delcol</span>.</li>
+</ul>
 <p> You have to put a TBS field anywhere inside the table with the following parameters:</p>
 <table border="0" cellpadding="4" cellspacing="1">
   <tr>
@@ -812,20 +816,29 @@ array (
 <h3><a name="docfield" id="ranges2"></a>4.11. Merge document fields</h3>
 <p class="versioning">(Supported since OpenTBS version 1.10.0)</p>
 <p>Both DOCX and ODT files supports document fields that can be inserted   anywhere in the document that is for example Mail Merge Fields.</p>
-<p>You can replace <em>IF</em> fields in a DOCX and <em>Fonction / Conditional text</em> in an ODT. Other type of document fields are not supported for now.</p>
-<p>In the conditional field of your document:</p>
+<p class="shift">In Ms Word, document fields are available using: ribbon Insert / Text / Quick Parts / Field…<br>
+  In LibreOffice, document fields are available using: menu Insert  / Field / Other fields…</p>
+<p>For now, OpenTBS can replace only document fields whose type is <em>Conditional</em>.<br>
+  For a DOCX, that is <em>IF</em> field.<br>
+  For an ODT, that is 
+  <em>Fonction / Conditional text</em>.</p>
+<p>When you’ve <span lang="en"><span title="">positioned</span></span> your Conditional document field in your contents :</p>
 <ul>
-  <li>enter « 0 = 1 »(or « false » in an ODT) in the placeholder for the condition,</li>
+  <li> in the placeholder for the condition, enter « <span class="smallcode">0 = 1</span> » for a DOCX (the spaces are mandatory), or « <span class="smallcode">false</span> » for an ODT.</li>
   <li>use a TBS field with the parameter <span class="smallcode">ope=docfield</span> in the placeholder for THEN,</li>
   <li>enter any text in the placeholder for ELSE. This text will be displayed until the TBS fields is merged.</li>
   </ul>
-<p>When the TBS fields will be merged, the full document field will be deleted and replaced with the merged value. </p>
-<p>See the demo DOC and ODT for more details.</p>
+<p>When the TBS fields will be merged, the full document field will be deleted and replaced with the merged value.</p>
+<p>Limitations of parameter <span class="smallcode">&quot;ope=docfield&quot;</span> :</p>
+<ul>
+  <li> It's taken into account only if a value is merged. I.e. it’s a TBS field's parameter, not a bock's parameter.</li>
+  <li>Other TBS fields in the document field will be deleted.</li>
+</ul>
 <p>Example with DOCX:</p>
 <p class="shift code">IF 1 = 0  &quot;[onshow.x_num;ope=docfield;frm=0,000.00]&quot; &quot;XX.XX&quot;</p>
 <p>Example with ODT:</p>
 <p class="shift code">Conditional text false [onshow.x_num;ope=docfield;frm=0,000.00] XX.XX</p>
-<p>&nbsp;</p>
+<p>See the demo DOC and ODT for more details.</p>
 <h3><a name="other_commands" id="other_commands"></a>4.12. Other merging commands</h3>
 <p><span class="versioning">The following commands are supported since OpenTBS version 1.7.0 </span>:</p>
 <table  border="0" cellspacing="1" cellpadding="4">
