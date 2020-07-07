@@ -780,10 +780,11 @@ array (
 <p>&bull; Read a range in a worksheet</p>
 <div class="shift"> <span class="versioning">(supported since OpenTBS version 1.10.0)</span>
   <div class="code">Example: $result = $TBS-&gt;PlugIn(OPENTBS_GET_CELLS, $RangeRef, $Options = array())</div>
-  <p>This command returns an array containg all of the cell's values in a range of the workbook.</p>
+  <p>This command returns an array containg all of the cell's values in a range of the workbook.  </p>
   <p>Empty cells will have a NULL value.</p>
-  <p>Cells with a  formula will have the last value cached by software (LibreOffice or Excel). </p>
-<p>This command support merged cells and also full columns and  full rows. The result of full columns and full rows will be limited to the explicit data actually stored in the worksheet.  </p>
+  <p>Cells with a  formula will have the last value cached by the  editor software (Calc or Excel). </p>
+  <p>The reading is limited to the actual range of data in the sheet, not the theorical rows and colmuns in the range. For example, reading the range ''A:C' (which has theorically an infinit number of rows) will return only 3 rows if there is no more data after the third row.</p>
+<p>This command supports merged cells and also full columns and  full rows. The result of full columns and full rows will be limited to the explicit data actually stored in the worksheet.  </p>
 <table width="100%"  border="0" cellspacing="1" cellpadding="4">
   <tr>
       <th align="left" class="top">Argument</th>
@@ -794,7 +795,13 @@ array (
       <td class="top"><p>It must be either :</p>
         <ul>
           <li>An existing named range in the workbook. It can  be a global name, or name local to a worksheet.</li>
-          <li>An absolute range definition. That is a range that include the worksheet name. Example : &quot;$'my_sheet'.$A$2:$D$23&quot;. The range definition must be compatible with the formats (ODS or XLSX).</li>
+          <li>An absolute range definition. That is a range that include the worksheet name.  The range definition must be compatible with the formats (ODS or XLSX). Examples :
+            <ul>
+              <li>&quot;$'my_sheet'.$A$2:$D$23&quot;</li>
+              <li>&quot;$'my_sheet'.$A:$D&quot;</li>
+              <li>&quot;$'my_sheet'.$8:$10&quot;</li>
+          </ul>
+          </li>
           <li>A local range definition. That is a range . Example : &quot;A1:D18&quot;. In this case the range taken in the worksheet currently selected by OpenTBS.<br>
           </li>
         </ul></td>
@@ -805,7 +812,7 @@ array (
         <li><span class="smallcode">'header'</span> (<span class="smallcode">false</span> by default) : indicate that the first row of the range contains the header information and will be used as the columns names for each returned rows.</li>
         <li><span class="smallcode">'columns'</span> (<span class="smallcode">false</span> by default) : an assocaitif array of columns to be renamed. A missing index or a null value means the colum will not be returned in the result.</li>
         <li><span class="smallcode">'noerr'</span> (<span class="smallcode">false</span> by default) : if this option is <span class="smallcode">true</span> and the range cannot be found or read, then the function return <span class="smallcode">false</span> without raising an error.</li>
-        <li><span class="smallcode">'del_blank_rows'</span> (<span class="smallcode">false</span> by default) : set this option to <span class="smallcode">'true</span>' to not return blank rows.</li>
+        <li><span class="smallcode">'del_blank_rows'</span> (<span class="smallcode">false</span> by default) : set this option to <span class="smallcode">'true</span>' to not return blank rows. Note that blank rows after the last actual row with data are never return anyway.</li>
         <li><span class="smallcode">'row_max'</span> (<span class="smallcode">false</span> by default) : the maximum number of row to return. <span class="smallcode">False</span> means no limit.</li>
         <li><span class="smallcode">'rangeinfo'</span> (<span class="smallcode">false</span> by default) : set this option to <span class="smallcode">true</span> in order to return the debug information about the range definition instead of its data. For debuging purpose.</li>
       </ul></td>
