@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.10.0
- * @date 2019-09-16
+ * @version 1.10.1
+ * @date 2020-07-07
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -2107,30 +2107,27 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$this->ExtEquiv = false;
 		$this->ExtType = false;
-	
+
+        // Find the extension
 		if ($Ext===false) {
-			// Get the extension of the current archive
-			if ($this->ArchIsStream) {
-				$Ext = '';
-			} else {
-				$Ext = basename($this->ArchFile);
-				$p = strrpos($Ext, '.');
-				$Ext = ($p===false) ? '' : strtolower(substr($Ext, $p + 1));
-			}
-			$Frm = $this->Ext_DeductFormat($Ext, true); // may change $Ext
-			// Rename the name of the phantom file if it is a stream
-			if ( $this->ArchIsStream && (strlen($Ext)>2) ) $this->ArchFile = str_replace('.zip', '.'.$Ext, $this->ArchFile);
-		} else {
-			// The extension is forced
-			$Frm = $this->Ext_DeductFormat($Ext, false); // may change $Ext
-		}
+            $Ext = basename($this->ArchFile);
+            $p = strrpos($Ext, '.');
+            $Ext = ($p===false) ? '' : strtolower(substr($Ext, $p + 1));
+            // At this point, $Ext may have special value '' or 'zip' (no extension in the the template file from a local file or stream file).
+        }
+    
+        $Frm = $this->Ext_DeductFormatFromExt($Ext);       
+        if ($Frm===false) {
+            $Frm = $this->Ext_DeductFormatFromContents($Ext); // may force $Ext to a valid extension
+        }
 
 		$TBS = &$this->TBS;
 		$set_option = method_exists($TBS, 'SetOption');
 		
 		$i = false;
 		$block_alias = false;
-		
+        
+	
 		if (isset($GLOBAL['_OPENTBS_AutoExt'][$Ext])) {
 			// User defined information
 			$i = $GLOBAL['_OPENTBS_AutoExt'][$Ext];
@@ -2145,7 +2142,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			if ($Ext==='ots') $this->ExtEquiv = 'ods';
 			$this->ExtType = 'odf';
 			$ctype = array('t' => 'text', 's' => 'spreadsheet', 'g' => 'graphics', 'f' => 'formula', 'p' => 'presentation', 'm' => 'text-master');
-			$i['ctype'] .= $ctype[($Ext[2])];
+            $z = substr($Ext, 2, 1);
+            if (isset($ctype[$z])) {
+                $i['ctype'] .= $ctype[$z];
+            }
 			$i['pic_ext'] = array('png' => 'png', 'bmp' => 'bmp', 'gif' => 'gif', 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'jpe' => 'jpeg', 'jfif' => 'jpeg', 'tif' => 'tiff', 'tiff' => 'tiff');
 			$block_alias = array(
 				'tbs:p' => 'text:p',              // ODT+ODP
@@ -2264,14 +2264,27 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	// Return the type of document corresponding to the given extension.
-	function Ext_DeductFormat(&$Ext, $Search) {
+	function Ext_DeductFormatFromExt($Ext) {
 		if (strpos(',odt,ods,odg,odf,odp,odm,ott,ots,otg,otp,', ',' . $Ext . ',') !== false) return 'odf';
 		if (strpos(',docx,docm,xlsx,xlsm,pptx,pptm,', ',' . $Ext . ',') !== false) return 'openxml';
-		if (!$Search) return false;
+		return false;
+	}
+
+	// Return the type of document corresponding to the inner contents.
+	function Ext_DeductFormatFromContents(&$Ext) {
 		if ($this->FileExists('content.xml')) {
 			// OpenOffice documents
-			if ($this->FileExists('META-INF/manifest.xml')) {
-				$Ext = '?'; // not needed for processing OpenOffice documents
+            $meta = 'META-INF/manifest.xml';
+			if ($this->FileExists($meta)) {
+                $prefix = 'application/vnd.oasis.opendocument.';
+                $txt = $this->FileRead($meta, true);
+                if (strpos($txt, $prefix.'text') !== false) {
+                    $Ext = 'odt';
+                } elseif (strpos($txt, $prefix.'presentation') !== false) {
+                    $Ext = 'odp';
+                } elseif (strpos($txt, $prefix.'spreadsheet') !== false) {
+                    $Ext = 'ods';
+                }
 				return 'odf';
 			}
 		} elseif ($this->FileExists('[Content_Types].xml')) {
@@ -2289,7 +2302,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		return false;
 	}
-
+    
 	// Return the idx of the main document, if any.
 	function Ext_GetMainIdx() {
 		if ( ($this->ExtInfo!==false) && isset($this->ExtInfo['main']) ) {
@@ -7695,7 +7708,12 @@ class clsTbsZip {
 		$this->ArchIsNew = false;
 		$this->ArchIsStream = (is_resource($ArchFile) && (get_resource_type($ArchFile)=='stream'));
 		if ($this->ArchIsStream) {
-			$this->ArchFile = 'from_stream.zip';
+            $info = stream_get_meta_data($ArchFile);
+            if (isset($info['uri'])) {
+                $this->ArchFile = $info['uri'];
+            } else {
+                $this->ArchFile = 'from_stream.zip';
+            }
 			$this->ArchHnd = $ArchFile;
 		} else {
 			// open the file
