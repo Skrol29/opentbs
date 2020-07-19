@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.1-beta] - 2020-07-07
+
+### New features
+
+- Parameter « ope=changepic » can now delete the picture: the picture is deleted if the merged value is an empty string.
+
+### Bug fixes
+
+- LibreOffice only: the PHP Notice « Uninitialized string offset » could raise when loading a template from a stream (when using fopen() for example).
+
 ## [1.10.0] - 2019-09-16
 
 ### New features

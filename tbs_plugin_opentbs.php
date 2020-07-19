@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.10.1
+ * @version 1.10.1-beta
  * @date 2020-07-07
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
@@ -97,7 +97,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.10.0';
+		$this->Version = '1.10.1-beta';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -1323,9 +1323,19 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$att = false;
 		if ($this->ExtType==='odf') {
 			$att = 'draw:image#xlink:href';
+            $magnet = 'draw:frame';
 		} elseif ($this->ExtType==='openxml') {
-			$att = $this->OpenXML_FirstPicAtt($Txt, $Loc->PosBeg, $backward);
-			if ($att===false) return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] has failed to found the picture.');
+			$type = $this->OpenXML_FirstPicType($Txt, $Loc->PosBeg, $backward);
+            if ($type == 'vml') {
+                // old way
+                $att = 'v:imagedata#r:id';
+                $magnet = 'w:pict';
+            } elseif ($type == 'dml') {
+                $att = 'a:blip#r:embed';
+                $magnet = 'w:drawing';
+            } else {
+                return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] has failed to found the picture.');
+            }
 		} else {
 			return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] is not supported with the current document type.');
 		}
@@ -1339,6 +1349,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		// Delete parameter att to prevent TBS from another processing
 		unset($Loc->PrmLst['att']);
 	   
+        $Loc->PrmLst['magnet'] = $magnet;
+       
 		// Get picture dimension information
 		if (isset($Loc->PrmLst['adjust'])) {
 			$FieldLen = 0;
@@ -1571,7 +1583,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * Argument $Prm is only used for error messages.
 	 */
 	function TbsPicAdd(&$Value, &$PrmLst, &$Txt, &$Loc, $Prm) {
-		
+        
+        if ($Value == '') {
+            // The magnet parameter will delete the picture container
+            return true;
+        }
+        
 		$TBS = &$this->TBS;
 
 		$PrmLst['pic_prepared'] = true; // mark the locator as Picture prepared
@@ -3643,7 +3660,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	function OpenXML_FirstPicAtt($Txt, $Pos, $Backward) {
+	function OpenXML_FirstPicType($Txt, $Pos, $Backward) {
 	// search the first image element in the given direction. Two types of image can be found. Return the value required for "att" parameter.
 		$TypeVml = '<v:imagedata ';
 		$TypeDml = '<a:blip ';
@@ -3684,9 +3701,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		if ($t===$TypeVml) {
-			return 'v:imagedata#r:id';
+			return 'vml';
 		} elseif ($t===$TypeDml) {
-			return 'a:blip#r:embed';
+			return 'dml';
 		} else {
 			return false;
 		}
