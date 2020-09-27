@@ -1136,8 +1136,13 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	function TbsDebug_Merge($XmlFormat = true, $Current) {
-	// display modified and added files
+	/**
+	 * echo() info about modified and added files.
+	 *
+	 * @param boolean $XmlFormat  format XML contents
+	 * @param boolean $Current    true to start the debug with the current subtemplate, false to start when Show is called.
+	 */
+	function TbsDebug_Merge($XmlFormat, $Current) {
 
 		$this->TbsDebug_Init($nl, $sep, $bull, ($Current ? 'OPENTBS_DEBUG_XML_CURRENT' :'OPENTBS_DEBUG_XML_SHOW'));
 
