@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - Parameter « ope=changepic » can now delete the picture: the picture is deleted if the merged value is an empty string.
 
+### Enhancements
+
+- PHP 8 compatibility
+
 ### Bug fixes
 
 - LibreOffice only: the PHP Notice « Uninitialized string offset » could raise when loading a template from a stream (when using fopen() for example).
