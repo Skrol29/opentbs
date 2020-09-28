@@ -776,7 +776,7 @@ array (
 </table>
 <p class="versioning">The keywoks in the table above are supported since OpenTBS version 1.8.1.</p>
 <p class="versioning"> In previous version you should use keywords:  odsNum, odsBool, odsDate, odsTime, odsCurr, odsPercent, xlsxNum, xlsxBool and xlsxDate.</p>
-<h3><a name="ranges" id="ranges"></a>4.10. Read and write ranges in a worksheet</h3>
+<h3><a id="ranges"></a>4.10. Read and write ranges in a worksheet</h3>
 <p>&bull; Read a range in a worksheet</p>
 <div class="shift"> <span class="versioning">(supported since OpenTBS version 1.10.0)</span>
   <div class="code">Example: $result = $TBS-&gt;PlugIn(OPENTBS_GET_CELLS, $RangeRef, $Options = array())</div>
@@ -820,7 +820,7 @@ array (
 </table>
 </div>
 <p>&bull; Write a range in a worksheet (<span class="versioning">Will be available in a next version</span>)</p>
-<h3><a name="docfield" id="ranges2"></a>4.11. Merge document fields</h3>
+<h3><a name="docfield"></a>4.11. Merge document fields</h3>
 <p class="versioning">(Supported since OpenTBS version 1.10.0)</p>
 <p>Both DOCX and ODT files supports document fields that can be inserted   anywhere in the document that is for example Mail Merge Fields.</p>
 <p class="shift">In Ms Word, document fields are available using: ribbon Insert / Text / Quick Parts / Field…<br>
@@ -846,7 +846,7 @@ array (
 <p>Example with ODT:</p>
 <p class="shift code">Conditional text false [onshow.x_num;ope=docfield;frm=0,000.00] XX.XX</p>
 <p>See the demo DOC and ODT for more details.</p>
-<h3><a name="other_commands" id="other_commands"></a>4.12. Other merging commands</h3>
+<h3><a id="other_commands"></a>4.12. Other merging commands</h3>
 <p><span class="versioning">The following commands are supported since OpenTBS version 1.7.0 </span>:</p>
 <table  border="0" cellspacing="1" cellpadding="4">
   <tr>
@@ -1123,7 +1123,7 @@ $TBS-&gt;Plugin(OPENTBS_RESET);
 $TBS-&gt;Plugin(OPENTBS_PLUGIN, OPENTBS_RESET);</pre>
   <p>The automatic extension recognition is also applied as it was applied for the first load of the archive.</p>
 </div>
-<h3><a name="special_options" id="special_options"></a>4.14. Special options</h3>
+<h3><a id="special_options"></a>4.14. Special options</h3>
 <h4>Dealing with apostrophes:</h4>
 <div class="shift">
   <p> Both OpenOffice and Ms Office may automatically convert single quotes (') into typographic apostrophes (&rsquo;), depending to the auto-correction options. This may be annoying   when you need to code a TBS fields that have a single quote. That's why OpenTBS automatically convert by default all (&rsquo;) back to single quotes (') in documents.</p>
