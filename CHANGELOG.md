@@ -1,8 +1,8 @@
-# Change Log
+# Changes in OpenTbs
 
 All notable changes to this project will be documented in this file.
 
-## [1.10.1-beta] - 2020-07-07
+## [1.10.1] - 2020-10-13
 
 ### New features
 
@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 ### Bug fixes
 
 - LibreOffice only: the PHP Notice « Uninitialized string offset » could raise when loading a template from a stream (when using fopen() for example).
+- Command OPENTBS_SELECT_SLIDE supported for ODP master slides.
 
 ## [1.10.0] - 2019-09-16
 

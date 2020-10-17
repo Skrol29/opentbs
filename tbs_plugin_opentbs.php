@@ -8,7 +8,7 @@
  * and retrieve the content of a zipped file which is not compressed.
  *
  * @version 1.10.1-beta
- * @date 2020-07-07
+ * @date 2020-10-13
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -524,14 +524,20 @@ class clsOpenTBS extends clsTbsZip {
 
 		} elseif ($Cmd==OPENTBS_SELECT_SLIDE) {
 
+			$master  = (is_null($x2)) ? false : $x2;
+
 			if ($this->ExtEquiv=='odp') {
-				$this->TbsLoadSubFileAsTemplate($this->ExtInfo['main']);
+				// ODP
+				// All slides are in the same sub-file
+				$file = ($master) ? 'styles.xml' : $this->ExtInfo['main'];
+				$this->TbsLoadSubFileAsTemplate($file);
 				return true;
 			}
 			
 			if ($this->ExtEquiv!='pptx') return false;
 
-			$master  = (is_null($x2)) ? false : $x2;
+			// PPTX
+
 			$slide = ($master) ? 'slide master' : 'slide';
 			$RefLst = $this->MsPowerpoint_InitSlideLst($master);
 
