@@ -193,6 +193,10 @@ include_once('tbs_plugin_opentbs.php');
 
 $TBS = new clsTinyButStrong;
 $TBS-&gt;Plugin(TBS_INSTALL, OPENTBS_PLUGIN);</pre>
+Or, with an autoloader :
+<pre class="shift code">
+$TBS = new clsTinyButStrong;
+$TBS-&gt;Plugin(TBS_INSTALL, 'clsOpenTBS');</pre>
 <h3><a id="loadtemplate"></a>4.2. Method LoadTemplate()</h3>
 <h4>&bull; Load an archive with the automatic extension recognition (<a href="#extension">explained above</a>): </h4>
 <div class="shift">
@@ -961,7 +965,7 @@ array (
       <p>Use command <span class="smallcode">$TBS-&gt;PlugIn(<a href="#debugmode">OPENTBS_DEBUG_INFO</a>)</span> to list all id and name of sheets/slides in the current document.</p>
 <p>Use command <span class="smallcode">$TBS-&gt;PlugIn(<a href="#opentbs_count_sheets">OPENTBS_COUNT_SHEETS</a>)</span> get the number of sheets in the workbook.</p>
       <p><span class="smallcode">$ById</span> is false by default, set it to <span class="smallcode">true</span> if you want to select the sheet by its internal ID instead of its number in the sheet list. This can be used for compatibility with previous OpenTBS vesions (see version history below).      </p>
-      <p class="versioning">Command OPENTBS_SELECT_SLIDE is supported since OpenTBS version 1.8.0.<br />
+      <p class="versioning">Command OPENTBS_SELECT_SHEET is supported since OpenTBS version 1.8.0.<br />
     Argument $ById is supported since OpenTBS version 1.9.6.<br />
     Before OpenTBS version 1.9.6, the sheet was not find by its number in the sheet list but only by its internal id, which may be different. </p></td>
   </tr>
@@ -972,7 +976,7 @@ array (
         <li> <span class="smallcode">$NumOrNames</span> must be an array of  identifiers, or even a single  identifier. See command <span class="smallcode">OPENTBS_SELECT_SHEET</span> for more details about  identifiers.</li>
         <li><span class="smallcode">$Visible</span> must be a boolean, default value is <span class="smallcode">true</span>.</li>
       </ul>
-    <p><span class="versioning">Command OPENTBS_DISPLAY_SLIDES is supported since OpenTBS version 1.8.0.</span><br />
+    <p><span class="versioning">Command OPENTBS_DISPLAY_SHEETS is supported since OpenTBS version 1.8.0.</span><br />
       <span class="versioning">Before OpenTBS version 1.9.6, the sheet was not selected by its number in the sheet list but only by its internal id, which may be different. </span>    </p></td>
   </tr>
   <tr>
@@ -984,7 +988,7 @@ array (
         <li><span class="smallcode">$Delete</span> must be a boolean, default value is <span class="smallcode">true</span>.</li>
         </ul>
       <p><em class="warning">Please note that for now, you must not delete a sheet that contains a Pivot Table in a XLSX workbook because  this will produce an error when the workbook is opened.</em></p>
-      <p><span class="versioning">Command OPENTBS_DELETE_SLIDES is supported since OpenTBS version 1.8.0.</span><br />
+      <p><span class="versioning">Command OPENTBS_DELETE_SHEETS is supported since OpenTBS version 1.8.0.</span><br />
       <span class="versioning">Before OpenTBS version 1.9.6, the sheet was not find by its number in the sheet list but only by its internal id, which may be different. </span>      </p></td>
   </tr>
   <tr>

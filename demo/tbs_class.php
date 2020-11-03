@@ -3,8 +3,8 @@
  *
  * TinyButStrong - Template Engine for Pro and Beginners
  *
- * @version 3.12.0 for PHP 5, 7, 8
- * @date    2020-10-12
+ * @version 3.12.2 for PHP 5, 7, 8
+ * @date    2020-11-03
  * @link    http://www.tinybutstrong.com Web site
  * @author  http://www.tinybutstrong.com/onlyyou.html
  * @license http://opensource.org/licenses/LGPL-3.0 LGPL-3.0
@@ -655,7 +655,7 @@ public $Assigned = array();
 public $ExtendedMethods = array();
 public $ErrCount = 0;
 // Undocumented (can change at any version)
-public $Version = '3.12.0';
+public $Version = '3.12.2';
 public $Charset = '';
 public $TurboBlock = true;
 public $VarPrefix = '';
@@ -1761,7 +1761,8 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 				if ($Loc->PrmLst['magnet']==='#') {
 					if (!isset($Loc->AttBeg)) {
 						$Loc->PrmLst['att'] = '.';
-						$this->f_Xml_AttFind($Txt,$Loc,true,$this->AttDelim);
+						// no moving because att info would be modified and thus become wrong regarding to the eventually cached source
+						$this->f_Xml_AttFind($Txt,$Loc,false,$this->AttDelim);
 					}
 					if (isset($Loc->AttBeg)) {
 						$Loc->MagnetId = -3;
@@ -1789,7 +1790,12 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 		case 0: break;
 		case -1: $CurrVal = '&nbsp;'; break; // Enables to avoid null cells in HTML tables
 		case -2: $CurrVal = $Loc->PrmLst['ifempty']; break;
-		case -3: $Loc->Enlarged = true; $Loc->PosBeg = $Loc->AttBegM; $Loc->PosEnd = $Loc->AttEnd; break;
+		case -3:
+			// magnet=#
+			$Loc->Enlarged = true;
+			$Loc->PosBeg = ($Txt[$Loc->AttBeg-1]===' ') ? $Loc->AttBeg-1 : $Loc->AttBeg;
+			$Loc->PosEnd = $Loc->AttEnd;
+			break;
 		case 1:
 			$Loc->Enlarged = true;
 			$this->f_Loc_EnlargeToTag($Txt,$Loc,$Loc->PrmLst['magnet'],false);
@@ -3731,6 +3737,9 @@ function meth_PlugIn_SetEvent($PlugInId, $Event, $NewRef='') {
 
 }
 
+/**
+ * Convert any value to a string without specific formating.
+ */
 static function meth_Misc_ToStr($Value) {
 	if (is_string($Value)) {
 		return $Value;
@@ -3738,14 +3747,17 @@ static function meth_Misc_ToStr($Value) {
 		if (method_exists($Value,'__toString')) {
 			return $Value->__toString();
 		} elseif (is_a($Value, 'DateTime')) {
+			// ISO date-time format
 			return $Value->format('c');
 		}
 	}
 	return @(string)$Value; // (string) is faster than strval() and settype()
 }
 
+/**
+ * Return the formated representation of a Date/Time or numeric variable using a 'VB like' format syntax instead of the PHP syntax.
+ */
 function meth_Misc_Format(&$Value,&$PrmLst) {
-// This function return the formated representation of a Date/Time or numeric variable using a 'VB like' format syntax instead of the PHP syntax.
 
 	$FrmStr = $PrmLst['frm'];
 	$CheckNumeric = true;
@@ -3757,30 +3769,39 @@ function meth_Misc_Format(&$Value,&$PrmLst) {
 	// Manage Multi format strings
 	if ($Frm['type']=='multi') {
 
-		// Select the format
+		// Found the format according to the value (positive|negative|zero|null)
+		
 		if (is_numeric($Value)) {
+			// Numeric:
 			if (is_string($Value)) $Value = 0.0 + $Value;
 			if ($Value>0) {
 				$FrmStr = &$Frm[0];
 			} elseif ($Value<0) {
 				$FrmStr = &$Frm[1];
 				if ($Frm['abs']) $Value = abs($Value);
-			} else { // zero
+			} else {
+				// zero
 				$FrmStr = &$Frm[2];
 				$Minus = '';
 			}
 			$CheckNumeric = false;
 		} else {
+			// date|
 			$Value = $this->meth_Misc_ToStr($Value);
 			if ($Value==='') {
-				return $Frm[3]; // Null value
+				// Null value
+				return $Frm[3];
 			} else {
+				// Date conversion
 				$t = strtotime($Value); // We look if it's a date
-				if (($t===-1) || ($t===false)) { // Date not recognized
+				if (($t===-1) || ($t===false)) {
+					// Date not recognized
 					return $Frm[1];
-				} elseif ($t===943916400) { // Date to zero
+				} elseif ($t===943916400) {
+					// Date to zero in some softwares
 					return $Frm[2];
-				} else { // It's a date
+				} else {
+					// It's a date
 					$Value = $t;
 					$FrmStr = &$Frm[0];
 				}
@@ -3794,7 +3815,7 @@ function meth_Misc_Format(&$Value,&$PrmLst) {
 	}
 
 	switch ($Frm['type']) {
-	case 'num' :
+	case 'num':
 		// NUMERIC
 		if ($CheckNumeric) {
 			if (is_numeric($Value)) {
@@ -3810,35 +3831,71 @@ function meth_Misc_Format(&$Value,&$PrmLst) {
 		$Value = substr_replace($Frm['Str'],$Value,$Frm['Pos'],$Frm['Len']);
 		return $Value;
 		break;
-	case 'date' :
+	case 'date':
 		// DATE
-		if (is_object($Value)) {
-			$Value = $this->meth_Misc_ToStr($Value);
-		}
-		if (is_string($Value)) {
-			if ($Value==='') return '';
-			$x = strtotime($Value);
-			if (($x===-1) || ($x===false)) {
-				if (!is_numeric($Value)) $Value = 0;
-			} else {
-				$Value = &$x;
-			}
-		} else {
-			if (!is_numeric($Value)) return $this->meth_Misc_ToStr($Value);
-		}
-		if ($Frm['loc'] || isset($PrmLst['locale'])) {
-			$x = strftime($Frm['str_loc'],$Value);
-			$this->meth_Conv_Str($x,false); // may have accent
-			return $x;
-		} else {
-			return date($Frm['str_us'],$Value);
-		}
+		return $this->meth_Misc_DateFormat($Value, $Frm);
 		break;
 	default:
 		return $Frm['string'];
 		break;
 	}
 
+}
+
+function meth_Misc_DateFormat(&$Value, $Frm) {
+	
+	if (is_object($Value)) {
+		$Value = $this->meth_Misc_ToStr($Value);
+	}
+
+	if ($Value==='') return '';
+	
+	// Note : DateTime object is supported since PHP 5.2
+	// So we could simplify this function using only DateTime instead of timestamp.
+	
+	// Now we try to get the timestamp
+	if (is_string($Value)) {
+		// Any string value is assumed to be a formated date.
+		// If you whant a string value to be a considered to a a time stamp, then use prefixe '@' accordding to the 
+		$x = strtotime($Value);
+		// In case of error return false (return -1 for PHP < 5.1.0)
+		if (($x===false) || ($x===-1)) {
+			if (!is_numeric($Value)) {
+				// At this point the value is not recognized as a date
+				// Special fix for PHP 32-bit and date > '2038-01-19 03:14:07' => strtotime() failes
+				if (PHP_INT_SIZE === 4) { // 32-bit
+					try {
+						$date = new DateTime($Value);
+						return $date->format($Frm['str_us']);
+						// 'locale' cannot be supported in this case because strftime() has to equilavent with DateTime
+					} catch (Exception $e) {
+						// We take an arbitrary value in order to avoid formating error
+						$Value = 0; // '1970-01-01'
+						// echo $e->getMessage();
+					}                
+				} else {
+					// We take an arbirtary value in order to avoid formating error
+					$Value = 0; // '1970-01-01'
+				}
+			}
+		} else {
+			$Value = &$x;
+		}
+	} else {
+		if (!is_numeric($Value)) {
+			// It’s not a timestamp, thus we return the non formated value 
+			return $this->meth_Misc_ToStr($Value);
+		}
+	}
+	
+	if ($Frm['loc'] || isset($PrmLst['locale'])) {
+		$x = strftime($Frm['str_loc'],$Value);
+		$this->meth_Conv_Str($x,false); // may have accent
+		return $x;
+	} else {
+		return date($Frm['str_us'],$Value);
+	}
+	
 }
 
 /**
@@ -4794,8 +4851,9 @@ static function f_Loc_Sort(&$LocLst, $DelEmbd, $iFirst = 0) {
 
 /**
  * Prepare all informations to move a locator according to parameter "att".
- * @param mixed $MoveLocLst true to simple move the loc, or an array of loc to rearrange the list after the move.
- *              Note: rearrange doest not work with PHP4.
+ *
+ * @param false|true|array $MoveLocLst true to simple move the loc, or an array of loc to rearrange the list after the move.
+ *                          Note: rearrange doest not work with PHP4.
  */
 static function f_Xml_AttFind(&$Txt,&$Loc,$MoveLocLst=false,$AttDelim=false,$LocLst=false) {
 // att=div#class ; att=((div))#class ; att=+((div))#class
@@ -4882,6 +4940,12 @@ static function f_Xml_AttFind(&$Txt,&$Loc,$MoveLocLst=false,$AttDelim=false,$Loc
 
 }
 
+/**
+ * Move a locator in the source from its original location to the attribute location.
+ * The new locator string is only '[]', no need to copy the full source since all parameters are saved in $Loc.*
+ *
+ * @param false|true|array $MoveLocLst If the function is called from the caching process, then this value is an array.
+ */
 static function f_Xml_AttMove(&$Txt, &$Loc, $AttDelim, &$MoveLocLst) {
 
 	if ($AttDelim===false) $AttDelim = $Loc->AttDelimChr;
@@ -4939,11 +5003,8 @@ static function f_Xml_AttMove(&$Txt, &$Loc, $AttDelim, &$MoveLocLst) {
 		$Loc->AttTagEnd += $InsLen;
 	}
 
-	$Loc->PrevPosBeg = $Loc->PosBeg;
-	$Loc->PrevPosEnd = $Loc->PosEnd;
 	$Loc->PosBeg = $PosBeg;
 	$Loc->PosEnd = $PosEnd;
-	$Loc->AttBegM = ($Txt[$Loc->AttBeg-1]===' ') ? $Loc->AttBeg-1 : $Loc->AttBeg; // for magnet=#
 
 	// for CacheField
 	if (is_array($MoveLocLst)) {

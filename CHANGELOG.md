@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.10.1] - 2020-10-13
+## [1.10.1] - 2020-11-03
 
 ### New features
 
@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 - LibreOffice only: the PHP Notice « Uninitialized string offset » could raise when loading a template from a stream (when using fopen() for example).
 - Command OPENTBS_SELECT_SLIDE supported for ODP master slides.
+- Strengthened LibreOffice document detection when the template comes from a stream source instead of an actual file.
 
 ## [1.10.0] - 2019-09-16
 
