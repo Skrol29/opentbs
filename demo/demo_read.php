@@ -30,10 +30,12 @@ echo "<!DOCTYPE html>";
 echo "\n<html lang='en'>";
 echo "\n<body>";
 echo "\n<h1>Read dada in file with OpenTBS</h1>";
-echo "\n<h2>File: {$file}</h2>";
 
 $TBS = new clsTinyButStrong();
 $TBS->Plugin(TBS_INSTALL, OPENTBS_PLUGIN);
+
+echo "\n<p>TBS version " . $TBS->Version . ", OpenTBS version " . $TBS->TbsZip->Version . ", PHP version: " . PHP_VERSION . "</p>";
+echo "\n<h2>File: {$file}</h2>";
 
 $TBS->LoadTemplate($file);
 
