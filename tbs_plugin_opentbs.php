@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.10.1
- * @date 2020-11-03
+ * @version 1.10.2
+ * @date 2020-11-19
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -97,7 +97,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.10.1';
+		$this->Version = '1.10.2';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -671,8 +671,12 @@ class clsOpenTBS extends clsTbsZip {
 				$x2 = intval($x2); // 0 by default
 				$file = $this->MsWord_GetHeaderFooterFile($Cmd, $x1, $x2);
 				break;
-			case 'odt': case 'ods': case 'odp':
-				$file = $this->ExtInfo['main'];
+			case 'odt':
+				$file = 'styles.xml';
+				break;
+			case 'ods': case 'odp':
+				$this->ExtInfo['main'];
+				break;
 			case 'xlsx': case 'pptx': 
 				return false;
 				break;
@@ -691,10 +695,14 @@ class clsOpenTBS extends clsTbsZip {
 					$res[] = $info['file'];
 				}				
 				break;
-			case 'odt': case 'ods': case 'odp':
+			case 'odt':
+				$res[] = 'styles.xml';
+				break;
+			case 'ods': case 'odp':
 				// Headers and footers are in the main file.
 				// Handout headers and footers for presentations (PPTX & ODP) are not supported for now.
 				if (isset($this->ExtInfo['main'])) $res[] = $this->ExtInfo['main'];
+				break;
 			case 'xlsx':
 				$FileName = $this->CdFileLst[$this->TbsCurrIdx];
 				if ($this->MsExcel_SheetIsIt($FileName) ) $res[] = $FileName;

@@ -116,8 +116,8 @@ td th {
 <!-- div main-body is used for insertion in the TBS menu -->
 <div id="main-body">
 <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-<div>version 1.10.1, 2020-10-13 by Skrol29</div>
-<div>help file modified on 2020-10-13</div>
+<div>version 1.10.2, 2020-11-19 by Skrol29</div>
+<div>help file modified on 2020-11-19</div>
 <ol>
   <li><a href="#intro">Introduction</a></li>
   <li><a href="#install">Installing</a></li>
@@ -935,21 +935,34 @@ array (
   <tr>
     <td class="top smallcode nowrap"><a id="opentbs_select_header"></a>$TBS-&gt;PlugIn(OPENTBS_SELECT_HEADER, [$Type[, $Offset])<br />
     <a id="opentbs_select_footer"></a>$TBS-&gt;PlugIn(OPENTBS_SELECT_FOOTER, [$Type[, $Offset])</td>
-    <td valign="top"><p>Select the sub-file corresponding to the header of the footer. Return <span class="smallcode">true</span> if succeed, <span class="code">false</span> if it fails.</p>
-      <p>This command is useless for LibreOffice/OpenOffice because all headers and footers are  saved in the main sub-file. Nevertheless using it will select the main sub-file without raising an error.</p>
-      <p>Those commands do not work for XLSX or PPTX since headers and footers are saved in each sheet or slide. The command will return <span class="smallcode">false</span>.</p>
-      <p><span class="smallcode">$Type</span> must be one of the following values (default is OPENTBS_DEFAULT):</p>
+    <td valign="top"><p>Select the sub-file corresponding to the header of the footer. Return <span class="smallcode">true</span> if succeed, <span class="smallcode">false</span> if it fails.</p>
+      <p>For LibreOffice/OpenOffice, headers and footer are saved in the same sub-file. For ODS and ODP, the sub-file containing headers and footer is the main file.</p>
+      <p>For XLSX and PPTX this command will always return <span class="smallcode">false</span> because  headers and footers are  saved in sheets or slides.</p>
+      For DOCX, they may have several headers or footers in the same document.        Eeach section can have its own set of typed header and footer :
+      <div class="shift">
       <ul>
-        <li>OPENTBS_DEFAULT : select the default header or footer for pages in the document.</li>
-        <li>OPENTBS_FIRST : select the special header or footer reserved for the first page in the document.</li>
-        <li>OPENTBS_EVEN : select the special header of footer reserved for even pages  in the document.</li>
-      </ul>
-      <p><span class="smallcode">$Offset</span> can help when they are different headers and footers of the same type defined in the document. A document can have several sections and each section can have its own header and footer. But they can also have headers and footers linked to another section. Such that a document can have several headers and footers of the same type in a single document. Use the argument <span class="smallcode">$Offset</span> in order to select other one. Default value is <span class="smallcode">0</span>.</p>
+        <li> a default header (or footer)</li>
+        <li> an optional header (or footer) for the first page of the section</li>
+        <li> an optional header (or footer) for even pages of the section</li>
+  </ul>
+      <p>In order to select a specific header or footer, you have to use the arguments <span class="smallcode">$Type</span> and <span class="top smallcode nowrap">$Offset</span>.</p>
+      <ul>
+        <li><span class="smallcode">$Type</span> can be : OPENTBS_DEFAULT (default value), OPENTBS_FIRST, or OPENTBS_EVEN.</li>
+        <li><span class="smallcode">$Offset</span> (default value is <span class="smallcode">0</span>) is used to select the typed header or footer of another section.</li>
+        </ul>
+      <p>If you wan to select all the sections of the document, then see command <span class="top smallcode nowrap"><a href="#opentbs_get_headers_footers">OPENTBS_GET_HEADERS_FOOTERS</a></span>.</p>
+      </div>
       <p class="versioning">Command OPENTBS_SELECT_HEADER and OPENTBS_SELECT_FOOTER are supported since OpenTBS version 1.9.0.</p></td>
   </tr>
   <tr>
     <td class="top smallcode nowrap"><a id="opentbs_get_headers_footers"></a>$TBS-&gt;PlugIn(OPENTBS_GET_HEADERS_FOOTERS)</td>
-    <td valign="top"><p>Return an array of all sub-file corresponding to any header and footer in the document.</p>
+    <td valign="top"><p>Return an array of all sub-files that are headers and footers oif the document.</p>
+      <div class="code">// Example<br>
+        $subfile_lst = $TBS-&gt;PlugIn(OPENTBS_GET_HEADERS_FOOTERS);<br>
+        foreach ($subfile_lst as $subfile) {<br>
+&nbsp;&nbsp;$TBS-&gt;PlugIn(OPENTBS_SELECT_FILE, $subfile);<br>
+&nbsp;&nbsp;$TBS-&gt;MergeField('f', $info);<br>
+}</div>
       <p class="versioning">Command OPENTBS_GET_HEADERS_FOOTERS is supported since OpenTBS version 1.9.0.</p></td>
   </tr>
   <tr>

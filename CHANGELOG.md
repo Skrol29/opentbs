@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+
+## [1.10.2] - 2020-11-19
+
+### Bug fixes
+
+- Commands OPENTBS_SELECT_HEADER, OPENTBS_SELECT_FOOTER and OPENTBS_GET_HEADERS_FOOTERS
+  do not work with ODT files.
+
 ## [1.10.1] - 2020-11-03
 
 ### New features
