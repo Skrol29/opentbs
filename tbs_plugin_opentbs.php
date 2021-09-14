@@ -8679,6 +8679,9 @@ class clsTbsZip {
 				if ($len_u===false) $len_u = $fz;
 				$len_c = ($Compress) ? false : $fz;
 			} else {
+				if (empty(htmlentities($path))) {
+					$path = bin2hex(substr($path, 32));
+				}
 				return $this->RaiseError("Cannot add the file '".$path."' because it is not found.");
 			}
 		}
