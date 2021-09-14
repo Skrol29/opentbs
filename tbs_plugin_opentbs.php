@@ -1631,8 +1631,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
             return false;
         }
 
-		$DataType = isset($PrmLst['data']) ? TBSZIP_STRING : TBSZIP_FILE;
-
 		// set the name of the internal file
 		if (isset($PrmLst['as'])) {
 			if (!isset($PrmLst['pic_prepared'])) $TBS->meth_Merge_AutoVar($PrmLst['as'],true); // merge automatic TBS fields in the path
