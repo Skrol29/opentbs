@@ -37,6 +37,7 @@ $x_dt = mktime(13,0,0,2,15,2010);
 $x_bt = true;
 $x_bf = false;
 $x_delete = 1;
+$x_pic = 'data:image/png;base64,' . base64_encode(file_get_contents('pic_1234f.png'));
 
 // -----------------
 // Load the template
