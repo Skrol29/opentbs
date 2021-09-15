@@ -52,9 +52,9 @@ $svg =<<<__EOF__
       />
     <text
         text-anchor="middle" dominant-baseline="auto"
-        font-family="Arial" font-size="12pt" fill="red"
+        font-family="Arial" font-size="10pt" fill="red"
         transform="translate(60,65) rotate(45)">
-      SVG IMAGE
+       REPLACED SVG IMAGE
     </text>
 </svg>
 __EOF__;
