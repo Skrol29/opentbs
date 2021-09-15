@@ -1654,9 +1654,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$x = md5($ExternalPath);
 			if (!isset($this->ImageInternal[$x])) {
 				$finfo = new finfo(FILEINFO_EXTENSION);
-				$extension = $finfo->buffer($ExternalPath);
-				if (!empty($extension)) {
-					$extension = explode('/', $extension)[0];
+				$ext = $finfo->buffer($ExternalPath);
+				if (!empty($ext)) {
+					$ext = explode('/', $ext)[0];
 				}
 				$this->ImageInternal[$x] = 'opentbs_added_' . $this->ImageIndex . '.' . $ext;
 				$this->ImageIndex++;
