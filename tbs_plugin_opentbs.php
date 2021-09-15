@@ -274,7 +274,7 @@ class clsOpenTBS extends clsTbsZip {
 
 			// Prepare to change picture
 			if (in_array('changepic', $ope_lst)) {
-				$this->TbsPicPrepare($Txt, $Loc, true); // add parameter "att" which will be processed just after this event, when the field is cached
+				$this->TbsPicPrepare($Txt, $Loc, null, true); // add parameter "att" which will be processed just after this event, when the field is cached
 			} elseif (in_array('mergecell', $ope_lst)) {
 				$this->TbsPrepareMergeCell($Txt, $Loc);
 			} elseif (in_array('docfield', $ope_lst)) {
@@ -304,10 +304,10 @@ class clsOpenTBS extends clsTbsZip {
 		$ope = $PrmLst['ope'];
 		if ($ope==='addpic') {
 			// for compatibility
-			$this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=addpic');
+			$this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, null, 'ope=addpic');
 		} elseif ($ope==='changepic') {
-			$this->TbsPicPrepare($Txt, $Loc, false);
-			$this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=changepic');
+			$this->TbsPicPrepare($Txt, $Loc, $MimeTypeLoc, false);
+			$this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, $MimeTypeLoc, 'ope=changepic');
 		} elseif ($ope==='delcol') {
 			// Delete the TBS field otherwise « return false » will produce a TBS error « doesn't have any subname » with [onload] fields.
 			$Txt = substr_replace($Txt, '', $PosBeg, $PosEnd - $PosBeg + 1);
@@ -1326,7 +1326,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * This is done only once when it is a block merging.
 	 * The actual image replacement is done with $this->TbsPicAdd()
 	 */
-	function TbsPicPrepare(&$Txt, &$Loc, $IsCaching) {
+	function TbsPicPrepare(&$Txt, &$Loc, &$MimeTypeLoc,  $IsCaching) {
 
 		if (isset($Loc->PrmLst['pic_prepared'])) {
 			return true;
@@ -1352,6 +1352,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ($this->ExtType==='odf') {
 			$att = 'draw:image#xlink:href';
             $magnet = 'draw:frame';
+            $mimeTypeAtt = 'draw:image#draw:mime-type';
 		} elseif ($this->ExtType==='openxml') {
 			$type = $this->OpenXML_FirstPicType($Txt, $Loc->PosBeg, $backward);
             if ($type == 'vml') {
@@ -1368,16 +1369,26 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] is not supported with the current document type.');
 		}
 
+		if (!empty($mimeTypeAtt)) {
+			$MimeTypeLoc = clone $Loc;
+		}
+
 		// Move the field to the attribute
 		// This technical works with cached fields because already cached fields are placed before the picture.
 		$prefix = ($backward) ? '' : '+';
 		$Loc->PrmLst['att'] = $prefix.$att;
 		clsTinyButStrong::f_Xml_AttFind($Txt,$Loc,true);
+        trigger_error('PIC ATTR / MAGNET ' . $prefix.$att . ' / ' . $magnet);
 
 		// Delete parameter att to prevent TBS from another processing
 		unset($Loc->PrmLst['att']);
 
         $Loc->PrmLst['magnet'] = $magnet;
+
+		if (!empty($mimeTypeAtt)) {
+			$MimeTypeLoc->PrmLst['att'] = $prefix.$mimeTypeAtt;
+			clsTinyButStrong::f_Xml_AttFind($Txt, $MimeTypeLoc, true);
+		}
 
 		// Get picture dimension information
 		if (isset($Loc->PrmLst['adjust'])) {
@@ -1620,7 +1631,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * @param object  $Loc
 	 * @param array   $Prm     Caller parameter. Only used for error messages.
 	 */
-	function TbsPicAdd(&$Value, &$PrmLst, &$Txt, &$Loc, $Prm) {
+	function TbsPicAdd(&$Value, &$PrmLst, &$Txt, &$Loc, $MimeTypeLoc, $Prm) {
 
         if ($Value == '') {
             // The magnet parameter will delete the picture container
