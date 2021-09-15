@@ -1760,6 +1760,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	function TbsPicAdjust(&$Txt, &$Loc, &$File) {
 
 		$fDim = @getimagesize($File); // file dimensions
+		if (!is_array($fDim)) {
+			$fDim = getimagesizefromstring($File);
+		}
 		if (!is_array($fDim)) return;
 		$w = (float) $fDim[0];
 		$h = (float) $fDim[1];
