@@ -1636,8 +1636,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			if (!isset($PrmLst['pic_prepared'])) $TBS->meth_Merge_AutoVar($PrmLst['as'],true); // merge automatic TBS fields in the path
 			$InternalPath = str_replace($TBS->_ChrVal,$Value,$PrmLst['as']); // merge [val] fields in the path
 		} else if ($DataType===TBSZIP_STRING) {
-			// data: as is required as the internal path cannot be constructed
-			return false;
+			$x = md5($ExternalPath);
+			if (!isset($this->ImageInternal[$x])) {
+				$finfo = new finfo(FILEINFO_EXTENSION);
+				$extension = $finfo->buffer($ExternalPath);
+				if (!empty($extension)) {
+					$extension = explode('/', $extension)[0];
+				}
+				$this->ImageInternal[$x] = 'opentbs_added_' . $this->ImageIndex . '.' . $ext;
+				$this->ImageIndex++;
+			}
+			$InternalPath = $this->ImageInternal[$x];
 		} else {
 			// uniqueness by the name of the file, not its full path, this is a weakness
 			// OpenXML does not support spaces and accents in internal file names.
