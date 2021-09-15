@@ -1779,9 +1779,13 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	// Adjust the dimensions if the picture
 	function TbsPicAdjust(&$Txt, &$Loc, &$File) {
 
-		$fDim = @getimagesize($File); // file dimensions
+		try {
+			$fDim = @getimagesize($File); // file dimensions
+		} catch (\Throwable $t) {
+			$fDim = null;
+		}
 		if (!is_array($fDim)) {
-			$fDim = getimagesizefromstring($File);
+			$fDim = @getimagesizefromstring($File);
 		}
 		if (!is_array($fDim)) return;
 		$w = (float) $fDim[0];
