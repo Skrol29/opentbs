@@ -38,6 +38,27 @@ $x_bt = true;
 $x_bf = false;
 $x_delete = 1;
 $x_pic = 'data:image/png;base64,' . base64_encode(file_get_contents('pic_1234f.png'));
+$svg =<<<__EOF__
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+    xmlns:svg="http://www.w3.org/2000/svg"
+    xmlns="http://www.w3.org/2000/svg"
+    width="180pt"
+    height="180pt"
+    viewBox="0 0 120 120">
+  <rect
+      x="0" y="0" width="120" height="120"
+      style="fill:#BEBEBE;stroke:black;stroke-width:1;fill-opacity:1;stroke-apacity:0.5"
+      />
+    <text
+        text-anchor="middle" dominant-baseline="auto"
+        font-family="Arial" font-size="12pt" fill="red"
+        transform="translate(60,65) rotate(45)">
+      SVG IMAGE
+    </text>
+</svg>
+__EOF__;
+$x_pic_svg = 'data:image/svg+xml;base64,'.base64_encode($svg);
 
 // -----------------
 // Load the template
