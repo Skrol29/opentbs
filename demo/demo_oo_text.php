@@ -43,17 +43,17 @@ $svg =<<<__EOF__
 <svg
     xmlns:svg="http://www.w3.org/2000/svg"
     xmlns="http://www.w3.org/2000/svg"
-    width="180pt"
-    height="180pt"
-    viewBox="0 0 120 120">
+    width="90pt"
+    height="90pt"
+    viewBox="0 0 480 240">
   <rect
-      x="0" y="0" width="120" height="120"
+      x="0" y="0" width="100%" height="100%"
       style="fill:#BEBEBE;stroke:black;stroke-width:1;fill-opacity:1;stroke-apacity:0.5"
       />
     <text
         text-anchor="middle" dominant-baseline="auto"
-        font-family="Arial" font-size="10pt" fill="red"
-        transform="translate(60,65) rotate(45)">
+        font-family="Arial" font-size="20pt" fill="red"
+        transform="translate(240,130) rotate(45)">
        REPLACED SVG IMAGE
     </text>
 </svg>
