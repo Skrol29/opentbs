@@ -1322,11 +1322,34 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
+	 * Search for an attribute. If $MoveLocLst is false, then don't
+	 * moidifiy $Txt but initialize the given locator to the foujnd position.
+	 *
+	 * @return bool false if attribute could not be found.
+	 */
+	static function AttFind(&$Txt,$Loc,$MoveLocLst=false,$AttDelim=false,$LocLst=false) {
+		$result = clsTinyButStrong::f_Xml_AttFind($Txt,$Loc,$MoveLocLst,$AttDelim,$LocLst);
+		if ($MoveLocLst !== false) {
+			return $result;
+		}
+		if (empty($Loc->AttBeg) || empty($Loc->AttValBeg)) {
+			return false;
+		}
+		$Loc->PosBeg = $Loc->AttValBeg;
+		$Loc->PosEnd = $Loc->AttEnd;
+		if ($Loc->AttDelimCnt>0) {
+			$Loc->PosBeg++;
+			$Loc->PosEnd--;
+		}
+		return true;
+	}
+
+	/**
 	 * Prepare the TBS field for merging a picture: the TBS field is moved to the target attribute.
 	 * This is done only once when it is a block merging.
 	 * The actual image replacement is done with $this->TbsPicAdd()
 	 */
-	function TbsPicPrepare(&$Txt, &$Loc, &$imagesLoc,  $IsCaching) {
+	function TbsPicPrepare(&$Txt, $Loc, &$ImagesLoc,  $IsCaching) {
 
 		if (isset($Loc->PrmLst['pic_prepared'])) {
 			return true;
@@ -1350,6 +1373,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		// Find the target attribute
 		$att = false;
 		$mimeTypeAttrs = [];
+		$firstImage = false; // use the first image found as principal image
 		if ($this->ExtType==='odf') {
 			$tag = 'draw:image';
 			$att = $tag . '#xlink:href';
@@ -1358,6 +1382,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$tag . '#loext:mime-type',
 				$tag . '#draw:mime-type',
 			];
+			$fistImage = true;
 		} elseif ($this->ExtType==='openxml') {
 			$type = $this->OpenXML_FirstPicType($Txt, $Loc->PosBeg, $backward);
             if ($type == 'vml') {
@@ -1378,23 +1403,25 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
         // there can be more than one image, for each image collect
         // the attributes for the data reference and the mime-type
-        $images = [];
+        $ImagesLoc = [];
 
-        $magnetStartLoc = clsTinyButStrong::f_Xml_FindTag($Txt,$magnet,true,$Loc->PosBeg,false,false,false);
-        $magnetStopLoc = clsTinyButStrong::f_Xml_FindTag($Txt,$magnet,false,$Loc->PosBeg,true,false,false);
+		if ($backward) {
+			$magnetStartLoc = clsTinyButStrong::f_Xml_FindTag($Txt,$magnet,true,$Loc->PosBeg,false,false,false);
+			$magnetStopLoc = clsTinyButStrong::f_Xml_FindTag($Txt,$magnet,false,$Loc->PosBeg,true,false,false);
+		} else {
+			$magnetStartLoc = clsTinyButStrong::f_Xml_FindTag($Txt,$magnet,true,$Loc->PosBeg,false,false,false);
+			$magnetStopLoc = clsTinyButStrong::f_Xml_FindTag($Txt,$magnet,true,$Loc->PosBeg,true,false,false);
+		}
 
         $posBeg = $magnetStartLoc->PosEnd+1;
         $posEnd = $magnetStopLoc->PosBeg;
         $Value = substr($Txt, $posBeg, $posEnd -  $posBeg);
-        echo 'FIND TAG OUTER ' . $posBeg . ' / ' . $posEnd .PHP_EOL;
-        echo 'FIND TAG OUTER ' . $Value.PHP_EOL.PHP_EOL;
 		$cnt = 0;
 		$searchBeg = $posBeg;
         do {
 			if ($searchBeg >= $posEnd) {
 				break;
 			}
-			echo '*** SEARCH BEG ' . $searchBeg . ' ' . $tag . PHP_EOL;
 			$drawLoc = clsTinyButStrong::f_Xml_FindTag($Txt,$tag,true,$searchBeg,true,false,false);
 			if (empty($drawLoc)) {
 				break;
@@ -1402,54 +1429,93 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			if ($drawLoc->PosBeg >= $posEnd) {
 				break;
 			}
-			echo 'FIND DRAW Tag ' . $drawLoc->PosBeg . ' / ' . $drawLoc->PosEnd .PHP_EOL;
-			$Value = substr($Txt, $drawLoc->PosBeg, $drawLoc->PosEnd -  $drawLoc->PosBeg + 1);
-			echo 'FIND DRAW TAG ' . $Value.PHP_EOL;
 
 			// find data attribute, this is forward search
 			$attLoc = clone $drawLoc;
-			$attLoc->PrmLst = array_merge([], $attLoc->PrmLst);
+			//$attLoc->PrmLst = array_merge([], $attLoc->PrmLst);
+
 			$attLoc->PrmLst['att'] = '+'.$att;
             $attLoc->PosEnd = $attLoc->PosBeg-1;
-			echo 'FIND DRAW Tag ' . $attLoc->PosBeg . ' / ' . $attLoc->PosEnd .PHP_EOL;
-			clsTinyButStrong::f_Xml_AttFind($Txt,$attLoc,true);
-			$Value = substr($Txt, $attLoc->AttBeg, $attLoc->AttEnd -  $attLoc->AttBeg + 1);
-			echo 'FIND DATA ATT ' . $Value.PHP_EOL;
 
+			if (!self::AttFind($Txt, $attLoc, false)) {
+				$searchBeg = $drawLoc->PosEnd+1;
+				continue;
+			}
+
+			// $loc = $attLoc;
+			// $prf = 'Pos';
+			// echo 'DATA ATT ' . $loc->{$prf.'Beg'} . ' - ' . $loc->{$prf.'End'} . ': ' . substr($Txt, $loc->{$prf.'Beg'}, $loc->{$prf.'End'} - $loc->{$prf.'Beg'} + 1) . PHP_EOL;
+
+            unset($attLoc->PrmLst['att']);
+			$attLoc->PrmLst['magnet'] = $magnet;
+
+			$mimeTypeLoc = null;
             foreach ($mimeTypeAttrs as $mimeTypeAtt) {
-              // find mimeType attribute, this is forward search
-              $mimeTypeLoc = clone $drawLoc;
-              $mimeTypeLoc->PrmLst['att'] = '+' . $mimeTypeAtt;
-              $mimeTypeLoc->PosEnd = $mimeTypeLoc->PosBeg - 1;
-               	clsTinyButStrong::f_Xml_AttFind($Txt,$mimeTypeLoc,true);
-                if ($mimeTypeLoc->PosEnd == $mimeTypeLoc->PosBeg+1) {
-                  continue;
-                }
-                $Value = substr($Txt, $mimeTypeLoc->PosBeg, $mimeTypeLoc->PosEnd -  $mimeTypeLoc->PosBeg + 1);
-                echo 'FIND MimeType ATT ' . $mimeTypeLoc->PosBeg . ' / ' . $mimeTypeLoc->PosEnd .PHP_EOL;
-                echo 'FIND MimeType ATT ' . $Value.PHP_EOL;
+				// find mimeType attribute, this is forward search
+				$mimeTypeLoc = clone $drawLoc;
+				$mimeTypeLoc->PrmLst['att'] = '+' . $mimeTypeAtt;
+				$mimeTypeLoc->PosEnd = $mimeTypeLoc->PosBeg - 1;
+				if (!self::AttFind($Txt, $mimeTypeLoc, false)) {
+					continue;
+				}
+
+				// $loc = $mimeTypeLoc;
+				// $prf = 'Pos';
+				// echo 'MIME ATT ' . $loc->{$prf.'Beg'} . ' - ' . $loc->{$prf.'End'} . ': ' . substr($Txt, $loc->{$prf.'Beg'}, $loc->{$prf.'End'} - $loc->{$prf.'Beg'} + 1) . PHP_EOL;
+
+				$mimeTypeLoc->PrmLst['magnet'] = $magnet;
                 break;
             }
-            $images[] = [
-              'data' => $attLoc,
-              'mime' => $mimeTypeLoc,
+            $ImagesLoc[] = [
+				'data' => $attLoc,
+				'mime' => $mimeTypeLoc,
+				'principal' => false,
             ];
 
 			$searchBeg = $drawLoc->PosEnd+1;
-			echo PHP_EOL;
         } while (++$cnt < 10);
 
 		// Move the field to the attribute
 		// This technical works with cached fields because already cached fields are placed before the picture.
-		$prefix = ($backward) ? '' : '+';
-		$Loc->PrmLst['att'] = $prefix.$att;
-		clsTinyButStrong::f_Xml_AttFind($Txt,$Loc,true);
-        trigger_error('PIC ATTR / MAGNET ' . $prefix.$att . ' / ' . $magnet);
+		if (empty($ImagesLoc)) {
 
-		// Delete parameter att to prevent TBS from another processing
-		unset($Loc->PrmLst['att']);
+			$prefix = ($backward) ? '' : '+';
+			$Loc->PrmLst['att'] = $prefix.$att;
+			clsTinyButStrong::f_Xml_AttFind($Txt,$Loc,true);
 
-        $Loc->PrmLst['magnet'] = $magnet;
+            // Delete parameter att to prevent TBS from another processing
+            unset($Loc->PrmLst['att']);
+
+			$Loc->PrmLst['magnet'] = $magnet;
+
+			$ImagesLoc[] = [
+				'data' => $Loc,
+				'mime' => null,
+				'principal' => true,
+			];
+
+		} else {
+			if ($fistImage) {
+				$imageIndex = 0;
+			} else {
+				$imageIndex = count($ImagesLoc) - 1;
+			}
+			$ImagesLoc[$imageIndex]['principal'] = true;
+			$imageLoc = $ImagesLoc[$imageIndex]['data'];
+
+			// tweak Loc to use the "right" picture
+			$Loc->AttForward = !$backard;
+			$Loc->AttTagBeg = $imageLoc->AttTagBeg;
+			$Loc->AttTagEnd = $imageLoc->AttTagEnd;
+			$Loc->AttBeg = $imageLoc->AttBeg;
+			$Loc->AttEnd = $imageLoc->AttEnd;
+			$Loc->AttValBeg = $imageLoc->AttValBeg;
+			$Loc->AttDelimChr = $imageLoc->AttDelimChr;
+			$Loc->AttDelimCnt = $imageLoc->AttDelimCnt;
+
+			$move = true; // pass-by-reference variable dummy
+			clsTinyButStrong::f_Xml_AttMove($Txt,$Loc, false, $move);
+		}
 
 		// Get picture dimension information
 		if (isset($Loc->PrmLst['adjust'])) {
@@ -1468,9 +1534,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		// Set the original picture to empty
 		if ( isset($Loc->PrmLst['unique']) && $Loc->PrmLst['unique'] ) {
 
-			foreach ($images as $imageLocation) {
+			foreach ($ImagesLoc as $imageLocation) {
 				$Value = substr($Txt, $imageLocation['data']->PosBeg, $imageLocation['data']->PosEnd -  $imageLocation['data']->PosBeg +1);
-				echo 'WOULD REMOVE ' . $Value . PHP_EOL;
 				if ($this->ExtType==='odf') {
 					$InternalPicPath = $Value;
 				} elseif ($this->ExtType==='openxml') {
@@ -1484,24 +1549,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$this->FileReplace($InternalPicPath, '', TBSZIP_STRING, false);
 			}
 
-			// // Get the value in the template
-			// $Value = substr($Txt, $Loc->PosBeg, $Loc->PosEnd -  $Loc->PosBeg +1);
-
-			// if ($this->ExtType==='odf') {
-			// 	$InternalPicPath = $Value;
-			// } elseif ($this->ExtType==='openxml') {
-			// 	$InternalPicPath = $this->OpenXML_GetInternalPicPath($Value);
-			// 	if ($InternalPicPath === false) {
-			// 		$this->RaiseError('The picture to merge with field ['.$Loc->FullName.'] cannot be found. Value=' . $Value);
-			// 	}
-			// }
-
-			// // Set the picture file to empty
-			// $this->FileReplace($InternalPicPath, '', TBSZIP_STRING, false);
-
 		}
 
 		$Loc->PrmLst['pic_prepared'] = true;
+
 		return true;
 
 	}
@@ -1706,7 +1757,19 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * @param array   $PrmLst
 	 * @param string  $Txt
 	 * @param object  $Loc
+     * @param array   $ImagesLoc
 	 * @param array   $Prm     Caller parameter. Only used for error messages.
+     *
+     * $ImagesLoc is an array
+     *
+     * [
+     *   [ 'data' => DATA_LOCATOR, 'mime' => MIME_TYPE_LOCATOR ],
+     *   ...
+     * ]
+     *
+     * which normally has only one element, but occasionally may also
+     * contain additional entries for images, e.g. for PNG previews
+     * for vector images.
 	 */
 	function TbsPicAdd(&$Value, &$PrmLst, &$Txt, &$Loc, $ImagesLoc, $Prm) {
 
@@ -1715,9 +1778,16 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
             return true;
         }
 
-		$TBS = &$this->TBS;
 
-		$PrmLst['pic_prepared'] = true; // mark the locator as Picture prepared
+		$MimeLoc = null;
+		foreach ($ImagesLoc as $ImageLoc) {
+			if ($ImageLoc['principal']) {
+				$MimeLoc = $ImageLoc['mime'];
+				break;
+			}
+		}
+
+		$TBS = &$this->TBS;
 
 		// Path of the external file to copy inside the current document.
 		$ExternalPath = $this->TbsPicExternalPath($Value, $PrmLst, $DataType);
@@ -1734,18 +1804,29 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
             return false;
         }
 
+        $mimeType = $PrmLst['mime']??'';
+
 		// Path to the target file to add into the current document.
 		if (isset($PrmLst['as'])) {
 			if (!isset($PrmLst['pic_prepared'])) $TBS->meth_Merge_AutoVar($PrmLst['as'],true); // merge automatic TBS fields in the path
 			$InternalPath = str_replace($TBS->_ChrVal,$Value,$PrmLst['as']); // merge [val] fields in the path
 		} else if ($DataType===TBSZIP_STRING) {
+            if (empty($mimeType)) {
+				$finfo = new finfo(FILEINFO_MIME_TYPE);
+				$mimeType = $finfo->buffer($ExternalPath);
+                if ($debug) echo "**** MIMETYPE IS " . $mimeType . PHP_EOL;
+            }
 			$x = md5($ExternalPath);
 			if (!isset($this->ImageInternal[$x])) {
 				$finfo = new finfo(FILEINFO_EXTENSION);
 				$ext = $finfo->buffer($ExternalPath);
-				if (!empty($ext)) {
+				if ($ext == '???' && strpos($mimeType??'', '/') !== false) {
+					// heuristic
+					$ext = explode('+', explode('/', $mimeType)[1])[0];
+				} else {
 					$ext = explode('/', $ext)[0];
-				}
+                }
+                if ($debug) echo "**** EXT IS " . $ext . PHP_EOL;
 				$this->ImageInternal[$x] = 'opentbs_added_' . $this->ImageIndex . '.' . $ext;
 				$this->ImageIndex++;
 			}
@@ -1760,7 +1841,25 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$this->ImageIndex++;
 			}
 			$InternalPath = $this->ImageInternal[$x];
+            if (empty($mimeType)) {
+				$finfo = new finfo(FILEINFO_MIME_TYPE);
+				$mimeType = $finfo->buffer($ExternalPath);
+                if ($debug) echo "**** MIMETYPE IS " . $mimeType . PHP_EOL;
+            }
 		}
+
+		if (!empty($MimeLoc)) {
+			$DelLen = $MimeLoc->PosEnd - $MimeLoc->PosBeg + 1;
+			$Txt = substr_replace($Txt,'',$MimeLoc->PosBeg,$DelLen); // delete the current mime-type
+			$Txt = substr_replace($Txt, $mimeType, $MimeLoc->PosBeg, 0);
+			if ($MimeLoc->PosEnd < $Loc->PosBeg) {
+				$adjustLen = strlen($mimeType) - $DelLen;
+				$Loc->PosBeg += $adjustLen;
+				$Loc->PosEnd += $adjustLen;
+			}
+		}
+
+		$PrmLst['pic_prepared'] = true; // mark the locator as Picture prepared
 
 		// the value of the current TBS field becomes the full internal path
 		if (isset($this->ExtInfo['pic_path'])) $InternalPath = $this->ExtInfo['pic_path'].$InternalPath;
