@@ -1952,17 +1952,45 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
-	// Adjust the dimensions if the picture
-	function TbsPicAdjust(&$Txt, &$Loc, &$File) {
-
+	static function TbsPicImageSize($File) {
 		try {
-			$fDim = @getimagesize($File); // file dimensions
+			if (file_exists($File)) {
+				$fDim = @getimagesize($File); // file dimensions
+			} else {
+				$fDim = @getimagesizefromstring($File);
+			}
 		} catch (\Throwable $t) {
 			$fDim = null;
 		}
-		if (!is_array($fDim)) {
-			$fDim = @getimagesizefromstring($File);
+		if (empty($fDim) && class_exists(\Imagick::class)) {
+			// retry with ImageMagick if that is installed
+			$imagick = new \Imagick;
+			try {
+				if (file_exists($File)) {
+					$imagick->readImage($File);
+				} else {
+					$imagick->readImageBlob($File);
+				}
+				$fDim[0] = $imagick->getImageWidth();
+				$fDim[1] = $imagick->getImageHeight();
+			} catch (\Throwable $t) {
+				$fDim = null;
+			}
 		}
+		if ($debug) {
+			if (!is_array($fDim)) {
+				echo '*** NO IMAGE SIZE' . PHP_EOL;
+			} else {
+				echo '*** IMAGE DIMS ' . print_r($fDim, true) . PHP_EOL;
+			}
+		}
+		return $fDim;
+	}
+
+	// Adjust the dimensions if the picture
+	function TbsPicAdjust(&$Txt, &$Loc, &$File) {
+
+		$fDim = self::TbsPicImageSize($File);
 		if (!is_array($fDim)) return;
 		$w = (float) $fDim[0];
 		$h = (float) $fDim[1];
