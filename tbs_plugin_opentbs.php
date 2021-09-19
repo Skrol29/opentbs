@@ -29,7 +29,8 @@ define('OPENTBS_RESET','clsOpenTBS.Reset');      // command to reset the changes
 define('OPENTBS_ADDFILE','clsOpenTBS.AddFile');    // command to add a new file in the archive
 define('OPENTBS_DELETEFILE','clsOpenTBS.DeleteFile'); // command to delete a file in the archive
 define('OPENTBS_REPLACEFILE','clsOpenTBS.ReplaceFile'); // command to replace a file in the archive
-define('OPENTBS_EDIT_ENTITY','clsOpenTBS.EditEntity'); // command to force an attribute
+define('OPENTBS_EDIT_ENTITY','clsOpenTBS.EditEntity');  // command to edit an attribute
+define('OPENTBS_READ_ENTITY','clsOpenTBS.ReadEntity');  // command to read an attribute
 define('OPENTBS_FILEEXISTS','clsOpenTBS.FileExists');
 define('OPENTBS_GET_FILES','clsOpenTBS.GetFiles');
 define('OPENTBS_GET_OPENED_FILES','clsOpenTBS.GetOpenedFiles');
@@ -745,8 +746,12 @@ class clsOpenTBS extends clsTbsZip {
 		} elseif ($Cmd==OPENTBS_EDIT_ENTITY) {
 			
 			$AddElIfMissing = (boolean) $x5;
-			return $this->XML_ForceAtt($x1, $x2, $x3, $x4, $AddElIfMissing);
+			return $this->XML_ReadWriteAtt($x1, $x2, $x3, $x4, $AddElIfMissing);
 			
+		} elseif ($Cmd==OPENTBS_READ_ENTITY) {
+			
+			return $this->XML_ReadWriteAtt($x1, $x2, $x3, null, false);
+
 		} elseif ($Cmd==OPENTBS_GET_FILES) {
 	
 			$files = array();
@@ -2437,19 +2442,25 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-	 * Change an attribute's value or an entity's value in the first element in a given sub-file.
+	 * Read or write an attribute's value or an entity's value in the first element in a given sub-file.
 	 * @param {mixed}  $SubFile : the name or the index of the sub-file. Use value false to get the current sub-file.
 	 * @param {string} $ElPath  : path of the element. For example : 'w:document/w:body/w:p'.
 	 * @param {string|boolean} $Att    : the attribute, or false to replace the entity's value.
-	 * @param {string|boolean} $NewVal : the new value, or false to delete the attribute.
-	 * @return {boolean} True if the attribute is found and processed. False otherwise.
+	 * @param {string|boolean} $NewVal : the new value, or false to delete the attribute, or null to return the attribute’s value without writing.
+	 * @return {string|boolean} Reading : return true if the attribute is found and processed. False otherwise.
+	 *                          Writing : return the value as a string, of false if the attribute or the entity is not found.
+	 *                                    return false if $Att = false and the entity is a self-closing tag.
 	 */
-	function XML_ForceAtt($SubFile, $ElPath, $Att, $NewVal, $AddElIfMissing = false) {
+	function XML_ReadWriteAtt($SubFile, $ElPath, $Att, $NewVal, $AddElIfMissing = false) {
 	
 		// Find the file
-		$idx = $this->FileGetIdx($SubFile);
+		if ($SubFile === false) {
+			$idx = $this->TbsCurrIdx;
+		} else {
+			$idx = $this->FileGetIdx($SubFile);
+		}
 		if ($idx === false) return false;
-		$Txt = $this->TbsStoreGet($idx, 'XML_ForceAtt');
+		$Txt = $this->TbsStoreGet($idx, 'XML_ReadWriteAtt');
 	
 		// Find the element
 		$el_lst = explode('/', $ElPath);
@@ -2480,7 +2491,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$save = true;
 		if ($el_idx < $el_nb) {
 			// One of the entities is not found => create entities
-			if ($NewVal === false) {
+			if (is_null($NewVal)) {
+				return false;
+			} elseif ($NewVal === false) {
 				// Nothing to do
 				$save = false;
 			} else {
@@ -2503,8 +2516,19 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$Txt = substr_replace($Txt, $x, $loc_prev->pET_PosBeg, 0);
 			}
 		} else {
-			// The last entity is found => force the attribute
-			if ($NewVal === false) {
+			// The last entity is found
+			if (is_null($NewVal)) {
+				// Read
+				if ($Att === false) {
+					// read the entity
+					$loc->FindEndTag();
+					return $loc->GetInnerSrc();
+				} else {
+					// read the attribute
+					return $loc->GetAttLazy($Att);
+				}
+			} elseif ($NewVal === false) {
+				// Delete
 				if ($Att === false) {
 					// delete the entity
 					$loc->Delete();
@@ -2513,6 +2537,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					$loc->DeleteAtt($Att);
 				}
 			} else {
+				// Modifiy
 				if ($Att === false) {
 					// change the entity's value
 					$loc->FindEndTag();
@@ -7530,7 +7555,7 @@ class clsTbsXmlLoc {
 		return ($this->pET_PosBeg===false) ? false : $this->pET_PosBeg - $this->pST_PosEnd - 1;
 	}
 
-	// Return the length of the inner content, or false if it's a self-closing tag 
+	// Return the contents of the inner content, or false if it's a self-closing tag 
 	// Assume FindEndTag() is previously called.
 	// Return false if SelfClosing.
 	function GetInnerSrc() {

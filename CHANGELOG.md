@@ -2,7 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.3] - 2021-09-19
 
+### New features
+
+- New command OPENTBS_READ_ENTITY.
+
+### Bug fixes
+
+- Command OPENTBS_EDIT_ENTITY didn't work with argument « $SubFile = false ».
+  
 ## [1.10.2] - 2020-11-19
 
 ### Bug fixes
