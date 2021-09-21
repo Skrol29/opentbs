@@ -1321,7 +1321,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 	}
 	
-	// Found the relevant attribute for the image source, and then add parameter 'att' to the TBS locator.
+	/**
+	 * Prepare the TBS field for merging a picture: the TBS field is moved to the target attribute.
+	 * This is done only once when it is a block merging.
+	 * The actual image replacement is done with $this->TbsPicAdd()
+	 */
 	function TbsPicPrepare(&$Txt, &$Loc, $IsCaching) {
 
 		if (isset($Loc->PrmLst['pic_prepared'])) {
@@ -1604,7 +1608,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	
 	/**
 	 * Add a picture inside the archive, use parameters 'from' and 'as'.
-	 * Argument $Prm is only used for error messages.
+	 *
+	 * @param string  $Value
+	 * @param array   $PrmLst
+	 * @param string  $Txt
+	 * @param object  $Loc
+	 * @param array   $Prm     Caller parameter. Only used for error messages.
 	 */
 	function TbsPicAdd(&$Value, &$PrmLst, &$Txt, &$Loc, $Prm) {
         
@@ -1617,6 +1626,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$PrmLst['pic_prepared'] = true; // mark the locator as Picture prepared
 		
+		// Path of the external file to copy inside the current document.
 		$ExternalPath = $this->TbsPicExternalPath($Value, $PrmLst);
 		
 		if ($ExternalPath === false) {
@@ -1631,7 +1641,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			return false;
 		}
 
-		// set the name of the internal file
+		// Path to the target file to add into the current document.
 		if (isset($PrmLst['as'])) {
 			if (!isset($PrmLst['pic_prepared'])) $TBS->meth_Merge_AutoVar($PrmLst['as'],true); // merge automatic TBS fields in the path
 			$InternalPath = str_replace($TBS->_ChrVal,$Value,$PrmLst['as']); // merge [val] fields in the path
@@ -1660,7 +1670,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$this->OpenDoc_ManifestChange($InternalPath,'');
 		} elseif ($this->ExtType==='openxml') {
 			// Microsoft Office document
-			$this->OpenXML_CTypesPrepareExt($InternalPath, '');
+			$this->OpenXML_CTypesPrepareExt($InternalPath, ''); // add the mime type if missing into the dedicated sub-file
+			// Add the file into de Relation declaration
 			$BackNbr = max(substr_count($TBS->OtbsCurrFile, '/') - 1, 0); // docx=>"media/img.png", xlsx & pptx=>"../media/img.png"
 			$TargetDir = str_repeat('../', $BackNbr).'media/';
 			$FileName = basename($InternalPath);

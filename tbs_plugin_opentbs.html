@@ -556,9 +556,14 @@ array (
   <p> When a TBS field having <span class="smallcode">&quot;ope=changepic&quot;</span> is merged in the template, then OpenTBS will search the first picture located before the field (see parameter <span class="smallcode">tagpos</span> below for another position), and then it will change the picture assuming that the value of the field is the path for a picture file on the server. You don't have to care about loading the picture file in the document, OpenTBS will manage this for you.</p>
   <p>Note that parameter <span class="smallcode">&quot;ope=changepic&quot;</span> is  a feature provided by the OpenTBS plug-in, which extends the &quot;<a href="http://www.tinybutstrong.com/manual.php#html_field_prm_ope">ope</a>&quot; parameter natively present with TBS.</p>
   <p>Instead of change a picture with a TBS tag, you can also do it manually at the PHP side using the command <a href="#other_commands">OPENTBS_CHANGE_PICTURE</a>.</p>
-  <p>Note that since OpenTBS version 1.8.0, you can change picture in Ms Excel worksheet. You must put the TBS field inside the picture description and use parameter &quot;tagpos=inside&quot;. Before this version it was not possible to change pictures in an Ms Excel worksheet.</p>
-  <p>    In order to 
-    simplify your coding, they are other complementary optional parameters: </p>
+  <p>Known limitations:</p>
+  <ul>
+    <li>SVG pictures are not supported for Ms Office templates. <span jsaction="mouseup:BR6jm" jsname="jqKxS" lang="en"><span jsaction="agoMJf:PFBcW;usxOmf:aWLT7;jhKsnd:P7O7bd,F8DmGf;Q4AGo:Gm7gYd,qAKMYb;uFUCPb:pvnm0e,pfE8Hb,PFBcW;f56efd:dJXsye;EnoYf:KNzws,ZJsZZ,JgVSJc;zdMJQc:cCQNKb,ZJsZZ,zchEXc;Ytrrj:JJDvdc;tNR8yc:GeFvjb;oFN6Ye:hij5Wb" jsname="txFAF" data-language-for-alternatives="en" data-language-to-translate-into="fr" data-phrase-index="0" jscontroller="Zl5N8" jsdata="uqLsIf;_;$429" jsmodel="SsMkhd"><span jsaction="click:qtZ4nf,GFf3ac,tMZCfe; contextmenu:Nqw7Te,QP7LD; mouseout:Nqw7Te; mouseover:qtZ4nf,c2aHje" jsname="W297wb">Not as an image to replace in the template, nor as an image to insert.</span></span></span></li>
+    <li>Note that since OpenTBS version 1.8.0, you can change picture in Ms Excel worksheet. You must put the TBS field inside the picture description and use parameter &quot;tagpos=inside&quot;. Before this version it was not possible to change pictures in an Ms Excel worksheet.</li>
+  </ul>
+<p>Options:</p>
+<p>In order to 
+  simplify your coding, they are other complementary optional parameters: </p>
   <table border="0" cellspacing="1" cellpadding="4" style="margin-left:20px;">
     <tr>
       <th align="left">Parameter</th>
