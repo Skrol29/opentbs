@@ -37,6 +37,28 @@ $x_dt = mktime(13,0,0,2,15,2010);
 $x_bt = true;
 $x_bf = false;
 $x_delete = 1;
+$x_pic = 'data:image/png;base64,' . base64_encode(file_get_contents('pic_1234f.png'));
+$svg =<<<__EOF__
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+    xmlns:svg="http://www.w3.org/2000/svg"
+    xmlns="http://www.w3.org/2000/svg"
+    width="90pt"
+    height="90pt"
+    viewBox="0 0 480 240">
+  <rect
+      x="0" y="0" width="100%" height="100%"
+      style="fill:#BEBEBE;stroke:black;stroke-width:1;fill-opacity:1;stroke-apacity:0.5"
+      />
+    <text
+        text-anchor="middle" dominant-baseline="auto"
+        font-family="Arial" font-size="20pt" fill="red"
+        transform="translate(240,130) rotate(45)">
+       REPLACED SVG IMAGE
+    </text>
+</svg>
+__EOF__;
+$x_pic_svg = 'data:image/svg+xml;base64,'.base64_encode($svg);
 
 // -----------------
 // Load the template
