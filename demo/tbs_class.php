@@ -3,8 +3,8 @@
  *
  * TinyButStrong - Template Engine for Pro and Beginners
  *
- * @version 3.12.2 for PHP 5, 7, 8
- * @date    2020-11-03
+ * @version 3.12.3-beta-1 for PHP 5, 7, 8
+ * @date    2021-12-03
  * @link    http://www.tinybutstrong.com Web site
  * @author  http://www.tinybutstrong.com/onlyyou.html
  * @license http://opensource.org/licenses/LGPL-3.0 LGPL-3.0
@@ -655,7 +655,7 @@ public $Assigned = array();
 public $ExtendedMethods = array();
 public $ErrCount = 0;
 // Undocumented (can change at any version)
-public $Version = '3.12.2';
+public $Version = '3.12.3-beta-1';
 public $Charset = '';
 public $TurboBlock = true;
 public $VarPrefix = '';
@@ -709,8 +709,10 @@ function __construct($Options=null,$VarPrefix='',$FctPrefix='') {
 		}
 	} 
 
+	// Set VarRef initial value
+	$this->ResetVarRef(true);
+	
 	// Set options
-	$this->VarRef =& $GLOBALS;
 	if (is_array($Options)) $this->SetOption($Options);
 
 	// Links to global variables (cannot be converted to static yet because of compatibility)
@@ -813,12 +815,11 @@ function GetOption($o) {
 }
 
 public function ResetVarRef($ToGlobal) {
-	if ($ToGlobal) {
-		$this->VarRef = &$GLOBALS;
-	} else {
-		$x = array();
-		$this->VarRef = &$x;
-	}
+	// We set a new variable in order to force the reference
+	// value NULL means that VarRef refers to $GLOBALS
+	$x = ($ToGlobal) ? null : array();
+	$this->VarRef = &$x;
+	
 }
 
 // Public methods
@@ -2904,14 +2905,16 @@ function meth_Merge_AutoVar(&$Txt,$ConvStr,$Id='var') {
 				$this->meth_Misc_Alert($Loc,'does not match the allowed prefix.',true);
 				$Pos = $Loc->PosEnd + 1;
 			}
-		} elseif (isset($this->VarRef[$Loc->SubLst[0]])) {
-			$Pos = $this->meth_Locator_Replace($Txt,$Loc,$this->VarRef[$Loc->SubLst[0]],1);
+		} elseif ( isset($this->VarRef) && isset($this->VarRef[$Loc->SubLst[0]])) {
+			$Pos = $this->meth_Locator_Replace($Txt,$Loc, $this->VarRef[$Loc->SubLst[0]], 1);
+		} elseif ( is_null($this->VarRef) && isset($GLOBALS[$Loc->SubLst[0]]) ) {
+			$Pos = $this->meth_Locator_Replace($Txt,$Loc, $GLOBALS[$Loc->SubLst[0]], 1);
 		} else {
 			if (isset($Loc->PrmLst['noerr'])) {
 				$Pos = $this->meth_Locator_Replace($Txt,$Loc,$x,false);
 			} else {
 				$Pos = $Loc->PosEnd + 1;
-				$msg = (isset($this->VarRef['GLOBALS'])) ? 'VarRef seems refers to $GLOBALS' : 'VarRef seems refers to a custom array of values';
+				$msg = (is_null($this->VarRef)) ? 'VarRef seems refers to $GLOBALS' : 'VarRef seems refers to a custom array of values';
 				$this->meth_Misc_Alert($Loc,'the key \''.$Loc->SubLst[0].'\' does not exist or is not set in VarRef. ('.$msg.')',true);
 			}
 		}
@@ -3349,12 +3352,12 @@ function meth_Conv_Prepare(&$Loc, $StrConv) {
 // Convert a string with charset or custom function
 function meth_Conv_Str(&$Txt,$ConvBr=true) {
 	if ($this->Charset==='') { // Html by default
-		$Txt = htmlspecialchars($Txt);
+		$Txt = htmlspecialchars($Txt, ENT_COMPAT); // ENT_COMPAT is no more the default value since PHP 8.1
 		if ($ConvBr) $Txt = nl2br($Txt);
 	} elseif ($this->_CharsetFct) {
-		$Txt = call_user_func($this->Charset,$Txt,$ConvBr);
+		$Txt = call_user_func($this->Charset, $Txt,$ConvBr);
 	} else {
-		$Txt = htmlspecialchars($Txt,ENT_COMPAT,$this->Charset);
+		$Txt = htmlspecialchars($Txt, ENT_COMPAT, $this->Charset);
 		if ($ConvBr) $Txt = nl2br($Txt);
 	}
 }

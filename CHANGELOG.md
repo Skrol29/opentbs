@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.4] - 2021-12-03
+
+### Enhancements
+
+- PHP 8.1 compatibility
+
 ## [1.10.3] - 2021-09-21
 
 ### New features

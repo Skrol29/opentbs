@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.10.2
- * @date 2020-11-19
+ * @version 1.10.3-beta-1
+ * @date 2021-12-03
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -98,7 +98,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.10.2';
+		$this->Version = '1.10.3-beta-1';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -1224,14 +1224,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	function ConvXmlOnly($Txt, $ConvBr) {
 	// Used by TBS to convert special chars and new lines.
-		$x = htmlspecialchars($Txt);
+		$x = htmlspecialchars($Txt, ENT_COMPAT); // ENT_COMPAT is no more the default value since PHP 8.1
 		if ($ConvBr) $this->ConvBr($x);
 		return $x;
 	}
 
 	function ConvXmlUtf8($Txt, $ConvBr) {
 	// Used by TBS to convert special chars and new lines.
-		$x = htmlspecialchars(utf8_encode($Txt));
+		$x = htmlspecialchars(utf8_encode($Txt), ENT_COMPAT); // ENT_COMPAT is no more the default value since PHP 8.1
 		if ($ConvBr) $this->ConvBr($x);
 		return $x;
 	}
@@ -2108,7 +2108,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$item = $action;
 				$action = $ok;
 			}
-			$item_ref = (is_string($item)) ? 'n:'.htmlspecialchars($item) : 'i:'.$item; // help to make the difference beetween id and name
+			$item_ref = (is_string($item)) ? 'n:'.htmlspecialchars($item, ENT_COMPAT) : 'i:'.$item; // help to make the difference beetween id and name
 			if ($delete) {
 				if ($ok) {
 					$this->OtbsSheetSlidesDelete[$item_ref] = $item;
