@@ -1818,10 +1818,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	/**
 	 * Search 1 or 2 strings in a list if several sub-file in the archive.
 	 *
-	 * @param string|array $files An associated array of sub-files to scann or a pattern using 1 wildcard '*'.
-	 * @param string|array $str   The strings that all be prensents in the content of the file.
-	 *                            It can be a array of strings, or a single string.
-	 * @param boolean             $returnFirstFind  true to return only the first record fund.
+	 * @param string|array $files            An associated array of sub-files to scann or a pattern using 1 wildcard '*'.
+	 * @param string|array $str              The strings that must be all present in the content of the file.
+	 *                                         It can be a array of strings, or a single string.
+	 * @param boolean      $returnFirstFind  true to return only the first record found.
 	 *
 	 * @return array Return a single record or a recordset structured like: array('key'=>, 'idx'=>, 'src'=>, 'pos'=>, 'curr'=>)
 	 */
@@ -3985,17 +3985,22 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * Returns the OpenTBS's internal chart ref if found.
 	 */
 	function OpenXML_ChartFind($ChartRef, $ErrTitle) {
-		
+
 		if ($this->OpenXmlCharts===false) $this->OpenXML_ChartInit();
-		
+
 		$ref = ''.$ChartRef;
+
 		// try with $ChartRef as number
 		if (!isset($this->OpenXmlCharts[$ref])) {
 			$ref = 'chart'.$ref;
 		}
+
 		// try with $ChartRef as name of the file
 		if (!isset($this->OpenXmlCharts[$ref])) {
+			
 			$charts = array();
+			
+			// Find the subfile containing the frame
 			$idx = false;
 			if ($this->ExtEquiv=='pptx') {
 				// search in slides
@@ -4008,13 +4013,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			} else {
 				$idx =$this->Ext_GetMainIdx();
 			}
+			
+			// Get all charts in the subfile
 			if ($idx !== false) {
 				$charts = $this->OpenXML_ChartGetInfoFromFile($idx);
 			}
-			// Search the chart having the title
+			
+			// Search for the chart having the title
 			foreach($charts as $c) {
 				if ($c['title']===$ChartRef) $ref = $c['name'];
 			}
+			
 			if (isset($this->OpenXmlCharts[$ref])) {
 				$chart = &$this->OpenXmlCharts[$ref];
 				$this->OpenXmlCharts[$ChartRef] = &$chart; 
