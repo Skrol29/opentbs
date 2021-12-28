@@ -4021,7 +4021,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				// For debug
 				$chart['parent_idx'] = $idx;
 			} else {
-				return $this->RaiseError("($ErrTitle) : unable to found the chart corresponding to '".$ChartRef."'.");
+				return $this->RaiseError("($ErrTitle) : unable to find the chart corresponding to '".$ChartRef."'.");
 			}
 		}
 		
@@ -6490,7 +6490,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if (is_numeric($ChartRef)) {
 			$ChartCaption = 'number '.$ChartRef;
 			$idx = intval($ChartRef) -1;
-			if (!isset($this->OpenDocCharts[$idx])) return $this->RaiseError("($ErrTitle) : unable to found the chart $ChartCaption.");
+			if (!isset($this->OpenDocCharts[$idx])) return $this->RaiseError("($ErrTitle) : unable to find the chart $ChartCaption.");
 		} else {
 			$ChartCaption = 'with title "'.$ChartRef.'"';
 			$idx = false;
@@ -6498,7 +6498,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			foreach($this->OpenDocCharts as $i=>$c) {
 				if ($c['title']==$x) $idx = $i;
 			}
-			if ($idx===false) return $this->RaiseError("($ErrTitle) : unable to found the chart $ChartCaption.");
+			if ($idx===false) return $this->RaiseError("($ErrTitle) : unable to find the chart $ChartCaption.");
 		}
 		$this->_ChartCaption = $ChartCaption; // for error messages
 
@@ -6509,7 +6509,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		// Retrieve the XML of the data
 		$file_name = $chart['href'] . '/content.xml';
 		$file_idx = $this->FileGetIdx($file_name);
-		if ($file_idx===false) return $this->RaiseError("($ErrTitle) : unable to found the data in the chart $ChartCaption.");
+		if ($file_idx===false) return $this->RaiseError("($ErrTitle) : unable to find the data in the chart $ChartCaption.");
 		$chart['file_name'] = $file_name;
 		$chart['file_idx'] = $file_idx;
 
@@ -6545,7 +6545,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				if ( ($s_info===false) && ($s['name']==$SeriesNameOrNum) ) $s_info = &$series[$idx];
 			}
 		}
-		if ($s_info===false) return $this->RaiseError("(ChartChangeSeries) : unable to found the series $s_caption in the chart ".$this->_ChartCaption.".");
+		if ($s_info===false) return $this->RaiseError("(ChartChangeSeries) : unable to find the series $s_caption in the chart ".$this->_ChartCaption.".");
 
 		if ($NewLegend!==false) $this->OpenDoc_ChartRenameSeries($Txt, $s_info, $NewLegend);
 
@@ -6786,7 +6786,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		$elTbl = clsTbsXmlLoc::FindStartTag($Txt, 'table:table', 0);
-		if ($elTbl===false) return $this->RaiseError("(ChartFindSeries) : unable to found the local table in the chart ".$this->_ChartCaption.".");
+		if ($elTbl===false) return $this->RaiseError("(ChartFindSeries) : unable to find the local table in the chart ".$this->_ChartCaption.".");
 		$tbl_name = $elTbl->GetAttLazy('table:name');
 
 		// Info in the table
@@ -6796,7 +6796,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		// Browse headers columns
 		$elRow = clsTbsXmlLoc::FindElement($Txt, 'table:table-header-rows', $elTbl->PosBeg);
-		if ($elRow === false) return $this->RaiseError("(ChartFindSeries) : unable to found the header row in the chart ".$this->_ChartCaption.".");
+		if ($elRow === false) return $this->RaiseError("(ChartFindSeries) : unable to find the header row in the chart ".$this->_ChartCaption.".");
 
 		$col_idx = -1;
 		while (($elCell = clsTbsXmlLoc::FindElement($elRow, 'table:table-cell', $p))!==false) {
@@ -6815,7 +6815,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		// If the chart is link to a worksheet then the first row contains refrences to the cells
 		// Browse first row
 		$elRow = clsTbsXmlLoc::FindElement($Txt, 'table:table-row', $elRow->PosEnd);
-		if ($elRow === false) return $this->RaiseError("(ChartFindSeries) : unable to found the first data row in the chart ".$this->_ChartCaption.".");
+		if ($elRow === false) return $this->RaiseError("(ChartFindSeries) : unable to find the first data row in the chart ".$this->_ChartCaption.".");
 
 		$tbl_cat_ref = false;
 		$col_idx = -1;
