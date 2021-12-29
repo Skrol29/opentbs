@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.10.3-beta-1
- * @date 2021-12-03
+ * @version 1.10.3-beta-2
+ * @date 2021-12-29
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -98,7 +98,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.10.3-beta-1';
+		$this->Version = '1.10.3-beta-2';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -645,7 +645,7 @@ class clsOpenTBS extends clsTbsZip {
 			if ($this->ExtEquiv=='pptx') {
 				$option = (is_null($x2)) ? OPENTBS_FIRST : $x2;
 				$returnFirstFound = (($option & OPENTBS_ALL)!=OPENTBS_ALL);
-				$find = $this->MsPowerpoint_SearchInSlides($x1, $returnFirstFound);
+				$find = $this->MsPowerpoint_SearchInSlides($x1, true, $returnFirstFound);
 				if ($returnFirstFound) {
 					$slide = $find['key'];
 					if ( ($slide!==false) && (($option & OPENTBS_GO)==OPENTBS_GO) ) $this->OnCommand(OPENTBS_SELECT_SLIDE, $slide);
@@ -1819,18 +1819,19 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * Search 1 or 2 strings in a list if several sub-file in the archive.
 	 *
 	 * @param string|array $files            An associated array of sub-files to scann or a pattern using 1 wildcard '*'.
-	 * @param string|array $str              The strings that must be all present in the content of the file.
+	 * @param string|array $strLst           The strings that must be all present in the content of the file.
 	 *                                         It can be a array of strings, or a single string.
 	 * @param boolean      $returnFirstFind  true to return only the first record found.
+	 * @param boolean      $any              true to search for any of the string, false to search for all of the strings.
 	 *
 	 * @return array Return a single record or a recordset structured like: array('key'=>, 'idx'=>, 'src'=>, 'pos'=>, 'curr'=>)
 	 */
-	function TbsSearchInFiles($files, $str, $returnFirstFound = true) {
+	function TbsSearchInFiles($files, $strLst, $any, $returnFirstFound) {
 
 		// Prepare variables
 	
-		if (is_string($str)) {
-			$str = array($str);
+		if (is_string($strLst)) {
+			$strLst = array($strLst);
 		}
 	
 		$keys_todo = array(); // list of keys that remains to be done
@@ -1871,12 +1872,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		// Search in the current sub-file
 		if ( ($this->TbsCurrIdx!==false) && isset($idx_keys[$this->TbsCurrIdx]) ) {
 			$key = $idx_keys[$this->TbsCurrIdx];
-			$p = true;
-			foreach ($str as $s) {
-				if ($p !== false) {
-					$p = strpos($this->TBS->Source, $s);
-				}
-			}
+			$p = $this->TbsSearchInTxt($this->TBS->Source, $strLst, $any);
 			if ($p !== false) {
 				$result[] = array('key' => $key, 'idx' => $this->TbsCurrIdx, 'src' => &$this->TBS->Source, 'pos' => $p, 'curr'=>true);
 				if ($returnFirstFound) return $result[0];
@@ -1888,12 +1884,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		foreach($this->TbsStoreLst as $idx => $info) {
 			if ( ($idx!==$this->TbsCurrIdx) && isset($idx_keys[$idx]) ) {
 				$key = $idx_keys[$idx];
-				$p = true;
-				foreach ($str as $s) {
-					if ($p !== false) {
-						$p = strpos($info['src'], $s);
-					}
-				}
+				$p = $this->TbsSearchInTxt($info['src'], $strLst, $any);
 				if ($p !== false) {
 					$result[] = array('key' => $key, 'idx' => $idx, 'src' => &$info['src'], 'pos' => $p, 'curr'=>false);
 					if ($returnFirstFound) return $result[0];
@@ -1905,12 +1896,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		// Search in other sub-files (never opened)
 		foreach ($keys_todo as $key => $idx) {
 			$txt = $this->FileRead($idx);
-			$p = true;
-			foreach ($str as $s) {
-				if ($p !== false) {
-					$p = strpos($txt, $s);
-				}
-			}
+			$p = $this->TbsSearchInTxt($txt, $strLst, $any);
 			if ($p !== false) {
 				$result[] = array('key' => $key, 'idx' => $idx, 'src' => $txt, 'pos' => $p, 'curr'=>false);
 				if ($returnFirstFound) return $result[0];
@@ -1923,6 +1909,39 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			return $result;
 		}
 
+	}
+
+	/**
+	 * Search for a liste of strings in a main string.
+	 *
+	 * @param string   $txt     The string to search into.
+	 * @param array    $strLst  An array of strings to search in $txt.
+	 * @param boolean  $any     True to search for any of the string, false to search for all of the strings.
+	 *
+	 * @return integer|false    The position of the first item found, or false if none.
+	 */
+	function TbsSearchInTxt($txt, $strLst, $any) {
+		
+		if ($any) {
+			// Any of the strings
+			foreach ($strLst as $s) {
+				$p = strpos($txt, $s);
+				if ($p !== false) {
+					return $p;
+				}
+			}
+			return false;
+		} else {
+			// All of the strings
+			$p = true;
+			foreach ($strLst as $s) {
+				if ($p !== false) {
+					$p = strpos($txt, $s);
+				}
+			}
+			return $p;
+		}
+		
 	}
 
 	// Check after the sheet process
@@ -3315,6 +3334,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return $NewCredit;
 		
 	}
+
+	/**
+	 * Convert a string to an attribut’s value in OpenXML
+	 */
+	function OpenXML_AttVal($x) {
+		// Replace <>&" but not '
+		return htmlspecialchars($x, ENT_COMPAT + ENT_SUBSTITUTE);
+	}
 	
 	/**
 	 * Return the path of file $FullPath relatively to the path of file $RelativeTo.
@@ -3999,16 +4026,21 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if (!isset($this->OpenXmlCharts[$ref])) {
 			
 			$charts = array();
+			$tbs_ref = $this->OpenXML_AttVal('[tbs:ref=' . $ChartRef . ']'); // tag to search in the Alt Text
+			$strLst = array(
+				' title="'. $ChartRef . '"', // for compatibility, but since Office 2019 the title is not prposed anymore in the Alt Text perperties.
+				$tbs_ref,
+			);
 			
 			// Find the subfile containing the frame
 			$idx = false;
 			if ($this->ExtEquiv=='pptx') {
 				// search in slides
-				$find = $this->MsPowerpoint_SearchInSlides(' title="'.$ChartRef.'"');
+				$find = $this->MsPowerpoint_SearchInSlides($strLst, true, true);
 				$idx = $find['idx'];
 			} elseif ($this->ExtEquiv=='xlsx') {
 				// search in drawings
-				$find = $this->TbsSearchInFiles('xl/drawings/*.xml', ' title="'.$ChartRef.'"', true);
+				$find = $this->TbsSearchInFiles('xl/drawings/*.xml', $strLst, true, true);
 				$idx = $find['idx'];
 			} else {
 				$idx =$this->Ext_GetMainIdx();
@@ -4021,7 +4053,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			
 			// Search for the chart having the title
 			foreach($charts as $c) {
-				if ($c['title']===$ChartRef) $ref = $c['name'];
+				if ( ($c['title'] === $ChartRef) || (strpos('' . $c['descr'], $tbs_ref ) !== false) ) {
+					$ref = $c['name'];
+				}
 			}
 			
 			if (isset($this->OpenXmlCharts[$ref])) {
@@ -4149,10 +4183,15 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					$parent = clsTbsXmlLoc::FindStartTag($Txt, 'xdr:nvGraphicFramePr', $t->PosBeg, false);
 				}
 				if ($parent!==false) {
+					
 					$parent->FindEndTag();
 					$src = $parent->GetInnerSrc();
+					
+					// since Office 2019, attribute title is not avalaible
 					$el = clsTbsXmlLoc::FindStartTagHavingAtt($src, 'title', 0);
 					if ($el!==false) $title = $el->GetAttLazy('title');
+					
+					// since Office 2019, attribute descr stands for Alt Text instead of Description.
 					$el = clsTbsXmlLoc::FindStartTagHavingAtt($src, 'descr', 0);
 					if ($el!==false) $descr = $el->GetAttLazy('descr');
 				}
@@ -5291,7 +5330,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	/**
 	 * Search a string in all slides of the Presentation.
 	 */
-	function MsPowerpoint_SearchInSlides($str, $returnFirstFound = true) {
+	function MsPowerpoint_SearchInSlides($str, $any, $returnFirstFound) {
 
 		// init the list of slides
 		$this->MsPowerpoint_InitSlideLst(); // List of slides
@@ -5301,7 +5340,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		foreach($this->OpenXmlSlideLst as $i=>$s) $files[$i+1] = $s['idx'];
 
 		// search
-		$find = $this->TbsSearchInFiles($files, $str, $returnFirstFound);
+		$find = $this->TbsSearchInFiles($files, $str, $any, $returnFirstFound);
 
 		return $find;
 
@@ -5917,6 +5956,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	// OpenOffice documents
 
+	/**
+	 * Convert a string to an attribut’s value in OpenDoc
+	 */
+	function OpenDoc_AttVal($x) {
+		// Replace <>&"'
+		return htmlspecialchars($x, ENT_QUOTES + ENT_SUBSTITUTE);
+	}
+
 	function OpenDoc_CleanRsID(&$Txt) {
 	
 		// Get all style names about RSID for <span> elements
@@ -6504,8 +6551,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$ChartCaption = 'with title "'.$ChartRef.'"';
 			$idx = false;
 			$x = htmlspecialchars($ChartRef, ENT_NOQUOTES); // ENT_NOQUOTES because target is an element's content
+			$tbs_ref = $this->OpenDoc_AttVal('[tbs:ref=' . $ChartRef . ']'); // tag to search in the Alt Text
 			foreach($this->OpenDocCharts as $i=>$c) {
-				if ($c['title']==$x) $idx = $i;
+				if ( ($c['title'] == $x)  || (strpos($c['title'], $tbs_ref ) !== false) ) {
+					$idx = $i;
+				}
 			}
 			if ($idx===false) return $this->RaiseError("($ErrTitle) : unable to find the chart $ChartCaption.");
 		}
@@ -6691,12 +6741,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$href = $objEl->GetAttLazy('xlink:href'); // example "./Object 1"
 				if ($href) {
 
-					$imgEl = clsTbsXmlLoc::FindElement($src, 'draw:image', 0);
-					$img_href = ($imgEl) ? $imgEl->GetAttLazy('xlink:href') : false; // "./ObjectReplacements/Object 1"
-					$img_src = ($imgEl) ? $imgEl->GetSrc('xlink:href') : false;
+					$el = clsTbsXmlLoc::FindElement($src, 'draw:image', 0);
+					$img_href = ($el) ? $el->GetAttLazy('xlink:href') : false; // "./ObjectReplacements/Object 1"
+					$img_src  = ($el) ? $el->GetSrc('xlink:href') : false;
 
-					$titEl = clsTbsXmlLoc::FindElement($src, 'svg:title', 0);
-					$title = ($titEl) ? $titEl->GetInnerSrc() : '';
+					$el = clsTbsXmlLoc::FindElement($src, 'svg:title', 0);
+					$title = ($el) ? $el->GetInnerSrc() : '';
 
 					if (substr($href,0,2)=='./') $href = substr($href, 2);
 					if ( is_string($img_href) && (substr($img_href,0,2)=='./') ) $img_href = substr($img_href, 2);

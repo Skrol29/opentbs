@@ -2,7 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.10.4] - 2021-12-03
+## [1.10.4] - 2021-12-29
+
+### Bug fixes
+
+- OPENTBS_CHART : Property Title is no more displayed by Ms Office 2019 of higher.
+                  You can use a new refrence tag in the Alt Text property instead.
 
 ### Enhancements
 
