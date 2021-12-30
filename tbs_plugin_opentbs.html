@@ -565,7 +565,7 @@ array (
   <p>Instead of change a picture with a TBS tag, you can also do it manually at the PHP side using the command <a href="#other_commands">OPENTBS_CHANGE_PICTURE</a>.</p>
   <p>Known limitations:</p>
   <ul>
-    <li>SVG pictures are not supported for Ms Office templates. <span jsaction="mouseup:BR6jm" jsname="jqKxS" lang="en"><span jsaction="agoMJf:PFBcW;usxOmf:aWLT7;jhKsnd:P7O7bd,F8DmGf;Q4AGo:Gm7gYd,qAKMYb;uFUCPb:pvnm0e,pfE8Hb,PFBcW;f56efd:dJXsye;EnoYf:KNzws,ZJsZZ,JgVSJc;zdMJQc:cCQNKb,ZJsZZ,zchEXc;Ytrrj:JJDvdc;tNR8yc:GeFvjb;oFN6Ye:hij5Wb" jsname="txFAF" data-language-for-alternatives="en" data-language-to-translate-into="fr" data-phrase-index="0" jscontroller="Zl5N8" jsdata="uqLsIf;_;$429" jsmodel="SsMkhd"><span jsaction="click:qtZ4nf,GFf3ac,tMZCfe; contextmenu:Nqw7Te,QP7LD; mouseout:Nqw7Te; mouseover:qtZ4nf,c2aHje" jsname="W297wb">Not as an image to replace in the template, nor as an image to insert.</span></span></span></li>
+    <li>SVG pictures are not supported for Ms Office templates. Nor as an image to replace in the template, nor as an image to insert.</li>
     <li>Note that since OpenTBS version 1.8.0, you can change picture in Ms Excel worksheet. You must put the TBS field inside the picture description and use parameter &quot;tagpos=inside&quot;. Before this version it was not possible to change pictures in an Ms Excel worksheet.</li>
   </ul>
 <p>Options:</p>
@@ -934,7 +934,7 @@ array (
     <td valign="top"><p>Retrieve an attribute's value or  an entity's value in the first element in a given sub-file. Return the asked value, or <span class="smallcode"> false</span> if the attribute or the entity is not found. Also retrurn <span class="smallcode">false</span> if an entity’s value is asked while the  entity is a self-closed tag.</p>
       <ul>
         <li><span class="smallcode">$SubFile</span> (string|boolean): the name or the index of the sub-file. Use value <span class="smallcode">false</span> to get the current sub-file.</li>
-        <li> <span class="smallcode">$ElPath</span> (string): path of the element. For example : <span class="smallcode">'w:document/w:body/w:p'</span>. Sub-entities are optional but can <span jsaction="mouseup:BR6jm" jsname="jqKxS" lang="en"><span jsaction="agoMJf:PFBcW;usxOmf:aWLT7;jhKsnd:P7O7bd,F8DmGf;Q4AGo:Gm7gYd,qAKMYb;uFUCPb:pvnm0e,pfE8Hb,PFBcW;f56efd:dJXsye;EnoYf:KNzws,ZJsZZ,JgVSJc;zdMJQc:cCQNKb,ZJsZZ,zchEXc;Ytrrj:JJDvdc;tNR8yc:GeFvjb;oFN6Ye:hij5Wb" jsname="txFAF" data-language-for-alternatives="en" data-language-to-translate-into="fr" data-phrase-index="0" jscontroller="Zl5N8" jsdata="uqLsIf;_;$29" jsmodel="SsMkhd"><span jsaction="click:qtZ4nf,GFf3ac,tMZCfe; contextmenu:Nqw7Te,QP7LD; mouseout:Nqw7Te; mouseover:qtZ4nf,c2aHje" jsname="W297wb">remove  ambiguities</span></span></span>.</li>
+        <li> <span class="smallcode">$ElPath</span> (string): path of the element. For example : <span class="smallcode">'w:document/w:body/w:p'</span>. Sub-entities are optional but can remove ambiguities.</li>
         <li> <span class="smallcode">$Att</span> (string|boolean): the attribute, or <span class="smallcode">false</span> to replace the entity's value.</li>
       </ul>
       <p><span class="versioning">Command OPENTBS_READ_ENTITY is supported since OpenTBS version 1.10.3.</span></p></td>
@@ -945,7 +945,7 @@ array (
     <td valign="top"><p>Change an attribute's value or  an entity's value in the first element in a given sub-file. Return <span class="smallcode">true</span> if the attribute is found and processed, <span class="smallcode"> false</span> otherwise.</p>
       <ul>
         <li><span class="smallcode">$SubFile</span> (string|boolean): the name or the index of the sub-file. Use value <span class="smallcode">false</span> to get the current sub-file.</li>
-        <li> <span class="smallcode">$ElPath</span> (string): path of the element. For example : <span class="smallcode">'w:document/w:body/w:p'</span>. Sub-entities are optional but can <span jsaction="mouseup:BR6jm" jsname="jqKxS" lang="en"><span jsaction="agoMJf:PFBcW;usxOmf:aWLT7;jhKsnd:P7O7bd,F8DmGf;Q4AGo:Gm7gYd,qAKMYb;uFUCPb:pvnm0e,pfE8Hb,PFBcW;f56efd:dJXsye;EnoYf:KNzws,ZJsZZ,JgVSJc;zdMJQc:cCQNKb,ZJsZZ,zchEXc;Ytrrj:JJDvdc;tNR8yc:GeFvjb;oFN6Ye:hij5Wb" jsname="txFAF" data-language-for-alternatives="en" data-language-to-translate-into="fr" data-phrase-index="0" jscontroller="Zl5N8" jsdata="uqLsIf;_;$29" jsmodel="SsMkhd"><span jsaction="click:qtZ4nf,GFf3ac,tMZCfe; contextmenu:Nqw7Te,QP7LD; mouseout:Nqw7Te; mouseover:qtZ4nf,c2aHje" jsname="W297wb">remove  ambiguities</span></span></span>.</li>
+        <li> <span class="smallcode">$ElPath</span> (string): path of the element. For example : <span class="smallcode">'w:document/w:body/w:p'</span>. Sub-entities are optional but can remove ambiguities.</li>
         <li> <span class="smallcode">$Att</span> (string|boolean): the attribute, or <span class="smallcode">false</span> to replace the entity's value.</li>
         <li> <span class="smallcode">$NewVal</span> (string|boolean): the new value, or <span class="smallcode">false</span> to delete the attribute.</li>
         </ul>
