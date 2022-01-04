@@ -4026,10 +4026,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if (!isset($this->OpenXmlCharts[$ref])) {
 			
 			$charts = array();
-			$tbs_ref = $this->OpenXML_AttVal('[tbs:ref=' . $ChartRef . ']'); // tag to search in the Alt Text
+			$fld = $this->OpenXML_AttVal('[' . $ChartRef . ']'); // tag to search in the Alt Text
 			$strLst = array(
 				' title="'. $ChartRef . '"', // for compatibility, but since Office 2019 the title is not prposed anymore in the Alt Text perperties.
-				$tbs_ref,
+				$fld,
 			);
 			
 			// Find the subfile containing the frame
@@ -4053,7 +4053,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			
 			// Search for the chart having the title
 			foreach($charts as $c) {
-				if ( ($c['title'] === $ChartRef) || (strpos('' . $c['descr'], $tbs_ref ) !== false) ) {
+				if ( ($c['title'] === $ChartRef) || (strpos('' . $c['descr'], $fld ) !== false) ) {
 					$ref = $c['name'];
 				}
 			}
@@ -6544,16 +6544,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		
 		// Find the chart
 		if (is_numeric($ChartRef)) {
-			$ChartCaption = 'number '.$ChartRef;
+			$ChartCaption = 'number ' . $ChartRef;
 			$idx = intval($ChartRef) -1;
 			if (!isset($this->OpenDocCharts[$idx])) return $this->RaiseError("($ErrTitle) : unable to find the chart $ChartCaption.");
 		} else {
-			$ChartCaption = 'with title "'.$ChartRef.'"';
+			$ChartCaption = 'corresponding to "' . $ChartRef . '"';
 			$idx = false;
 			$x = htmlspecialchars($ChartRef, ENT_NOQUOTES); // ENT_NOQUOTES because target is an element's content
-			$tbs_ref = $this->OpenDoc_AttVal('[tbs:ref=' . $ChartRef . ']'); // tag to search in the Alt Text
+			$fld = $this->OpenDoc_AttVal('[' . $ChartRef . ']'); // tag to search in the Alt Text
 			foreach($this->OpenDocCharts as $i=>$c) {
-				if ( ($c['title'] == $x)  || (strpos($c['title'], $tbs_ref ) !== false) ) {
+				// Title is captioned "Alternative (text only)" in ODT. So we search for $fld in both title and description in order to be consistent with Ms Office wich has Description captioned Alt Text.
+				if ( ($c['title'] == $x)  || (strpos($c['title'], $fld ) !== false)  || (strpos($c['descr'], $fld ) !== false) ) {
 					$idx = $i;
 				}
 			}
@@ -6745,12 +6746,16 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					$img_href = ($el) ? $el->GetAttLazy('xlink:href') : false; // "./ObjectReplacements/Object 1"
 					$img_src  = ($el) ? $el->GetSrc('xlink:href') : false;
 
-					$el = clsTbsXmlLoc::FindElement($src, 'svg:title', 0);
+					$el = clsTbsXmlLoc::FindElement($src, 'svg:title', 0); // Caption is "Altenative (text only)" in ODT 
 					$title = ($el) ? $el->GetInnerSrc() : '';
+
+					$el = clsTbsXmlLoc::FindElement($src, 'svg:desc', 0); // 
+					$descr = ($el) ? $el->GetInnerSrc() : '';
 
 					if (substr($href,0,2)=='./') $href = substr($href, 2);
 					if ( is_string($img_href) && (substr($img_href,0,2)=='./') ) $img_href = substr($img_href, 2);
-					$this->OpenDocCharts[] = array('href'=>$href, 'title'=>$title, 'img_href'=>$img_href, 'img_src'=>$img_src, 'to_clear'=> ($img_href!==false) );
+					$this->OpenDocCharts[] = array('href'=>$href, 'title'=>$title, 'descr' => $descr, 'img_href'=>$img_href, 'img_src'=>$img_src, 'to_clear'=> ($img_href!==false) );
+
 				}
 			}
 			$p = $drEl->PosEnd;

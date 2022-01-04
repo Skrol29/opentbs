@@ -6,9 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ### Bug fixes
 
-- OPENTBS_CHART : Property Title is no more displayed by Ms Office 2019 of higher.
-                  You can use a new refrence tag in the Alt Text property instead.
-
+- OPENTBS_CHART : The chart can be located using a TBS field inside the Alt Text property.
+                  Useful because the Title property is no longer editable since Ms Office 2019.
+                  
 ### Enhancements
 
 - PHP 8.1 compatibility

@@ -60,7 +60,7 @@ if (isset($_POST['debug']) && ($_POST['debug']=='show'))    $TBS->Plugin(OPENTBS
 $TBS->MergeBlock('a,b', $data);
 
 // Change chart series
-$ChartNameOrNum = 'a nice chart'; // Title of the shape that embeds the chart
+$ChartNameOrNum = 'chart_evol_by_cat'; // see Alternative Text of the shape that embeds the chart
 $SeriesNameOrNum = 'Series 2';
 $NewValues = array( array('Category A','Category B','Category C','Category D'), array(3, 1.1, 4.0, 3.3) );
 $NewLegend = "Updated series 2";

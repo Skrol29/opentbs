@@ -70,7 +70,7 @@ $TBS->MergeBlock('c', $data);
 
 
 // Change chart series
-$ChartNameOrNum = 'a nice chart'; // Title of the shape that embeds the chart
+$ChartNameOrNum = 'chart_evol_by_cat'; // see Alt. Text of the shape that embeds the chart
 $SeriesNameOrNum = 'Series 2';
 $NewValues = array( array('Category A','Category B','Category C','Category D'), array(3, 1.1, 4.0, 3.3) );
 $NewLegend = "Updated series 2";

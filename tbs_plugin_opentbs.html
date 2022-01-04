@@ -443,15 +443,17 @@ $TBS-&gt;LoadTemplate($handle);</pre>
       <td class="top smallcode"><p>$ChartRef</p></td>
       <td class="top"><p>The reference to find the chart. This value can be either:</p>
         <ul>
-          <li>Placed in the Alt Text of the chart’s frame <span class="versioning">(supported since OpenTBS 1.10.4)</span>.
-		  <br>The property Alt Text of the frame that embeds the chart is available in both Ms Office and LibreOffice.
-		  <br>You have to place this tag anywhere in the Alt Text : <code>[tbs:ref=the chart reference]</code>.
+          <li>The name of a field placed anywhere in the Alternative Text property of the frame that embeds the chart. <span class="versioning">(supported since OpenTBS 1.10.4)</span>.
+  		      <br>For example: <code>$ChartRef = 'my_chart'</code> is corresponding to the field <code>[my_chart]</code> placed in the Alt Text property.
+  		      <br>The property Alt Text of the frame that embeds the chart is available in both Ms Office and LibreOffice.
+		      <br>In Ms Office you can retrieve this property from the contextual menu of the frame, and choose <em>Alt. Text...<em>.
+		      <br>In LibreOffice you can retrieve this property from the contextual menu of the frame, and choose <em>Description...<em>, or sometimes <em>Properties...<em> in Writer.
 		  </li>
-          <li>The Title of the chart’s frame <span class="versioning">(supported since OpenTBS 1.8.0)</span>.
-		      <br>In Ms Office up to 2016 that is the property &quot;Title&quot; of the frame that embeds the chart. Since Ms Office 2019, this property is no more available. 
-		      <br>In LibreOffice that is the property &quot;Alternative - text only&quot; (or &quot;Title&quot; in older versions) of the frame that embeds the chart.
+          <li>The order number of the chart in the document (first is number 1).</li>
+          <li>Deprecated: <code>$ChartRef</code> can aslo be exactly the property title of frame that embeds the chart <span class="versioning">(supported since OpenTBS 1.8.0)</span>.
+		      <br>Note: In Ms Office, this property is no more available since Ms Office 2019. 
+		      <br>Note: In LibreOffice this property can sometimes be captioned &quot;Alternative - text only&quot; in Writer.
 	      </li>
-          <li>The  order number of the chart in the document (first is number 1).</li>
         </ul>
         <p> You can use the command <a href="#debugmode">OPENTBS_DEBUG_INFO</a> in order to view all  charts in the document that OpenTBS can manage.<br />
           You can use the command <a href="#opentbs_chart_info">OPENTBS_CHART_INFO</a> in order to read data in the chart.        </p>
