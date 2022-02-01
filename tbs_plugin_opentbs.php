@@ -15,74 +15,71 @@
  */
 
 /**
- * Constants to drive the plugin.
- */
-define('OPENTBS_PLUGIN','clsOpenTBS');
-define('OPENTBS_DOWNLOAD',1);   // download (default) = TBS_OUTPUT
-define('OPENTBS_NOHEADER',4);   // option to use with DOWNLOAD: no header is sent
-define('OPENTBS_FILE',8);       // output to file   = TBSZIP_FILE
-define('OPENTBS_DEBUG_XML',16); // display the result of the current subfile
-define('OPENTBS_STRING',32);    // output to string = TBSZIP_STRING
-define('OPENTBS_DEBUG_AVOIDAUTOFIELDS',64); // avoit auto field merging during the Show() method
-define('OPENTBS_INFO','clsOpenTBS.Info');       // command to display the archive info
-define('OPENTBS_RESET','clsOpenTBS.Reset');      // command to reset the changes in the current archive
-define('OPENTBS_ADDFILE','clsOpenTBS.AddFile');    // command to add a new file in the archive
-define('OPENTBS_DELETEFILE','clsOpenTBS.DeleteFile'); // command to delete a file in the archive
-define('OPENTBS_REPLACEFILE','clsOpenTBS.ReplaceFile'); // command to replace a file in the archive
-define('OPENTBS_EDIT_ENTITY','clsOpenTBS.EditEntity');  // command to edit an attribute
-define('OPENTBS_READ_ENTITY','clsOpenTBS.ReadEntity');  // command to read an attribute
-define('OPENTBS_FILEEXISTS','clsOpenTBS.FileExists');
-define('OPENTBS_GET_FILES','clsOpenTBS.GetFiles');
-define('OPENTBS_GET_OPENED_FILES','clsOpenTBS.GetOpenedFiles');
-define('OPENTBS_WALK_OPENED_FILES','clsOpenTBS.WalkOpenedFiles');
-define('OPENTBS_CHART','clsOpenTBS.Chart');
-define('OPENTBS_CHART_INFO','clsOpenTBS.ChartInfo');
-define('OPENTBS_CHART_DELETE_CATEGORY','clsOpenTBS.ChartDeleteCategory');
-define('OPENTBS_DEFAULT','');   // Charset
-define('OPENTBS_ALREADY_XML',false);
-define('OPENTBS_ALREADY_UTF8','already_utf8');
-define('OPENTBS_DEBUG_XML_SHOW','clsOpenTBS.DebugXmlShow');
-define('OPENTBS_DEBUG_XML_CURRENT','clsOpenTBS.DebugXmlCurrent');
-define('OPENTBS_DEBUG_INFO','clsOpenTBS.DebugInfo');
-define('OPENTBS_DEBUG_CHART_LIST','clsOpenTBS.DebugInfo'); // deprecated
-define('OPENTBS_FORCE_DOCTYPE','clsOpenTBS.ForceDocType');
-define('OPENTBS_DELETE_ELEMENTS','clsOpenTBS.DeleteElements');
-define('OPENTBS_SELECT_SHEET','clsOpenTBS.SelectSheet');
-define('OPENTBS_SELECT_SLIDE','clsOpenTBS.SelectSlide');
-define('OPENTBS_SELECT_MAIN','clsOpenTBS.SelectMain');
-define('OPENTBS_DISPLAY_SHEETS','clsOpenTBS.DisplaySheets');
-define('OPENTBS_DELETE_SHEETS','clsOpenTBS.DeleteSheets');
-define('OPENTBS_DELETE_COMMENTS','clsOpenTBS.DeleteComments');
-define('OPENTBS_MERGE_SPECIAL_ITEMS','clsOpenTBS.MergeSpecialItems');
-define('OPENTBS_CHANGE_PICTURE','clsOpenTBS.ChangePicture');
-define('OPENTBS_COUNT_SLIDES','clsOpenTBS.CountSlides');
-define('OPENTBS_COUNT_SHEETS','clsOpenTBS.CountSheets');
-define('OPENTBS_SEARCH_IN_SLIDES','clsOpenTBS.SearchInSlides');
-define('OPENTBS_DISPLAY_SLIDES','clsOpenTBS.DisplaySlides');
-define('OPENTBS_DELETE_SLIDES','clsOpenTBS.DeleteSlides');
-define('OPENTBS_SELECT_FILE','clsOpenTBS.SelectFile');
-define('OPENTBS_ADD_CREDIT','clsOpenTBS.AddCredit');
-define('OPENTBS_SYSTEM_CREDIT','clsOpenTBS.SystemCredit');
-define('OPENTBS_RELATIVE_CELLS','clsOpenTBS.RelativeCells');
-define('OPENTBS_MAKE_OPTIMIZED_TEMPLATE','clsOpenTBS.MakeOptimizedTemplate');
-define('OPENTBS_GET_CELLS','clsOpenTBS.GetCells');
-define('OPENTBS_SET_CELLS','clsOpenTBS.SetCells');
-define('OPENTBS_FIRST',1); // 
-define('OPENTBS_GO',2);    // = TBS_GO
-define('OPENTBS_ALL',4);   // = TBS_ALL
-// Types of file to select
-define('OPENTBS_GET_HEADERS_FOOTERS','clsOpenTBS.SelectHeaderFooter');
-define('OPENTBS_SELECT_HEADER','clsOpenTBS.SelectHeader');
-define('OPENTBS_SELECT_FOOTER','clsOpenTBS.SelectFooter');
-// Sub-types of file
-define('OPENTBS_EVEN',128);
-
-/**
  * Main class which is a TinyButStrong plug-in.
  * It is also a extension of clsTbsZip so it can directly manage the archive underlying the template.
  */
-class clsOpenTBS extends clsTbsZip {
-
+class clsOpenTBS extends clsTbsZip
+{
+    const OPENTBS_PLUGIN = 'clsOpenTBS';
+    const OPENTBS_DOWNLOAD = 1;   // download (default) = TBS_OUTPUT
+    const OPENTBS_NOHEADER = 4;   // option to use with DOWNLOAD: no header is sent
+    const OPENTBS_FILE = 8;       // output to file   = TBSZIP_FILE
+    const OPENTBS_DEBUG_XML = 16; // display the result of the current subfile
+    const OPENTBS_STRING = 32;    // output to string = TBSZIP_STRING
+    const OPENTBS_DEBUG_AVOIDAUTOFIELDS = 64; // avoit auto field merging during the Show() method
+    const OPENTBS_INFO = 'clsOpenTBS.Info';       // command to display the archive info
+    const OPENTBS_RESET = 'clsOpenTBS.Reset';      // command to reset the changes in the current archive
+    const OPENTBS_ADDFILE = 'clsOpenTBS.AddFile';    // command to add a new file in the archive
+    const OPENTBS_DELETEFILE = 'clsOpenTBS.DeleteFile'; // command to delete a file in the archive
+    const OPENTBS_REPLACEFILE = 'clsOpenTBS.ReplaceFile'; // command to replace a file in the archive
+    const OPENTBS_EDIT_ENTITY = 'clsOpenTBS.EditEntity';  // command to edit an attribute
+    const OPENTBS_READ_ENTITY = 'clsOpenTBS.ReadEntity';  // command to read an attribute
+    const OPENTBS_FILEEXISTS = 'clsOpenTBS.FileExists';
+    const OPENTBS_GET_FILES = 'clsOpenTBS.GetFiles';
+    const OPENTBS_GET_OPENED_FILES = 'clsOpenTBS.GetOpenedFiles';
+    const OPENTBS_WALK_OPENED_FILES = 'clsOpenTBS.WalkOpenedFiles';
+    const OPENTBS_CHART = 'clsOpenTBS.Chart';
+    const OPENTBS_CHART_INFO = 'clsOpenTBS.ChartInfo';
+    const OPENTBS_CHART_DELETE_CATEGORY = 'clsOpenTBS.ChartDeleteCategory';
+    const OPENTBS_DEFAULT = '';   // Charset
+    const OPENTBS_ALREADY_XML = false;
+    const OPENTBS_ALREADY_UTF8 = 'already_utf8';
+    const OPENTBS_DEBUG_XML_SHOW = 'clsOpenTBS.DebugXmlShow';
+    const OPENTBS_DEBUG_XML_CURRENT = 'clsOpenTBS.DebugXmlCurrent';
+    const OPENTBS_DEBUG_INFO = 'clsOpenTBS.DebugInfo';
+    const OPENTBS_DEBUG_CHART_LIST = 'clsOpenTBS.DebugInfo'; // deprecated
+    const OPENTBS_FORCE_DOCTYPE = 'clsOpenTBS.ForceDocType';
+    const OPENTBS_DELETE_ELEMENTS = 'clsOpenTBS.DeleteElements';
+    const OPENTBS_SELECT_SHEET = 'clsOpenTBS.SelectSheet';
+    const OPENTBS_SELECT_SLIDE = 'clsOpenTBS.SelectSlide';
+    const OPENTBS_SELECT_MAIN = 'clsOpenTBS.SelectMain';
+    const OPENTBS_DISPLAY_SHEETS = 'clsOpenTBS.DisplaySheets';
+    const OPENTBS_DELETE_SHEETS = 'clsOpenTBS.DeleteSheets';
+    const OPENTBS_DELETE_COMMENTS = 'clsOpenTBS.DeleteComments';
+    const OPENTBS_MERGE_SPECIAL_ITEMS = 'clsOpenTBS.MergeSpecialItems';
+    const OPENTBS_CHANGE_PICTURE = 'clsOpenTBS.ChangePicture';
+    const OPENTBS_COUNT_SLIDES = 'clsOpenTBS.CountSlides';
+    const OPENTBS_COUNT_SHEETS = 'clsOpenTBS.CountSheets';
+    const OPENTBS_SEARCH_IN_SLIDES = 'clsOpenTBS.SearchInSlides';
+    const OPENTBS_DISPLAY_SLIDES = 'clsOpenTBS.DisplaySlides';
+    const OPENTBS_DELETE_SLIDES = 'clsOpenTBS.DeleteSlides';
+    const OPENTBS_SELECT_FILE = 'clsOpenTBS.SelectFile';
+    const OPENTBS_ADD_CREDIT = 'clsOpenTBS.AddCredit';
+    const OPENTBS_SYSTEM_CREDIT = 'clsOpenTBS.SystemCredit';
+    const OPENTBS_RELATIVE_CELLS = 'clsOpenTBS.RelativeCells';
+    const OPENTBS_MAKE_OPTIMIZED_TEMPLATE = 'clsOpenTBS.MakeOptimizedTemplate';
+    const OPENTBS_GET_CELLS = 'clsOpenTBS.GetCells';
+    const OPENTBS_SET_CELLS = 'clsOpenTBS.SetCells';
+    const OPENTBS_FIRST = 1; // 
+    const OPENTBS_GO = 2;    // = TBS_GO
+    const OPENTBS_ALL = 4;   // = TBS_ALL
+// Types of file to select
+    const OPENTBS_GET_HEADERS_FOOTERS = 'clsOpenTBS.SelectHeaderFooter';
+    const OPENTBS_SELECT_HEADER = 'clsOpenTBS.SelectHeader';
+    const OPENTBS_SELECT_FOOTER = 'clsOpenTBS.SelectFooter';
+// Sub-types of file
+    const OPENTBS_EVEN = 128;
+    
 	function OnInstall() {
 		$TBS =& $this->TBS;
 
@@ -8805,3 +8802,66 @@ class clsTbsZip {
 	}
 
 }
+
+/**
+ * Constants to drive the plugin.
+ */
+define('OPENTBS_PLUGIN', clsOpenTBS::OPENTBS_PLUGIN);
+define('OPENTBS_DOWNLOAD', clsOpenTBS::OPENTBS_DOWNLOAD);   // download (default) = TBS_OUTPUT
+define('OPENTBS_NOHEADER', clsOpenTBS::OPENTBS_NOHEADER);   // option to use with DOWNLOAD: no header is sent
+define('OPENTBS_FILE', clsOpenTBS::OPENTBS_FILE);       // output to file   = TBSZIP_FILE
+define('OPENTBS_DEBUG_XML', clsOpenTBS::OPENTBS_DEBUG_XML); // display the result of the current subfile
+define('OPENTBS_STRING', clsOpenTBS::OPENTBS_STRING);    // output to string = TBSZIP_STRING
+define('OPENTBS_DEBUG_AVOIDAUTOFIELDS', clsOpenTBS::OPENTBS_DEBUG_AVOIDAUTOFIELDS); // avoit auto field merging during the Show() method
+define('OPENTBS_INFO', clsOpenTBS::OPENTBS_INFO);       // command to display the archive info
+define('OPENTBS_RESET', clsOpenTBS::OPENTBS_RESET);      // command to reset the changes in the current archive
+define('OPENTBS_ADDFILE', clsOpenTBS::OPENTBS_ADDFILE);    // command to add a new file in the archive
+define('OPENTBS_DELETEFILE', clsOpenTBS::OPENTBS_DELETEFILE); // command to delete a file in the archive
+define('OPENTBS_REPLACEFILE', clsOpenTBS::OPENTBS_REPLACEFILE); // command to replace a file in the archive
+define('OPENTBS_EDIT_ENTITY', clsOpenTBS::OPENTBS_EDIT_ENTITY);  // command to edit an attribute
+define('OPENTBS_READ_ENTITY', clsOpenTBS::OPENTBS_READ_ENTITY);  // command to read an attribute
+define('OPENTBS_FILEEXISTS', clsOpenTBS::OPENTBS_FILEEXISTS);
+define('OPENTBS_GET_FILES', clsOpenTBS::OPENTBS_GET_FILES);
+define('OPENTBS_GET_OPENED_FILES', clsOpenTBS::OPENTBS_GET_OPENED_FILES);
+define('OPENTBS_WALK_OPENED_FILES', clsOpenTBS::OPENTBS_WALK_OPENED_FILES);
+define('OPENTBS_CHART', clsOpenTBS::OPENTBS_CHART);
+define('OPENTBS_CHART_INFO', clsOpenTBS::OPENTBS_CHART_INFO);
+define('OPENTBS_CHART_DELETE_CATEGORY', clsOpenTBS::OPENTBS_CHART_DELETE_CATEGORY);
+define('OPENTBS_DEFAULT', clsOpenTBS::OPENTBS_DEFAULT);   // Charset
+define('OPENTBS_ALREADY_XML', clsOpenTBS::OPENTBS_ALREADY_XML);
+define('OPENTBS_ALREADY_UTF8', clsOpenTBS::OPENTBS_ALREADY_UTF8);
+define('OPENTBS_DEBUG_XML_SHOW', clsOpenTBS::OPENTBS_DEBUG_XML_SHOW);
+define('OPENTBS_DEBUG_XML_CURRENT', clsOpenTBS::OPENTBS_DEBUG_XML_CURRENT);
+define('OPENTBS_DEBUG_INFO', clsOpenTBS::OPENTBS_DEBUG_INFO);
+define('OPENTBS_DEBUG_CHART_LIST', clsOpenTBS::OPENTBS_DEBUG_CHART_LIST); // deprecated
+define('OPENTBS_FORCE_DOCTYPE', clsOpenTBS::OPENTBS_FORCE_DOCTYPE);
+define('OPENTBS_DELETE_ELEMENTS', clsOpenTBS::OPENTBS_DELETE_ELEMENTS);
+define('OPENTBS_SELECT_SHEET', clsOpenTBS::OPENTBS_SELECT_SHEET);
+define('OPENTBS_SELECT_SLIDE', clsOpenTBS::OPENTBS_SELECT_SLIDE);
+define('OPENTBS_SELECT_MAIN', clsOpenTBS::OPENTBS_SELECT_MAIN);
+define('OPENTBS_DISPLAY_SHEETS', clsOpenTBS::OPENTBS_DISPLAY_SHEETS);
+define('OPENTBS_DELETE_SHEETS', clsOpenTBS::OPENTBS_DELETE_SHEETS);
+define('OPENTBS_DELETE_COMMENTS', clsOpenTBS::OPENTBS_DELETE_COMMENTS);
+define('OPENTBS_MERGE_SPECIAL_ITEMS', clsOpenTBS::OPENTBS_MERGE_SPECIAL_ITEMS);
+define('OPENTBS_CHANGE_PICTURE', clsOpenTBS::OPENTBS_CHANGE_PICTURE);
+define('OPENTBS_COUNT_SLIDES', clsOpenTBS::OPENTBS_COUNT_SLIDES);
+define('OPENTBS_COUNT_SHEETS', clsOpenTBS::OPENTBS_COUNT_SHEETS);
+define('OPENTBS_SEARCH_IN_SLIDES', clsOpenTBS::OPENTBS_SEARCH_IN_SLIDES);
+define('OPENTBS_DISPLAY_SLIDES', clsOpenTBS::OPENTBS_DISPLAY_SLIDES);
+define('OPENTBS_DELETE_SLIDES', clsOpenTBS::OPENTBS_DELETE_SLIDES);
+define('OPENTBS_SELECT_FILE', clsOpenTBS::OPENTBS_SELECT_FILE);
+define('OPENTBS_ADD_CREDIT', clsOpenTBS::OPENTBS_ADD_CREDIT);
+define('OPENTBS_SYSTEM_CREDIT', clsOpenTBS::OPENTBS_SYSTEM_CREDIT);
+define('OPENTBS_RELATIVE_CELLS', clsOpenTBS::OPENTBS_RELATIVE_CELLS);
+define('OPENTBS_MAKE_OPTIMIZED_TEMPLATE', clsOpenTBS::OPENTBS_MAKE_OPTIMIZED_TEMPLATE);
+define('OPENTBS_GET_CELLS', clsOpenTBS::OPENTBS_GET_CELLS);
+define('OPENTBS_SET_CELLS', clsOpenTBS::OPENTBS_SET_CELLS);
+define('OPENTBS_FIRST', clsOpenTBS::OPENTBS_FIRST); //
+define('OPENTBS_GO', clsOpenTBS::OPENTBS_GO);    // = TBS_GO
+define('OPENTBS_ALL', clsOpenTBS::OPENTBS_ALL);   // = TBS_ALL
+// Types of file to select
+define('OPENTBS_GET_HEADERS_FOOTERS', clsOpenTBS::OPENTBS_GET_HEADERS_FOOTERS);
+define('OPENTBS_SELECT_HEADER', clsOpenTBS::OPENTBS_SELECT_HEADER);
+define('OPENTBS_SELECT_FOOTER', clsOpenTBS::OPENTBS_SELECT_FOOTER);
+// Sub-types of file
+define('OPENTBS_EVEN', clsOpenTBS::OPENTBS_EVEN);
