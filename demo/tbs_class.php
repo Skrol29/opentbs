@@ -3,8 +3,8 @@
  *
  * TinyButStrong - Template Engine for Pro and Beginners
  *
- * @version 3.12.3-beta-1 for PHP 5, 7, 8
- * @date    2021-12-03
+ * @version 3.13.0 for PHP 5, 7, 8
+ * @date    2022-01-30
  * @link    http://www.tinybutstrong.com Web site
  * @author  http://www.tinybutstrong.com/onlyyou.html
  * @license http://opensource.org/licenses/LGPL-3.0 LGPL-3.0
@@ -655,7 +655,7 @@ public $Assigned = array();
 public $ExtendedMethods = array();
 public $ErrCount = 0;
 // Undocumented (can change at any version)
-public $Version = '3.12.3-beta-1';
+public $Version = '3.13.0';
 public $Charset = '';
 public $TurboBlock = true;
 public $VarPrefix = '';
@@ -819,6 +819,66 @@ public function ResetVarRef($ToGlobal) {
 	// value NULL means that VarRef refers to $GLOBALS
 	$x = ($ToGlobal) ? null : array();
 	$this->VarRef = &$x;
+	
+}
+
+/**
+ * Get an item value from VarRef.
+ * Ensure the compatibility with PHP 8.1 if VarRef is set to Global.
+ * 
+ * @param string $key      The item key.
+ * @param mixed  $default  The default value.
+ *
+ * @return mixed
+ */
+public function GetVarRefItem($key, $default) {
+
+	if (is_null($this->VarRef)) {
+		
+		if (array_key_exists($key, $GLOBALS)) {
+			return $GLOBALS[$key];
+		} else {
+			return $default;
+		}
+
+	} else {
+
+		if (array_key_exists($key, $this->VarRef)) {
+			return $this->VarRef[$key];
+		} else {
+			return $default;
+		}
+
+	}
+	
+}
+
+/**
+ * Set an item value to VarRef.
+ * Ensure the compatibility with PHP 8.1 if VarRef is set to Global.
+ * 
+ * @param string $key    The item key.
+ * @param mixed  $value  The item value. Use NULL in order to delete the item.
+ */
+public function SetVarRefItem($key, $value) {
+
+	if (is_null($this->VarRef)) {
+		
+		if (is_null($value)) {
+			unset($GLOBALS[$key]);
+		} else {
+			$GLOBALS[$key] = $value;
+		}
+
+	} else {
+
+		if (is_null($value)) {
+			unset($this->VarRef[$key]);
+		} else {
+			$this->VarRef[$key] = $value;
+		}
+
+	}
 	
 }
 

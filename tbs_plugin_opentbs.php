@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.10.3-beta-2
- * @date 2021-12-29
+ * @version 1.10.4
+ * @date 2022-02-07
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -98,7 +98,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.10.3-beta-2';
+		$this->Version = '1.10.4';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
