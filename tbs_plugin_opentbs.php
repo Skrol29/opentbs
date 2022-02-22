@@ -309,7 +309,7 @@ class clsOpenTBS extends clsTbsZip {
 			$this->TbsPicPrepare($Txt, $Loc, false);
 			$this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=changepic');
 		} elseif ($ope==='delcol') {
-			// Delete the TBS field otherwise « return false » will produce a TBS error « doesn't have any subname » with [onload] fields.
+			// Delete the TBS field otherwise "return false" will produce a TBS error "doesn't have any subname" with [onload] fields.
 			$Txt = substr_replace($Txt, '', $PosBeg, $PosEnd - $PosBeg + 1);
 			$this->TbsDeleteColumns($Txt, $Value, $PrmLst, $PosBeg);
 			return false; // prevent TBS from actually merging the field
@@ -1369,7 +1369,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 				
 		// Move the field to the attribute
-		// This technical works with cached fields because already cached fields are placed before the picture.
+		// This technical works while caching TBS fields because already cached fields are necessarily placed before the current picture.
 		$prefix = ($backward) ? '' : '+';
 		$Loc->PrmLst['att'] = $prefix.$att;
 		clsTinyButStrong::f_Xml_AttFind($Txt,$Loc,true);
@@ -2611,8 +2611,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * The process assumes that :
 	 * - trailing rows of the range can be misssing in the sheet but there is no missing row  between rows.
 	 * - trailing cols of the range can be misssing in a row     but there is no missing cell between cells.
-	 * If « $AddMissing = false » :
-	 *   Cells of missing columns are return by the function as a valid object with the property « Exists = false ».
+	 * If "$AddMissing = false" :
+	 *   Cells of missing columns are return by the function as a valid object with the property "Exists = false".
 	 *   Cells of missing rows    are return by the function as false.
 	 *   But missing cells are skiped in case of a range with with full columns.
 	 *
@@ -5627,7 +5627,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				}
 			} while ($ok);
 
-			// Add or delete the attribute « xml:space="preserve" » that must be set if there is a space before of after the text
+			// Add or delete the attribute { xml:space="preserve" } that must be set if there is a space before of after the text
 			if ($nb > 0) {
 				$with_space = false;
 				if ( substr($Txt, $wtc_p - 1, 1) === ' ') $with_space = true;
@@ -6407,7 +6407,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ( $Loc->Exists && ($Loc->GetInnerStart() !== false) ) {
 			$type = $Loc->GetAttLazy('office:value-type');
 			if ($type === 'string') {
-				// errors are in this case, but with attribute « calcext:value-type="error" »
+				// errors are in this case, but with attribute { calcext:value-type="error" }
 				if ($z = clsTbsXmlLoc::FindElement($Loc, 'text:p', 0, true)) {
 					$x = $z->GetInnerSrc();
 				}
@@ -7346,18 +7346,18 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
  */
 class clsTbsXmlLoc {
 
-	public $PosBeg;
-	public $PosEnd; // can the end of the open tag, or end of the close tag.
+	public $PosBeg;      // Position of the first char ('<') of the element.
+	public $PosEnd;      // Position of the char '>' of the start tag or the end tag, depending on whether the end tag has beend seached or not ($pET_PosBeg === false).
 	public $SelfClosing; // null|false|true, null means unknown.
 	public $Txt;
 	public $Name = ''; 
-	public $Exists; 
+	public $Exists;      // False means it is a phantom element
 
-	public $pST_PosEnd = false; // position of the end of the start tag
-	public $pST_Src = false;    // cached source of the start tag, false if not cached
-	public $pET_PosBeg = false; // position of the begining of the end tag
+	public $pST_PosEnd = false; // Position of the end of the start tag ('>')
+	public $pST_Src = false;    // Cached source of the start tag, false if not cached
+	public $pET_PosBeg = false; // Position of the begining of the end tag. False means the end tag has not been searched.
 
-	public $Parent = false; // parent object
+	public $Parent = false; // Parent object
 
 	// For relative mode
 	public $rel_Txt = false;
@@ -7489,6 +7489,11 @@ class clsTbsXmlLoc {
 
 	}
 	
+	/**
+	 * Create an instance with a phantom element.
+	 * A phatom element has a position but no contents, its length is 0.
+	 * It can be usefull in order to prepare some modifications that will be precised later.
+	 */
 	static function CreatePhantomElement(&$TxtOrObj, $PosBeg) {
 		
 		if (is_object($TxtOrObj)) {
@@ -7578,19 +7583,38 @@ class clsTbsXmlLoc {
 		return (substr($this->Txt, $PosEnd-1, 1)=='/');
 	}
 	
-	// Return the outer len of the locator.
+	/**
+	 * Return the outer length of the locator.
+	 * That is the length between including '<' and '>'.
+	 * It may include only the start tag if the end tag has never been searched.
+	 *
+	 * @return integer
+	 */
 	function GetLen() {
 		return $this->PosEnd - $this->PosBeg + 1;
 	}
 
-	// Return the outer source of the locator.
+	/**
+	 * Return the outer source of the locator.
+	 * That is the string including '<' and '>'.
+	 * It may include only the start tag if the end tag has never been searched.
+	 *
+	 * @return string
+	 */
 	function GetSrc() {
 		return substr($this->Txt, $this->PosBeg, $this->GetLen() );
 	}
 
-	// Replace the source of the locator in the TXT contents.
-	// Update the locator's ending position.
-	// Too complicated to update other information, given that it can be deleted.
+	/**
+	 * Replace the source of the locator in the TXT contents.
+	 * Update the locator's ending position.
+	 * Too complicated to update other information, given that it can be deleted.
+	 *
+	 * @param string $new  New full source of the locator. For exemple '<span>Hello</span>'.
+	 *                     Empty string ('') means the locator is deleted.
+	 *
+	 * @return void
+	 */
 	function ReplaceSrc($new) {
 		$len = $this->GetLen(); // avoid PHP error : Strict Standards: Only variables should be passed by reference
 		$this->Txt = substr_replace($this->Txt, $new, $this->PosBeg, $len);
@@ -7610,36 +7634,55 @@ class clsTbsXmlLoc {
 	}
 
 	/**
-	 * Return the position for appending at the end of the inner contents.
+	 * Return the position for appending at the end of the inner contents (that is the string between start and end tags).
 	 * Return false if SelfClosing.
+	 *
+	 * @return integer|false
 	 */
 	function GetInnerAppendPos() {
 		return $this->pET_PosBeg;
 	}
 
-	// Return the start of the inner content.
-	// Return false if SelfClosing.
+	/**
+	 * Return the start of the inner content.
+	 * Return false if SelfClosing.
+	 *
+	 * @return integer|false
+	 */
 	function GetInnerStart() {
 		return ($this->pST_PosEnd===false) ? false : $this->pST_PosEnd + 1;
 	}
 
-	// Return the length of the inner content, or false if it's a self-closing tag
-	// Assume FindEndTag() is previously called.
-	// Return false if SelfClosing.
+	/**
+	 * Return the length of the inner content, or false if it's a self-closing tag.
+	 * Assume FindEndTag() is previously called.
+	 * Return false if SelfClosing.
+	 *
+	 * @return integer|false
+	 */
 	function GetInnerLen() {
 		return ($this->pET_PosBeg===false) ? false : $this->pET_PosBeg - $this->pST_PosEnd - 1;
 	}
 
-	// Return the contents of the inner content, or false if it's a self-closing tag 
-	// Assume FindEndTag() is previously called.
-	// Return false if SelfClosing.
+	/**
+	 * Return the contents of the inner content, or false if it's a self-closing tag 
+	 * Assume FindEndTag() is previously called.
+	 * Return false if SelfClosing.
+	 *
+	 * @return string|false
+	 */
 	function GetInnerSrc() {
 		return ($this->pET_PosBeg===false) ? false : substr($this->Txt, $this->pST_PosEnd + 1, $this->pET_PosBeg - $this->pST_PosEnd - 1 );
 	}
 
-	// Replace the inner source of the locator in the TXT contents. Update the locator's positions.
-	// Assume FindEndTag() is previously called.
-	// Convert a self-closing entity to a start+end entity if needed.
+	/**
+	 * Replace the inner source of the locator.
+	 * Update the locator's positions.
+	 * Assume FindEndTag() is previously called.
+	 * Convert a self-closing entity to a start+end entity if needed.
+	 *
+	 * @return void
+	 */
 	function ReplaceInnerSrc($new) {
 		if ($this->SelfClosing) {
 			$this->_ConvertToCouple($new);
@@ -7654,6 +7697,10 @@ class clsTbsXmlLoc {
 
 	/**
 	 * Append a contents at the end of the inner source.
+	 *
+	 * @param string  $add   The string to add.
+	 *
+	 * @return void
 	 */
 	function AppendInnerSrc($add) {
 		if ($this->SelfClosing) {
@@ -7665,22 +7712,43 @@ class clsTbsXmlLoc {
 		}
 	}
 	
-	// Update the parent object, if any.
-	function UpdateParent($Cascading=false) {
+	/**
+	 * Update the parent object, if any.
+	 *
+	 * @param boolean  $Cascading  (optional, false by default) Also update all the parents of the tree.
+	 *
+	 * @return void
+	 */
+	function UpdateParent($Cascading = false) {
 		if ($this->Parent) {
 			$this->Parent->ReplaceSrc($this->Txt);
 			if ($Cascading) $this->Parent->UpdateParent($Cascading);
 		}
 	}
 	
-	// Get an attribute's value. Or false if the attribute is not found.
-	// It's a lazy way because the attribute is searched with the patern {attribute="value" }
+	/**
+	 * Get an attribute's value. Or false if the attribute is not found.
+	 * It's a lazy way because the attribute is searched with the patern {attribute="value" }
+	 *
+	 * @param string   $Att   The name of the attribute.
+	 *
+	 * @return string
+	 */
 	function GetAttLazy($Att) {
 		$z = $this->_GetAttValPos($Att);
 		if ($z===false) return false;
 		return substr($this->pST_Src, $z[0], $z[1]);
 	}
 
+	/**
+	 * Replace an attribute's value. Can eventually create the attribute if missing.
+	 *
+	 * @param string   $Att          The name of the attribute.
+	 * @param string   $Value        The new value of the attribute. You have to protect the contents before.
+	 * @param boolean  $AddIfMissing (optional, false by default) True means the attribute is added if missing. 
+	 *
+	 * @return boolean Return True if the value has been replaced or inserted.
+	 */
 	function ReplaceAtt($Att, $Value, $AddIfMissing = false) {
 
 		$Value = ''.$Value;
@@ -7707,8 +7775,14 @@ class clsTbsXmlLoc {
 
 	}
 	
-	// Delete the element with or without the content.
-	function Delete($Contents=true) {
+	/**
+	 * Delete the element with or without the content.
+	 *
+	 * @param boolean $Contents (optional, true by default) If False, then only the inner contents (excluding start and end tags) is deleted.
+	 * 
+	 * @return void
+	 */
+	function Delete($Contents = true) {
 		$this->FindEndTag();
 		if ($Contents || $this->SelfClosing) {
 			$this->ReplaceSrc('');
@@ -7720,6 +7794,8 @@ class clsTbsXmlLoc {
 	
 	/**
 	 * Return true if the attribute existed and is deleted, otherwise return false.
+	 *
+	 * @return boolean
 	 */
 	function DeleteAtt($Att) {
 		$z = $this->_GetAttValPos($Att);
@@ -7729,7 +7805,11 @@ class clsTbsXmlLoc {
 		return true;
 	}
 
-	// Find the name of the element
+	/**
+	 * Find and return the name of the element
+	 *
+	 * @return string
+	 */
 	function FindName() {
 		if ( ($this->Name==='') && $this->Exists ) {
 			$p = $this->PosBeg;
@@ -7742,9 +7822,13 @@ class clsTbsXmlLoc {
 		return $this->Name;
 	}
 
-	// Find the ending tag of the object
-	// Use $Encaps=true if the element can be self encapsulated (like <div>).
-	// Return true if the end is funf
+	/**
+	 * Find ans store the ending tag of the object.
+	 * 
+	 * @param boolean $Encaps (optional, true by default) Indicates if the element can be self encapsulated (like <div>).
+	 *
+	 * @return boolean  Return True if the end is found, or False otherwise.
+	 */
 	function FindEndTag($Encaps=false) {
 		if (is_null($this->SelfClosing)) {
 			$pe = $this->PosEnd;
