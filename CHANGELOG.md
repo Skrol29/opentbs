@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.5] - 2022-02-22
+
+### Bug fixes
+
+- Composer : the required version of TBS is updated in order to ensure the compatibility with PHP 8.1.
+
+### Enhancements
+
+- Prevent invalid XLSX when merged sheets have dynamic array formulas (a new feature first released with Office 365 in 2018)
+
+
 ## [1.10.4] - 2022-02-07
 
 ### Bug fixes

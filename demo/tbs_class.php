@@ -3,8 +3,8 @@
  *
  * TinyButStrong - Template Engine for Pro and Beginners
  *
- * @version 3.13.0 for PHP 5, 7, 8
- * @date    2022-01-30
+ * @version 3.13.1 for PHP 5, 7, 8
+ * @date    2022-02-13
  * @link    http://www.tinybutstrong.com Web site
  * @author  http://www.tinybutstrong.com/onlyyou.html
  * @license http://opensource.org/licenses/LGPL-3.0 LGPL-3.0
@@ -655,7 +655,7 @@ public $Assigned = array();
 public $ExtendedMethods = array();
 public $ErrCount = 0;
 // Undocumented (can change at any version)
-public $Version = '3.13.0';
+public $Version = '3.13.1';
 public $Charset = '';
 public $TurboBlock = true;
 public $VarPrefix = '';
@@ -819,7 +819,6 @@ public function ResetVarRef($ToGlobal) {
 	// value NULL means that VarRef refers to $GLOBALS
 	$x = ($ToGlobal) ? null : array();
 	$this->VarRef = &$x;
-	
 }
 
 /**
@@ -857,25 +856,35 @@ public function GetVarRefItem($key, $default) {
  * Set an item value to VarRef.
  * Ensure the compatibility with PHP 8.1 if VarRef is set to Global.
  * 
- * @param string $key    The item key.
- * @param mixed  $value  The item value. Use NULL in order to delete the item.
+ * @param string|array $keyOrList   A list of keys and items to add, or the item key.
+ * @param mixed        $value       (optional) The item value. Use NULL in order to delete the item.
  */
-public function SetVarRefItem($key, $value) {
+public function SetVarRefItem($keyOrList, $value = null) {
+
+	if (is_array($keyOrList)) {
+		$list = $keyOrList;
+	} else {
+		$list = array($keyOrList => $value);
+	}
 
 	if (is_null($this->VarRef)) {
 		
-		if (is_null($value)) {
-			unset($GLOBALS[$key]);
-		} else {
-			$GLOBALS[$key] = $value;
+		foreach ($list as $key => $value) {
+			if (is_null($value)) {
+				unset($GLOBALS[$key]);
+			} else {
+				$GLOBALS[$key] = $value;
+			}
 		}
 
 	} else {
 
-		if (is_null($value)) {
-			unset($this->VarRef[$key]);
-		} else {
-			$this->VarRef[$key] = $value;
+		foreach ($list as $key => $value) {
+			if (is_null($value)) {
+				unset($this->VarRef[$key]);
+			} else {
+				$this->VarRef[$key] = $value;
+			}
 		}
 
 	}

@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.10.4
- * @date 2022-02-07
+ * @version 1.10.5
+ * @date 2022-02-22
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -98,7 +98,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.10.4';
+		$this->Version = '1.10.5';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -4751,18 +4751,28 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	
 		$p = 0;
 		while ( ($locF = clsTbsXmlLoc::FindElement($Txt, 'f', $p, true)) !== false ) {
-			$f = $locF->GetInnerSrc();
-			$p = $locF->PosEnd;
-			$v = null;
-			if ($locC = clsTbsXmlLoc::FindElement($Txt, 'c', $locF->PosBeg, false)) {
-				if ($locV = clsTbsXmlLoc::FindElement($locC, 'v', 0, true)) {
-					$v = $locV->GetInnerSrc();
-					$locV->Delete();
-					$locV->UpdateParent(true);
-				}
-				$p = $locC->PosEnd;
-			}
-			$formulas[$f] = $v;
+            $f = $locF->GetInnerSrc();
+            $t = $locF->GetAttLazy('t');
+            $p = $locF->PosEnd;
+            $v = null;
+            if ($locC = clsTbsXmlLoc::FindElement($Txt, 'c', $locF->PosBeg, false)) {
+				// Since 2018, Office 365 brings dynamic array formulas. They can be typed array even if they are single, and they have a "ref" attribute
+				// that can makes the XLSX invalid if the ref does not start with ref of the cell. Unfortunately this can happen when cells are duplicated with OpenTBS.
+                // In order to avoid invalid XML, then if it is a dynamic array formula but on a single cell, then we turn it into a simple formula.
+                if ($t == 'array') {
+                    $ref = $locF->GetAttLazy('ref');
+                    if (strpos($ref, ':') === false) {
+                        $locF->ReplaceSrc('<f>' . $f . '</f>');
+                    }
+                }
+                if ($locV = clsTbsXmlLoc::FindElement($locC, 'v', 0, true)) {
+                    $v = $locV->GetInnerSrc();
+                    $locV->Delete();
+                    $locV->UpdateParent(true);
+                }
+                $p = $locC->PosEnd;
+            }
+            $formulas[$f] = $v;
 		}
 
 	}
