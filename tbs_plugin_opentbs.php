@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.10.5
- * @date 2022-02-22
+ * @version 1.10.6
+ * @date 2022-02-23
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -98,7 +98,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.10.5';
+		$this->Version = '1.10.6';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -1351,19 +1351,19 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$att = false;
 		if ($this->ExtType==='odf') {
 			$att = 'draw:image#xlink:href';
-            $magnet = 'draw:frame';
+			$magnet = 'draw:frame';
 		} elseif ($this->ExtType==='openxml') {
 			$type = $this->OpenXML_FirstPicType($Txt, $Loc->PosBeg, $backward);
-            if ($type == 'vml') {
-                // old way
-                $att = 'v:imagedata#r:id';
-                $magnet = 'w:pict';
-            } elseif ($type == 'dml') {
-                $att = 'a:blip#r:embed';
-                $magnet = 'w:drawing';
-            } else {
-                return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] has failed to found the picture.');
-            }
+			if ($type == 'vml') {
+				// old way
+				$att = 'v:imagedata#r:id';
+				$magnet = 'w:pict';
+			} elseif ($type == 'dml') {
+				$att = 'a:blip#r:embed';
+				$magnet = 'w:drawing';
+			} else {
+				return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] has failed to found the picture.');
+			}
 		} else {
 			return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] is not supported with the current document type.');
 		}
@@ -1376,9 +1376,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		// Delete parameter att to prevent TBS from another processing
 		unset($Loc->PrmLst['att']);
-	   
-        $Loc->PrmLst['magnet'] = $magnet;
-       
+
+		$Loc->PrmLst['magnet'] = $magnet;
+
 		// Get picture dimension information
 		if (isset($Loc->PrmLst['adjust'])) {
 			$FieldLen = 0;
@@ -1616,12 +1616,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * @param array   $Prm     Caller parameter. Only used for error messages.
 	 */
 	function TbsPicAdd(&$Value, &$PrmLst, &$Txt, &$Loc, $Prm) {
-        
-        if ($Value == '') {
-            // The magnet parameter will delete the picture container
-            return true;
-        }
-        
+		
+		if ($Value == '') {
+			// The magnet parameter will delete the picture container
+			return true;
+		}
+		
 		$TBS = &$this->TBS;
 
 		$PrmLst['pic_prepared'] = true; // mark the locator as Picture prepared
@@ -2179,25 +2179,25 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$this->ExtEquiv = false;
 		$this->ExtType = false;
 
-        // Find the extension
+		// Find the extension
 		if ($Ext===false) {
-            $Ext = basename($this->ArchFile);
-            $p = strrpos($Ext, '.');
-            $Ext = ($p===false) ? '' : strtolower(substr($Ext, $p + 1));
-            // At this point, $Ext may have special value '' or 'zip' (no extension in the the template file from a local file or stream file).
-        }
-    
-        $Frm = $this->Ext_DeductFormatFromExt($Ext);       
-        if ($Frm===false) {
-            $Frm = $this->Ext_DeductFormatFromContents($Ext); // may force $Ext to a valid extension
-        }
+			$Ext = basename($this->ArchFile);
+			$p = strrpos($Ext, '.');
+			$Ext = ($p===false) ? '' : strtolower(substr($Ext, $p + 1));
+			// At this point, $Ext may have special value '' or 'zip' (no extension in the the template file from a local file or stream file).
+		}
+	
+		$Frm = $this->Ext_DeductFormatFromExt($Ext);       
+		if ($Frm===false) {
+			$Frm = $this->Ext_DeductFormatFromContents($Ext); // may force $Ext to a valid extension
+		}
 
 		$TBS = &$this->TBS;
 		$set_option = method_exists($TBS, 'SetOption');
 		
 		$i = false;
 		$block_alias = false;
-        
+		
 	
 		if (isset($GLOBAL['_OPENTBS_AutoExt'][$Ext])) {
 			// User defined information
@@ -2213,10 +2213,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			if ($Ext==='ots') $this->ExtEquiv = 'ods';
 			$this->ExtType = 'odf';
 			$ctype = array('t' => 'text', 's' => 'spreadsheet', 'g' => 'graphics', 'f' => 'formula', 'p' => 'presentation', 'm' => 'text-master');
-            $z = substr($Ext, 2, 1);
-            if (isset($ctype[$z])) {
-                $i['ctype'] .= $ctype[$z];
-            }
+			$z = substr($Ext, 2, 1);
+			if (isset($ctype[$z])) {
+				$i['ctype'] .= $ctype[$z];
+			}
 			$i['pic_ext'] = array('png' => 'png', 'bmp' => 'bmp', 'gif' => 'gif', 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'jpe' => 'jpeg', 'jfif' => 'jpeg', 'tif' => 'tiff', 'tiff' => 'tiff');
 			$block_alias = array(
 				'tbs:p' => 'text:p',              // ODT+ODP
@@ -2345,17 +2345,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	function Ext_DeductFormatFromContents(&$Ext) {
 		if ($this->FileExists('content.xml')) {
 			// OpenOffice documents
-            $meta = 'META-INF/manifest.xml';
+			$meta = 'META-INF/manifest.xml';
 			if ($this->FileExists($meta)) {
-                $prefix = 'application/vnd.oasis.opendocument.';
-                $txt = $this->FileRead($meta, true);
-                if (strpos($txt, $prefix.'text') !== false) {
-                    $Ext = 'odt';
-                } elseif (strpos($txt, $prefix.'presentation') !== false) {
-                    $Ext = 'odp';
-                } elseif (strpos($txt, $prefix.'spreadsheet') !== false) {
-                    $Ext = 'ods';
-                }
+				$prefix = 'application/vnd.oasis.opendocument.';
+				$txt = $this->FileRead($meta, true);
+				if (strpos($txt, $prefix.'text') !== false) {
+					$Ext = 'odt';
+				} elseif (strpos($txt, $prefix.'presentation') !== false) {
+					$Ext = 'odp';
+				} elseif (strpos($txt, $prefix.'spreadsheet') !== false) {
+					$Ext = 'ods';
+				}
 				return 'odf';
 			}
 		} elseif ($this->FileExists('[Content_Types].xml')) {
@@ -2373,7 +2373,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		return false;
 	}
-    
+	
 	// Return the idx of the main document, if any.
 	function Ext_GetMainIdx() {
 		if ( ($this->ExtInfo!==false) && isset($this->ExtInfo['main']) ) {
@@ -2384,7 +2384,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-     * Search the next tag of the asked type searching forward. (Not specific to MsWord, works for any XML)
+	 * Search the next tag of the asked type searching forward. (Not specific to MsWord, works for any XML)
 	 * @param string  $Txt
 	 * @param string  $Tag     must be prefixed with '<' or '</'.
 	 * @param integer $PosBeg 
@@ -2616,7 +2616,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 *   Cells of missing rows    are return by the function as false.
 	 *   But missing cells are skiped in case of a range with with full columns.
 	 *
-     * @param string|object  $SheetLoc The locator of the sheet entity that directly contains row.
+	 * @param string|object  $SheetLoc The locator of the sheet entity that directly contains row.
 	 * @param array          $Range    A range info formated as array('cs'=>...,'rs'=>...,'ce'=>...,'re'=>...)
 	 * @param object         $PrevLoc  The previous locator returned by the function.
 	 * @param string         $RowEl    Name of the XML entity for rows.
@@ -4751,28 +4751,33 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	
 		$p = 0;
 		while ( ($locF = clsTbsXmlLoc::FindElement($Txt, 'f', $p, true)) !== false ) {
-            $f = $locF->GetInnerSrc();
-            $t = $locF->GetAttLazy('t');
-            $p = $locF->PosEnd;
-            $v = null;
-            if ($locC = clsTbsXmlLoc::FindElement($Txt, 'c', $locF->PosBeg, false)) {
-				// Since 2018, Office 365 brings dynamic array formulas. They can be typed array even if they are single, and they have a "ref" attribute
-				// that can makes the XLSX invalid if the ref does not start with ref of the cell. Unfortunately this can happen when cells are duplicated with OpenTBS.
-                // In order to avoid invalid XML, then if it is a dynamic array formula but on a single cell, then we turn it into a simple formula.
-                if ($t == 'array') {
-                    $ref = $locF->GetAttLazy('ref');
-                    if (strpos($ref, ':') === false) {
-                        $locF->ReplaceSrc('<f>' . $f . '</f>');
-                    }
-                }
-                if ($locV = clsTbsXmlLoc::FindElement($locC, 'v', 0, true)) {
-                    $v = $locV->GetInnerSrc();
-                    $locV->Delete();
-                    $locV->UpdateParent(true);
-                }
-                $p = $locC->PosEnd;
-            }
-            $formulas[$f] = $v;
+			
+			$f = $locF->GetInnerSrc();
+
+			// Since 2018, Office 365 brings dynamic array formulas. They can be typed array even if they are single, and they have a "ref" attribute
+			// that can makes the XLSX invalid if the ref does not start with ref of the cell. Unfortunately this can happen when cells are duplicated with OpenTBS.
+			// In order to avoid invalid XML, then if it is a dynamic array formula but on a single cell, then we turn it into a simple formula.
+			$t = $locF->GetAttLazy('t');
+			if ($t == 'array') {
+				$ref = $locF->GetAttLazy('ref');
+				if (strpos($ref, ':') === false) {
+					$locF->ReplaceSrc('<f>' . $f . '</f>');
+				}
+			}
+
+			$p = $locF->PosEnd;
+
+			$v = null;
+			if ($locC = clsTbsXmlLoc::FindElement($Txt, 'c', $locF->PosBeg, false)) {
+				if ($locV = clsTbsXmlLoc::FindElement($locC, 'v', 0, true)) {
+					$v = $locV->GetInnerSrc();
+					$locV->Delete();
+					$locV->UpdateParent(true);
+				}
+				$p = $locC->PosEnd;
+			}
+			$formulas[$f] = $v;
+			
 		}
 
 	}
@@ -7938,12 +7943,12 @@ class clsTbsZip {
 		$this->ArchIsNew = false;
 		$this->ArchIsStream = (is_resource($ArchFile) && (get_resource_type($ArchFile)=='stream'));
 		if ($this->ArchIsStream) {
-            $info = stream_get_meta_data($ArchFile);
-            if (isset($info['uri'])) {
-                $this->ArchFile = $info['uri'];
-            } else {
-                $this->ArchFile = 'from_stream.zip';
-            }
+			$info = stream_get_meta_data($ArchFile);
+			if (isset($info['uri'])) {
+				$this->ArchFile = $info['uri'];
+			} else {
+				$this->ArchFile = 'from_stream.zip';
+			}
 			$this->ArchHnd = $ArchFile;
 		} else {
 			// open the file

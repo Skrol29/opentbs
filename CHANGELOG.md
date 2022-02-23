@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.6] - 2022-02-23
+
+### Bug fixes
+
+- Regression: some few XLSX formulas may keep their cached values or keep beeing dynamic array formulas.
+
 ## [1.10.5] - 2022-02-22
 
 ### Bug fixes
