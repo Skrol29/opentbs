@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.10.6
- * @date 2022-02-23
+ * @version 1.10.7
+ * @date 2022-05-03
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -98,7 +98,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.10.6';
+		$this->Version = '1.10.7';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -505,7 +505,7 @@ class clsOpenTBS extends clsTbsZip {
 			if ($this->ExtEquiv==='xlsx') {
 				$SearchBy = ($x2) ? array('name', 'sheetId') : array('name', 'num');
 				$o = $this->MsExcel_SheetGetConf($x1, $SearchBy, true);
-				if ($o===false) return;
+				if ($o===false) return false;
 				if ($o->file===false) return $this->RaiseError("($Cmd) Error with sheet '$x1'. The corresponding XML subfile is not referenced.");
 				return $this->TbsLoadSubFileAsTemplate('xl/'.$o->file);
 			}
@@ -3983,10 +3983,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		// Data X & Y, we assume that (X or Category) are always first and (Y or Value) are always second
 		// Correspond elements are <c:cat> and <c:val> or <c:xVal> and <c:yVal>
 		// Some charts may not have categories, they cannot be merged :-(
+		$type_num = 'c:numLit';
+		$type_len = strlen($type_num);
 		for ($i = 1 ; $i <= 2 ; $i++) {
 			$p1 = strpos($src, '<c:ptCount ', $p);
 			if ($p1===false) return ($i==1) ? "categories or values not found." : "categories not found, check the chart to add categories.";
-			// Points elements can be childs of <c:numCache> or <c:strCache> (the most common, means the source is a reference to a XLSX range),
+			// Coordinates elements can be childs of <c:numCache> or <c:strCache> (the most common, means the source is a reference to a XLSX range),
 			// but also <c:numLit> or <c:strLit> if the source is literal (rare, means the source is given has is in the chart, I've seen it possible only in XSLX)
 			$p2 = strpos($src, 'Lit>', $p1);
 			/* no need if cache values have bee previously converted into literal
@@ -3995,9 +3997,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			}
 			*/
 			if ($p2===false) return "Neither Literal nor Cached data is found for categories or values.";
-			$p2 = $p2 - 7;
-			$res['point'.$i.'_p'] = $p1;
-			$res['point'.$i.'_l'] = $p2 - $p1;
+			$p2 = $p2 - $type_len + 1; // start of the closing tag
+			$type = substr($src, $p2 + 2, $type_len); // 'c:strLit' or 'c:numLit'
+			$res['coord_'.$i.'_p'] = $p1;
+			$res['coord_'.$i.'_l'] = $p2 - $p1;
+			$res['coord_'.$i.'_is_num'] = ($type == 'c:numLit');
 			$p = $p2;
 		}
 		
@@ -4094,8 +4098,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		} else {
 
-			$point1 = ''; // category
-			$point2 = ''; // value
+			$coord_1 = ''; // Categories
+			$coord_2 = ''; // Values
 			$i = 0;
 			$v = reset($NewValues);
 			if (is_array($v)) {
@@ -4118,23 +4122,35 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					$x = $v;
 					$y = isset($val_lst[$k]) ? $val_lst[$k] : null;
 				}
-				// a category should not be missing otherwise its caption may not be display if the series is the first one
-				$point1 .= '<c:pt idx="'.$i.'"><c:v>'.$x.'</c:v></c:pt>';
-				// a missing value is possible
-				if ( (!is_null($y)) && ($y!==false) && ($y!=='') && ($y!=='NULL') ) {
-					$point2 .= '<c:pt idx="'.$i.'"><c:v>'.$y.'</c:v></c:pt>';
+				// coord_1 can be numerical if the chart is a XY
+				$ok = (!is_null($x)) && ($x!==false) && ($x!=='') && ($y!=='NULL');
+				// A category should not be missing otherwise its caption may not be display if the series is the first one
+				if ( $ok || (!$ser['coord_1_is_num']) ) {
+					// A non numerical value can produce a error while opening the document, without clue for debuging : « Word experienced an error trying to open the file ».
+					if ($ser['coord_1_is_num'] && (!is_numeric($x))) {
+						return $this->RaiseError("(ChartChangeSeries) '$ChartRef' : the value for X should be numerical. Provided value is : '$x'.");
+					}
+					$coord_1 .= '<c:pt idx="'.$i.'"><c:v>'.$x.'</c:v></c:pt>';
+				}
+				// But a missing value is supported by Ms Office. The idx attribute makes the association.
+				$ok = (!is_null($y)) && ($y!==false) && ($y!=='') && ($y!=='NULL');
+				if ($ok) {
+					if ($ser['coord_2_is_num'] && (!is_numeric($y))) {
+						return $this->RaiseError("(ChartChangeSeries) '$ChartRef' : the value for the category '$x' should be numerical. Provided value is : '$y'.");
+					}
+					$coord_2 .= '<c:pt idx="'.$i.'"><c:v>'.$y.'</c:v></c:pt>';
 				}
 				$i++;
 			} 
-			$point1 = '<c:ptCount val="'.$i.'"/>'.$point1;
-			$point2 = '<c:ptCount val="'.$i.'"/>'.$point2; // yes, the count is the same as point1 whenever missing values
+			$coord_1 = '<c:ptCount val="'.$i.'"/>'.$coord_1;
+			$coord_2 = '<c:ptCount val="'.$i.'"/>'.$coord_2; // yes, the count is the same as coord_1 whenever missing values
 
 			// change info in reverse order of placement in order to avoid extention problems
 			$src = $ser['src'];
 			unset($ser['src']);
-			$src = substr_replace($src, $point2, $ser['point2_p'], $ser['point2_l']);
-			$src = substr_replace($src, $point1, $ser['point1_p'], $ser['point1_l']);
-			if ( is_string($NewLegend) && isset($ser['leg_p']) && ($ser['leg_p'] < $ser['point1_p']) ) {
+			$src = substr_replace($src, $coord_2, $ser['coord_2_p'], $ser['coord_2_l']);
+			$src = substr_replace($src, $coord_1, $ser['coord_1_p'], $ser['coord_1_l']);
+			if ( is_string($NewLegend) && isset($ser['leg_p']) && ($ser['leg_p'] < $ser['coord_1_p']) ) {
 				$NewLegend = htmlspecialchars($NewLegend, ENT_NOQUOTES); // ENT_NOQUOTES because target is an element's content
 				$src = substr_replace($src, $NewLegend, $ser['leg_p'], $ser['leg_l']);
 			}

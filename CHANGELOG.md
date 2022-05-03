@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.7] - 2022-05-03
+
+### Bug fixes
+
+- Charts with MsOffice: merging values that are not empty and not numerical make a document that cannot be opened. Ms Word error : « Word experienced an error trying to open the file ».
+                        Now a fatal OpenTBS error is raised instead.
+
 ## [1.10.6] - 2022-02-23
 
 ### Bug fixes
