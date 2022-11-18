@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.10.8-beta
+ * @version 1.10.8-beta2
  * @date 2022-11-18
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
@@ -98,7 +98,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.10.8-beta';
+		$this->Version = '1.10.8-beta2';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -4130,7 +4130,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					if ($ser['coord_1_is_num'] && (!is_numeric($x))) {
 						return $this->RaiseError("(ChartChangeSeries) '$ChartRef' : the value for X should be numerical. Provided value is : '$x'.");
 					}
-					$coord_1 .= '<c:pt idx="'.$i.'"><c:v>'.htmlentities($x, ENT_NOQUOTES).'</c:v></c:pt>';
+					$coord_1 .= '<c:pt idx="'.$i.'"><c:v>'.htmlspecialchars($x, ENT_NOQUOTES).'</c:v></c:pt>';
 				}
 				// But a missing value is supported by Ms Office. The idx attribute makes the association.
 				$ok = (!is_null($y)) && ($y!==false) && ($y!=='') && ($y!=='NULL');
@@ -4138,7 +4138,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					if ($ser['coord_2_is_num'] && (!is_numeric($y))) {
 						return $this->RaiseError("(ChartChangeSeries) '$ChartRef' : the value for the category '$x' should be numerical. Provided value is : '$y'.");
 					}
-					$coord_2 .= '<c:pt idx="'.$i.'"><c:v>'.htmlentities($y, ENT_NOQUOTES).'</c:v></c:pt>';
+					$coord_2 .= '<c:pt idx="'.$i.'"><c:v>'.htmlspecialchars($y, ENT_NOQUOTES).'</c:v></c:pt>';
 				}
 				$i++;
 			} 
