@@ -4934,6 +4934,7 @@ static function f_Xml_AttFind(&$Txt,&$Loc,$MoveLocLst=false,$AttDelim=false,$Loc
 	unset($Loc->PrmLst['att']); // prevent from processing the field twice
 	$Loc->PrmLst['att;'] = $Att; // for debug
 
+	// Retrieve the tag list
 	$p = strrpos($Att,'#');
 	if ($p===false) {
 		$TagLst = '';
@@ -4942,10 +4943,12 @@ static function f_Xml_AttFind(&$Txt,&$Loc,$MoveLocLst=false,$AttDelim=false,$Loc
 		$Att = substr($Att,$p+1);
 	}
 
+	// Retrieve the search direction
 	$Forward = (substr($TagLst,0,1)==='+');
 	if ($Forward) $TagLst = substr($TagLst,1);
 	$TagLst = explode('+',$TagLst);
 
+	// Search for the target tag of list
 	$iMax = count($TagLst)-1;
 	$WithPrm = false;
 	$LocO = &$Loc;
@@ -5276,7 +5279,7 @@ static function f_Xml_FindTag(&$Txt,$Tag,$Opening,$PosBeg,$Forward,$LevelStop,$W
 			if ($Pos<=0) {
 				$Pos = false;
 			} else {
-				$Pos = strrpos(substr($Txt,0,$Pos - 1),'<'); // strrpos() syntax compatible with PHP 4
+				$Pos = strrpos(substr($Txt,0,$Pos - 1),'<');
 			}
 		}
 

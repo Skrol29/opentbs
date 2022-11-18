@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.8-beta] - 2022-11-18
+
+### Bug fixes
+
+
+- Charts with MsOffice: merging values or categories that have special characters (like <, >, &) did produce an invalid document.
+  No error is prompted during the merge but an error is prompted by Ms Office when opening the document. 
+
+### Enhancements
+
+- PHP 8.2 compatibilty : non UTF-8 template will not raise a notice. The UTF-8 encoding feature no longer uses the deprecated PHP function utf8_encode().
+
+
 ## [1.10.7] - 2022-05-03
 
 ### Bug fixes
