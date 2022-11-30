@@ -3,7 +3,7 @@
  *
  * TinyButStrong - Template Engine for Pro and Beginners
  *
- * @version 3.15.0-beta-2 for PHP 5, 7, 8
+ * @version 3.15.0-beta-3 for PHP 5, 7, 8
  * @date    2022-11-30
  * @link    http://www.tinybutstrong.com Web site
  * @author  http://www.tinybutstrong.com/onlyyou.html
@@ -52,6 +52,7 @@ class clsTbsLocator {
 	public $Prop = array(); // dynamic properties, used by OpenTBS
 	
 	public $Ope;
+	public $OpeEnd;
 	public $PosNext;
 	public $PrmIf;
 	public $PrmThen;
@@ -163,12 +164,15 @@ public $PrevSave = false;
 public $NextSave = false;
 
 // Compatibility with PHP 8.2
+public $Prop = array(); // Used by ByPage plugin
 public $RecNbr;
 public $RSIsFirst;
 public $NumMin;
 public $NumMax;
 public $NumStep;
 public $NumVal;
+public $OnDataPrmRef;
+public $OnDataArgs;
 
 public function DataAlert($Msg) {
 	if (is_array($this->TBS->_CurrBlock)) {
@@ -337,7 +341,10 @@ public function DataOpen(&$Query,$QryPrms=false) {
 					$i = $this->DataAlert('invalid query \''.$Query.'\' because property ObjectRef is not set.');
 				}
 			} else {
-				if (isset($this->TBS->VarRef[$Item0])) {
+				if ( is_null($this->TBS->VarRef) && isset($GLOBALS[$Item0]) ) {
+					$Var = &$GLOBALS[$Item0];
+					$i = 1;
+				} elseif (isset($this->TBS->VarRef[$Item0])) {
 					$Var = &$this->TBS->VarRef[$Item0];
 					$i = 1;
 				} else {
@@ -759,7 +766,7 @@ public $Assigned = array();
 public $ExtendedMethods = array();
 public $ErrCount = 0;
 // Undocumented (can change at any version)
-public $Version = '3.15.0-beta-2';
+public $Version = '3.15.0-beta-3';
 public $Charset = '';
 public $TurboBlock = true;
 public $VarPrefix = '';
@@ -2061,11 +2068,15 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 
 }
 
+/**
+ * Return the first block locator just after the PosBeg position
+ *
+ * @param integer $Mode 
+ *                1 : Merge_Auto => doesn't save $Loc->BlockSrc, save the bounds of TBS Def tags instead, return also fields
+ *                2 : FindBlockLst or GetBlockSource => save $Loc->BlockSrc without TBS Def tags
+ *                3 : GetBlockSource => save $Loc->BlockSrc with TBS Def tags
+ */
 function meth_Locator_FindBlockNext(&$Txt,$BlockName,$PosBeg,$ChrSub,$Mode,&$P1,&$FieldBefore) {
-// Return the first block locator just after the PosBeg position
-// Mode = 1 : Merge_Auto => doesn't save $Loc->BlockSrc, save the bounds of TBS Def tags instead, return also fields
-// Mode = 2 : FindBlockLst or GetBlockSource => save $Loc->BlockSrc without TBS Def tags
-// Mode = 3 : GetBlockSource => save $Loc->BlockSrc with TBS Def tags
 
 	$SearchDef = true;
 	$FirstField = false;
@@ -3889,7 +3900,7 @@ function meth_PlugIn_Install($PlugInId,$ArgLst,$Auto) {
 		// Create an instance
 		$IsObj = true;
 		$PiRef = new $PlugInId;
-		$PiRef->TBS = &$this;
+		$PiRef->TBS = &$this; // public $TBS property is madatory since PHP 8.2
 		if (!method_exists($PiRef,'OnInstall')) return $this->meth_Misc_Alert($ErrMsg,'OnInstall() method is not found.');
 		$FctRef = array(&$PiRef,'OnInstall');
 	} else {
