@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.10.8-beta2
- * @date 2022-11-18
+ * @version 1.11.0-beta3
+ * @date 2022-11-30
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -83,6 +83,53 @@ define('OPENTBS_EVEN',128);
  */
 class clsOpenTBS extends clsTbsZip {
 
+	// Compatibility with PHP 8.2
+	public $TBS;
+	public $Version;
+	public $DebugLst;
+	public $ExtInfo;
+
+	public $OutputMode;
+	public $OutputHandle;
+
+	private $TbsStoreLst;
+	private $TbsCurrIdx;
+	private $TbsSystemCredits;
+	private $TbsNoField;
+	private $IdxToCheck;
+	private $PrevVals;
+	private $ImageIndex;
+	private $LastReadNotStored;
+
+	private $ExtEquiv;
+	private $ExtType;
+	private $OtbsSheetSlidesDelete;
+	private $OtbsSheetSlidesVisible;
+	private $ImageInternal;
+	private $OtbsSheetRangeNames;
+	private $OpenDocCharts;
+	private $OpenDocManif;
+	private $OpenDoc_SheetSlides;
+	private $OpenDoc_SheetSlides_FileId;
+	private $OpenDoc_Styles;
+	private $OpenXmlRid;
+	private $OpenXmlCTypes;
+	private $OpenXmlCharts;
+	private $OpenXmlSharedStr;
+	private $OpenXmlSlideLst;
+	private $OpenXmlSlideMasterLst;
+	private $OpenXmlSharedSrc;
+	private $MsExcel_Sheets;
+	private $MsExcel_NoTBS;
+	private $MsExcel_KeepRelative;
+	private $MsExcel_Formulas;
+	private $MsExcel_Sheets_WkbIdx;
+	private $MsWord_HeaderFooter;
+	private $MsWord_DocPrId;
+	private $OpenXmlMap;
+	private $_ModeSave;
+	private $_ChartCaption;
+
 	function OnInstall() {
 		$TBS =& $this->TBS;
 
@@ -98,7 +145,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.10.8-beta2';
+		$this->Version = '1.11.0-beta3';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -1231,7 +1278,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	function ConvXmlUtf8($Txt, $ConvBr) {
 	// Used by TBS to convert special chars and new lines.
-		$x = htmlspecialchars(mb_convert_encoding($Txt, 'UTF-8', 'ISO-8859-1'), ENT_COMPAT); // ENT_COMPAT is no more the default value since PHP 8.1
+		$x = htmlspecialchars(iconv('ISO-8859-1', 'UTF-8', $Txt), ENT_COMPAT); // ENT_COMPAT is no more the default value since PHP 8.1
 		if ($ConvBr) $this->ConvBr($x);
 		return $x;
 	}
@@ -1383,12 +1430,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if (isset($Loc->PrmLst['adjust'])) {
 			$FieldLen = 0;
 			if ($this->ExtType==='odf') {
-				$Loc->otbsDim = $this->TbsPicGetDim_ODF($Txt, $Loc->PosBeg, false, $Loc->PosBeg, $FieldLen);
+				$Loc->Prop['otbsDim'] = $this->TbsPicGetDim_ODF($Txt, $Loc->PosBeg, false, $Loc->PosBeg, $FieldLen);
 			} else {
 				if (strpos($att,'v:imagedata')!==false) { 
-					$Loc->otbsDim = $this->TbsPicGetDim_OpenXML_vml($Txt, $Loc->PosBeg, false, $Loc->PosBeg, $FieldLen);
+					$Loc->Prop['otbsDim'] = $this->TbsPicGetDim_OpenXML_vml($Txt, $Loc->PosBeg, false, $Loc->PosBeg, $FieldLen);
 				} else {
-					$Loc->otbsDim = $this->TbsPicGetDim_OpenXML_dml($Txt, $Loc->PosBeg, false, $Loc->PosBeg, $FieldLen);
+					$Loc->Prop['otbsDim'] = $this->TbsPicGetDim_OpenXML_dml($Txt, $Loc->PosBeg, false, $Loc->PosBeg, $FieldLen);
 				}
 			}
 		}
@@ -1686,7 +1733,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		// Change the dimensions of the picture
-		if (isset($Loc->otbsDim)) {
+		if (isset($Loc->Prop['otbsDim'])) {
 			$this->TbsPicAdjust($Txt, $Loc, $ExternalPath);
 		}
 
@@ -1765,12 +1812,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		// Save position of the locator before dims are modified
-		if (!isset($Loc->svPosBeg)) {
-			$Loc->svPosBeg = $Loc->PosBeg;
-			$Loc->svPosEnd = $Loc->PosEnd;
+		if (!isset($Loc->Prop['svPosBeg'])) {
+			$Loc->Prop['svPosBeg'] = $Loc->PosBeg;
+			$Loc->Prop['svPosEnd'] = $Loc->PosEnd;
 		}
 
-		foreach ($Loc->otbsDim as $tDim) { // template dimensions. They must be sorted in reverse order of location
+		foreach ($Loc->Prop['otbsDim'] as $tDim) { // template dimensions. They must be sorted in reverse order of location
 			if ($tDim!==false) {
 				// find what dimensions should be edited
 				if ($adjust=='%') {
@@ -1810,8 +1857,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		// Update the position
-		$Loc->PosBeg = $Loc->svPosBeg + $delta;
-		$Loc->PosEnd = $Loc->svPosEnd + $delta;
+		$Loc->PosBeg = $Loc->Prop['svPosBeg'] + $delta;
+		$Loc->PosEnd = $Loc->Prop['svPosEnd'] + $delta;
 
 	}
 	
@@ -7395,6 +7442,9 @@ class clsTbsXmlLoc {
 	public $rel_PosBeg = false;
 	public $rel_Len = false;
 
+	// PHP 8.2 Compatibility
+	private $pST_PosBeg;
+
 	/**
 	 * Search a start tag of an element in the TXT contents, and return an object if it is found.
 	 * Instead of a TXT content, it can be an object of the class. Thus, the object is linked to a copy
@@ -7915,7 +7965,7 @@ class clsTbsXmlLoc {
 }
 
 /*
-TbsZip version 2.16
+TbsZip version 2.16 + compatibility PHP 8.2
 Date    : 2014-04-08
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
@@ -7930,6 +7980,11 @@ define('TBSZIP_FILE',8);       // output to file  , or add from file
 define('TBSZIP_STRING',32);    // output to string, or add from string
 
 class clsTbsZip {
+
+	public $Meth8Ok;
+	public $DisplayError;
+	public $ArchFile;
+	public $Error;
 
 	function __construct() {
 		$this->Meth8Ok = extension_loaded('zlib'); // check if Zlib extension is available. This is need for compress and uncompress with method 8.
