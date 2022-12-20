@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.11.0-beta3
- * @date 2022-11-30
+ * @version 1.11.0-beta4
+ * @date 2022-12-20
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -99,13 +99,13 @@ class clsOpenTBS extends clsTbsZip {
 	private $IdxToCheck;
 	private $PrevVals;
 	private $ImageIndex;
+	private $ImageInternal;
 	private $LastReadNotStored;
 
 	private $ExtEquiv;
 	private $ExtType;
 	private $OtbsSheetSlidesDelete;
 	private $OtbsSheetSlidesVisible;
-	private $ImageInternal;
 	private $OtbsSheetRangeNames;
 	private $OpenDocCharts;
 	private $OpenDocManif;
@@ -129,7 +129,7 @@ class clsOpenTBS extends clsTbsZip {
 	private $OpenXmlMap;
 	private $_ModeSave;
 	private $_ChartCaption;
-
+		
 	function OnInstall() {
 		$TBS =& $this->TBS;
 
@@ -145,7 +145,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.11.0-beta3';
+		$this->Version = '1.11.0-beta4';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -2670,7 +2670,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * @param string         $CellEl   Name of the XML entity for cells.
 	 * @param boolean        $AddMissRow True means that an empty row in inserted in order to finish the range visit.
 	 *
-	 * @return object The clsTbsXmlLoc object of the cell element, with extra properties info : cellCol, cellRow
+	 * @return object The clsTbsXmlCellReader object of the cell element, with extra properties info : cellCol, cellRow
 	 *                Note that is can be a not existing item if the asked range goes out of the sheet.
 	 */
 	function XML_GetNextCellLoc(&$SheetLoc, $Range, $PrevLoc, $RowEl, $CellEl, $AttRowR, $AttCellR, $AddMissing) {
@@ -2756,7 +2756,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$rowLoc->RepeatIdx++;
 				$currRow++;
 			} else {
-				$rowLoc = clsTbsXmlLoc::FindElement($SheetLoc, $RowEl, $r_pos, true);
+				$rowLoc = clsTbsXmlCellReader::FindElement($SheetLoc, $RowEl, $r_pos, true);
 				if ($rowLoc === false) {
 					if ($debug) echo "FAIL row not found";
 					$currRowOk = false;
@@ -2790,7 +2790,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$SheetLoc->Txt = substr_replace($SheetLoc->Txt, str_repeat($x, $nb), $r_pos, 0);
 				// The row locator must be targeted on the last inserted row
 				$r_pos = $r_pos + ($nb - 1) * $x_len;
-				$rowLoc = new clsTbsXmlLoc($SheetLoc->Txt, $RowEl, $r_pos, null, $SheetLoc, false);
+				$rowLoc = new clsTbsXmlCellReader($SheetLoc->Txt, $RowEl, $r_pos, null, $SheetLoc, false);
 				$rowLoc->FindEndTag();
 			} else {
 				// No more data
@@ -2811,7 +2811,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$cellLoc->RepeatIdx++;
 				$currCol++;
 			} else {
-				$cellLoc = clsTbsXmlLoc::FindElement($rowLoc, $CellEl, $c_pos, true);
+				$cellLoc = clsTbsXmlCellReader::FindElement($rowLoc, $CellEl, $c_pos, true);
 				if ($cellLoc === false) {
 					if ($debug) echo "FAIL, rowLoc = " . $rowLoc->GetSrc();
 					$currColOk = false;
@@ -2842,12 +2842,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$nb = ($targetCol - $currCol);
 				$rowLoc->AppendInnerSrc(str_repeat($x, $nb));
 				// The cell locator must be targeted on the last inserted cell
-				$cellLoc = new clsTbsXmlLoc($rowLoc->Txt, $CellEl, ($rowLoc->GetInnerAppendPos() - $x_len), null, $rowLoc, false);
+				$cellLoc = new clsTbsXmlCellReader($rowLoc->Txt, $CellEl, ($rowLoc->GetInnerAppendPos() - $x_len), null, $rowLoc, false);
 				$cellLoc->FindEndTag();
 			} else {
 				// No more data => locator on a non-existing entity ($cellLoc->Exists = false)
 				if ($debug) echo "\n* Insert Cell : create phantom cell";
-				$cellLoc = clsTbsXmlLoc::CreatePhantomElement($rowLoc, $rowLoc->GetInnerAppendPos());
+				$cellLoc = clsTbsXmlCellReader::CreatePhantomElement($rowLoc, $rowLoc->GetInnerAppendPos());
 			}
 			$cellLoc->RepeatIdx = 1;
 			$cellLoc->RepeatMax = 1;
@@ -7444,7 +7444,7 @@ class clsTbsXmlLoc {
 
 	// PHP 8.2 Compatibility
 	private $pST_PosBeg;
-
+	
 	/**
 	 * Search a start tag of an element in the TXT contents, and return an object if it is found.
 	 * Instead of a TXT content, it can be an object of the class. Thus, the object is linked to a copy
@@ -7465,7 +7465,7 @@ class clsTbsXmlLoc {
 		$PosBeg = clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true , $PosBeg, $Forward, true);
 		if ($PosBeg===false) return false;
 
-		return new clsTbsXmlLoc($Txt, $Tag, $PosBeg, null, $Parent);
+		return new static($Txt, $Tag, $PosBeg, null, $Parent);
 
 	}
 
@@ -7499,14 +7499,14 @@ class clsTbsXmlLoc {
 			}
 		} while ($p!==false);
 
-		return new clsTbsXmlLoc($Txt, $Tag, $PosBeg);
+		return new static($Txt, $Tag, $PosBeg);
 
 	}
 
 	// Search an element in the TXT contents, and return an object if it's found.
 	static function FindElement(&$TxtOrObj, $Tag, $PosBeg, $Forward=true) {
 
-		$XmlLoc = clsTbsXmlLoc::FindStartTag($TxtOrObj, $Tag, $PosBeg, $Forward);
+		$XmlLoc = static::FindStartTag($TxtOrObj, $Tag, $PosBeg, $Forward);
 		if ($XmlLoc===false) return false;
 
 		$XmlLoc->FindEndTag();
@@ -7547,7 +7547,7 @@ class clsTbsXmlLoc {
 			if ($z==='<') $search = false;
 		} while ($search);
 
-		return new clsTbsXmlLoc($Txt, '', $p);
+		return new static($Txt, '', $p);
 
 	}
 
@@ -7561,7 +7561,7 @@ class clsTbsXmlLoc {
 	 */
 	static function FindElementHavingAtt(&$Txt, $Att, $PosBeg, $Forward=true) {
 
-		$XmlLoc = clsTbsXmlLoc::FindStartTagHavingAtt($Txt, $Att, $PosBeg, $Forward);
+		$XmlLoc = static::FindStartTagHavingAtt($Txt, $Att, $PosBeg, $Forward);
 		if ($XmlLoc===false) return false;
 
 		$XmlLoc->FindEndTag();
@@ -7591,7 +7591,7 @@ class clsTbsXmlLoc {
 		$SelfClosing = null;
 		$Exists = false;
 
-		$XmlLoc = new clsTbsXmlLoc($Txt, $Name, $PosBeg, $SelfClosing, $Parent, $Exists);
+		$XmlLoc = new static($Txt, $Name, $PosBeg, $SelfClosing, $Parent, $Exists);
 			
 		return $XmlLoc;
 		
@@ -7962,6 +7962,17 @@ class clsTbsXmlLoc {
 		$this->rel_Len = false;
 	}
 
+}
+
+class clsTbsXmlCellReader extends clsTbsXmlLoc {
+
+	public  $RepeatIdx;
+	public  $RepeatMax;
+	public  $RowOk;
+	public  $cellCol;
+	public  $cellRow;
+	public  $CellLst;
+	
 }
 
 /*

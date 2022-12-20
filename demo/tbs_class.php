@@ -3,8 +3,8 @@
  *
  * TinyButStrong - Template Engine for Pro and Beginners
  *
- * @version 3.15.0-beta-3 for PHP 5, 7, 8
- * @date    2022-11-30
+ * @version 3.15.0-beta-4 for PHP 5, 7, 8
+ * @date    2022-12-08
  * @link    http://www.tinybutstrong.com Web site
  * @author  http://www.tinybutstrong.com/onlyyou.html
  * @license http://opensource.org/licenses/LGPL-3.0 LGPL-3.0
@@ -766,7 +766,7 @@ public $Assigned = array();
 public $ExtendedMethods = array();
 public $ErrCount = 0;
 // Undocumented (can change at any version)
-public $Version = '3.15.0-beta-3';
+public $Version = '3.15.0-beta-4';
 public $Charset = '';
 public $TurboBlock = true;
 public $VarPrefix = '';
@@ -4496,7 +4496,7 @@ static function f_Misc_CheckCondition($Str) {
 		$NoDelim1 = self::f_Misc_DelDelimiter($Val1,'\'');
 		$NoDelim2 = self::f_Misc_DelDelimiter($Val2,'\'');
 	} else {
-		$Nude1 = $Nude2 = false;
+		$NoDelim1 = $NoDelim2 = false;
 	}
 
 	// Compare values
