@@ -3,8 +3,8 @@
  *
  * TinyButStrong - Template Engine for Pro and Beginners
  *
- * @version 3.15.0-beta-4 for PHP 5, 7, 8
- * @date    2022-12-08
+ * @version 3.15.0-beta-5 for PHP 5, 7, 8
+ * @date    2022-12-20
  * @link    http://www.tinybutstrong.com Web site
  * @author  http://www.tinybutstrong.com/onlyyou.html
  * @license http://opensource.org/licenses/LGPL-3.0 LGPL-3.0
@@ -75,6 +75,12 @@ class clsTbsLocator {
 	public $OpePrm;	
 	public $OpeArg;	
 
+	// Sub-template
+	public $SaveSrc;
+	public $SaveMode;
+	public $SaveVarRef;
+	public $SaveRender;
+
 	// Att
 	public $PrmPos;
 	public $AttForward;
@@ -93,6 +99,7 @@ class clsTbsLocator {
 	public $DelPos;
 	public $DelLen;
 	public $PosBeg2;
+	public $PosEnd2;
 
 	// blocks
 	public $P1;
@@ -766,7 +773,7 @@ public $Assigned = array();
 public $ExtendedMethods = array();
 public $ErrCount = 0;
 // Undocumented (can change at any version)
-public $Version = '3.15.0-beta-4';
+public $Version = '3.15.0-beta-5';
 public $Charset = '';
 public $TurboBlock = true;
 public $VarPrefix = '';
@@ -798,6 +805,8 @@ public $_piOnFrm_Ok = false;
 
 // Compatibility with PHP 8.2
 private $_UserFctLst;
+private $_Subscript;
+public  $CurrPrm;
 
 private $_piOnData;
 private $_piBeforeLoadTemplate;
@@ -1924,6 +1933,8 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 		}
 	}
 
+	$IsTpl = false; // Indicates is $CurrVal is a sub-template
+
 	if (isset($Loc->PrmLst['file'])) {
 		$x = $Loc->PrmLst['file'];
 		if ($x===true) $x = $CurrVal;
@@ -1933,6 +1944,7 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 		if ($x!=='') {
 			if ($this->f_Misc_GetFile($CurrVal, $x, $this->_LastFile, $this->IncludePath)) {
 				$this->meth_Locator_PartAndRename($CurrVal, $Loc->PrmLst);
+				$IsTpl = true;
 			} else {
 				if (!isset($Loc->PrmLst['noerr'])) $this->meth_Misc_Alert($Loc,'the file \''.$x.'\' given by parameter file is not found or not readable.',true);
 			}
@@ -1964,6 +1976,7 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 			}
 			if ($sub) $this->meth_Misc_ChangeMode(false,$Loc,$CurrVal);
 			$this->meth_Locator_PartAndRename($CurrVal, $Loc->PrmLst);
+			$IsTpl = true;
 			unset($this->CurrPrm);
 			$ConvProtect = false;
 		}
@@ -2057,7 +2070,7 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 	} else {
 
 		if ($ConvProtect) $CurrVal = str_replace($this->_ChrOpen,$this->_ChrProtect,$CurrVal); // TBS protection
-		$NewEnd = $Loc->PosBeg + strlen($CurrVal);
+		$NewEnd = $Loc->PosBeg + ($IsTpl ? 0 : strlen($CurrVal));
 
 	}
 
@@ -3493,7 +3506,7 @@ function meth_Merge_AutoOn(&$Txt,$Name,$TplVar,$MergeVar) {
 
 			// Del parts
 			if ($DelField) {
-				if ($LocA->PosBeg2!==false) $Txt = substr_replace($Txt,'',$LocA->PosBeg2,$LocA->PosEnd2-$LocA->PosBeg2+1);
+				if ($LocA->PosBeg2!==false) $Txt = substr_replace($Txt, '', $LocA->PosBeg2, $LocA->PosEnd2 - $LocA->PosBeg2 + 1);
 				$Txt = substr_replace($Txt,'',$LocA->PosBeg,$LocA->PosEnd-$LocA->PosBeg+1);
 				$Pos = $LocA->PosBeg;
 			} else {
@@ -3558,7 +3571,7 @@ function meth_Merge_AutoOn(&$Txt,$Name,$TplVar,$MergeVar) {
 
 	}
 
-	if ($MergeVar) $this->meth_Merge_AutoVar($this->Source,true,$Name); // merge other fields (must have subnames)
+	if ($MergeVar) $this->meth_Merge_AutoVar($Txt,true,$Name); // merge other fields (must have subnames)
 
 	foreach ($this->Assigned as $n=>$a) {
 		if (isset($a['auto']) && ($a['auto']===$Name)) {
