@@ -6485,10 +6485,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ( $Loc->Exists && ($Loc->GetInnerStart() !== false) ) {
 			$type = $Loc->GetAttLazy('office:value-type');
 			if ($type === 'string') {
-				// errors are in this case, but with attribute { calcext:value-type="error" }
-				if ($z = clsTbsXmlLoc::FindElement($Loc, 'text:p', 0, true)) {
-					$x = $z->GetInnerSrc();
-				}
+				// Errors are in this case, but with attribute { calcext:value-type="error" }
+				// A simple text is ebedded in a <text:p>. Line breaks are made with several <text:p>. Formatinf are made with <text:span>
+				$x = $Loc->GetInnerSrc();
+				$x = str_replace('<text:p/>', '<text:p></text:p>', $x);
+				$x = str_replace('</text:p><text:p>', "\n", $x); // replace new paragraph with line breaks
+				$x = strip_tags($x); // take of formating
 			} elseif ($type === 'time') {
 				$z = $Loc->GetAttLazy('office:time-value');
 				if ($z !== false) {

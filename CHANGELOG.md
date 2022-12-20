@@ -13,6 +13,8 @@ All notable changes to this project will be documented in this file.
 - Charts with MsOffice: merging values or categories that have special characters (like <, >, &) did produce an invalid document.
   No error is prompted during the merge but an error is prompted by Ms Office when opening the document. 
 
+- Command OPENTBS_GET_CELLS with ODS : it used to get only the first line of a string value. Now it support multi-lines and it take formats off.
+
 ### Enhancements
 
 - PHP 8.2 compatibilty : non UTF-8 template will not raise a notice. The UTF-8 encoding feature no longer uses the deprecated PHP function utf8_encode().
