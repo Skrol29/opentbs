@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.0-beta4] - 2022-12-20
+
+### Enhancements
+
+- PHP 8.2 compatibility : utf8_encode is deprecated + creation of dynamic property is deprecated.
+
+### Bug fixes
+
+- Charts with MsOffice: merging values or categories that have special characters (like <, >, &) did produce an invalid document.
+  No error is prompted during the merge but an error is prompted by Ms Office when opening the document. 
+
+- Command OPENTBS_GET_CELLS with ODS : it used to get only the first line of a string value. Now it support multi-lines and it take formats off.
+
+### Enhancements
+
+- PHP 8.2 compatibilty : non UTF-8 template will not raise a notice. The UTF-8 encoding feature no longer uses the deprecated PHP function utf8_encode().
+
+## [1.10.7] - 2022-05-03
+
+### Bug fixes
+
+- Charts with MsOffice: merging values that are not empty and not numerical make a document that cannot be opened. Ms Word error : « Word experienced an error trying to open the file ».
+                        Now a fatal OpenTBS error is raised instead.
+
+## [1.10.6] - 2022-02-23
+
+### Bug fixes
+
+- Regression: some few XLSX formulas may keep their cached values or keep beeing dynamic array formulas.
+
+## [1.10.5] - 2022-02-22
+
+### Bug fixes
+
+- Composer : the required version of TBS is updated in order to ensure the compatibility with PHP 8.1.
+
+### Enhancements
+
+- Prevent invalid XLSX when merged sheets have dynamic array formulas (a new feature first released with Office 365 in 2018)
+
+
 ## [1.10.4] - 2022-02-07
 
 ### Bug fixes

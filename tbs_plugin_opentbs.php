@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.10.4
- * @date 2022-02-07
+ * @version 1.11.0-beta4
+ * @date 2022-12-20
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -20,66 +20,113 @@
  */
 class clsOpenTBS extends clsTbsZip
 {
-    const OPENTBS_PLUGIN = 'clsOpenTBS';
-    const OPENTBS_DOWNLOAD = 1;   // download (default) = TBS_OUTPUT
-    const OPENTBS_NOHEADER = 4;   // option to use with DOWNLOAD: no header is sent
-    const OPENTBS_FILE = 8;       // output to file   = TBSZIP_FILE
-    const OPENTBS_DEBUG_XML = 16; // display the result of the current subfile
-    const OPENTBS_STRING = 32;    // output to string = TBSZIP_STRING
-    const OPENTBS_DEBUG_AVOIDAUTOFIELDS = 64; // avoit auto field merging during the Show() method
-    const OPENTBS_INFO = 'clsOpenTBS.Info';       // command to display the archive info
-    const OPENTBS_RESET = 'clsOpenTBS.Reset';      // command to reset the changes in the current archive
-    const OPENTBS_ADDFILE = 'clsOpenTBS.AddFile';    // command to add a new file in the archive
-    const OPENTBS_DELETEFILE = 'clsOpenTBS.DeleteFile'; // command to delete a file in the archive
-    const OPENTBS_REPLACEFILE = 'clsOpenTBS.ReplaceFile'; // command to replace a file in the archive
-    const OPENTBS_EDIT_ENTITY = 'clsOpenTBS.EditEntity';  // command to edit an attribute
-    const OPENTBS_READ_ENTITY = 'clsOpenTBS.ReadEntity';  // command to read an attribute
-    const OPENTBS_FILEEXISTS = 'clsOpenTBS.FileExists';
-    const OPENTBS_GET_FILES = 'clsOpenTBS.GetFiles';
-    const OPENTBS_GET_OPENED_FILES = 'clsOpenTBS.GetOpenedFiles';
-    const OPENTBS_WALK_OPENED_FILES = 'clsOpenTBS.WalkOpenedFiles';
-    const OPENTBS_CHART = 'clsOpenTBS.Chart';
-    const OPENTBS_CHART_INFO = 'clsOpenTBS.ChartInfo';
-    const OPENTBS_CHART_DELETE_CATEGORY = 'clsOpenTBS.ChartDeleteCategory';
-    const OPENTBS_DEFAULT = '';   // Charset
-    const OPENTBS_ALREADY_XML = false;
-    const OPENTBS_ALREADY_UTF8 = 'already_utf8';
-    const OPENTBS_DEBUG_XML_SHOW = 'clsOpenTBS.DebugXmlShow';
-    const OPENTBS_DEBUG_XML_CURRENT = 'clsOpenTBS.DebugXmlCurrent';
-    const OPENTBS_DEBUG_INFO = 'clsOpenTBS.DebugInfo';
-    const OPENTBS_DEBUG_CHART_LIST = 'clsOpenTBS.DebugInfo'; // deprecated
-    const OPENTBS_FORCE_DOCTYPE = 'clsOpenTBS.ForceDocType';
-    const OPENTBS_DELETE_ELEMENTS = 'clsOpenTBS.DeleteElements';
-    const OPENTBS_SELECT_SHEET = 'clsOpenTBS.SelectSheet';
-    const OPENTBS_SELECT_SLIDE = 'clsOpenTBS.SelectSlide';
-    const OPENTBS_SELECT_MAIN = 'clsOpenTBS.SelectMain';
-    const OPENTBS_DISPLAY_SHEETS = 'clsOpenTBS.DisplaySheets';
-    const OPENTBS_DELETE_SHEETS = 'clsOpenTBS.DeleteSheets';
-    const OPENTBS_DELETE_COMMENTS = 'clsOpenTBS.DeleteComments';
-    const OPENTBS_MERGE_SPECIAL_ITEMS = 'clsOpenTBS.MergeSpecialItems';
-    const OPENTBS_CHANGE_PICTURE = 'clsOpenTBS.ChangePicture';
-    const OPENTBS_COUNT_SLIDES = 'clsOpenTBS.CountSlides';
-    const OPENTBS_COUNT_SHEETS = 'clsOpenTBS.CountSheets';
-    const OPENTBS_SEARCH_IN_SLIDES = 'clsOpenTBS.SearchInSlides';
-    const OPENTBS_DISPLAY_SLIDES = 'clsOpenTBS.DisplaySlides';
-    const OPENTBS_DELETE_SLIDES = 'clsOpenTBS.DeleteSlides';
-    const OPENTBS_SELECT_FILE = 'clsOpenTBS.SelectFile';
-    const OPENTBS_ADD_CREDIT = 'clsOpenTBS.AddCredit';
-    const OPENTBS_SYSTEM_CREDIT = 'clsOpenTBS.SystemCredit';
-    const OPENTBS_RELATIVE_CELLS = 'clsOpenTBS.RelativeCells';
-    const OPENTBS_MAKE_OPTIMIZED_TEMPLATE = 'clsOpenTBS.MakeOptimizedTemplate';
-    const OPENTBS_GET_CELLS = 'clsOpenTBS.GetCells';
-    const OPENTBS_SET_CELLS = 'clsOpenTBS.SetCells';
-    const OPENTBS_FIRST = 1; // 
-    const OPENTBS_GO = 2;    // = TBS_GO
-    const OPENTBS_ALL = 4;   // = TBS_ALL
-// Types of file to select
-    const OPENTBS_GET_HEADERS_FOOTERS = 'clsOpenTBS.SelectHeaderFooter';
-    const OPENTBS_SELECT_HEADER = 'clsOpenTBS.SelectHeader';
-    const OPENTBS_SELECT_FOOTER = 'clsOpenTBS.SelectFooter';
-// Sub-types of file
-    const OPENTBS_EVEN = 128;
-    
+  const OPENTBS_PLUGIN = 'clsOpenTBS';
+  const OPENTBS_DOWNLOAD = 1;   // download (default) = TBS_OUTPUT
+  const OPENTBS_NOHEADER = 4;   // option to use with DOWNLOAD: no header is sent
+  const OPENTBS_FILE = 8;       // output to file   = TBSZIP_FILE
+  const OPENTBS_DEBUG_XML = 16; // display the result of the current subfile
+  const OPENTBS_STRING = 32;    // output to string = TBSZIP_STRING
+  const OPENTBS_DEBUG_AVOIDAUTOFIELDS = 64; // avoit auto field merging during the Show() method
+  const OPENTBS_INFO = 'clsOpenTBS.Info';       // command to display the archive info
+  const OPENTBS_RESET = 'clsOpenTBS.Reset';      // command to reset the changes in the current archive
+  const OPENTBS_ADDFILE = 'clsOpenTBS.AddFile';    // command to add a new file in the archive
+  const OPENTBS_DELETEFILE = 'clsOpenTBS.DeleteFile'; // command to delete a file in the archive
+  const OPENTBS_REPLACEFILE = 'clsOpenTBS.ReplaceFile'; // command to replace a file in the archive
+  const OPENTBS_EDIT_ENTITY = 'clsOpenTBS.EditEntity';  // command to edit an attribute
+  const OPENTBS_READ_ENTITY = 'clsOpenTBS.ReadEntity';  // command to read an attribute
+  const OPENTBS_FILEEXISTS = 'clsOpenTBS.FileExists';
+  const OPENTBS_GET_FILES = 'clsOpenTBS.GetFiles';
+  const OPENTBS_GET_OPENED_FILES = 'clsOpenTBS.GetOpenedFiles';
+  const OPENTBS_WALK_OPENED_FILES = 'clsOpenTBS.WalkOpenedFiles';
+  const OPENTBS_CHART = 'clsOpenTBS.Chart';
+  const OPENTBS_CHART_INFO = 'clsOpenTBS.ChartInfo';
+  const OPENTBS_CHART_DELETE_CATEGORY = 'clsOpenTBS.ChartDeleteCategory';
+  const OPENTBS_DEFAULT = '';   // Charset
+  const OPENTBS_ALREADY_XML = false;
+  const OPENTBS_ALREADY_UTF8 = 'already_utf8';
+  const OPENTBS_DEBUG_XML_SHOW = 'clsOpenTBS.DebugXmlShow';
+  const OPENTBS_DEBUG_XML_CURRENT = 'clsOpenTBS.DebugXmlCurrent';
+  const OPENTBS_DEBUG_INFO = 'clsOpenTBS.DebugInfo';
+  const OPENTBS_DEBUG_CHART_LIST = 'clsOpenTBS.DebugInfo'; // deprecated
+  const OPENTBS_FORCE_DOCTYPE = 'clsOpenTBS.ForceDocType';
+  const OPENTBS_DELETE_ELEMENTS = 'clsOpenTBS.DeleteElements';
+  const OPENTBS_SELECT_SHEET = 'clsOpenTBS.SelectSheet';
+  const OPENTBS_SELECT_SLIDE = 'clsOpenTBS.SelectSlide';
+  const OPENTBS_SELECT_MAIN = 'clsOpenTBS.SelectMain';
+  const OPENTBS_DISPLAY_SHEETS = 'clsOpenTBS.DisplaySheets';
+  const OPENTBS_DELETE_SHEETS = 'clsOpenTBS.DeleteSheets';
+  const OPENTBS_DELETE_COMMENTS = 'clsOpenTBS.DeleteComments';
+  const OPENTBS_MERGE_SPECIAL_ITEMS = 'clsOpenTBS.MergeSpecialItems';
+  const OPENTBS_CHANGE_PICTURE = 'clsOpenTBS.ChangePicture';
+  const OPENTBS_COUNT_SLIDES = 'clsOpenTBS.CountSlides';
+  const OPENTBS_COUNT_SHEETS = 'clsOpenTBS.CountSheets';
+  const OPENTBS_SEARCH_IN_SLIDES = 'clsOpenTBS.SearchInSlides';
+  const OPENTBS_DISPLAY_SLIDES = 'clsOpenTBS.DisplaySlides';
+  const OPENTBS_DELETE_SLIDES = 'clsOpenTBS.DeleteSlides';
+  const OPENTBS_SELECT_FILE = 'clsOpenTBS.SelectFile';
+  const OPENTBS_ADD_CREDIT = 'clsOpenTBS.AddCredit';
+  const OPENTBS_SYSTEM_CREDIT = 'clsOpenTBS.SystemCredit';
+  const OPENTBS_RELATIVE_CELLS = 'clsOpenTBS.RelativeCells';
+  const OPENTBS_MAKE_OPTIMIZED_TEMPLATE = 'clsOpenTBS.MakeOptimizedTemplate';
+  const OPENTBS_GET_CELLS = 'clsOpenTBS.GetCells';
+  const OPENTBS_SET_CELLS = 'clsOpenTBS.SetCells';
+  const OPENTBS_FIRST = 1; // 
+  const OPENTBS_GO = 2;    // = TBS_GO
+  const OPENTBS_ALL = 4;   // = TBS_ALL
+  // Types of file to select
+  const OPENTBS_GET_HEADERS_FOOTERS = 'clsOpenTBS.SelectHeaderFooter';
+  const OPENTBS_SELECT_HEADER = 'clsOpenTBS.SelectHeader';
+  const OPENTBS_SELECT_FOOTER = 'clsOpenTBS.SelectFooter';
+  // Sub-types of file
+  const OPENTBS_EVEN = 128;
+
+	// Compatibility with PHP 8.2
+	public $TBS;
+	public $Version;
+	public $DebugLst;
+	public $ExtInfo;
+
+	public $OutputMode;
+	public $OutputHandle;
+
+	private $TbsStoreLst;
+	private $TbsCurrIdx;
+	private $TbsSystemCredits;
+	private $TbsNoField;
+	private $IdxToCheck;
+	private $PrevVals;
+	private $ImageIndex;
+	private $ImageInternal;
+	private $LastReadNotStored;
+
+	private $ExtEquiv;
+	private $ExtType;
+	private $OtbsSheetSlidesDelete;
+	private $OtbsSheetSlidesVisible;
+	private $OtbsSheetRangeNames;
+	private $OpenDocCharts;
+	private $OpenDocManif;
+	private $OpenDoc_SheetSlides;
+	private $OpenDoc_SheetSlides_FileId;
+	private $OpenDoc_Styles;
+	private $OpenXmlRid;
+	private $OpenXmlCTypes;
+	private $OpenXmlCharts;
+	private $OpenXmlSharedStr;
+	private $OpenXmlSlideLst;
+	private $OpenXmlSlideMasterLst;
+	private $OpenXmlSharedSrc;
+	private $MsExcel_Sheets;
+	private $MsExcel_NoTBS;
+	private $MsExcel_KeepRelative;
+	private $MsExcel_Formulas;
+	private $MsExcel_Sheets_WkbIdx;
+	private $MsWord_HeaderFooter;
+	private $MsWord_DocPrId;
+	private $OpenXmlMap;
+	private $_ModeSave;
+	private $_ChartCaption;
+		
 	function OnInstall() {
 		$TBS =& $this->TBS;
 
@@ -95,7 +142,7 @@ class clsOpenTBS extends clsTbsZip
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.10.4';
+		$this->Version = '1.11.0-beta4';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -306,7 +353,7 @@ class clsOpenTBS extends clsTbsZip
 			$this->TbsPicPrepare($Txt, $Loc, false);
 			$this->TbsPicAdd($Value, $PrmLst, $Txt, $Loc, 'ope=changepic');
 		} elseif ($ope==='delcol') {
-			// Delete the TBS field otherwise « return false » will produce a TBS error « doesn't have any subname » with [onload] fields.
+			// Delete the TBS field otherwise "return false" will produce a TBS error "doesn't have any subname" with [onload] fields.
 			$Txt = substr_replace($Txt, '', $PosBeg, $PosEnd - $PosBeg + 1);
 			$this->TbsDeleteColumns($Txt, $Value, $PrmLst, $PosBeg);
 			return false; // prevent TBS from actually merging the field
@@ -502,7 +549,7 @@ class clsOpenTBS extends clsTbsZip
 			if ($this->ExtEquiv==='xlsx') {
 				$SearchBy = ($x2) ? array('name', 'sheetId') : array('name', 'num');
 				$o = $this->MsExcel_SheetGetConf($x1, $SearchBy, true);
-				if ($o===false) return;
+				if ($o===false) return false;
 				if ($o->file===false) return $this->RaiseError("($Cmd) Error with sheet '$x1'. The corresponding XML subfile is not referenced.");
 				return $this->TbsLoadSubFileAsTemplate('xl/'.$o->file);
 			}
@@ -1228,7 +1275,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	function ConvXmlUtf8($Txt, $ConvBr) {
 	// Used by TBS to convert special chars and new lines.
-		$x = htmlspecialchars(utf8_encode($Txt), ENT_COMPAT); // ENT_COMPAT is no more the default value since PHP 8.1
+		$x = htmlspecialchars(iconv('ISO-8859-1', 'UTF-8', $Txt), ENT_COMPAT); // ENT_COMPAT is no more the default value since PHP 8.1
 		if ($ConvBr) $this->ConvBr($x);
 		return $x;
 	}
@@ -1348,44 +1395,44 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$att = false;
 		if ($this->ExtType==='odf') {
 			$att = 'draw:image#xlink:href';
-            $magnet = 'draw:frame';
+			$magnet = 'draw:frame';
 		} elseif ($this->ExtType==='openxml') {
 			$type = $this->OpenXML_FirstPicType($Txt, $Loc->PosBeg, $backward);
-            if ($type == 'vml') {
-                // old way
-                $att = 'v:imagedata#r:id';
-                $magnet = 'w:pict';
-            } elseif ($type == 'dml') {
-                $att = 'a:blip#r:embed';
-                $magnet = 'w:drawing';
-            } else {
-                return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] has failed to found the picture.');
-            }
+			if ($type == 'vml') {
+				// old way
+				$att = 'v:imagedata#r:id';
+				$magnet = 'w:pict';
+			} elseif ($type == 'dml') {
+				$att = 'a:blip#r:embed';
+				$magnet = 'w:drawing';
+			} else {
+				return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] has failed to found the picture.');
+			}
 		} else {
 			return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] is not supported with the current document type.');
 		}
 				
 		// Move the field to the attribute
-		// This technical works with cached fields because already cached fields are placed before the picture.
+		// This technical works while caching TBS fields because already cached fields are necessarily placed before the current picture.
 		$prefix = ($backward) ? '' : '+';
 		$Loc->PrmLst['att'] = $prefix.$att;
 		clsTinyButStrong::f_Xml_AttFind($Txt,$Loc,true);
 
 		// Delete parameter att to prevent TBS from another processing
 		unset($Loc->PrmLst['att']);
-	   
-        $Loc->PrmLst['magnet'] = $magnet;
-       
+
+		$Loc->PrmLst['magnet'] = $magnet;
+
 		// Get picture dimension information
 		if (isset($Loc->PrmLst['adjust'])) {
 			$FieldLen = 0;
 			if ($this->ExtType==='odf') {
-				$Loc->otbsDim = $this->TbsPicGetDim_ODF($Txt, $Loc->PosBeg, false, $Loc->PosBeg, $FieldLen);
+				$Loc->Prop['otbsDim'] = $this->TbsPicGetDim_ODF($Txt, $Loc->PosBeg, false, $Loc->PosBeg, $FieldLen);
 			} else {
 				if (strpos($att,'v:imagedata')!==false) { 
-					$Loc->otbsDim = $this->TbsPicGetDim_OpenXML_vml($Txt, $Loc->PosBeg, false, $Loc->PosBeg, $FieldLen);
+					$Loc->Prop['otbsDim'] = $this->TbsPicGetDim_OpenXML_vml($Txt, $Loc->PosBeg, false, $Loc->PosBeg, $FieldLen);
 				} else {
-					$Loc->otbsDim = $this->TbsPicGetDim_OpenXML_dml($Txt, $Loc->PosBeg, false, $Loc->PosBeg, $FieldLen);
+					$Loc->Prop['otbsDim'] = $this->TbsPicGetDim_OpenXML_dml($Txt, $Loc->PosBeg, false, $Loc->PosBeg, $FieldLen);
 				}
 			}
 		}
@@ -1613,12 +1660,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * @param array   $Prm     Caller parameter. Only used for error messages.
 	 */
 	function TbsPicAdd(&$Value, &$PrmLst, &$Txt, &$Loc, $Prm) {
-        
-        if ($Value == '') {
-            // The magnet parameter will delete the picture container
-            return true;
-        }
-        
+		
+		if ($Value == '') {
+			// The magnet parameter will delete the picture container
+			return true;
+		}
+		
 		$TBS = &$this->TBS;
 
 		$PrmLst['pic_prepared'] = true; // mark the locator as Picture prepared
@@ -1683,7 +1730,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		// Change the dimensions of the picture
-		if (isset($Loc->otbsDim)) {
+		if (isset($Loc->Prop['otbsDim'])) {
 			$this->TbsPicAdjust($Txt, $Loc, $ExternalPath);
 		}
 
@@ -1762,12 +1809,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		// Save position of the locator before dims are modified
-		if (!isset($Loc->svPosBeg)) {
-			$Loc->svPosBeg = $Loc->PosBeg;
-			$Loc->svPosEnd = $Loc->PosEnd;
+		if (!isset($Loc->Prop['svPosBeg'])) {
+			$Loc->Prop['svPosBeg'] = $Loc->PosBeg;
+			$Loc->Prop['svPosEnd'] = $Loc->PosEnd;
 		}
 
-		foreach ($Loc->otbsDim as $tDim) { // template dimensions. They must be sorted in reverse order of location
+		foreach ($Loc->Prop['otbsDim'] as $tDim) { // template dimensions. They must be sorted in reverse order of location
 			if ($tDim!==false) {
 				// find what dimensions should be edited
 				if ($adjust=='%') {
@@ -1807,8 +1854,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		// Update the position
-		$Loc->PosBeg = $Loc->svPosBeg + $delta;
-		$Loc->PosEnd = $Loc->svPosEnd + $delta;
+		$Loc->PosBeg = $Loc->Prop['svPosBeg'] + $delta;
+		$Loc->PosEnd = $Loc->Prop['svPosEnd'] + $delta;
 
 	}
 	
@@ -2176,25 +2223,25 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$this->ExtEquiv = false;
 		$this->ExtType = false;
 
-        // Find the extension
+		// Find the extension
 		if ($Ext===false) {
-            $Ext = basename($this->ArchFile);
-            $p = strrpos($Ext, '.');
-            $Ext = ($p===false) ? '' : strtolower(substr($Ext, $p + 1));
-            // At this point, $Ext may have special value '' or 'zip' (no extension in the the template file from a local file or stream file).
-        }
-    
-        $Frm = $this->Ext_DeductFormatFromExt($Ext);       
-        if ($Frm===false) {
-            $Frm = $this->Ext_DeductFormatFromContents($Ext); // may force $Ext to a valid extension
-        }
+			$Ext = basename($this->ArchFile);
+			$p = strrpos($Ext, '.');
+			$Ext = ($p===false) ? '' : strtolower(substr($Ext, $p + 1));
+			// At this point, $Ext may have special value '' or 'zip' (no extension in the the template file from a local file or stream file).
+		}
+	
+		$Frm = $this->Ext_DeductFormatFromExt($Ext);       
+		if ($Frm===false) {
+			$Frm = $this->Ext_DeductFormatFromContents($Ext); // may force $Ext to a valid extension
+		}
 
 		$TBS = &$this->TBS;
 		$set_option = method_exists($TBS, 'SetOption');
 		
 		$i = false;
 		$block_alias = false;
-        
+		
 	
 		if (isset($GLOBAL['_OPENTBS_AutoExt'][$Ext])) {
 			// User defined information
@@ -2210,10 +2257,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			if ($Ext==='ots') $this->ExtEquiv = 'ods';
 			$this->ExtType = 'odf';
 			$ctype = array('t' => 'text', 's' => 'spreadsheet', 'g' => 'graphics', 'f' => 'formula', 'p' => 'presentation', 'm' => 'text-master');
-            $z = substr($Ext, 2, 1);
-            if (isset($ctype[$z])) {
-                $i['ctype'] .= $ctype[$z];
-            }
+			$z = substr($Ext, 2, 1);
+			if (isset($ctype[$z])) {
+				$i['ctype'] .= $ctype[$z];
+			}
 			$i['pic_ext'] = array('png' => 'png', 'bmp' => 'bmp', 'gif' => 'gif', 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'jpe' => 'jpeg', 'jfif' => 'jpeg', 'tif' => 'tiff', 'tiff' => 'tiff');
 			$block_alias = array(
 				'tbs:p' => 'text:p',              // ODT+ODP
@@ -2342,17 +2389,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	function Ext_DeductFormatFromContents(&$Ext) {
 		if ($this->FileExists('content.xml')) {
 			// OpenOffice documents
-            $meta = 'META-INF/manifest.xml';
+			$meta = 'META-INF/manifest.xml';
 			if ($this->FileExists($meta)) {
-                $prefix = 'application/vnd.oasis.opendocument.';
-                $txt = $this->FileRead($meta, true);
-                if (strpos($txt, $prefix.'text') !== false) {
-                    $Ext = 'odt';
-                } elseif (strpos($txt, $prefix.'presentation') !== false) {
-                    $Ext = 'odp';
-                } elseif (strpos($txt, $prefix.'spreadsheet') !== false) {
-                    $Ext = 'ods';
-                }
+				$prefix = 'application/vnd.oasis.opendocument.';
+				$txt = $this->FileRead($meta, true);
+				if (strpos($txt, $prefix.'text') !== false) {
+					$Ext = 'odt';
+				} elseif (strpos($txt, $prefix.'presentation') !== false) {
+					$Ext = 'odp';
+				} elseif (strpos($txt, $prefix.'spreadsheet') !== false) {
+					$Ext = 'ods';
+				}
 				return 'odf';
 			}
 		} elseif ($this->FileExists('[Content_Types].xml')) {
@@ -2370,7 +2417,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 		return false;
 	}
-    
+	
 	// Return the idx of the main document, if any.
 	function Ext_GetMainIdx() {
 		if ( ($this->ExtInfo!==false) && isset($this->ExtInfo['main']) ) {
@@ -2381,7 +2428,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	/**
-     * Search the next tag of the asked type searching forward. (Not specific to MsWord, works for any XML)
+	 * Search the next tag of the asked type searching forward. (Not specific to MsWord, works for any XML)
 	 * @param string  $Txt
 	 * @param string  $Tag     must be prefixed with '<' or '</'.
 	 * @param integer $PosBeg 
@@ -2608,19 +2655,19 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * The process assumes that :
 	 * - trailing rows of the range can be misssing in the sheet but there is no missing row  between rows.
 	 * - trailing cols of the range can be misssing in a row     but there is no missing cell between cells.
-	 * If « $AddMissing = false » :
-	 *   Cells of missing columns are return by the function as a valid object with the property « Exists = false ».
+	 * If "$AddMissing = false" :
+	 *   Cells of missing columns are return by the function as a valid object with the property "Exists = false".
 	 *   Cells of missing rows    are return by the function as false.
 	 *   But missing cells are skiped in case of a range with with full columns.
 	 *
-     * @param string|object  $SheetLoc The locator of the sheet entity that directly contains row.
+	 * @param string|object  $SheetLoc The locator of the sheet entity that directly contains row.
 	 * @param array          $Range    A range info formated as array('cs'=>...,'rs'=>...,'ce'=>...,'re'=>...)
 	 * @param object         $PrevLoc  The previous locator returned by the function.
 	 * @param string         $RowEl    Name of the XML entity for rows.
 	 * @param string         $CellEl   Name of the XML entity for cells.
 	 * @param boolean        $AddMissRow True means that an empty row in inserted in order to finish the range visit.
 	 *
-	 * @return object The clsTbsXmlLoc object of the cell element, with extra properties info : cellCol, cellRow
+	 * @return object The clsTbsXmlCellReader object of the cell element, with extra properties info : cellCol, cellRow
 	 *                Note that is can be a not existing item if the asked range goes out of the sheet.
 	 */
 	function XML_GetNextCellLoc(&$SheetLoc, $Range, $PrevLoc, $RowEl, $CellEl, $AttRowR, $AttCellR, $AddMissing) {
@@ -2706,7 +2753,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$rowLoc->RepeatIdx++;
 				$currRow++;
 			} else {
-				$rowLoc = clsTbsXmlLoc::FindElement($SheetLoc, $RowEl, $r_pos, true);
+				$rowLoc = clsTbsXmlCellReader::FindElement($SheetLoc, $RowEl, $r_pos, true);
 				if ($rowLoc === false) {
 					if ($debug) echo "FAIL row not found";
 					$currRowOk = false;
@@ -2740,7 +2787,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$SheetLoc->Txt = substr_replace($SheetLoc->Txt, str_repeat($x, $nb), $r_pos, 0);
 				// The row locator must be targeted on the last inserted row
 				$r_pos = $r_pos + ($nb - 1) * $x_len;
-				$rowLoc = new clsTbsXmlLoc($SheetLoc->Txt, $RowEl, $r_pos, null, $SheetLoc, false);
+				$rowLoc = new clsTbsXmlCellReader($SheetLoc->Txt, $RowEl, $r_pos, null, $SheetLoc, false);
 				$rowLoc->FindEndTag();
 			} else {
 				// No more data
@@ -2761,7 +2808,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$cellLoc->RepeatIdx++;
 				$currCol++;
 			} else {
-				$cellLoc = clsTbsXmlLoc::FindElement($rowLoc, $CellEl, $c_pos, true);
+				$cellLoc = clsTbsXmlCellReader::FindElement($rowLoc, $CellEl, $c_pos, true);
 				if ($cellLoc === false) {
 					if ($debug) echo "FAIL, rowLoc = " . $rowLoc->GetSrc();
 					$currColOk = false;
@@ -2792,12 +2839,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$nb = ($targetCol - $currCol);
 				$rowLoc->AppendInnerSrc(str_repeat($x, $nb));
 				// The cell locator must be targeted on the last inserted cell
-				$cellLoc = new clsTbsXmlLoc($rowLoc->Txt, $CellEl, ($rowLoc->GetInnerAppendPos() - $x_len), null, $rowLoc, false);
+				$cellLoc = new clsTbsXmlCellReader($rowLoc->Txt, $CellEl, ($rowLoc->GetInnerAppendPos() - $x_len), null, $rowLoc, false);
 				$cellLoc->FindEndTag();
 			} else {
 				// No more data => locator on a non-existing entity ($cellLoc->Exists = false)
 				if ($debug) echo "\n* Insert Cell : create phantom cell";
-				$cellLoc = clsTbsXmlLoc::CreatePhantomElement($rowLoc, $rowLoc->GetInnerAppendPos());
+				$cellLoc = clsTbsXmlCellReader::CreatePhantomElement($rowLoc, $rowLoc->GetInnerAppendPos());
 			}
 			$cellLoc->RepeatIdx = 1;
 			$cellLoc->RepeatMax = 1;
@@ -3980,10 +4027,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		// Data X & Y, we assume that (X or Category) are always first and (Y or Value) are always second
 		// Correspond elements are <c:cat> and <c:val> or <c:xVal> and <c:yVal>
 		// Some charts may not have categories, they cannot be merged :-(
+		$type_num = 'c:numLit';
+		$type_len = strlen($type_num);
 		for ($i = 1 ; $i <= 2 ; $i++) {
 			$p1 = strpos($src, '<c:ptCount ', $p);
 			if ($p1===false) return ($i==1) ? "categories or values not found." : "categories not found, check the chart to add categories.";
-			// Points elements can be childs of <c:numCache> or <c:strCache> (the most common, means the source is a reference to a XLSX range),
+			// Coordinates elements can be childs of <c:numCache> or <c:strCache> (the most common, means the source is a reference to a XLSX range),
 			// but also <c:numLit> or <c:strLit> if the source is literal (rare, means the source is given has is in the chart, I've seen it possible only in XSLX)
 			$p2 = strpos($src, 'Lit>', $p1);
 			/* no need if cache values have bee previously converted into literal
@@ -3992,9 +4041,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			}
 			*/
 			if ($p2===false) return "Neither Literal nor Cached data is found for categories or values.";
-			$p2 = $p2 - 7;
-			$res['point'.$i.'_p'] = $p1;
-			$res['point'.$i.'_l'] = $p2 - $p1;
+			$p2 = $p2 - $type_len + 1; // start of the closing tag
+			$type = substr($src, $p2 + 2, $type_len); // 'c:strLit' or 'c:numLit'
+			$res['coord_'.$i.'_p'] = $p1;
+			$res['coord_'.$i.'_l'] = $p2 - $p1;
+			$res['coord_'.$i.'_is_num'] = ($type == 'c:numLit');
 			$p = $p2;
 		}
 		
@@ -4091,8 +4142,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		} else {
 
-			$point1 = ''; // category
-			$point2 = ''; // value
+			$coord_1 = ''; // Categories
+			$coord_2 = ''; // Values
 			$i = 0;
 			$v = reset($NewValues);
 			if (is_array($v)) {
@@ -4115,23 +4166,35 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					$x = $v;
 					$y = isset($val_lst[$k]) ? $val_lst[$k] : null;
 				}
-				// a category should not be missing otherwise its caption may not be display if the series is the first one
-				$point1 .= '<c:pt idx="'.$i.'"><c:v>'.$x.'</c:v></c:pt>';
-				// a missing value is possible
-				if ( (!is_null($y)) && ($y!==false) && ($y!=='') && ($y!=='NULL') ) {
-					$point2 .= '<c:pt idx="'.$i.'"><c:v>'.$y.'</c:v></c:pt>';
+				// coord_1 can be numerical if the chart is a XY
+				$ok = (!is_null($x)) && ($x!==false) && ($x!=='') && ($y!=='NULL');
+				// A category should not be missing otherwise its caption may not be display if the series is the first one
+				if ( $ok || (!$ser['coord_1_is_num']) ) {
+					// A non numerical value can produce a error while opening the document, without clue for debuging : « Word experienced an error trying to open the file ».
+					if ($ser['coord_1_is_num'] && (!is_numeric($x))) {
+						return $this->RaiseError("(ChartChangeSeries) '$ChartRef' : the value for X should be numerical. Provided value is : '$x'.");
+					}
+					$coord_1 .= '<c:pt idx="'.$i.'"><c:v>'.htmlspecialchars($x, ENT_NOQUOTES).'</c:v></c:pt>';
+				}
+				// But a missing value is supported by Ms Office. The idx attribute makes the association.
+				$ok = (!is_null($y)) && ($y!==false) && ($y!=='') && ($y!=='NULL');
+				if ($ok) {
+					if ($ser['coord_2_is_num'] && (!is_numeric($y))) {
+						return $this->RaiseError("(ChartChangeSeries) '$ChartRef' : the value for the category '$x' should be numerical. Provided value is : '$y'.");
+					}
+					$coord_2 .= '<c:pt idx="'.$i.'"><c:v>'.htmlspecialchars($y, ENT_NOQUOTES).'</c:v></c:pt>';
 				}
 				$i++;
 			} 
-			$point1 = '<c:ptCount val="'.$i.'"/>'.$point1;
-			$point2 = '<c:ptCount val="'.$i.'"/>'.$point2; // yes, the count is the same as point1 whenever missing values
+			$coord_1 = '<c:ptCount val="'.$i.'"/>'.$coord_1;
+			$coord_2 = '<c:ptCount val="'.$i.'"/>'.$coord_2; // yes, the count is the same as coord_1 whenever missing values
 
 			// change info in reverse order of placement in order to avoid extention problems
 			$src = $ser['src'];
 			unset($ser['src']);
-			$src = substr_replace($src, $point2, $ser['point2_p'], $ser['point2_l']);
-			$src = substr_replace($src, $point1, $ser['point1_p'], $ser['point1_l']);
-			if ( is_string($NewLegend) && isset($ser['leg_p']) && ($ser['leg_p'] < $ser['point1_p']) ) {
+			$src = substr_replace($src, $coord_2, $ser['coord_2_p'], $ser['coord_2_l']);
+			$src = substr_replace($src, $coord_1, $ser['coord_1_p'], $ser['coord_1_l']);
+			if ( is_string($NewLegend) && isset($ser['leg_p']) && ($ser['leg_p'] < $ser['coord_1_p']) ) {
 				$NewLegend = htmlspecialchars($NewLegend, ENT_NOQUOTES); // ENT_NOQUOTES because target is an element's content
 				$src = substr_replace($src, $NewLegend, $ser['leg_p'], $ser['leg_l']);
 			}
@@ -4748,8 +4811,22 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	
 		$p = 0;
 		while ( ($locF = clsTbsXmlLoc::FindElement($Txt, 'f', $p, true)) !== false ) {
+			
 			$f = $locF->GetInnerSrc();
+
+			// Since 2018, Office 365 brings dynamic array formulas. They can be typed array even if they are single, and they have a "ref" attribute
+			// that can makes the XLSX invalid if the ref does not start with ref of the cell. Unfortunately this can happen when cells are duplicated with OpenTBS.
+			// In order to avoid invalid XML, then if it is a dynamic array formula but on a single cell, then we turn it into a simple formula.
+			$t = $locF->GetAttLazy('t');
+			if ($t == 'array') {
+				$ref = $locF->GetAttLazy('ref');
+				if (strpos($ref, ':') === false) {
+					$locF->ReplaceSrc('<f>' . $f . '</f>');
+				}
+			}
+
 			$p = $locF->PosEnd;
+
 			$v = null;
 			if ($locC = clsTbsXmlLoc::FindElement($Txt, 'c', $locF->PosBeg, false)) {
 				if ($locV = clsTbsXmlLoc::FindElement($locC, 'v', 0, true)) {
@@ -4760,6 +4837,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				$p = $locC->PosEnd;
 			}
 			$formulas[$f] = $v;
+			
 		}
 
 	}
@@ -5624,7 +5702,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				}
 			} while ($ok);
 
-			// Add or delete the attribute « xml:space="preserve" » that must be set if there is a space before of after the text
+			// Add or delete the attribute { xml:space="preserve" } that must be set if there is a space before of after the text
 			if ($nb > 0) {
 				$with_space = false;
 				if ( substr($Txt, $wtc_p - 1, 1) === ' ') $with_space = true;
@@ -6404,10 +6482,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		if ( $Loc->Exists && ($Loc->GetInnerStart() !== false) ) {
 			$type = $Loc->GetAttLazy('office:value-type');
 			if ($type === 'string') {
-				// errors are in this case, but with attribute « calcext:value-type="error" »
-				if ($z = clsTbsXmlLoc::FindElement($Loc, 'text:p', 0, true)) {
-					$x = $z->GetInnerSrc();
-				}
+				// Errors are in this case, but with attribute { calcext:value-type="error" }
+				// A simple text is ebedded in a <text:p>. Line breaks are made with several <text:p>. Formatinf are made with <text:span>
+				$x = $Loc->GetInnerSrc();
+				$x = str_replace('<text:p/>', '<text:p></text:p>', $x);
+				$x = str_replace('</text:p><text:p>', "\n", $x); // replace new paragraph with line breaks
+				$x = strip_tags($x); // take of formating
 			} elseif ($type === 'time') {
 				$z = $Loc->GetAttLazy('office:time-value');
 				if ($z !== false) {
@@ -7343,24 +7423,27 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
  */
 class clsTbsXmlLoc {
 
-	public $PosBeg;
-	public $PosEnd; // can the end of the open tag, or end of the close tag.
+	public $PosBeg;      // Position of the first char ('<') of the element.
+	public $PosEnd;      // Position of the char '>' of the start tag or the end tag, depending on whether the end tag has beend seached or not ($pET_PosBeg === false).
 	public $SelfClosing; // null|false|true, null means unknown.
 	public $Txt;
 	public $Name = ''; 
-	public $Exists; 
+	public $Exists;      // False means it is a phantom element
 
-	public $pST_PosEnd = false; // position of the end of the start tag
-	public $pST_Src = false;    // cached source of the start tag, false if not cached
-	public $pET_PosBeg = false; // position of the begining of the end tag
+	public $pST_PosEnd = false; // Position of the end of the start tag ('>')
+	public $pST_Src = false;    // Cached source of the start tag, false if not cached
+	public $pET_PosBeg = false; // Position of the begining of the end tag. False means the end tag has not been searched.
 
-	public $Parent = false; // parent object
+	public $Parent = false; // Parent object
 
 	// For relative mode
 	public $rel_Txt = false;
 	public $rel_PosBeg = false;
 	public $rel_Len = false;
 
+	// PHP 8.2 Compatibility
+	private $pST_PosBeg;
+	
 	/**
 	 * Search a start tag of an element in the TXT contents, and return an object if it is found.
 	 * Instead of a TXT content, it can be an object of the class. Thus, the object is linked to a copy
@@ -7381,7 +7464,7 @@ class clsTbsXmlLoc {
 		$PosBeg = clsTinyButStrong::f_Xml_FindTagStart($Txt, $Tag, true , $PosBeg, $Forward, true);
 		if ($PosBeg===false) return false;
 
-		return new clsTbsXmlLoc($Txt, $Tag, $PosBeg, null, $Parent);
+		return new static($Txt, $Tag, $PosBeg, null, $Parent);
 
 	}
 
@@ -7415,14 +7498,14 @@ class clsTbsXmlLoc {
 			}
 		} while ($p!==false);
 
-		return new clsTbsXmlLoc($Txt, $Tag, $PosBeg);
+		return new static($Txt, $Tag, $PosBeg);
 
 	}
 
 	// Search an element in the TXT contents, and return an object if it's found.
 	static function FindElement(&$TxtOrObj, $Tag, $PosBeg, $Forward=true) {
 
-		$XmlLoc = clsTbsXmlLoc::FindStartTag($TxtOrObj, $Tag, $PosBeg, $Forward);
+		$XmlLoc = static::FindStartTag($TxtOrObj, $Tag, $PosBeg, $Forward);
 		if ($XmlLoc===false) return false;
 
 		$XmlLoc->FindEndTag();
@@ -7463,7 +7546,7 @@ class clsTbsXmlLoc {
 			if ($z==='<') $search = false;
 		} while ($search);
 
-		return new clsTbsXmlLoc($Txt, '', $p);
+		return new static($Txt, '', $p);
 
 	}
 
@@ -7477,7 +7560,7 @@ class clsTbsXmlLoc {
 	 */
 	static function FindElementHavingAtt(&$Txt, $Att, $PosBeg, $Forward=true) {
 
-		$XmlLoc = clsTbsXmlLoc::FindStartTagHavingAtt($Txt, $Att, $PosBeg, $Forward);
+		$XmlLoc = static::FindStartTagHavingAtt($Txt, $Att, $PosBeg, $Forward);
 		if ($XmlLoc===false) return false;
 
 		$XmlLoc->FindEndTag();
@@ -7486,6 +7569,11 @@ class clsTbsXmlLoc {
 
 	}
 	
+	/**
+	 * Create an instance with a phantom element.
+	 * A phatom element has a position but no contents, its length is 0.
+	 * It can be usefull in order to prepare some modifications that will be precised later.
+	 */
 	static function CreatePhantomElement(&$TxtOrObj, $PosBeg) {
 		
 		if (is_object($TxtOrObj)) {
@@ -7502,7 +7590,7 @@ class clsTbsXmlLoc {
 		$SelfClosing = null;
 		$Exists = false;
 
-		$XmlLoc = new clsTbsXmlLoc($Txt, $Name, $PosBeg, $SelfClosing, $Parent, $Exists);
+		$XmlLoc = new static($Txt, $Name, $PosBeg, $SelfClosing, $Parent, $Exists);
 			
 		return $XmlLoc;
 		
@@ -7575,19 +7663,38 @@ class clsTbsXmlLoc {
 		return (substr($this->Txt, $PosEnd-1, 1)=='/');
 	}
 	
-	// Return the outer len of the locator.
+	/**
+	 * Return the outer length of the locator.
+	 * That is the length between including '<' and '>'.
+	 * It may include only the start tag if the end tag has never been searched.
+	 *
+	 * @return integer
+	 */
 	function GetLen() {
 		return $this->PosEnd - $this->PosBeg + 1;
 	}
 
-	// Return the outer source of the locator.
+	/**
+	 * Return the outer source of the locator.
+	 * That is the string including '<' and '>'.
+	 * It may include only the start tag if the end tag has never been searched.
+	 *
+	 * @return string
+	 */
 	function GetSrc() {
 		return substr($this->Txt, $this->PosBeg, $this->GetLen() );
 	}
 
-	// Replace the source of the locator in the TXT contents.
-	// Update the locator's ending position.
-	// Too complicated to update other information, given that it can be deleted.
+	/**
+	 * Replace the source of the locator in the TXT contents.
+	 * Update the locator's ending position.
+	 * Too complicated to update other information, given that it can be deleted.
+	 *
+	 * @param string $new  New full source of the locator. For exemple '<span>Hello</span>'.
+	 *                     Empty string ('') means the locator is deleted.
+	 *
+	 * @return void
+	 */
 	function ReplaceSrc($new) {
 		$len = $this->GetLen(); // avoid PHP error : Strict Standards: Only variables should be passed by reference
 		$this->Txt = substr_replace($this->Txt, $new, $this->PosBeg, $len);
@@ -7607,36 +7714,55 @@ class clsTbsXmlLoc {
 	}
 
 	/**
-	 * Return the position for appending at the end of the inner contents.
+	 * Return the position for appending at the end of the inner contents (that is the string between start and end tags).
 	 * Return false if SelfClosing.
+	 *
+	 * @return integer|false
 	 */
 	function GetInnerAppendPos() {
 		return $this->pET_PosBeg;
 	}
 
-	// Return the start of the inner content.
-	// Return false if SelfClosing.
+	/**
+	 * Return the start of the inner content.
+	 * Return false if SelfClosing.
+	 *
+	 * @return integer|false
+	 */
 	function GetInnerStart() {
 		return ($this->pST_PosEnd===false) ? false : $this->pST_PosEnd + 1;
 	}
 
-	// Return the length of the inner content, or false if it's a self-closing tag
-	// Assume FindEndTag() is previously called.
-	// Return false if SelfClosing.
+	/**
+	 * Return the length of the inner content, or false if it's a self-closing tag.
+	 * Assume FindEndTag() is previously called.
+	 * Return false if SelfClosing.
+	 *
+	 * @return integer|false
+	 */
 	function GetInnerLen() {
 		return ($this->pET_PosBeg===false) ? false : $this->pET_PosBeg - $this->pST_PosEnd - 1;
 	}
 
-	// Return the contents of the inner content, or false if it's a self-closing tag 
-	// Assume FindEndTag() is previously called.
-	// Return false if SelfClosing.
+	/**
+	 * Return the contents of the inner content, or false if it's a self-closing tag 
+	 * Assume FindEndTag() is previously called.
+	 * Return false if SelfClosing.
+	 *
+	 * @return string|false
+	 */
 	function GetInnerSrc() {
 		return ($this->pET_PosBeg===false) ? false : substr($this->Txt, $this->pST_PosEnd + 1, $this->pET_PosBeg - $this->pST_PosEnd - 1 );
 	}
 
-	// Replace the inner source of the locator in the TXT contents. Update the locator's positions.
-	// Assume FindEndTag() is previously called.
-	// Convert a self-closing entity to a start+end entity if needed.
+	/**
+	 * Replace the inner source of the locator.
+	 * Update the locator's positions.
+	 * Assume FindEndTag() is previously called.
+	 * Convert a self-closing entity to a start+end entity if needed.
+	 *
+	 * @return void
+	 */
 	function ReplaceInnerSrc($new) {
 		if ($this->SelfClosing) {
 			$this->_ConvertToCouple($new);
@@ -7651,6 +7777,10 @@ class clsTbsXmlLoc {
 
 	/**
 	 * Append a contents at the end of the inner source.
+	 *
+	 * @param string  $add   The string to add.
+	 *
+	 * @return void
 	 */
 	function AppendInnerSrc($add) {
 		if ($this->SelfClosing) {
@@ -7662,22 +7792,43 @@ class clsTbsXmlLoc {
 		}
 	}
 	
-	// Update the parent object, if any.
-	function UpdateParent($Cascading=false) {
+	/**
+	 * Update the parent object, if any.
+	 *
+	 * @param boolean  $Cascading  (optional, false by default) Also update all the parents of the tree.
+	 *
+	 * @return void
+	 */
+	function UpdateParent($Cascading = false) {
 		if ($this->Parent) {
 			$this->Parent->ReplaceSrc($this->Txt);
 			if ($Cascading) $this->Parent->UpdateParent($Cascading);
 		}
 	}
 	
-	// Get an attribute's value. Or false if the attribute is not found.
-	// It's a lazy way because the attribute is searched with the patern {attribute="value" }
+	/**
+	 * Get an attribute's value. Or false if the attribute is not found.
+	 * It's a lazy way because the attribute is searched with the patern {attribute="value" }
+	 *
+	 * @param string   $Att   The name of the attribute.
+	 *
+	 * @return string
+	 */
 	function GetAttLazy($Att) {
 		$z = $this->_GetAttValPos($Att);
 		if ($z===false) return false;
 		return substr($this->pST_Src, $z[0], $z[1]);
 	}
 
+	/**
+	 * Replace an attribute's value. Can eventually create the attribute if missing.
+	 *
+	 * @param string   $Att          The name of the attribute.
+	 * @param string   $Value        The new value of the attribute. You have to protect the contents before.
+	 * @param boolean  $AddIfMissing (optional, false by default) True means the attribute is added if missing. 
+	 *
+	 * @return boolean Return True if the value has been replaced or inserted.
+	 */
 	function ReplaceAtt($Att, $Value, $AddIfMissing = false) {
 
 		$Value = ''.$Value;
@@ -7704,8 +7855,14 @@ class clsTbsXmlLoc {
 
 	}
 	
-	// Delete the element with or without the content.
-	function Delete($Contents=true) {
+	/**
+	 * Delete the element with or without the content.
+	 *
+	 * @param boolean $Contents (optional, true by default) If False, then only the inner contents (excluding start and end tags) is deleted.
+	 * 
+	 * @return void
+	 */
+	function Delete($Contents = true) {
 		$this->FindEndTag();
 		if ($Contents || $this->SelfClosing) {
 			$this->ReplaceSrc('');
@@ -7717,6 +7874,8 @@ class clsTbsXmlLoc {
 	
 	/**
 	 * Return true if the attribute existed and is deleted, otherwise return false.
+	 *
+	 * @return boolean
 	 */
 	function DeleteAtt($Att) {
 		$z = $this->_GetAttValPos($Att);
@@ -7726,7 +7885,11 @@ class clsTbsXmlLoc {
 		return true;
 	}
 
-	// Find the name of the element
+	/**
+	 * Find and return the name of the element
+	 *
+	 * @return string
+	 */
 	function FindName() {
 		if ( ($this->Name==='') && $this->Exists ) {
 			$p = $this->PosBeg;
@@ -7739,9 +7902,13 @@ class clsTbsXmlLoc {
 		return $this->Name;
 	}
 
-	// Find the ending tag of the object
-	// Use $Encaps=true if the element can be self encapsulated (like <div>).
-	// Return true if the end is funf
+	/**
+	 * Find ans store the ending tag of the object.
+	 * 
+	 * @param boolean $Encaps (optional, true by default) Indicates if the element can be self encapsulated (like <div>).
+	 *
+	 * @return boolean  Return True if the end is found, or False otherwise.
+	 */
 	function FindEndTag($Encaps=false) {
 		if (is_null($this->SelfClosing)) {
 			$pe = $this->PosEnd;
@@ -7796,8 +7963,19 @@ class clsTbsXmlLoc {
 
 }
 
+class clsTbsXmlCellReader extends clsTbsXmlLoc {
+
+	public  $RepeatIdx;
+	public  $RepeatMax;
+	public  $RowOk;
+	public  $cellCol;
+	public  $cellRow;
+	public  $CellLst;
+	
+}
+
 /*
-TbsZip version 2.16
+TbsZip version 2.16 + compatibility PHP 8.2
 Date    : 2014-04-08
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
@@ -7812,6 +7990,11 @@ define('TBSZIP_FILE',8);       // output to file  , or add from file
 define('TBSZIP_STRING',32);    // output to string, or add from string
 
 class clsTbsZip {
+
+	public $Meth8Ok;
+	public $DisplayError;
+	public $ArchFile;
+	public $Error;
 
 	function __construct() {
 		$this->Meth8Ok = extension_loaded('zlib'); // check if Zlib extension is available. This is need for compress and uncompress with method 8.
@@ -7841,12 +8024,12 @@ class clsTbsZip {
 		$this->ArchIsNew = false;
 		$this->ArchIsStream = (is_resource($ArchFile) && (get_resource_type($ArchFile)=='stream'));
 		if ($this->ArchIsStream) {
-            $info = stream_get_meta_data($ArchFile);
-            if (isset($info['uri'])) {
-                $this->ArchFile = $info['uri'];
-            } else {
-                $this->ArchFile = 'from_stream.zip';
-            }
+			$info = stream_get_meta_data($ArchFile);
+			if (isset($info['uri'])) {
+				$this->ArchFile = $info['uri'];
+			} else {
+				$this->ArchFile = 'from_stream.zip';
+			}
 			$this->ArchHnd = $ArchFile;
 		} else {
 			// open the file

@@ -13,7 +13,7 @@
     ],
     "require": {
         "php": ">=5.0",
-        "tinybutstrong/tinybutstrong": ">=3.12.0"
+        "tinybutstrong/tinybutstrong": ">=3.13.2"
     },
     "autoload": {
         "classmap": ["tbs_plugin_opentbs.php"]
