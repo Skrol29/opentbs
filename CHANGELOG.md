@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.11.0-beta4] - 2022-12-20
+## [1.11.0] - 2023-05-15
 
 ### Enhancements
 

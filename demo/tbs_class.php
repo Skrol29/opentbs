@@ -3,8 +3,8 @@
  *
  * TinyButStrong - Template Engine for Pro and Beginners
  *
- * @version 3.15.0-beta-5 for PHP 5, 7, 8
- * @date    2022-12-20
+ * @version 3.15.0 for PHP 5, 7, 8
+ * @date    2023-05-15
  * @link    http://www.tinybutstrong.com Web site
  * @author  http://www.tinybutstrong.com/onlyyou.html
  * @license http://opensource.org/licenses/LGPL-3.0 LGPL-3.0
@@ -39,6 +39,7 @@ class clsTbsLocator {
 	public $SubLst = array();
 	public $SubNbr = 0;
 	public $PrmLst = array();
+	public $PrmPos; // positions of the parameters, if asked
 	public $PrmIfNbr = false;
 	public $MagnetId = false;
 	public $BlockFound = false;
@@ -82,7 +83,6 @@ class clsTbsLocator {
 	public $SaveRender;
 
 	// Att
-	public $PrmPos;
 	public $AttForward;
 	public $AttTagBeg;
 	public $AttTagEnd;
@@ -773,7 +773,7 @@ public $Assigned = array();
 public $ExtendedMethods = array();
 public $ErrCount = 0;
 // Undocumented (can change at any version)
-public $Version = '3.15.0-beta-5';
+public $Version = '3.15.0';
 public $Charset = '';
 public $TurboBlock = true;
 public $VarPrefix = '';
@@ -1963,7 +1963,7 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 				$x= '';
 			}
 		} else {
-			if (!isset($Loc->PrmLst['noerr'])) $this->meth_Misc_Alert($Loc,'parameter script with value \''.$x.'\' cannot be called because the current TBS settings do not allow to call scripts.',true);
+			if (!isset($Loc->PrmLst['noerr'])) $this->meth_Misc_Alert($Loc,'parameter \'script\' is forbidden by default. It can be allowed by a TBS option.',true);
 			$x = '';	
 		}
 		if ($x!=='') {

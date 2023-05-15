@@ -13,6 +13,10 @@ Since version 1.10.0, OpenTBS can also read data in workbooks (XLSX and ODS file
 For documentation see
 http://www.tinybutstrong.com/opentbs.php?doc
 
+## Licence
+
+OpenTBS is released under the LGPL (Lesser General Public Licence) version 3.0.
+
 ## Demo
 
 For online demo see
