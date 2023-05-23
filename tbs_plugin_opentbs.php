@@ -149,6 +149,7 @@ class clsOpenTBS extends clsTbsZip {
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
+		$this->hyperlinks = array();
 		$this->mergeCells = array();
 		return array('BeforeLoadTemplate','BeforeShow', 'BeforeMergeBlock', 'OnCommand', 'OnOperation', 'OnCacheField');
 	}
@@ -235,6 +236,7 @@ class clsOpenTBS extends clsTbsZip {
 			$this->Misc_EditCredits("OpenTBS " . $this->Version, true, true);
 		}
 		if ($this->ExtEquiv === 'xlsx') {
+			$this->MsExcel_WriteListOfHyperlinks();
 			$this->MsExcel_WriteListOfMergeCells();
 		}
 
@@ -317,6 +319,22 @@ class clsOpenTBS extends clsTbsZip {
 
 	}
 
+	function MsExcel_WriteListOfHyperlinks() {
+		$count = count($this->hyperlinks);
+		$hyperlinks = '';
+		foreach ($this->hyperlinks as $rid => $ref) {
+			$hyperlinks .= "<hyperlink r:id=\"$rid\" ref=\"$ref\"/>";
+		}
+		$src = $this->TbsStoreGet($this->TbsCurrIdx, false);
+		$result = preg_replace(
+			'#<hyperlinks([^>]*)>.*</hyperlinks>#i',
+			"<hyperlinks\\1>$hyperlinks</hyperlinks>",
+			$src
+		);
+		$this->TbsStorePut($this->TbsCurrIdx, $result);
+		return $count;
+	}
+
 	function MsExcel_WriteListOfMergeCells() {
 		$count = count($this->mergeCells);
 		$mergeCells = '';
@@ -345,8 +363,25 @@ class clsOpenTBS extends clsTbsZip {
 			$addedCols = 0;
 			$addedRows = $DataSrc->RecNbr - 1;
 		}
+		$this->MsExcel_UpdateListOfHyperlinks($currentCol, $currentRow, $addedCols, $addedRows);
 		$this->MsExcel_UpdateListOfMergeCells($currentCol, $currentRow, $addedCols, $addedRows);
 		return true;
+	}
+
+	function MsExcel_UpdateListOfHyperlinks($currentCol, $currentRow, $addedCols, $addedRows) {
+		if ($addedCols === 0 && $addedRows === 0) return;
+		foreach ($this->hyperlinks as &$ref) {
+			list($refCol, $refRow) = $this->Sheet_ColNum($ref, true);
+			if ($refCol > $currentCol) {
+				$refCol += $addedCols;
+			}
+			if ($refRow > $currentRow) {
+				$refRow += $addedRows;
+			}
+			if ($refCol >= $currentCol || $refRow >= $currentRow) {
+				$ref = $this->Sheet_CellRef($refCol, $refRow);
+			}
+		}
 	}
 
 	function MsExcel_UpdateListOfMergeCells($currentCol, $currentRow, $addedCols, $addedRows) {
@@ -1026,6 +1061,7 @@ class clsOpenTBS extends clsTbsZip {
 				$ok = $this->RaiseError('Cannot load "'.$SubFile.'". The file is not found in the archive "'.$this->ArchFile.'".');
 			} elseif ($idx!==$this->TbsCurrIdx) {
 				if ($this->ExtEquiv === 'xlsx') {
+					$this->MsExcel_WriteListOfHyperlinks();
 					$this->MsExcel_WriteListOfMergeCells();
 				}
 				// Save the current loaded subfile if any
@@ -1072,6 +1108,7 @@ class clsOpenTBS extends clsTbsZip {
 						if ($MergeAutoFields) $TBS->LoadTemplate(null,'+');
 
 						if ($this->ExtEquiv === 'xlsx') {
+							$this->MsExcel_ReadListOfHyperlinks($TBS->Source);
 							$this->MsExcel_ReadListOfMergeCells($TBS->Source);
 						}
 					}
@@ -4726,6 +4763,16 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		
+	}
+
+	function MsExcel_ReadListOfHyperlinks($Txt) {
+		$this->hyperlinks = array();
+		$p = clsTinyButStrong::f_Xml_FindTagStart($Txt, 'hyperlinks', true, 0, true, true);
+		if ($p === false) return;
+		while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, 'hyperlink', true, $p, true, false, true, true) ) {
+			$this->hyperlinks[$loc->PrmLst['r:id']] = $loc->PrmLst['ref'];
+			$p = $loc->PosEnd;
+		}
 	}
 
 	function MsExcel_ReadListOfMergeCells($Txt) {
