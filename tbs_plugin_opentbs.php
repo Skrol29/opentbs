@@ -76,8 +76,6 @@ define('OPENTBS_SELECT_HEADER','clsOpenTBS.SelectHeader');
 define('OPENTBS_SELECT_FOOTER','clsOpenTBS.SelectFooter');
 // Sub-types of file
 define('OPENTBS_EVEN',128);
-// merge cells with ope=mergecells
-define('OPENTBS_MERGE_CELLS','clsOpenTBS.MergeCells');
 
 /**
  * Main class which is a TinyButStrong plug-in.
@@ -152,7 +150,7 @@ class clsOpenTBS extends clsTbsZip {
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
 		$this->mergeCells = array();
-		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
+		return array('BeforeLoadTemplate','BeforeShow', 'BeforeMergeBlock', 'OnCommand', 'OnOperation', 'OnCacheField');
 	}
 
 	function BeforeLoadTemplate(&$File,&$Charset) {
@@ -236,6 +234,9 @@ class clsOpenTBS extends clsTbsZip {
 		if ($this->TbsSystemCredits) {
 			$this->Misc_EditCredits("OpenTBS " . $this->Version, true, true);
 		}
+		if ($this->ExtEquiv === 'xlsx') {
+			$this->MsExcel_WriteListOfMergeCells();
+		}
 
 		$this->TbsStorePark(); // Save the current loaded subfile if any
 
@@ -314,6 +315,64 @@ class clsOpenTBS extends clsTbsZip {
 
 		return false; // cancel the default Show() process
 
+	}
+
+	function MsExcel_WriteListOfMergeCells() {
+		$count = count($this->mergeCells);
+		$mergeCells = '';
+		foreach ($this->mergeCells as $range) {
+			$mergeCells .= "<mergeCell ref=\"$range\"/>";
+		}
+		$src = $this->TbsStoreGet($this->TbsCurrIdx, false);
+		$result = preg_replace(
+			'#<mergeCells([^>]*)(?: count="\d+")?([^>]*)>.*</mergeCells>#i',
+			"<mergeCells\\1 count=\"$count\"\\2>$mergeCells</mergeCells>",
+			$src
+		);
+		$this->TbsStorePut($this->TbsCurrIdx, $result);
+		return $count;
+	}
+
+	function BeforeMergeBlock(&$TplSource, &$BlockBeg, &$BlockEnd, $PrmLst, &$DataSrc, &$LocR) {
+		if ($this->ExtEquiv !== 'xlsx') {
+			return;
+		}
+		list($currentCol, $currentRow) = $this->Sheet_CellPosition($TplSource, $BlockBeg);
+		if ($PrmLst['block'] === 'tbs:cell') {
+			$addedCols = $DataSrc->RecNbr - 1;
+			$addedRows = 0;
+		} elseif ($PrmLst['block'] === 'tbs:row') {
+			$addedCols = 0;
+			$addedRows = $DataSrc->RecNbr - 1;
+		}
+		$this->MsExcel_UpdateListOfMergeCells($currentCol, $currentRow, $addedCols, $addedRows);
+		return true;
+	}
+
+	function MsExcel_UpdateListOfMergeCells($currentCol, $currentRow, $addedCols, $addedRows) {
+		if ($addedCols === 0 && $addedRows === 0) return;
+		foreach ($this->mergeCells as &$range) {
+			list($startCell, $endCell) = explode(':', $range);
+			list($startCol, $startRow) = $this->Sheet_ColNum($startCell, true);
+			list($endCol, $endRow) = $this->Sheet_ColNum($endCell, true);
+			if ($startCol > $currentCol) {
+				$startCol += $addedCols;
+			}
+			if ($startRow > $currentRow) {
+				$startRow += $addedRows;
+			}
+			if ($endCol > $currentCol) {
+				$endCol += $addedCols;
+			}
+			if ($endRow > $currentRow) {
+				$endRow += $addedRows;
+			}
+			if ($startCol >= $currentCol || $startRow >= $currentRow || $endCol >= $currentCol || $endRow >= $currentRow) {
+				$startCell = $this->Sheet_CellRef($startCol, $startRow);
+				$endCell = $this->Sheet_CellRef($endCol, $endRow);
+				$range = "$startCell:$endCell";
+			}
+		}
 	}
 
 	function OnCacheField($BlockName,&$Loc,&$Txt,$PrmProc) {
@@ -586,7 +645,6 @@ class clsOpenTBS extends clsTbsZip {
 				$o = $this->MsExcel_SheetGetConf($x1, $SearchBy, true);
 				if ($o===false) return false;
 				if ($o->file===false) return $this->RaiseError("($Cmd) Error with sheet '$x1'. The corresponding XML subfile is not referenced.");
-				$this->mergeCells = array();
 				return $this->TbsLoadSubFileAsTemplate('xl/'.$o->file);
 			}
 			
@@ -895,27 +953,6 @@ class clsOpenTBS extends clsTbsZip {
 			
 			return $this->RaiseError("Command OPENTBS_SET_CELLS will be available in a next version.");
 
-		} elseif ($Cmd == OPENTBS_MERGE_CELLS) {
-			$count = count($this->MrgCells);
-			$mergeCells = '';
-			foreach ($this->MrgCells as $cellRange) {
-				$mergeCells .= "<mergeCell ref=\"$cellRange\"/>";
-			}
-			$src = $this->TbsStoreGet($this->TbsCurrIdx, false);
-			switch ($this->ExtEquiv) {
-				case 'xlsx':
-					$result = preg_replace(
-						'#<mergeCells([^>]*)(?: count="\d+")?([^>]*)>.*</mergeCells>#i',
-						"<mergeCells\\1 count=\"$count\"\\2>$mergeCells</mergeCells>",
-						$src
-					);
-					break;
-				default:
-					return null;
-			}
-			$this->TbsStorePut($this->TbsCurrIdx, $result);
-			$this->TbsStorePark();
-			return $count;
 		}
 
 	}
@@ -988,6 +1025,9 @@ class clsOpenTBS extends clsTbsZip {
 			if ($idx===false) {
 				$ok = $this->RaiseError('Cannot load "'.$SubFile.'". The file is not found in the archive "'.$this->ArchFile.'".');
 			} elseif ($idx!==$this->TbsCurrIdx) {
+				if ($this->ExtEquiv === 'xlsx') {
+					$this->MsExcel_WriteListOfMergeCells();
+				}
 				// Save the current loaded subfile if any
 				$this->TbsStorePark();
 				// Load the subfile
@@ -1030,6 +1070,10 @@ class clsOpenTBS extends clsTbsZip {
 						}
 						// apply default TBS behaviors on the uncompressed content: other plug-ins + [onload] fields
 						if ($MergeAutoFields) $TBS->LoadTemplate(null,'+');
+
+						if ($this->ExtEquiv === 'xlsx') {
+							$this->MsExcel_ReadListOfMergeCells($TBS->Source);
+						}
 					}
 				}
 			}
@@ -4682,6 +4726,17 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		
+	}
+
+	function MsExcel_ReadListOfMergeCells($Txt) {
+		$this->mergeCells = array();
+		$p = clsTinyButStrong::f_Xml_FindTagStart($Txt, 'mergeCells', true, 0, true, true);
+		if ($p === false) return;
+		while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, 'mergeCell', true, $p, true, false, true, true) ) {
+			list($startCell) = explode(':', $loc->PrmLst['ref']);
+			$this->mergeCells[$startCell] = $loc->PrmLst['ref'];
+			$p = $loc->PosEnd;
+		}
 	}
 
 	function MsExcel_ConvertToRelative(&$Txt) {
