@@ -151,7 +151,7 @@ class clsOpenTBS extends clsTbsZip {
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
-		$this->MrgCells = array();
+		$this->mergeCells = array();
 		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
 	}
 
@@ -236,7 +236,7 @@ class clsOpenTBS extends clsTbsZip {
 		if ($this->TbsSystemCredits) {
 			$this->Misc_EditCredits("OpenTBS " . $this->Version, true, true);
 		}
-		
+
 		$this->TbsStorePark(); // Save the current loaded subfile if any
 
 		$TBS->Plugin(-4); // deactivate other plugins
@@ -375,14 +375,13 @@ class clsOpenTBS extends clsTbsZip {
 		} elseif ($ope==='docfield') {
 			$this->TbsDocFieldPrepare($Txt, $Loc);
 		} elseif ($ope==='mergecells') {
-			list($colSpan, $rowSpan) = explode(':', isset($PrmLst['merge']) ? $PrmLst['merge'] : $Value);
-			$colSpan = intval($colSpan);
-			$rowSpan = intval($rowSpan);
+			$rowSpan = intval(isset($PrmLst['rows']) ? $PrmLst['rows'] : $Value);
+			$colSpan = intval(isset($PrmLst['cols']) ? $PrmLst['cols'] : $Value);
 			if ($colSpan >= 1 && $rowSpan >= 1) {
 				list($cellCol, $cellRow) = $this->Sheet_CellPosition($Txt, $PosBeg);
 				$startCell = $this->Sheet_CellRef($cellCol, $cellRow);
 				$endCell = $this->Sheet_CellRef($cellCol + $colSpan - 1, $cellRow + $rowSpan - 1);
-				$this->MrgCells[$startCell] = "$startCell:$endCell";
+				$this->mergeCells[$startCell] = "$startCell:$endCell";
 				$Value = '';
 			}
 		} else {
@@ -587,7 +586,7 @@ class clsOpenTBS extends clsTbsZip {
 				$o = $this->MsExcel_SheetGetConf($x1, $SearchBy, true);
 				if ($o===false) return false;
 				if ($o->file===false) return $this->RaiseError("($Cmd) Error with sheet '$x1'. The corresponding XML subfile is not referenced.");
-				$this->MrgCells = array();
+				$this->mergeCells = array();
 				return $this->TbsLoadSubFileAsTemplate('xl/'.$o->file);
 			}
 			
