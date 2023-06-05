@@ -336,6 +336,7 @@ class clsOpenTBS extends clsTbsZip {
 	}
 
 	function MsExcel_WriteListOfMergeCells() {
+		$this->mergeCells = array_unique($this->mergeCells);
 		$count = count($this->mergeCells);
 		$mergeCells = '';
 		foreach ($this->mergeCells as $range) {
@@ -475,7 +476,7 @@ class clsOpenTBS extends clsTbsZip {
 				list($cellCol, $cellRow) = $this->Sheet_CellPosition($Txt, $PosBeg);
 				$startCell = $this->Sheet_CellRef($cellCol, $cellRow);
 				$endCell = $this->Sheet_CellRef($cellCol + $colSpan - 1, $cellRow + $rowSpan - 1);
-				$this->mergeCells[$startCell] = "$startCell:$endCell";
+				$this->mergeCells[] = "$startCell:$endCell";
 				$Value = '';
 			}
 		} else {
@@ -4780,8 +4781,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$p = clsTinyButStrong::f_Xml_FindTagStart($Txt, 'mergeCells', true, 0, true, true);
 		if ($p === false) return;
 		while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, 'mergeCell', true, $p, true, false, true, true) ) {
-			list($startCell) = explode(':', $loc->PrmLst['ref']);
-			$this->mergeCells[$startCell] = $loc->PrmLst['ref'];
+			$this->mergeCells[] = $loc->PrmLst['ref'];
 			$p = $loc->PosEnd;
 		}
 	}
