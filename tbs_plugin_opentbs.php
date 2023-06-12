@@ -492,18 +492,29 @@ class clsOpenTBS extends clsTbsZip {
 		}
 	}
 
-	function Sheet_CellPosition($Txt, $PosBeg) {
+	function Sheet_CellPosition($Txt, $PosBeg, $RowEl = null, $CellEl = null) {
+		if ($RowEl === null && $CellEl === null) {
+			switch ($this->ExtEquiv) {
+				case 'xlsx':
+					return $this->Sheet_CellPosition($Txt, $PosBeg, 'row', 'c');
+				case 'ods':
+					$this->OpenDoc_CoveredCells_Replace($Txt, true);
+					return $this->Sheet_CellPosition($Txt, $PosBeg, 'table:table-row', 'table:table-cell');
+				default:
+					return [null, null];
+			}
+		}
 		$lastPos = 0;
 		$cellRow = 0;
 		do {
-			$p = clsTinyButStrong::f_Xml_FindTagStart($Txt, 'row', true, $lastPos+1, true, true);
+			$p = clsTinyButStrong::f_Xml_FindTagStart($Txt, $RowEl, true, $lastPos+1, true, true);
 			if ($p === false || $p >= $PosBeg) break;
 			$lastPos = $p;
 			$cellRow++;
 		} while(true);
 		$cellCol = 0;
 		do {
-			$p = clsTinyButStrong::f_Xml_FindTagStart($Txt, 'c', true, $lastPos+1, true, true);
+			$p = clsTinyButStrong::f_Xml_FindTagStart($Txt, $CellEl, true, $lastPos+1, true, true);
 			if ($p === false || $p >= $PosBeg) break;
 			$lastPos = $p;
 			$cellCol++;
