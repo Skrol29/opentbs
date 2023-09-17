@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.1] - 2023-09-17
+
+### Enhancements
+
+- PHP 8.2 compatibility for subclass TbsZip
+
 ## [1.11.0] - 2023-05-15
 
 ### Enhancements
