@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.11.1
- * @date 2023-09-17
+ * @version 1.11.2
+ * @date 2023-09-29
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -145,7 +145,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.11.1';
+		$this->Version = '1.11.2';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -346,8 +346,11 @@ class clsOpenTBS extends clsTbsZip {
 
 	}
 
+	/**
+	 * In this TBS event, parameter ope is exploded, and there is one function call for each ope command.
+	 */
 	function OnOperation($FieldName,&$Value,&$PrmLst,&$Txt,$PosBeg,$PosEnd,&$Loc) {
-	// in this event, ope is exploded, there is one function call for each ope command
+
 		$ope = $PrmLst['ope'];
 		if ($ope==='addpic') {
 			// for compatibility
@@ -1371,7 +1374,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	/**
 	 * Prepare the TBS field for merging a picture: the TBS field is moved to the target attribute.
 	 * This is done only once when it is a block merging.
-	 * The actual image replacement is done with $this->TbsPicAdd()
+	 * The actual image replacement is done by $this->TbsPicAdd()
+	 *
+	 * @return boolean Return true if the preparation ends correctly or if it as already been ended correctly before.
 	 */
 	function TbsPicPrepare(&$Txt, &$Loc, $IsCaching) {
 
@@ -1383,8 +1388,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			return $this->RaiseError('Parameter att is used with parameter ope=changepic in the field ['.$Loc->FullName.']. changepic will be ignored');
 		}
 		
+		// Direction of search
 		$backward = true;
-
 		if (isset($Loc->PrmLst['tagpos'])) {
 			$s = $Loc->PrmLst['tagpos'];
 			if ($s=='before') {
@@ -1414,8 +1419,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		} else {
 			return $this->RaiseError('Parameter ope=changepic used in the field ['.$Loc->FullName.'] is not supported with the current document type.');
 		}
-				
-		// Move the field to the attribute
+		
+		$LocDef = substr($Txt, $Loc->PosBeg, $Loc->PosEnd - $Loc->PosBeg + 1);
+		
+		// Move the field to the target attribute
 		// This technical works while caching TBS fields because already cached fields are necessarily placed before the current picture.
 		$prefix = ($backward) ? '' : '+';
 		$Loc->PrmLst['att'] = $prefix.$att;
@@ -1426,6 +1433,26 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$Loc->PrmLst['magnet'] = $magnet;
 
+		/*
+		With an OpenXML document, the TBS field defined in the property Description or Title can be silently duplicated to another entity nearby (usually <pic:cNvPr>).
+		This will make the picture replacement to be processed twice : one fof each TBS field. But this won't make always error because the external file will be inserted onyl once and the two Rid will be the same.
+		Nevertheless, if the picture use parameter 'adjust' then this will corrupt the XML when several cached TBS fields have to be merged the the same picture element.
+		This is because the redim process uses relative cached positioning.
+		In order to evoid this error and to optimize picture replacement, any duplicated TBS field in the picture element will be neutralized.
+		*/
+		$PicLoc = false;
+		if (isset($this->ExtInfo['pic_entity'])) {
+			$PicLoc = clsTbsXmlLoc::FindElement($Txt, $this->ExtInfo['pic_entity'], $Loc->PosBeg, false);
+			if ($PicLoc) {
+				// We neutralized the duplicated definition but we must keep the current locatore positioning because it is quite complicated for now
+				$PicLoc->switchToRelative();
+				$src = $PicLoc->GetSrc();
+				$src = str_replace($LocDef, str_repeat(' ', strlen($LocDef)), $src); // important : same length than $Loc because dim positioning must not change
+				$PicLoc->ReplaceSrc($src);
+				$PicLoc->switchToNormal();
+			}
+		}
+
 		// Get picture dimension information
 		if (isset($Loc->PrmLst['adjust'])) {
 			$FieldLen = 0;
@@ -1435,7 +1462,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				if (strpos($att,'v:imagedata')!==false) { 
 					$Loc->Prop['otbsDim'] = $this->TbsPicGetDim_OpenXML_vml($Txt, $Loc->PosBeg, false, $Loc->PosBeg, $FieldLen);
 				} else {
-					$Loc->Prop['otbsDim'] = $this->TbsPicGetDim_OpenXML_dml($Txt, $Loc->PosBeg, false, $Loc->PosBeg, $FieldLen);
+					$Loc->Prop['otbsDim'] = $this->TbsPicGetDim_OpenXML_dml($Txt, $Loc->PosBeg, false, $Loc->PosBeg, $FieldLen, $PicLoc);
 				}
 			}
 		}
@@ -1451,7 +1478,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			} elseif ($this->ExtType==='openxml') {
 				$InternalPicPath = $this->OpenXML_GetInternalPicPath($Value);
 				if ($InternalPicPath === false) {
-					$this->RaiseError('The picture to merge with field ['.$Loc->FullName.'] cannot be found. Value=' . $Value);
+					$this->RaiseError('The picture to merge with field ['.$Loc->FullName.'] cannot be found (Rid = ' . $Value . ').');
 				}
 			}
 
@@ -1468,36 +1495,34 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	function TbsPicGetDim_ODF($Txt, $Pos, $Forward, $FieldPos, $FieldLen) {
 	// Found the attributes for the image dimensions, in an ODF file
 		// unit (can be: mm, cm, in, pi, pt)
-		$Offset = 0;
-		$dim = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $FieldPos, $FieldLen, $Offset, 'draw:frame', 'svg:width="', 'svg:height="', 3, false, false);
+		$EntityOffset = 0;
+		$dim = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $FieldPos, $FieldLen, $EntityOffset, 'draw:frame', 'svg:width="', 'svg:height="', 3, false, false);
 		return array($dim);
 	}
 
 	function TbsPicGetDim_OpenXML_vml($Txt, $Pos, $Forward, $FieldPos, $FieldLen) {
-		$Offset = 0;
-		$dim = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $FieldPos, $FieldLen, $Offset, 'v:shape', 'width:', 'height:', 2, false, false);
+		$EntityOffset = 0;
+		$dim = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $FieldPos, $FieldLen, $EntityOffset, 'v:shape', 'width:', 'height:', 2, false, false);
 		return array($dim);
 	}
 
-	function TbsPicGetDim_OpenXML_dml($Txt, $Pos, $Forward, $FieldPos, $FieldLen) {
+	function TbsPicGetDim_OpenXML_dml($Txt, $Pos, $Forward, $FieldPos, $FieldLen, $PicLoc) {
 
-		$Offset = 0;
+		$EntityOffset = 0;
 
-		// Try to find the drawing element
-		if (isset($this->ExtInfo['pic_entity'])) {
-			$tag = $this->ExtInfo['pic_entity'];
-			$Loc = clsTbsXmlLoc::FindElement($Txt, $this->ExtInfo['pic_entity'], $Pos, false);
-			if ($Loc) {
-				$Txt = $Loc->GetSrc();
-				$Pos = 0;
-				$Forward = true;
-				$Offset = $Loc->PosBeg;
-			}
+		// Loc of the picture entity
+		if ($PicLoc !== false) {
+			// The seach is done relatively to the picture entity
+			$PicLoc->FindEndTag();
+			$Txt = $PicLoc->GetSrc();
+			$Pos = 0;
+			$Forward = true;
+			$EntityOffset = $PicLoc->PosBeg;
 		}
 
-		$dim_shape = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $FieldPos, $FieldLen, $Offset, 'wp:extent', 'cx="', 'cy="', 0, 12700, false);
-		$dim_inner = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $FieldPos, $FieldLen, $Offset, 'a:ext'    , 'cx="', 'cy="', 0, 12700, 'uri="');
-		$dim_drawing = $this->TbsPicGetDim_Drawings($Txt, $Pos, $FieldPos, $FieldLen, $Offset, $dim_inner); // check for XLSX
+		$dim_shape = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $FieldPos, $FieldLen, $EntityOffset, 'wp:extent', 'cx="', 'cy="', 0, 12700, false);
+		$dim_inner = $this->TbsPicGetDim_Any($Txt, $Pos, $Forward, $FieldPos, $FieldLen, $EntityOffset, 'a:ext'    , 'cx="', 'cy="', 0, 12700, 'uri="');
+		$dim_drawing = $this->TbsPicGetDim_Drawings($Txt, $Pos, $FieldPos, $FieldLen, $EntityOffset, $dim_inner); // check for XLSX
 
 		// dims must be sorted in reverse order of location
 		$result = array();
@@ -1510,8 +1535,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		
 	}
 
-	// Found the attributes for the image dimensions, in an ODF file
-	function TbsPicGetDim_Any($Txt, $Pos, $Forward, $FieldPos, $FieldLen, $Offset, $Element, $AttW, $AttH, $AllowedDec, $CoefToPt, $IgnoreIfAtt) {
+	// Found the attributes for the image dimensions, in any type of file
+	function TbsPicGetDim_Any($Txt, $Pos, $Forward, $FieldPos, $FieldLen, $EntityOffset, $Element, $AttW, $AttH, $AllowedDec, $CoefToPt, $IgnoreIfAtt) {
 
 		while (true) {
 
@@ -1521,36 +1546,40 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			$pe = strpos($Txt, '>', $p);
 			if ($pe===false) return false;
 
-			$x = substr($Txt, $p, $pe -$p);
+			$src = substr($Txt, $p, $pe -$p);
 
-			if ( ($IgnoreIfAtt===false) || (strpos($x, $IgnoreIfAtt)===false) ) {
+			if ( ($IgnoreIfAtt===false) || (strpos($src, $IgnoreIfAtt)===false) ) {
 
-				$att_lst = array('w'=>$AttW, 'h'=>$AttH);
+				$att_lst = array('w' => $AttW, 'h' => $AttH);
 				$res_lst = array();
-
-				foreach ($att_lst as $i=>$att) {
-						$l = strlen($att);
-						$b = strpos($x, $att);
-						if ($b===false) return false;
-						$b = $b + $l;
-						$e = strpos($x, '"', $b);
-						$e2 = strpos($x, ';', $b); // in case of VML format, width and height are styles separted by ;
-						if ($e2!==false) $e = min($e, $e2);
-						if ($e===false) return false;
-						$lt = $e - $b;
-						$t = substr($x, $b, $lt);
-						$pu = $lt; // unit first char
-						while ( ($pu>1) && (!is_numeric($t[$pu-1])) ) $pu--;
-						$u = ($pu>=$lt) ? '' : substr($t, $pu);
-						$v = floatval(substr($t, 0, $pu));
-						$beg = $Offset+$p+$b;
-						if ($beg>$FieldPos) $beg = $beg - $FieldLen;
-						$res_lst[$i.'b'] = $beg; // start position in the main string
-						$res_lst[$i.'l'] = $lt; // length of the text
-						$res_lst[$i.'u'] = $u; // unit
-						$res_lst[$i.'v'] = $v; // value
-						$res_lst[$i.'t'] = $t; // text
-						$res_lst[$i.'o'] = 0; // offset
+				//$res_lst['debug_src'] = $src;
+				//$res_lst['debug_entity_offset'] = $EntityOffset;
+						
+				foreach ($att_lst as $dim => $att) {
+					$l = strlen($att);
+					$b = strpos($src, $att);
+					if ($b===false) return false;
+					$b = $b + $l;
+					$e = strpos($src, '"', $b);
+					$e2 = strpos($src, ';', $b); // in case of VML format, width and height are styles separted by ;
+					if ($e2!==false) $e = min($e, $e2);
+					if ($e===false) return false;
+					$lt = $e - $b;
+					$t = substr($src, $b, $lt);
+					$pu = $lt; // unit first char
+					while ( ($pu>1) && (!is_numeric($t[$pu-1])) ) $pu--;
+					$u = ($pu>=$lt) ? '' : substr($t, $pu);
+					$v = floatval(substr($t, 0, $pu));
+					$beg = $EntityOffset + $p + $b;
+					if ($beg>$FieldPos) $beg = $beg - $FieldLen;
+					$res_lst[$dim.'b'] = $beg; // start position in the main string
+					$res_lst[$dim.'l'] = $lt; // length of the text
+					$res_lst[$dim.'u'] = $u; // unit
+					$res_lst[$dim.'v'] = $v; // value
+					$res_lst[$dim.'t'] = $t; // text
+					$res_lst[$dim.'o'] = 0; // offset
+					//$res_lst[$dim.'_debug_val'] = substr($Txt, $p+$b, $lt);
+					//$res_lst[$dim.'_debug_att'] = $att;
 				}
 
 				$res_lst['r'] = ($res_lst['hv']==0) ? 0.0 : $res_lst['wv']/$res_lst['hv']; // ratio W/H
@@ -1570,7 +1599,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	}
 
 	// Get Dim in an OpenXML Drawing (pictures in an XLSX)
-	function TbsPicGetDim_Drawings($Txt, $Pos, $FieldPos, $FieldLen, $Offset, $dim_inner) {
+	function TbsPicGetDim_Drawings($Txt, $Pos, $FieldPos, $FieldLen, $EntityOffset, $dim_inner) {
 
 		// The <a:ext> coordinates must have been found previously.
 		if ($dim_inner===false) return false;
@@ -1597,7 +1626,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		foreach ($el_lst as $i=>$el) {
 			$loc = clsTbsXmlLoc::FindElement($Txt, $el, $p, true);
 			if ($loc===false) return false;
-			$beg =  $Offset + $loc->GetInnerStart();
+			$beg =  $EntityOffset + $loc->GetInnerStart();
 			if ($beg>$FieldPos) $beg = $beg - $FieldLen;
 			$val = $dim_inner[$i.'v'];
 			$tval = $loc->GetInnerSrc();
@@ -1661,8 +1690,15 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * @param string  $Txt
 	 * @param object  $Loc
 	 * @param array   $Prm     Caller parameter. Only used for error messages.
+	 *
+	 * @return boolean Returne true if the picture is correcly replaced or deleted.
 	 */
 	function TbsPicAdd(&$Value, &$PrmLst, &$Txt, &$Loc, $Prm) {
+		
+		if (isset($PrmLst['pic_canceled'])) {
+			//$Value = '';
+			return false;
+		}
 		
 		if ($Value == '') {
 			// The magnet parameter will delete the picture container
@@ -1705,10 +1741,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		// the value of the current TBS field becomes the full internal path
-		if (isset($this->ExtInfo['pic_path'])) $InternalPath = $this->ExtInfo['pic_path'].$InternalPath;
+		if (isset($this->ExtInfo['pic_path'])) {
+			$InternalPath = $this->ExtInfo['pic_path'].$InternalPath;
+		}
 
 		// actually add the picture inside the archive
-		if ($this->FileGetIdxAdd($InternalPath)===false) $this->FileAdd($InternalPath, $ExternalPath, TBSZIP_FILE, true);
+		if ($this->FileGetIdxAdd($InternalPath)===false) {
+			$this->FileAdd($InternalPath, $ExternalPath, TBSZIP_FILE, true);
+		}
 
 		// preparation for others file in the archive
 		$Rid = false;
@@ -1838,7 +1878,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 					}
 				}
 				// edit dimensions
-				foreach ($edit_lst as $what=>$new) {
+				foreach ($edit_lst as $what =>$new ) {
 					$beg  = $tDim[$what.'b'];
 					$len  = $tDim[$what.'l'];
 					$unit = $tDim[$what.'u'];
@@ -7429,7 +7469,7 @@ class clsTbsXmlLoc {
 	public $PosBeg;      // Position of the first char ('<') of the element.
 	public $PosEnd;      // Position of the char '>' of the start tag or the end tag, depending on whether the end tag has beend seached or not ($pET_PosBeg === false).
 	public $SelfClosing; // null|false|true, null means unknown.
-	public $Txt;
+	public $Txt;         // (by reference) Source of the contents where the locator is placed.
 	public $Name = ''; 
 	public $Exists;      // False means it is a phantom element
 
@@ -7906,7 +7946,8 @@ class clsTbsXmlLoc {
 	}
 
 	/**
-	 * Find ans store the ending tag of the object.
+	 * Find the ending tag of the entity.
+     * The result is put in cache for other calls.
 	 * 
 	 * @param boolean $Encaps (optional, true by default) Indicates if the element can be self encapsulated (like <div>).
 	 *
@@ -7936,8 +7977,11 @@ class clsTbsXmlLoc {
 		return true;
 	}
 
-	// Swith the locator to a relative one that has no XML contents before and no XML contents after.
-	// Useful to save time in search and replace.
+	/**
+	 * Switch a normal locator to a relative locator.
+	 * A relative locator is isolated : it has no text before and no text after.
+	 * Relative locators are useful to save time in search and replace within the locator.
+	 */
 	function switchToRelative() {
 		$this->FindEndTag();
 		// Save info
@@ -7951,7 +7995,9 @@ class clsTbsXmlLoc {
 		$this->_ApplyDiffToAll(-$this->PosBeg);
 	}
 
-	// To use after switchToRelative(): save modification to the normal contents and update positions.
+	/**
+	 * To use after switchToRelative(): save modification to the normal contents and update positions.
+	 */
 	function switchToNormal() {
 		// Save info
 		$src = $this->GetSrc();

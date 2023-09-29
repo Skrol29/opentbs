@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.2] - 2023-09-29
+
+### Bug fixes
+
+- Picture with Ms Office : changing a picture using parameter 'adjust' can corrupt the XML.
+
+
 ## [1.11.1] - 2023-09-17
 
 ### Enhancements
