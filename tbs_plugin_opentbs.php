@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.11.3
- * @date 2023-12-02
+ * @version 1.11.4
+ * @date 2024-01-04
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -94,6 +94,7 @@ class clsOpenTBS extends clsTbsZip {
 
 	public $TbsStoreLst; // public required to be used by plugins for scanning opened files
 	public $TbsCurrIdx;  // public required to be used by plugins for scanning opened files
+	public $ExtEquiv;
 
 	private $TbsSystemCredits;
 	private $TbsNoField;
@@ -103,7 +104,6 @@ class clsOpenTBS extends clsTbsZip {
 	private $ImageInternal;
 	private $LastReadNotStored;
 
-	private $ExtEquiv;
 	private $ExtType;
 	private $OtbsSheetSlidesDelete;
 	private $OtbsSheetSlidesVisible;

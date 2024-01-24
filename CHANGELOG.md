@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.4] - 2024-01-25
+
+### Enhancements
+
+- PHP 8.2 compatibility improved
+
 ## [1.11.3] - 2023-12-02
 
 ### Bug fixes
