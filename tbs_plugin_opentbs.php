@@ -7504,6 +7504,7 @@ class clsTbsXmlLoc {
 
 	// PHP 8.2 Compatibility
 	private $pST_PosBeg;
+	public $xlsxFileIdx;
 	
 	/**
 	 * Search a start tag of an element in the TXT contents, and return an object if it is found.
