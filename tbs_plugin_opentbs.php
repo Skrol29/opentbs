@@ -3880,8 +3880,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	/**
+	 * Build the OpenXmlMap property. It is the map of the types of sub-file in the document, according to the file [Content_Types].xml
+	 * The structure is : [ short_type => [ list of sub-files ],  ]
+	 * Example : ['wordprocessingml.header+xml' => [ 'word/header1.xml', 'word/header2.xml', 'word/header2.xml' ]
+	 */
 	function OpenXML_MapInit() {
-	// read the Content_Type XML file and save a sumup in the OpenXmlMap property.
 
 		$this->OpenXmlMap = array();
 		$Map =& $this->OpenXmlMap;
@@ -3924,8 +3928,14 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	/**
+	 * Return the list of sub-files corresponding to one or several types.
+	 * 
+	 * @param string|array $ShortTypes  A short type, or a list of short types.
+	 * 
+	 * @return array The list of the file names for all the asked types.
+	 */
 	function OpenXML_MapGetFiles($ShortTypes) {
-	// Return all values for a given type (or array of types) in the map.
 		if (is_string($ShortTypes)) $ShortTypes = array($ShortTypes);
 		$res = array();
 		foreach ($ShortTypes as $type) {
@@ -3937,8 +3947,15 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		return $res;
 	}
 
+	/**
+	 * Return the first sub-file corresponding to a type.
+	 * 
+	 * @param string $ShortType  A short type.
+	 * @param string $Default    The default result id no sub-file is found.
+	 * 
+	 * @return string The file name.
+	 */
 	function OpenXML_MapGetMain($ShortType, $Default) {
-	// Return all values for a given type (or array of types) in the map.
 		if (isset($this->OpenXmlMap[$ShortType])) {
 			return $this->OpenXmlMap[$ShortType][0];
 		} else {
