@@ -708,7 +708,7 @@ class clsOpenTBS extends clsTbsZip {
 				}
 			} elseif ($this->ExtEquiv=='odp') {
 				// Only for compatibility
-				$p = instr($TBS->Source, $str);
+				$p = strpos($this->TBS->Source, $x1);
 				return ($p===false) ? false : 1;
 			} else {
 				return false;

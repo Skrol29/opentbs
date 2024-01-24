@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - PHP 8.2 compatibility improved
 
+### Bug fixes
+
+- OPENTBS_SEARCH_IN_SLIDES for ODP file always return error
+
 ## [1.11.3] - 2023-12-02
 
 ### Bug fixes
