@@ -3,7 +3,7 @@
  *
  * TinyButStrong - Template Engine for Pro and Beginners
  *
- * @version 3.15.0 for PHP 5, 7, 8
+ * @version 3.15.1 for PHP 5, 7, 8
  * @date    2023-05-15
  * @link    http://www.tinybutstrong.com Web site
  * @author  http://www.tinybutstrong.com/onlyyou.html
@@ -61,7 +61,7 @@ class clsTbsLocator {
 	public $PrmIfVar;
 	public $PrmElseVar;
 
-	// autre
+	// other
 	public $ConvEsc;
 	public $ConvWS;
 	public $ConvJS;
@@ -73,8 +73,12 @@ class clsTbsLocator {
 	
 	public $OpeUtf8;
 	public $OpeAct;
-	public $OpePrm;	
-	public $OpeArg;	
+	public $OpePrm;
+	public $OpeArg;
+    
+    public $OpeMOK;
+    public $OpeMKO;
+    public $MSave;
 
 	// Sub-template
 	public $SaveSrc;
@@ -117,6 +121,7 @@ class clsTbsLocator {
 	public $CheckPrev;
 	public $WhenFound;
 	public $WhenDefault;
+    public $WhenDefaultBeforeNS;
 	public $SectionNbr;
 	public $SectionLst;
 	public $PosDefBeg;
@@ -4423,9 +4428,9 @@ static function f_Misc_ConvSpe(&$Loc) {
 
 /**
  * Return the information if parsing a form which can be either a property of a function.
- * @param  string $Str The form.
- * @return array  Information about the form.
- *                name:   the name of the function of the property
+ * @param  string $Str The form.              Example : 'my_func(aaa,bbb)'
+ * @return array  Information about the form. Example : array('name' => 'my_func', 'as_fct' => true, 'args' => array('aaa', 'bbb'),)
+ *                name:   the name of the function of the property.
  *                as_fct: true if the form is as a function
  *                args:   arguments of the function, or empty array if it's a property
  */
