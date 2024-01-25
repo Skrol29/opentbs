@@ -1028,8 +1028,12 @@ class clsOpenTBS extends clsTbsZip {
 
 	/**
 	 * Save a given source in the store.
-	 * $onshow=true means [onshow] are merged before the output. 
-	 * If $onshow is null, then the 'onshow' option stays unchanged.
+	 * 
+	 * @param integer      $idx     Index of the sub-file.
+	 * @param string       $src     New contents.
+	 * @param boolean|null $onshow  (optional, default is null) Null means unchanged, of false for new files.  
+	 *                               true means that TBS->Show() will be processed for the sub-file before the output.
+	 *                               true aslo means the the sub-file will be considered as opened for the commands that return opened files.
 	 */
 	function TbsStorePut($idx, $src, $onshow = null) {
 		if ($idx===$this->TbsCurrIdx) {
@@ -1650,7 +1654,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	/**
 	 * Return the path of the image on the server corresponding the current field being merged.
 	 */
-	function TbsPicExternalPath(&$Value, &$PrmLst) {
+	function TbsPicExternalPath(&$Value, &$PrmLst, $Loc) {
 	
 		$TBS = &$this->TBS;
 	
@@ -1711,7 +1715,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$PrmLst['pic_prepared'] = true; // mark the locator as Picture prepared
 		
 		// Path of the external file to copy inside the current document.
-		$ExternalPath = $this->TbsPicExternalPath($Value, $PrmLst);
+		$ExternalPath = $this->TbsPicExternalPath($Value, $PrmLst, $Loc);
 		
 		if ($ExternalPath === false) {
 			if (isset($PrmLst['att'])) {
@@ -2561,10 +2565,12 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	/**
 	 * Read or write an attribute's value or an entity's value in the first element in a given sub-file.
+	 *
 	 * @param {mixed}  $SubFile : the name or the index of the sub-file. Use value false to get the current sub-file.
 	 * @param {string} $ElPath  : path of the element. For example : 'w:document/w:body/w:p'.
 	 * @param {string|boolean} $Att    : the attribute, or false to replace the entity's value.
 	 * @param {string|boolean} $NewVal : the new value, or false to delete the attribute, or null to return the attribute’s value without writing.
+	 *
 	 * @return {string|boolean} Reading : return true if the attribute is found and processed. False otherwise.
 	 *                          Writing : return the value as a string, of false if the attribute or the entity is not found.
 	 *                                    return false if $Att = false and the entity is a self-closing tag.
