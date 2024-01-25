@@ -114,8 +114,8 @@ td th {
     <!-- div main-body is used for insertion in the TBS menu -->
     <div id="main-body">
       <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-      <div>version 1.11.0, 2023-05-15 by Skrol29</div>
-      <div>help file modified on 2022-05-03</div>
+      <div>version 1.12.0, 2024-01-25 by Skrol29</div>
+      <div>help file modified on 2024-01-25</div>
       <ol>
         <li><a href="#intro">Introduction</a></li>
         <li><a href="#install">Installing</a></li>
@@ -1380,6 +1380,29 @@ array (
                 Parameter $Prms is supported since version 1.9.1.</span></td>
           </tr>
           <tr>
+            <td class="top smallcode nowrap"><a id="opentbs_get_files_by_type"></a>$TBS-&gt;PlugIn(OPENTBS_GET_FILES_BY_TYPE,
+              $Types)</td>
+            <td valign="top">
+              <p>Return an array of all sub-files corresponding to the asked
+                types. </p>
+              <p> <span class="smallcode">$Types</span> must be a string or an
+                array of strings, supported values are:</p>
+              <ul>
+                <li class="smallcode">'main'</li>
+                <li class="smallcode">'header'</li>
+                <li class="smallcode">'footer'</li>
+                <li class="smallcode">'chart'</li>
+                <li class="smallcode">'comments'</li>
+                <li class="smallcode">'sheet'</li>
+                <li class="smallcode">'slide'</li>
+              </ul>
+              <p class="code">// Example<br>
+                $subfile_lst = $TBS-&gt;PlugIn(OPENTBS_GET_FILES_BY_TYPE,
+                ['charts']);</p>
+              <span class="versioning">Command OPENTBS_GET_FILES_BY_TYPE is
+                supported since OpenTBS version 1.12.0. </span></td>
+          </tr>
+          <tr>
             <td class="top smallcode nowrap"><a id="opentbs_delete_comments"></a>$TBS-&gt;PlugIn(OPENTBS_DELETE_COMMENTS)</td>
             <td valign="top">
               <p>Delete all usual user comments in the opened template. </p>
@@ -1532,7 +1555,8 @@ array (
             <td class="top smallcode nowrap"><a id="opentbs_get_headers_footers"></a>$TBS-&gt;PlugIn(OPENTBS_GET_HEADERS_FOOTERS)</td>
             <td valign="top">
               <p>Return an array of all sub-files that are headers and footers
-                oif the document.</p>
+                of the document.</p>
+              <p>See also command <span class="top smallcode nowrap"><a href="#opentbs_get_files_by_type">OPENTBS_GET_FILES_BY_TYPE</a></span>.</p>
               <div class="code">// Example<br>
                 $subfile_lst = $TBS-&gt;PlugIn(OPENTBS_GET_HEADERS_FOOTERS);<br>
                 foreach ($subfile_lst as $subfile) {<br>
@@ -1759,6 +1783,7 @@ array (
       <div class="shift">
         <div class="code">$TBS-&gt;Plugin(OPENTBS_GET_FILES)</div>
         <p>Return the list of all files in the archive.</p>
+        <p>See also command <span class="top smallcode nowrap"><a href="#opentbs_get_files_by_type">OPENTBS_GET_FILES_BY_TYPE</a></span>.</p>
         <div class="versioning">(supported since OpenTBS version 1.9.7)</div>
       </div>
       <h4 style="display:inline">&nbsp;</h4>

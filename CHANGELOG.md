@@ -2,7 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.11.4] - 2024-01-25
+## [1.12.0] - 2024-01-25
+
+### New feature
+
+- new command OPENTBS_GET_FILES_BY_TYPE
 
 ### Enhancements
 

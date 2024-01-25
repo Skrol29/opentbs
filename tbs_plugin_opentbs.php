@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.11.4
- * @date 2024-01-04
+ * @version 1.12.0
+ * @date 2024-01-25
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -33,6 +33,7 @@ define('OPENTBS_EDIT_ENTITY','clsOpenTBS.EditEntity');  // command to edit an at
 define('OPENTBS_READ_ENTITY','clsOpenTBS.ReadEntity');  // command to read an attribute
 define('OPENTBS_FILEEXISTS','clsOpenTBS.FileExists');
 define('OPENTBS_GET_FILES','clsOpenTBS.GetFiles');
+define('OPENTBS_GET_FILES_BY_TYPE','clsOpenTBS.GetFilesByType');
 define('OPENTBS_GET_OPENED_FILES','clsOpenTBS.GetOpenedFiles');
 define('OPENTBS_WALK_OPENED_FILES','clsOpenTBS.WalkOpenedFiles');
 define('OPENTBS_CHART','clsOpenTBS.Chart');
@@ -146,7 +147,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.11.3';
+		$this->Version = '1.12.0';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -767,7 +768,7 @@ class clsOpenTBS extends clsTbsZip {
 			}
 			
 			return $res;
-		
+
 		} elseif ($Cmd==OPENTBS_SYSTEM_CREDIT) {
 
 			$x1 = (boolean) $x1;
@@ -806,10 +807,42 @@ class clsOpenTBS extends clsTbsZip {
 		} elseif ($Cmd==OPENTBS_GET_FILES) {
 	
 			$files = array();
+
 			// All files in the archive
 			foreach ($this->CdFileLst as $f) {
 				$files[] = $f['v_name'];
 			}
+
+			return $files;
+
+		} elseif ($Cmd==OPENTBS_GET_FILES_BY_TYPE) {
+	
+			$files = array();
+			$types = $x1;
+			if (is_string($types)) $types = array($types);
+
+			if ($this->ExtType=='odf') {
+
+				// this commande is not really supported for LibreOffice
+				if (in_array('main', $types)) {
+					$files[] = $this->ExtInfo['main'];
+				}
+
+			} elseif ($this->ExtType=='openxml') {
+
+				// We convert alias into short types
+				// The function will ignore unknowed short types.
+				if (in_array('main',   $types)) $types[] = 'wordprocessingml.document.main+xml';
+				if (in_array('header', $types)) $types[] = 'wordprocessingml.header+xml';
+				if (in_array('footer', $types)) $types[] = 'wordprocessingml.footer+xml';
+				if (in_array('chart',  $types)) $types[] = 'drawingml.chart+xml';
+				if (in_array('slide',  $types)) $types[] = 'presentationml.slide+xml';
+				if (in_array('sheet',  $types)) $types[] = 'spreadsheetml.worksheet+xml';
+				if (in_array('comments', $types)) $types = array_merge($types, array('presentationml.notesSlide+xml', 'wordprocessingml.comments+xml', 'spreadsheetml.comments+xml'));
+				$files = $this->OpenXML_MapGetFiles($types);
+
+			}
+
 			return $files;
 			
 		} elseif ($Cmd==OPENTBS_CHART_DELETE_CATEGORY) {
