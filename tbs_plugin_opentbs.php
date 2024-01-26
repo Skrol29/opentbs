@@ -151,7 +151,9 @@ class clsOpenTBS extends clsTbsZip {
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
-		return array('BeforeLoadTemplate','BeforeShow', 'OnCommand', 'OnOperation', 'OnCacheField');
+		$this->hyperlinks = array();
+		$this->mergeCells = array();
+		return array('BeforeLoadTemplate','BeforeShow', 'BeforeMergeBlock', 'OnCommand', 'OnOperation', 'OnCacheField');
 	}
 
 	function BeforeLoadTemplate(&$File,&$Charset) {
@@ -235,7 +237,11 @@ class clsOpenTBS extends clsTbsZip {
 		if ($this->TbsSystemCredits) {
 			$this->Misc_EditCredits("OpenTBS " . $this->Version, true, true);
 		}
-		
+		if ($this->ExtEquiv === 'xlsx') {
+			$this->MsExcel_WriteListOfHyperlinks();
+			$this->MsExcel_WriteListOfMergeCells();
+		}
+
 		$this->TbsStorePark(); // Save the current loaded subfile if any
 
 		$TBS->Plugin(-4); // deactivate other plugins
@@ -315,6 +321,98 @@ class clsOpenTBS extends clsTbsZip {
 
 	}
 
+	function MsExcel_WriteListOfHyperlinks() {
+		$count = count($this->hyperlinks);
+		$hyperlinks = '';
+		foreach ($this->hyperlinks as $rid => $ref) {
+			$hyperlinks .= "<hyperlink r:id=\"$rid\" ref=\"$ref\"/>";
+		}
+		$src = $this->TbsStoreGet($this->TbsCurrIdx, false);
+		$result = preg_replace(
+			'#<hyperlinks([^>]*)>.*</hyperlinks>#i',
+			"<hyperlinks\\1>$hyperlinks</hyperlinks>",
+			$src
+		);
+		$this->TbsStorePut($this->TbsCurrIdx, $result);
+		return $count;
+	}
+
+	function MsExcel_WriteListOfMergeCells() {
+		$this->mergeCells = array_unique($this->mergeCells);
+		$count = count($this->mergeCells);
+		$mergeCells = '';
+		foreach ($this->mergeCells as $range) {
+			$mergeCells .= "<mergeCell ref=\"$range\"/>";
+		}
+		$src = $this->TbsStoreGet($this->TbsCurrIdx, false);
+		$result = preg_replace(
+			'#<mergeCells([^>]*)(?: count="\d+")?([^>]*)>.*</mergeCells>#i',
+			"<mergeCells\\1 count=\"$count\"\\2>$mergeCells</mergeCells>",
+			$src
+		);
+		$this->TbsStorePut($this->TbsCurrIdx, $result);
+		return $count;
+	}
+
+	function BeforeMergeBlock(&$TplSource, &$BlockBeg, &$BlockEnd, $PrmLst, &$DataSrc, &$LocR) {
+		if ($this->ExtEquiv !== 'xlsx') {
+			return;
+		}
+		list($currentCol, $currentRow) = $this->Sheet_CellPosition($TplSource, $BlockBeg);
+		if ($PrmLst['block'] === 'tbs:cell') {
+			$addedCols = $DataSrc->RecNbr - 1;
+			$addedRows = 0;
+		} elseif ($PrmLst['block'] === 'tbs:row') {
+			$addedCols = 0;
+			$addedRows = $DataSrc->RecNbr - 1;
+		}
+		$this->MsExcel_UpdateListOfHyperlinks($currentCol, $currentRow, $addedCols, $addedRows);
+		$this->MsExcel_UpdateListOfMergeCells($currentCol, $currentRow, $addedCols, $addedRows);
+		return true;
+	}
+
+	function MsExcel_UpdateListOfHyperlinks($currentCol, $currentRow, $addedCols, $addedRows) {
+		if ($addedCols === 0 && $addedRows === 0) return;
+		foreach ($this->hyperlinks as &$ref) {
+			list($refCol, $refRow) = $this->Sheet_ColNum($ref, true);
+			if ($refCol > $currentCol) {
+				$refCol += $addedCols;
+			}
+			if ($refRow > $currentRow) {
+				$refRow += $addedRows;
+			}
+			if ($refCol >= $currentCol || $refRow >= $currentRow) {
+				$ref = $this->Sheet_CellRef($refCol, $refRow);
+			}
+		}
+	}
+
+	function MsExcel_UpdateListOfMergeCells($currentCol, $currentRow, $addedCols, $addedRows) {
+		if ($addedCols === 0 && $addedRows === 0) return;
+		foreach ($this->mergeCells as &$range) {
+			list($startCell, $endCell) = explode(':', $range);
+			list($startCol, $startRow) = $this->Sheet_ColNum($startCell, true);
+			list($endCol, $endRow) = $this->Sheet_ColNum($endCell, true);
+			if ($startCol > $currentCol) {
+				$startCol += $addedCols;
+			}
+			if ($startRow > $currentRow) {
+				$startRow += $addedRows;
+			}
+			if ($endCol > $currentCol) {
+				$endCol += $addedCols;
+			}
+			if ($endRow > $currentRow) {
+				$endRow += $addedRows;
+			}
+			if ($startCol >= $currentCol || $startRow >= $currentRow || $endCol >= $currentCol || $endRow >= $currentRow) {
+				$startCell = $this->Sheet_CellRef($startCol, $startRow);
+				$endCell = $this->Sheet_CellRef($endCol, $endRow);
+				$range = "$startCell:$endCell";
+			}
+		}
+	}
+
 	function OnCacheField($BlockName,&$Loc,&$Txt,$PrmProc) {
 
 		if (isset($Loc->PrmLst['ope'])) {
@@ -376,6 +474,16 @@ class clsOpenTBS extends clsTbsZip {
 			}
 		} elseif ($ope==='docfield') {
 			$this->TbsDocFieldPrepare($Txt, $Loc);
+		} elseif ($ope==='mergecells') {
+			$rowSpan = intval(isset($PrmLst['rows']) ? $PrmLst['rows'] : $Value);
+			$colSpan = intval(isset($PrmLst['cols']) ? $PrmLst['cols'] : $Value);
+			if ($colSpan >= 1 && $rowSpan >= 1) {
+				list($cellCol, $cellRow) = $this->Sheet_CellPosition($Txt, $PosBeg);
+				$startCell = $this->Sheet_CellRef($cellCol, $cellRow);
+				$endCell = $this->Sheet_CellRef($cellCol + $colSpan - 1, $cellRow + $rowSpan - 1);
+				$this->mergeCells[] = "$startCell:$endCell";
+				$Value = '';
+			}
 		} else {
 			$x = substr($ope,0,4);
 			if( ($x==='tbs:') || ($x==='xlsx') || (substr($ope,0,3)==='ods') ) {
@@ -387,6 +495,36 @@ class clsOpenTBS extends clsTbsZip {
 				}
 			}
 		}
+	}
+
+	function Sheet_CellPosition($Txt, $PosBeg, $RowEl = null, $CellEl = null) {
+		if ($RowEl === null && $CellEl === null) {
+			switch ($this->ExtEquiv) {
+				case 'xlsx':
+					return $this->Sheet_CellPosition($Txt, $PosBeg, 'row', 'c');
+				case 'ods':
+					$this->OpenDoc_CoveredCells_Replace($Txt, true);
+					return $this->Sheet_CellPosition($Txt, $PosBeg, 'table:table-row', 'table:table-cell');
+				default:
+					return [null, null];
+			}
+		}
+		$lastPos = 0;
+		$cellRow = 0;
+		do {
+			$p = clsTinyButStrong::f_Xml_FindTagStart($Txt, $RowEl, true, $lastPos+1, true, true);
+			if ($p === false || $p >= $PosBeg) break;
+			$lastPos = $p;
+			$cellRow++;
+		} while(true);
+		$cellCol = 0;
+		do {
+			$p = clsTinyButStrong::f_Xml_FindTagStart($Txt, $CellEl, true, $lastPos+1, true, true);
+			if ($p === false || $p >= $PosBeg) break;
+			$lastPos = $p;
+			$cellCol++;
+		} while(true);
+		return [$cellCol, $cellRow];
 	}
 
 	function OnCommand($Cmd, $x1=null, $x2=null, $x3=null, $x4=null, $x5=null) {
@@ -898,6 +1036,7 @@ class clsOpenTBS extends clsTbsZip {
 		} elseif ($Cmd == OPENTBS_SET_CELLS) {
 			
 			return $this->RaiseError("Command OPENTBS_SET_CELLS will be available in a next version.");
+
 		}
 
 	}
@@ -970,6 +1109,10 @@ class clsOpenTBS extends clsTbsZip {
 			if ($idx===false) {
 				$ok = $this->RaiseError('Cannot load "'.$SubFile.'". The file is not found in the archive "'.$this->ArchFile.'".');
 			} elseif ($idx!==$this->TbsCurrIdx) {
+				if ($this->ExtEquiv === 'xlsx') {
+					$this->MsExcel_WriteListOfHyperlinks();
+					$this->MsExcel_WriteListOfMergeCells();
+				}
 				// Save the current loaded subfile if any
 				$this->TbsStorePark();
 				// Load the subfile
@@ -1012,6 +1155,11 @@ class clsOpenTBS extends clsTbsZip {
 						}
 						// apply default TBS behaviors on the uncompressed content: other plug-ins + [onload] fields
 						if ($MergeAutoFields) $TBS->LoadTemplate(null,'+');
+
+						if ($this->ExtEquiv === 'xlsx') {
+							$this->MsExcel_ReadListOfHyperlinks($TBS->Source);
+							$this->MsExcel_ReadListOfMergeCells($TBS->Source);
+						}
 					}
 				}
 			}
@@ -4724,6 +4872,26 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		
+	}
+
+	function MsExcel_ReadListOfHyperlinks($Txt) {
+		$this->hyperlinks = array();
+		$p = clsTinyButStrong::f_Xml_FindTagStart($Txt, 'hyperlinks', true, 0, true, true);
+		if ($p === false) return;
+		while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, 'hyperlink', true, $p, true, false, true, true) ) {
+			$this->hyperlinks[$loc->PrmLst['r:id']] = $loc->PrmLst['ref'];
+			$p = $loc->PosEnd;
+		}
+	}
+
+	function MsExcel_ReadListOfMergeCells($Txt) {
+		$this->mergeCells = array();
+		$p = clsTinyButStrong::f_Xml_FindTagStart($Txt, 'mergeCells', true, 0, true, true);
+		if ($p === false) return;
+		while ($loc=clsTinyButStrong::f_Xml_FindTag($Txt, 'mergeCell', true, $p, true, false, true, true) ) {
+			$this->mergeCells[] = $loc->PrmLst['ref'];
+			$p = $loc->PosEnd;
+		}
 	}
 
 	function MsExcel_ConvertToRelative(&$Txt) {
