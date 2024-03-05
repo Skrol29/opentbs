@@ -5474,6 +5474,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	// Clean tags in an Ms Powerpoint slide
 	function MsPowerpoint_Clean(&$Txt) {
 
+		// Simplify Run Properties elements
 		$this->MsPowerpoint_CleanRpr($Txt, 'a:rPr');
 		$Txt = str_replace('<a:rPr/>', '', $Txt);
 
@@ -5490,6 +5491,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	}
 
+	/**
+	 * Simplfy elements by deleting useless attributes 
+	 */
 	function MsPowerpoint_CleanRpr(&$Txt, $elem) {
 		$p = 0;
 		while ($x = clsTbsXmlLoc::FindStartTag($Txt, $elem, $p)) {
