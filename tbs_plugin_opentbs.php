@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.12.0
- * @date 2024-01-25
+ * @version 1.13.0-beta
+ * @date 2024-03-04
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -147,7 +147,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.12.0';
+		$this->Version = '1.13.0-beta';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -4726,6 +4726,95 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		
 	}
 
+	/**
+	 * MsWord cut the source of the text when a modification is done. This is splitting TBS tags.
+	 * This function repare the split text by searching and delete duplicated layout.
+	 * 
+	 * @param string $Txt  (by reference) the XML source to modify
+	 * @param string $tagR tag name of a Run element
+	 * @param string $tagT tag name of a Text element
+	 * 
+	 * @return integer the number of deleted dublicates.
+	 */
+	function OpenMXL_CleanDuplicatedLayout(&$Txt, $tagR, $tagT) {
+
+		$wro = '<' . $tagR;
+		$wro_len = strlen($wro);
+
+		$wrc = '</' . $tagR;
+		$wrc_len = strlen($wrc);
+
+		$wto = '<' . $tagT;
+		$wto_len = strlen($wto);
+
+		$wtc = '</' . $tagT;
+		$wtc_len = strlen($wtc);
+
+		$preserve = 'xml:space="preserve"';
+		$preserve_len = strlen($preserve);
+
+		$nb_tot = 0;
+		$wro_p = 0;
+		while ( ($wro_p = $this->XML_SearchTagForward($Txt, $wro, $wro_p)) !== false ) { // next <w:r> tag
+			$wto_p = $this->XML_SearchTagForward($Txt, $wto, $wro_p); // next <w:t> tag
+			if ($wto_p === false) return false; // error in the structure of the <w:r> element
+			$first = true;
+			$nb = 0; // number of duplicated layouts for the current text snippet
+			do {
+				$ok = false;
+				$wtc_p = $this->XML_SearchTagForward($Txt, $wtc, $wto_p); // next </w:t> tag
+				if ($wtc_p === false) return false;
+				$wrc_p = $this->XML_SearchTagForward($Txt, $wrc, $wro_p); // next </w:r> tag (only to check inclusion)
+				if ($wrc_p === false) return false;
+				if ( ($wto_p < $wrc_p) && ($wtc_p < $wrc_p) ) { // if the <w:t> is actually included in the <w:r> element
+					if ($first) {
+						// we build the xml that would be the duplicated layout if any
+						$p = strpos($Txt, '<', $wrc_p + $wrc_len);
+						$x = substr($Txt, $wtc_p, $p - $wtc_p); // '</w:t></w:r>   ' may include some linebreaks or spaces after the closing tags
+						$src_to_del = $x . substr($Txt, $wro_p, ($wto_p + $wto_len) - $wro_p); // without the last symbol, like: '</w:t></w:r><w:r>....<w:t'
+						$src_to_del = str_replace('<w:tab/>', '', $src_to_del); // tabs must not be deleted between parts => they nt be in the superfluous string
+						$src_to_del_len = strlen($src_to_del);
+						$first = false;
+					}
+					// if the following source is a duplicated layout then we delete it by joining the <w:r> elements.
+					$p_att = $wtc_p + $src_to_del_len;
+					$x = substr($Txt, $p_att, 1); // help to optimize the check because if it's a duplicated layout, the char after is the end of the '<w:t' element.
+					if ( (($x === ' ') || ($x === '>')) && (substr($Txt, $wtc_p, $src_to_del_len)===$src_to_del) ) {
+						$p_end = strpos($Txt, '>', $p_att); //
+						if ($p_end === false) return false; // error in the structure of the <w:t> tag
+						$Txt = substr_replace($Txt, '', $wtc_p, $p_end - $wtc_p + 1); // delete superfluous part + <w:t> attributes
+						$nb_tot++;
+						$nb++;
+						$ok = true;
+					}
+				}
+			} while ($ok);
+
+			// Add or delete the attribute { xml:space="preserve" } that must be set if there is a space before of after the text
+			if ($nb > 0) {
+				$with_space = false;
+				if ( substr($Txt, $wtc_p - 1, 1) === ' ') $with_space = true;
+				$p_end = strpos($Txt, '>', $wto_p); // first char of the text
+				if ( substr($Txt, $p_end + 1, 1) === ' ') $with_space = true;
+				$src = substr($Txt, $wto_p, $p_end - $wto_p + 1);
+				$p = strpos($src, $preserve);
+				if ( $with_space && ($p === false) ) {
+					// add the attribute
+					$Txt = substr_replace($Txt, ' ' . $preserve, $p_end, 0);
+				} elseif ( (!$with_space) && ($p !== false) ) {
+					// delete the attribute
+					$Txt = substr_replace($Txt, '', $wto_p + $p -1, $preserve_len + 1); // delete the attribut with the space before it
+				}
+			}
+
+			$wro_p = $wro_p + $wro_len;
+
+		}
+
+		return $nb_tot; // number of total replacements
+
+	}
+
 	function MsExcel_ConvertToRelative(&$Txt) {
 		// <row r="10" ...> attribute "r" is optional since missing row are added using <row />
 		// <c r="D10" ...> attribute "r" is optional since missing cells are added using <c />
@@ -5489,6 +5578,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		// An <a:r> must contain at least one <a:t>. An empty <a:t> may exist after several merges or an OpenTBS cleans.
 		$Txt = str_replace('<a:r><a:t></a:t></a:r>', '', $Txt);
 
+		$this->OpenMXL_CleanDuplicatedLayout($Txt, 'a:r', 'a:t');
+
 	}
 
 	/**
@@ -5648,7 +5739,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$this->XML_DeleteElements($Txt, array('w:proofErr', 'w:noProof', 'w:lang', 'w:lastRenderedPageBreak'));
 		$this->MsWord_CleanSystemBookmarks($Txt);
 		$this->MsWord_CleanRsID($Txt);
-		$this->MsWord_CleanDuplicatedLayout($Txt);
+		$this->OpenMXL_CleanDuplicatedLayout($Txt, 'w:r', 'w:t');
 	}
 	
 	/**
@@ -5744,90 +5835,6 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		$Txt = str_replace('<w:pPr></w:pPr>', '', $Txt);
 
 		return $nbr_del;
-
-	}
-
-	/**
-	 * MsWord cut the source of the text when a modification is done. This is splitting TBS tags.
-	 * This function repare the split text by searching and delete duplicated layout.
-	 * Return the number of deleted dublicates.
-	 */
-	function MsWord_CleanDuplicatedLayout(&$Txt) {
-
-		$wro = '<w:r';
-		$wro_len = strlen($wro);
-
-		$wrc = '</w:r';
-		$wrc_len = strlen($wrc);
-
-		$wto = '<w:t';
-		$wto_len = strlen($wto);
-
-		$wtc = '</w:t';
-		$wtc_len = strlen($wtc);
-
-		$preserve = 'xml:space="preserve"';
-		$preserve_len = strlen($preserve);
-
-		$nb_tot = 0;
-		$wro_p = 0;
-		while ( ($wro_p = $this->XML_SearchTagForward($Txt, $wro, $wro_p)) !== false ) { // next <w:r> tag
-			$wto_p = $this->XML_SearchTagForward($Txt, $wto, $wro_p); // next <w:t> tag
-			if ($wto_p === false) return false; // error in the structure of the <w:r> element
-			$first = true;
-			$nb = 0; // number of duplicated layouts for the current text snippet
-			do {
-				$ok = false;
-				$wtc_p = $this->XML_SearchTagForward($Txt, $wtc, $wto_p); // next </w:t> tag
-				if ($wtc_p === false) return false;
-				$wrc_p = $this->XML_SearchTagForward($Txt, $wrc, $wro_p); // next </w:r> tag (only to check inclusion)
-				if ($wrc_p === false) return false;
-				if ( ($wto_p < $wrc_p) && ($wtc_p < $wrc_p) ) { // if the <w:t> is actually included in the <w:r> element
-					if ($first) {
-						// we build the xml that would be the duplicated layout if any
-						$p = strpos($Txt, '<', $wrc_p + $wrc_len);
-						$x = substr($Txt, $wtc_p, $p - $wtc_p); // '</w:t></w:r>   ' may include some linebreaks or spaces after the closing tags
-						$src_to_del = $x . substr($Txt, $wro_p, ($wto_p + $wto_len) - $wro_p); // without the last symbol, like: '</w:t></w:r><w:r>....<w:t'
-						$src_to_del = str_replace('<w:tab/>', '', $src_to_del); // tabs must not be deleted between parts => they nt be in the superfluous string
-						$src_to_del_len = strlen($src_to_del);
-						$first = false;
-					}
-					// if the following source is a duplicated layout then we delete it by joining the <w:r> elements.
-					$p_att = $wtc_p + $src_to_del_len;
-					$x = substr($Txt, $p_att, 1); // help to optimize the check because if it's a duplicated layout, the char after is the end of the '<w:t' element.
-					if ( (($x === ' ') || ($x === '>')) && (substr($Txt, $wtc_p, $src_to_del_len)===$src_to_del) ) {
-						$p_end = strpos($Txt, '>', $p_att); //
-						if ($p_end === false) return false; // error in the structure of the <w:t> tag
-						$Txt = substr_replace($Txt, '', $wtc_p, $p_end - $wtc_p + 1); // delete superfluous part + <w:t> attributes
-						$nb_tot++;
-						$nb++;
-						$ok = true;
-					}
-				}
-			} while ($ok);
-
-			// Add or delete the attribute { xml:space="preserve" } that must be set if there is a space before of after the text
-			if ($nb > 0) {
-				$with_space = false;
-				if ( substr($Txt, $wtc_p - 1, 1) === ' ') $with_space = true;
-				$p_end = strpos($Txt, '>', $wto_p); // first char of the text
-				if ( substr($Txt, $p_end + 1, 1) === ' ') $with_space = true;
-				$src = substr($Txt, $wto_p, $p_end - $wto_p + 1);
-				$p = strpos($src, $preserve);
-				if ( $with_space && ($p === false) ) {
-					// add the attribute
-					$Txt = substr_replace($Txt, ' ' . $preserve, $p_end, 0);
-				} elseif ( (!$with_space) && ($p !== false) ) {
-					// delete the attribute
-					$Txt = substr_replace($Txt, '', $wto_p + $p -1, $preserve_len + 1); // delete the attribut with the space before it
-				}
-			}
-
-			$wro_p = $wro_p + $wro_len;
-
-		}
-
-		return $nb_tot; // number of total replacements
 
 	}
 
