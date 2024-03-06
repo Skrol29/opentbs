@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.1] - 2024-03-06
+
+### Enhancements
+
+- OPENTBS_GET_FILES_BY_TYPE supports new keywords : 'all' and 'slidem'
+
+- PPTX : better XML clean for TBS fields recognition.
+
 ## [1.12.0] - 2024-01-25
 
 ### New feature

@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.13.0-beta
- * @date 2024-03-04
+ * @version 1.12.1
+ * @date 2024-03-06
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -147,7 +147,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.13.0-beta';
+		$this->Version = '1.12.1';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -819,7 +819,9 @@ class clsOpenTBS extends clsTbsZip {
 	
 			$files = array();
 			$types = $x1;
-			if (is_string($types)) $types = array($types);
+			if (is_string($types)) {
+				$types = array($types);
+			}
 
 			if ($this->ExtType=='odf') {
 
@@ -831,15 +833,31 @@ class clsOpenTBS extends clsTbsZip {
 			} elseif ($this->ExtType=='openxml') {
 
 				// We convert alias into short types
-				// The function will ignore unknowed short types.
-				if (in_array('main',   $types)) $types[] = 'wordprocessingml.document.main+xml';
-				if (in_array('header', $types)) $types[] = 'wordprocessingml.header+xml';
-				if (in_array('footer', $types)) $types[] = 'wordprocessingml.footer+xml';
-				if (in_array('chart',  $types)) $types[] = 'drawingml.chart+xml';
-				if (in_array('slide',  $types)) $types[] = 'presentationml.slide+xml';
-				if (in_array('sheet',  $types)) $types[] = 'spreadsheetml.worksheet+xml';
-				if (in_array('comments', $types)) $types = array_merge($types, array('presentationml.notesSlide+xml', 'wordprocessingml.comments+xml', 'spreadsheetml.comments+xml'));
-				$files = $this->OpenXML_MapGetFiles($types);
+				$alias = array(
+					'main'     => array('wordprocessingml.document.main+xml'),
+					'header'   => array('wordprocessingml.header+xml'),
+					'footer'   => array('wordprocessingml.footer+xml'),
+					'chart'    => array('drawingml.chart+xml'),
+					'slide'    => array('presentationml.slide+xml'),
+					'slidem'   => array('presentationml.slideMaster+xml'),
+					'sheet'    => array('spreadsheetml.worksheet+xml'),
+					'comments' => array('presentationml.notesSlide+xml', 'wordprocessingml.comments+xml', 'spreadsheetml.comments+xml'),
+				);
+
+				$types_conv = array();
+				if (in_array('all', $types)) {
+					$types = array_merge($types, array_keys($alias));
+				}
+				foreach ($types as $t) {
+					if ($t == 'all') {
+					} elseif (isset($alias[$t])) {
+						$types_conv = array_merge($types_conv, $alias[$t]);
+					} else {
+						$types_conv[] = $t;
+					}
+				}
+
+				$files = $this->OpenXML_MapGetFiles($types_conv);
 
 			}
 
