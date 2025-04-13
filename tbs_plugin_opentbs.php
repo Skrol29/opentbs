@@ -7,7 +7,7 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.12.1
+ * @version 1.12.2-beta
  * @date 2024-03-06
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
@@ -147,7 +147,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.12.1';
+		$this->Version = '1.12.2-beta';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -1491,10 +1491,10 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		/*
 		With an OpenXML document, the TBS field defined in the property Description or Title can be silently duplicated to another entity nearby (usually <pic:cNvPr>).
-		This will make the picture replacement to be processed twice : one fof each TBS field. But this won't make always error because the external file will be inserted onyl once and the two Rid will be the same.
+		This will make the picture replacement to be processed twice : one for each TBS field. But this won't make always error because the external file will be inserted only once and the two Rid will be the same.
 		Nevertheless, if the picture use parameter 'adjust' then this will corrupt the XML when several cached TBS fields have to be merged the the same picture element.
 		This is because the redim process uses relative cached positioning.
-		In order to evoid this error and to optimize picture replacement, any duplicated TBS field in the picture element will be neutralized.
+		In order to avoid this error and to optimize picture replacement, any duplicated TBS field in the picture element will be neutralized.
 		*/
 		$PicLoc = false;
 		if (isset($this->ExtInfo['pic_entity'])) {
@@ -7633,12 +7633,12 @@ class clsTbsXmlLoc {
 	}
 
 	// Search an element in the TXT contents, and return an object if it's found.
-	static function FindElement(&$TxtOrObj, $Tag, $PosBeg, $Forward=true) {
+	static function FindElement(&$TxtOrObj, $Tag, $PosBeg, $Forward = true, $Encaps = false) {
 
 		$XmlLoc = static::FindStartTag($TxtOrObj, $Tag, $PosBeg, $Forward);
 		if ($XmlLoc===false) return false;
 
-		$XmlLoc->FindEndTag();
+		$XmlLoc->FindEndTag($Encaps);
 		return $XmlLoc;
 
 	}
@@ -7686,14 +7686,15 @@ class clsTbsXmlLoc {
 	 * @param  string  $Att     The attribute name of full definition to search. Example: 'visible' or 'visible="1"'
 	 * @param  integer $PosBeg  The offset position of the search.
 	 * @param  boolean $Forward (optional) Indicate the direction of the search.
+	 * @param  boolean $Encaps  (optional, false by default) Indicates if the element can be self encapsulated (like <div>).
 	 * @return false|object
 	 */
-	static function FindElementHavingAtt(&$Txt, $Att, $PosBeg, $Forward=true) {
+	static function FindElementHavingAtt(&$Txt, $Att, $PosBeg, $Forward = true, $Encaps = false) {
 
 		$XmlLoc = static::FindStartTagHavingAtt($Txt, $Att, $PosBeg, $Forward);
 		if ($XmlLoc===false) return false;
 
-		$XmlLoc->FindEndTag();
+		$XmlLoc->FindEndTag($Encaps);
 
 		return $XmlLoc;
 
@@ -8036,11 +8037,11 @@ class clsTbsXmlLoc {
 	 * Find the ending tag of the entity.
      * The result is put in cache for other calls.
 	 * 
-	 * @param boolean $Encaps (optional, true by default) Indicates if the element can be self encapsulated (like <div>).
+	 * @param boolean $Encaps (optional, false by default) Indicates if the element can be self encapsulated (like <div>).
 	 *
 	 * @return boolean  Return True if the end is found, or False otherwise.
 	 */
-	function FindEndTag($Encaps=false) {
+	function FindEndTag($Encaps = false) {
 		if (is_null($this->SelfClosing)) {
 			$pe = $this->PosEnd;
 			$SelfClosing = $this->_SelfClosing($pe);
