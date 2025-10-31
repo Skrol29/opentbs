@@ -8112,8 +8112,8 @@ class clsTbsXmlCellReader extends clsTbsXmlLoc {
 }
 
 /*
-TbsZip version 2.17
-Date    : 2023-09-16
+TbsZip version 2.18
+Date    : 2025-11-01
 Author  : Skrol29 (email: http://www.tinybutstrong.com/onlyyou.html)
 Licence : LGPL
 This class is independent from any other classes and has been originally created for the OpenTbs plug-in
@@ -8428,7 +8428,7 @@ class clsTbsZip {
 		$this->LastReadIdx = false;
 
 		$idx = $this->FileGetIdx($NameOrIdx);
-		if ($idx===false) return $this->RaiseError('File "'.$NameOrIdx.'" is not found in the Central Directory.');
+		if ($idx===false) return $this->RaiseError('File "' . htmlspecialchars($NameOrIdx) . '" is not found in the Central Directory.');
 
 		$pos = $this->CdFileLst[$idx]['p_loc'];
 		$this->_MoveTo($pos);
@@ -8446,13 +8446,13 @@ class clsTbsZip {
 					$Data = gzinflate($Data);
 					$Comp = -1; // means uncompressed
 				} else {
-					$this->RaiseError('Unable to uncompress file "'.$NameOrIdx.'" because extension Zlib is not installed.');
+					$this->RaiseError('Unable to uncompress file "' . htmlspecialchars($NameOrIdx) . '" because extension Zlib is not installed.');
 				}
 			}
 		} elseif($meth==0) {
 			$Comp = 0; // means stored without compression
 		} else {
-			if ($Uncompress) $this->RaiseError('Unable to uncompress file "'.$NameOrIdx.'" because it is compressed with method '.$meth.'.');
+			if ($Uncompress) $this->RaiseError('Unable to uncompress file "' . htmlspecialchars($NameOrIdx) . '" because it is compressed with method ' . $meth . '.');
 		}
 		$this->LastReadComp = $Comp;
 
@@ -8547,7 +8547,7 @@ class clsTbsZip {
 	function FileReplace($NameOrIdx, $Data, $DataType=TBSZIP_STRING, $Compress=true) {
 
 		$idx = $this->FileGetIdx($NameOrIdx);
-		if ($idx===false) return $this->RaiseError('File "'.$NameOrIdx.'" is not found in the Central Directory.');
+		if ($idx===false) return $this->RaiseError('File "' . htmlspecialchars($NameOrIdx) . '" is not found in the Central Directory.');
 
 		$pos = $this->CdFileLst[$idx]['p_loc'];
 
@@ -8631,7 +8631,7 @@ class clsTbsZip {
 	function Flush($Render=TBSZIP_DOWNLOAD, $File='', $ContentType='') {
 
 		if ( ($File!=='') && ($this->ArchFile===$File) && ($Render==TBSZIP_FILE) ) {
-			$this->RaiseError('Method Flush() cannot overwrite the current opened archive: \''.$File.'\''); // this makes corrupted zip archives without PHP error.
+			$this->RaiseError('Method Flush() cannot overwrite the current opened archive: \'' . htmlspecialchars($File) . '\''); // this makes corrupted zip archives without PHP error.
 			return false;
 		}
 
@@ -8788,7 +8788,7 @@ class clsTbsZip {
 			if (''.$File=='') $File = basename($this->ArchFile).'.zip';
 			$this->OutputHandle = @fopen($File, 'w');
 			if ($this->OutputHandle===false) {
-				return $this->RaiseError('Method Flush() cannot overwrite the target file \''.$File.'\'. This may not be a valid file path or the file may be locked by another process or because of a denied permission.');
+				return $this->RaiseError('Method Flush() cannot overwrite the target file \'' . htmlspecialchars($File) . '\'. This may not be a valid file path or the file may be locked by another process or because of a denied permission.');
 			}
 		} elseif (($Render & TBSZIP_STRING)==TBSZIP_STRING) {
 			$this->OutputMode = TBSZIP_STRING;
@@ -9085,7 +9085,7 @@ class clsTbsZip {
 				if ($len_u===false) $len_u = $fz;
 				$len_c = ($Compress) ? false : $fz;
 			} else {
-				return $this->RaiseError("Cannot add the file '".$path."' because it is not found.");
+				return $this->RaiseError("Cannot add the file '" . htmlspecialchars($path) . "' because it is not found.");
 			}
 		}
 
