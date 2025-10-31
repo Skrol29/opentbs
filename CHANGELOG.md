@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.2] - 2025-11-01
+
+### Enhancements
+
+- more robust XML element search
+- TbsZip 2.18
+
 ## [1.12.1] - 2024-03-06
 
 ### Enhancements
