@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.3] - 2026-04-20
+
+### Bug fixes
+
+- PHP 8.5 compatibility improved
+  message : « Non-canonical cast (boolean) is deprecated, use the (bool) cast instead. »
+- OPENTBS_READ_ENTITY returns false when find a self closing entity, now return true.
+- OPENTBS_SELECT_HEADER and OPENTBS_SELECT_FOOTER with DOCX raises an error « Cannot load "" ... » if there is not such subfile. Now return false.
+- OPENTBS_SELECT_HEADER and OPENTBS_SELECT_FOOTER with OSD and ODP return false, now return true.
+
 ## [1.12.2] - 2025-11-01
 
 ### Enhancements

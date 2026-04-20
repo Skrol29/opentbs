@@ -114,8 +114,8 @@ td th {
     <!-- div main-body is used for insertion in the TBS menu -->
     <div id="main-body">
       <h1>OpenTBS - create OpenOffice and Ms Office documents with PHP</h1>
-      <div>version 1.12.2, 2025-11-01 by Skrol29</div>
-      <div>help file modified on 2025-11-01.</div>
+      <div>version 1.12.3, 2026-04-16 by Skrol29</div>
+      <div>help file modified on 2026-04-16.</div>
       <ol>
         <li><a href="#intro">Introduction</a></li>
         <li><a href="#install">Installing</a></li>
@@ -1459,9 +1459,7 @@ array (
             <td valign="top">
               <p>Retrieve an attribute's value or an entity's value in the first
                 element in a given sub-file. Return the asked value, or <span class="smallcode">
-                  false</span> if the attribute or the entity is not found. Also
-                retrurn <span class="smallcode">false</span> if an entity’s
-                value is asked while the entity is a self-closed tag.</p>
+                  false</span> if the attribute or the entity is not found.</p>
               <ul>
                 <li><span class="smallcode">$SubFile</span> (string|boolean):
                   the name or the index of the sub-file. Use value <span class="smallcode">false</span>
@@ -1470,11 +1468,17 @@ array (
                   the element. For example : <span class="smallcode">'w:document/w:body/w:p'</span>.
                   Sub-entities are optional but can remove ambiguities.</li>
                 <li> <span class="smallcode">$Att</span> (string|boolean): the
-                  attribute, or <span class="smallcode">false</span> to replace
-                  the entity's value.</li>
+                  attribute to read, or <span class="smallcode">false</span> to
+                  read the element value, which will be true for a self-closing
+                  element, like <span class="smallcode">&lt;w:titlePg/&gt;</span>.</li>
               </ul>
               <p><span class="versioning">Command OPENTBS_READ_ENTITY is
-                  supported since OpenTBS version 1.10.3.</span></p>
+                  supported since OpenTBS version 1.10.3.<br>
+                  Before version 1.12.3, the </span><span class="versioning">OPENTBS_READ_ENTITY
+                  used to return false for a sef-closing element.<br>
+                </span></p>
+              <p><span class="versioning"><br>
+                </span></p>
             </td>
           </tr>
           <tr>

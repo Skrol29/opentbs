@@ -7,8 +7,8 @@
  * This TBS plug-in can open a zip file, read the central directory,
  * and retrieve the content of a zipped file which is not compressed.
  *
- * @version 1.12.2
- * @date 2025-11-01
+ * @version 1.12.3-beta
+ * @date 2026-04-20
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -147,7 +147,7 @@ class clsOpenTBS extends clsTbsZip {
 		if (!isset($TBS->OtbsClearMsPowerpoint))    $TBS->OtbsClearMsPowerpoint = true;
 		if (!isset($TBS->OtbsGarbageCollector))     $TBS->OtbsGarbageCollector = true;
 		if (!isset($TBS->OtbsMsExcelCompatibility)) $TBS->OtbsMsExcelCompatibility = true;
-		$this->Version = '1.12.2';
+		$this->Version = '1.12.3-beta';
 		$this->DebugLst = false; // deactivate the debug mode
 		$this->ExtInfo = false;
 		$TBS->TbsZip = &$this; // a shortcut
@@ -723,12 +723,13 @@ class clsOpenTBS extends clsTbsZip {
 			case 'docx':
 				$x2 = intval($x2); // 0 by default
 				$file = $this->MsWord_GetHeaderFooterFile($Cmd, $x1, $x2);
+				if ($file === false) return false;
 				break;
-			case 'odt':
+			case 'odt': case 'ods':
 				$file = 'styles.xml';
 				break;
-			case 'ods': case 'odp':
-				$this->ExtInfo['main'];
+			case 'odp':
+				$file = $this->ExtInfo['main'];
 				break;
 			case 'xlsx': case 'pptx': 
 				return false;
@@ -771,7 +772,7 @@ class clsOpenTBS extends clsTbsZip {
 
 		} elseif ($Cmd==OPENTBS_SYSTEM_CREDIT) {
 
-			$x1 = (boolean) $x1;
+			$x1 = (bool) $x1;
 			$this->TbsSystemCredits = $x1;
 			return $x1;
 
@@ -781,7 +782,7 @@ class clsOpenTBS extends clsTbsZip {
 			
 		} elseif ($Cmd==OPENTBS_RELATIVE_CELLS) {
 
-			$KeepRelative = (boolean) $x1;
+			$KeepRelative = (bool) $x1;
 			if ($x2 == OPENTBS_ALL) {
 				// Al$ sheets
 				$this->TBS->OtbsMsExcelExplicitRef = (!$KeepRelative);
@@ -797,7 +798,7 @@ class clsOpenTBS extends clsTbsZip {
 			
 		} elseif ($Cmd==OPENTBS_EDIT_ENTITY) {
 			
-			$AddElIfMissing = (boolean) $x5;
+			$AddElIfMissing = (bool) $x5;
 			return $this->XML_ReadWriteAtt($x1, $x2, $x3, $x4, $AddElIfMissing);
 			
 		} elseif ($Cmd==OPENTBS_READ_ENTITY) {
@@ -2262,7 +2263,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$ext = $this->ExtEquiv;
 
-		$ok = (boolean) $ok;
+		$ok = (bool) $ok;
 		if (!is_array($id_or_name)) $id_or_name = array($id_or_name);
 
 		foreach ($id_or_name as $item=>$action) {
@@ -2697,7 +2698,11 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 				if ($Att === false) {
 					// read the entity
 					$loc->FindEndTag();
-					return $loc->GetInnerSrc();
+					if ($loc->SelfClosing) {
+						return true;
+					} else {
+						return $loc->GetInnerSrc();
+					}
 				} else {
 					// read the attribute
 					return $loc->GetAttLazy($Att);
@@ -5503,7 +5508,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			if ($v !== false) {
 				switch ($type) {
 				case 'b': // boolean: 0=false
-					$x = (boolean) $v; break;
+					$x = (bool) $v; break;
 				case 's': // shared string
 					$x = $this->OpenXML_SharedStrings_GetVal($v);
 					$this->XML_DeleteElements($x, array('t'), true);
