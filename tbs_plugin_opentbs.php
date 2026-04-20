@@ -6064,38 +6064,50 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 	/**
 	 * Initialize information about header and footer files
+	 * Note : A first header or an even header can be saved but not displayed because of the options.  
+	 *        This function feeds only displayed headers and footer.
 	 */
 	function MsWord_InitHeaderFooter() {
-	
+
 		if ($this->MsWord_HeaderFooter!==false) return;
 
-		$types_ok = array('default' => true, 'first' => false, 'even' => false);
-		
+		$hf_options = array('default' => true, 'first' => false, 'even' => false);
+
 		// Is there a different header/footer for odd an even pages ?
+		// This option is set for the entire document.
 		$idx = $this->FileGetIdx('word/settings.xml');
-		if ($idx!==false) {		
-			$Txt = $this->TbsStoreGet($idx, 'GetHeaderFooterFile');
-			$types_ok['even'] = (strpos($Txt, '<w:evenAndOddHeaders/>')!==false);
+		if ($idx!==false) {
+			$Txt = $this->TbsStoreGet($idx, 'InitHeaderFooter');
+			$hf_options['even'] = (strpos($Txt, '<w:evenAndOddHeaders/>')!==false);
 			unset($Txt);
 		}
 
 		// Is there a different header/footer for the first page ?
+		// While this option is set for a section property (<w:sectPr>), it seems that
+		//  only the last section can have it, and thus only ther very first page of the document
+		//  can have a different header/footer, and not each section. 
 		$idx = $this->FileGetIdx('word/document.xml');
 		if ($idx===false) return false;
-		$Txt = $this->TbsStoreGet($idx, 'GetHeaderFooterFile');
-		$types_ok['first'] = (strpos($Txt, '<w:titlePg/>')!==false);
+		$Txt = $this->TbsStoreGet($idx, 'InitHeaderFooter');
+		$hf_options['first'] = (strpos($Txt, '<w:titlePg/>')!==false);
 
 		$places = array('header', 'footer');
 		$files = array();
 		$rels = $this->OpenXML_Rels_GetObj('word/document.xml', '');
-		
+
+		// Note : <w:headerReference> and <w:footerReference> are placed in each section property of the document <w:sectPr>.
+		// The document has at least one section
+		// The section property <w:sectPr> is placed at the end of the section, not the start.
+
+		// We scann each header/footer reference to a sub xml contents, 
+		//   regardless of the sections where they are found.
 		foreach ($places as $place) {
 			$p = 0;
-			$entity = 'w:' . $place . 'Reference';
+			$entity = 'w:' . $place . 'Reference'; // <w:headerReference> or <w:footerReference>
 			while ($loc = clsTbsXmlLoc::FindStartTag($Txt, $entity, $p)) {
 				$p = $loc->PosEnd;
 				$type = $loc->GetAttLazy('w:type');
-				if (isset($types_ok[$type]) && $types_ok[$type]) {
+				if (isset($hf_options[$type]) && $hf_options[$type]) {
 					$rid = $loc->GetAttLazy('r:id');
 					if (isset($rels->TargetLst[$rid])) {
 						$target = $rels->TargetLst[$rid];
@@ -6106,7 +6118,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		$this->MsWord_HeaderFooter = $files;
-	
+
 	}
 	
 	/**
