@@ -126,7 +126,7 @@ class clsOpenTBS extends clsTbsZip {
 	private $MsExcel_KeepRelative;
 	private $MsExcel_Formulas;
 	private $MsExcel_Sheets_WkbIdx;
-	private $MsWord_HeaderFooter;
+	private $MsWord_DispHeaderFooter;
 	private $MsWord_DocPrId;
 	private $OpenXmlMap;
 	private $_ModeSave;
@@ -722,7 +722,7 @@ class clsOpenTBS extends clsTbsZip {
 			switch ($this->ExtEquiv) {
 			case 'docx':
 				$x2 = intval($x2); // 0 by default
-				$file = $this->MsWord_GetHeaderFooterFile($Cmd, $x1, $x2);
+				$file = $this->MsWord_GetDispHeaderFooterFile($Cmd, $x1, $x2);
 				if ($file === false) return false;
 				break;
 			case 'odt': case 'ods':
@@ -744,8 +744,8 @@ class clsOpenTBS extends clsTbsZip {
 		
 			switch ($this->ExtEquiv) {
 			case 'docx':
-				$this->MsWord_InitHeaderFooter();
-				foreach ($this->MsWord_HeaderFooter as $info) {
+				$this->MsWord_InitDispHeaderFooter();
+				foreach ($this->MsWord_DispHeaderFooter as $info) {
 					$res[] = $info['file'];
 				}				
 				break;
@@ -963,7 +963,7 @@ class clsOpenTBS extends clsTbsZip {
 		$this->MsExcel_NoTBS = array(); // shared string containing no TBS field
 		$this->MsExcel_KeepRelative = array();
 		$this->MsExcel_Formulas = array();
-		$this->MsWord_HeaderFooter = false;
+		$this->MsWord_DispHeaderFooter = false;
 		$this->MsWord_DocPrId = 0;
 
 		$this->Ext_PrepareInfo(); // Set extension information
@@ -6067,9 +6067,9 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * Note : A first header or an even header can be saved but not displayed because of the options.  
 	 *        This function feeds only displayed headers and footer.
 	 */
-	function MsWord_InitHeaderFooter() {
+	function MsWord_InitDispHeaderFooter() {
 
-		if ($this->MsWord_HeaderFooter!==false) return;
+		if ($this->MsWord_DispHeaderFooter!==false) return;
 
 		$hf_options = array('default' => true, 'first' => false, 'even' => false);
 
@@ -6117,20 +6117,22 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			}
 		}
 
-		$this->MsWord_HeaderFooter = $files;
+		$this->MsWord_DispHeaderFooter = $files;
 
 	}
 	
 	/**
-	 * Retrieve the header/footer sub-file.
+	 * Retrieve the header/footer sub-files that are displayed.
+	 *
 	 * @param mixed $TbsCmd  OPENTBS_SELECT_HEADER or OPENTBS_SELECT_FOOTER.
 	 * @param mixed $TbsType OPENTBS_DEFAULT, OPENTBS_FIRST or OPENTBS_EVEN. 
-	 * @param int [$Offset] Since a DCX can have several sections, and each section can have its own header/footer, this options 
+	 * @param int   [$Offset] Since a DCX can have several sections, and each section can have its own header/footer, this options 
+	 *
 	 * @return mixed The name of the file of false if no file is found. 
 	 */
-	function MsWord_GetHeaderFooterFile($TbsCmd, $TbsType, $Offset = 0) {
+	function MsWord_GetDispHeaderFooterFile($TbsCmd, $TbsType, $Offset = 0) {
 
-		$this->MsWord_InitHeaderFooter();
+		$this->MsWord_InitDispHeaderFooter();
 
 		$Place = 'header';
 		if ($TbsCmd==OPENTBS_SELECT_FOOTER) {
@@ -6145,7 +6147,7 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 		}
 
 		$nb = 0;
-		foreach($this->MsWord_HeaderFooter as $info) {
+		foreach($this->MsWord_DispHeaderFooter as $info) {
 			if ( ($info['type']==$Type) && ($info['place']==$Place) ) {
 				if ($nb==$Offset) {
 					return $info['file'];
