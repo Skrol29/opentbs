@@ -7625,7 +7625,8 @@ class clsTbsXmlLoc {
 	public $pST_Src = false;    // Cached source of the start tag, false if not cached
 	public $pET_PosBeg = false; // Position of the begining of the end tag. False means the end tag has not been searched.
 
-	public $Parent = false; // Parent object
+	/** @var self|false Parent object */
+	public $Parent = false;
 
 	// For relative mode
 	public $rel_Txt = false;
