@@ -8,7 +8,7 @@
  * and retrieve the content of a zipped file which is not compressed.
  *
  * @version 1.12.3-beta
- * @date 2026-04-20
+ * @date 2026-04-23
  * @see     http://www.tinybutstrong.com/plugins.php
  * @author  Skrol29 http://www.tinybutstrong.com/onlyyou.html
  * @license LGPL-3.0
@@ -836,8 +836,8 @@ class clsOpenTBS extends clsTbsZip {
 				// We convert alias into short types
 				$alias = array(
 					'main'     => array('wordprocessingml.document.main+xml'),
-					'header'   => array('wordprocessingml.header+xml'),
-					'footer'   => array('wordprocessingml.footer+xml'),
+					'header'   => array('wordprocessingml.header+xml#CANCELED'), // special proces below
+					'footer'   => array('wordprocessingml.footer+xml#CANCELED'), // special proces below
 					'chart'    => array('drawingml.chart+xml'),
 					'slide'    => array('presentationml.slide+xml'),
 					'slidem'   => array('presentationml.slideMaster+xml'),
@@ -845,7 +845,7 @@ class clsOpenTBS extends clsTbsZip {
 					'comments' => array('presentationml.notesSlide+xml', 'wordprocessingml.comments+xml', 'spreadsheetml.comments+xml'),
 				);
 
-				$types_conv = array();
+				$types_conv = array(); // all xml types, included those converted from alias
 				if (in_array('all', $types)) {
 					$types = array_merge($types, array_keys($alias));
 				}
@@ -859,6 +859,20 @@ class clsOpenTBS extends clsTbsZip {
 				}
 
 				$files = $this->OpenXML_MapGetFiles($types_conv);
+
+				// Special process for header/footer docx, because some of them can be hidden contents, and should not be given in the result (see the function below for more details).
+				if ($this->ExtEquiv == 'docx') {
+					$sub_types = array_intersect($types, ['header', 'footer']);
+					if (count($sub_types) > 0) {
+						$this->MsWord_InitDispHeaderFooter();
+						foreach ($this->MsWord_DispHeaderFooter as $info) {
+							if (in_array($info['place'], $sub_types)) {
+								$files[] = $info['file'];
+							}
+						}
+					}
+				}
+
 
 			}
 
@@ -6066,6 +6080,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 	 * Initialize information about header and footer files
 	 * Note : A first header or an even header can be saved but not displayed because of the options.  
 	 *        This function feeds only displayed headers and footer.
+	 *        It is important to return only displayed contents because other contents may have old or unvalid TBS tags, that may produce
+	 *        error whe attempt to be merged automatically.
 	 */
 	function MsWord_InitDispHeaderFooter() {
 
@@ -6073,8 +6089,8 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 
 		$hf_options = array('default' => true, 'first' => false, 'even' => false);
 
-		// Is there a different header/footer for odd an even pages ?
-		// This option is set for the entire document.
+		// This option for different header/footer for odd an even pages
+		// It is set for the entire document.
 		$idx = $this->FileGetIdx('word/settings.xml');
 		if ($idx!==false) {
 			$Txt = $this->TbsStoreGet($idx, 'InitHeaderFooter');
@@ -6082,39 +6098,51 @@ If they are blank spaces, line beaks, or other unexpected characters, then you h
 			unset($Txt);
 		}
 
-		// Is there a different header/footer for the first page ?
-		// While this option is set for a section property (<w:sectPr>), it seems that
-		//  only the last section can have it, and thus only ther very first page of the document
-		//  can have a different header/footer, and not each section. 
+		// Retrieve the main contents source
 		$idx = $this->FileGetIdx('word/document.xml');
 		if ($idx===false) return false;
 		$Txt = $this->TbsStoreGet($idx, 'InitHeaderFooter');
-		$hf_options['first'] = (strpos($Txt, '<w:titlePg/>')!==false);
 
+		// Prepare
 		$places = array('header', 'footer');
-		$files = array();
+		$files = array(); // files found
 		$rels = $this->OpenXML_Rels_GetObj('word/document.xml', '');
 
-		// Note : <w:headerReference> and <w:footerReference> are placed in each section property of the document <w:sectPr>.
-		// The document has at least one section
-		// The section property <w:sectPr> is placed at the end of the section, not the start.
+		// Note : <w:headerReference> and <w:footerReference> are placed in each section property element (<w:sectPr>) of the document.
+		// The document has at least one section.
+		// The <w:sectPr> is placed at the end of its corresponding section, not the start.
 
-		// We scann each header/footer reference to a sub xml contents, 
-		//   regardless of the sections where they are found.
-		foreach ($places as $place) {
-			$p = 0;
-			$entity = 'w:' . $place . 'Reference'; // <w:headerReference> or <w:footerReference>
-			while ($loc = clsTbsXmlLoc::FindStartTag($Txt, $entity, $p)) {
-				$p = $loc->PosEnd;
-				$type = $loc->GetAttLazy('w:type');
-				if (isset($hf_options[$type]) && $hf_options[$type]) {
-					$rid = $loc->GetAttLazy('r:id');
-					if (isset($rels->TargetLst[$rid])) {
-						$target = $rels->TargetLst[$rid];
-						$files[] = array('file' => ('word/'.$target), 'type' => $type, 'place' => $place);
+		// We scann each section property <w:sectPr> in the document 
+		$sec_num = 0; // section number, (first is 1)
+		$p_sp = 0;
+		while ($loc_sp = clsTbsXmlLoc::FindElement($Txt, 'w:sectPr', $p_sp)) {
+
+			$p_sp = $loc_sp->PosEnd;
+			$sec_num++;
+
+			$sp_src = $loc_sp->GetInnerSrc(); // source of the <w:sectPr> element
+			// Option for a different header/footer for the first page (<w:titlePg/>).
+			// <w:titlePg/> must be placed in the <w:sectPr>, but even if Ms Word seems to set this option for entire document, the <w:titlePg/> can be present in different <w:sectPr>.
+			// It is consitent because, w:type="first" is present only in the first section.
+			$hf_options['first'] = (strpos($sp_src, '<w:titlePg/>') !== false);
+
+			// We scann each header/footer reference
+			foreach ($places as $place) {
+				$p_ref = 0;
+				$entity = 'w:' . $place . 'Reference'; // <w:headerReference> or <w:footerReference>
+				while ($loc_ref = clsTbsXmlLoc::FindStartTag($sp_src, $entity, $p_ref)) {
+					$p_ref = $loc_ref->PosEnd;
+					$type = $loc_ref->GetAttLazy('w:type');
+					if (isset($hf_options[$type]) && $hf_options[$type]) {
+						$rid = $loc_ref->GetAttLazy('r:id');
+						if (isset($rels->TargetLst[$rid])) {
+							$target = $rels->TargetLst[$rid];
+							$files[] = array('file' => ('word/'.$target), 'type' => $type, 'place' => $place, 'sec_num' => $sec_num);
+						}
 					}
 				}
 			}
+
 		}
 
 		$this->MsWord_DispHeaderFooter = $files;
